@@ -236,7 +236,7 @@ window.DiscountPurchaseModule = (function () {
                 <i class="far fa-clock me-1"></i>${p.dateStr || '-'}
               </div>
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="badge" style="background:#0f172a; color:#fff; font-size:12px; padding:4px 8px; border-radius:6px; font-weight:700;">${p.empName}</span>
+                <span class="badge" style="background:#ecfdf5; color:#047857; border:1.5px solid #a7f3d0; font-size:12.5px; padding:4px 10px; border-radius:8px; font-weight:800; box-shadow:0 1px 3px rgba(5,150,105,0.08);"><i class="fas fa-user-circle me-1" style="font-size:11.5px; opacity:0.85;"></i>${p.empName}</span>
                 <strong style="color:#1e293b; font-size:15.5px; word-break:break-all;">${p.itemName}</strong>
               </div>
               <div style="font-size:13px; color:#475569; margin-top:4px;">
@@ -332,7 +332,7 @@ window.DiscountPurchaseModule = (function () {
                   <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                     <td style="padding:14px 20px; color:#64748b; font-weight:500;">${item.dateStr || '-'}</td>
                     <td style="padding:14px 18px; font-weight:700; color:#1e293b;">
-                      <span class="badge" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; font-size:12px; padding:4px 8px; border-radius:6px;">${item.empName}</span>
+                      <span class="badge" style="background:#ecfdf5; color:#047857; border:1.5px solid #a7f3d0; font-size:12px; padding:4px 9px; border-radius:8px; font-weight:800;"><i class="fas fa-user-circle me-1" style="font-size:11px; opacity:0.85;"></i>${item.empName}</span>
                     </td>
                     <td style="padding:14px 20px; color:#334155; font-weight:600;">${item.itemName}</td>
                     <td style="padding:14px 20px; color:#15803d; font-weight:800; text-align:right; font-size:14.5px; font-family:'Outfit', sans-serif;">${(item.totalPrice || 0).toLocaleString()}원</td>
@@ -396,7 +396,10 @@ window.DiscountPurchaseModule = (function () {
   function openAddModal() {
     const currentUser = window.SheetsSync.getCurrentUser();
     if (!currentUser) {
-      alert("🚨 보안 안내: 화면 최상단의 '직원 로그인'을 먼저 진행해 주세요!");
+      alert("⚠️ 직원할인구매 신청을 위해 먼저 로그인해 주세요.");
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
       return;
     }
 
@@ -640,6 +643,9 @@ window.DiscountPurchaseModule = (function () {
 
     if (!confirm(`'${item.itemName}' (${(item.totalPrice||0).toLocaleString()}원) 구매 내역을 삭제하시겠습니까?`)) return;
 
+    if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+      window.SheetsSync.addDeletedId(id);
+    }
     purchases = purchases.filter(p => p.id !== id);
     window.SheetsSync.saveDiscountPurchases(purchases);
     render('module-content');
@@ -650,8 +656,6 @@ window.DiscountPurchaseModule = (function () {
     const canvas = document.getElementById('discountBarCanvas');
     if (!canvas) return;
     if (typeof Chart === 'undefined') return;
-
-    if (discountBarChartInstance) { discountBarChartInstance.destroy(); discountBarChartInstance = null; }
 
     const labels = [];
     const totals = [];
@@ -668,6 +672,11 @@ window.DiscountPurchaseModule = (function () {
     }
 
     const ctx = canvas.getContext('2d');
+    if (discountBarChartInstance) {
+      try { discountBarChartInstance.destroy(); } catch (e) {}
+      discountBarChartInstance = null;
+    }
+
     discountBarChartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -683,7 +692,7 @@ window.DiscountPurchaseModule = (function () {
         }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false, animation: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `  ${ctx.parsed.y.toLocaleString()}원` } } },
         scales: {
           x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' }, color: '#64748b' } },
@@ -698,8 +707,6 @@ window.DiscountPurchaseModule = (function () {
     if (!canvas) return;
     if (typeof Chart === 'undefined') return;
 
-    if (discountDonutChartInstance) { discountDonutChartInstance.destroy(); discountDonutChartInstance = null; }
-
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -711,29 +718,24 @@ window.DiscountPurchaseModule = (function () {
     const entries = Object.entries(staffMap).sort((a, b) => b[1] - a[1]);
     const totalAmount = entries.reduce((s, e) => s + e[1], 0);
 
-    if (entries.length === 0) {
-      const ctx = canvas.getContext('2d');
-      discountDonutChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels: ['데이터 없음'], datasets: [{ data: [1], backgroundColor: ['#f1f5f9'], borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-      return;
-    }
-
     const palette = ['#10b981','#3b82f6','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#f97316','#14b8a6','#a855f7','#64748b'];
-    const labels = entries.map(([name, amt]) => { const pct = totalAmount > 0 ? ((amt / totalAmount) * 100).toFixed(1) : 0; return `${name} (${pct}%)`; });
-    const data = entries.map(([, amt]) => amt);
-    const colors = entries.map((_, i) => palette[i % palette.length]);
+    const labels = entries.length === 0 ? ['데이터 없음'] : entries.map(([name, amt]) => { const pct = totalAmount > 0 ? ((amt / totalAmount) * 100).toFixed(1) : 0; return `${name} (${pct}%)`; });
+    const data = entries.length === 0 ? [1] : entries.map(([, amt]) => amt);
+    const colors = entries.length === 0 ? ['#f1f5f9'] : entries.map((_, i) => palette[i % palette.length]);
 
     const ctx = canvas.getContext('2d');
+    if (discountDonutChartInstance) {
+      try { discountDonutChartInstance.destroy(); } catch (e) {}
+      discountDonutChartInstance = null;
+    }
+
     discountDonutChartInstance = new Chart(ctx, {
       type: 'doughnut',
       data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff', hoverBorderWidth: 3, hoverOffset: 6 }] },
       options: {
-        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        responsive: true, maintainAspectRatio: false, cutout: '65%', animation: false,
         plugins: {
-          legend: { display: true, position: 'bottom', labels: { font: { size: 11, weight: '600' }, color: '#475569', padding: 12, boxWidth: 12, boxHeight: 12 } },
+          legend: { display: entries.length > 0, position: 'bottom', labels: { font: { size: 11, weight: '600' }, color: '#475569', padding: 12, boxWidth: 12, boxHeight: 12 } },
           tooltip: { callbacks: { label: ctx => { const val = ctx.parsed; const pct = totalAmount > 0 ? ((val / totalAmount) * 100).toFixed(1) : 0; return `  ${val.toLocaleString()}원 (${pct}%)`; } } }
         }
       }

@@ -50,6 +50,11 @@ window.App = (function () {
 
     renderActiveModule();
 
+    // ⚡ 앱 기동 즉시 클라우드 최신 데이터 동기화 (아이폰/카톡/PC 첫 접속 즉각 반영)
+    if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
+      window.SheetsSync.pullFromCloud();
+    }
+
     // 🚀 [Option A] 자동 버전 감지 및 스마트 무중단 자동 업데이트 가동
     startAutoUpdateChecker();
   }
@@ -161,25 +166,47 @@ function setupEventListeners() {
     if (!nav) return;
 
     const currUser = window.SheetsSync.getCurrentUser();
-    const isDirector = currUser && currUser.role === '약국장';
+    if (!currUser) {
+      nav.innerHTML = `
+        <div style="padding: 28px 14px; text-align: center; color: #94a3b8; font-size: 13px; line-height: 1.6;">
+          <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(255,255,255,0.06); color: #cbd5e1; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; font-size: 20px;">
+            <i class="fas fa-lock"></i>
+          </div>
+          <strong style="color: #ffffff; font-size: 14.5px; display: block; margin-bottom: 4px;">사내 인트라넷 보안 잠금</strong>
+          직원 로그인 완료 시<br>개인별 맞춤 메뉴가 열립니다.
+          <button type="button" onclick="App.showLoginModal()" style="margin-top: 16px; width: 100%; padding: 10px; border-radius: 10px; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; font-weight: 800; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.35);">
+            <i class="fas fa-sign-in-alt me-1"></i> 직원 로그인하기
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
     const badges = computeNotificationBadges();
 
-    // 맞춤 허용 탭 목록 (null 안전성 확보)
-    const allowed = (currUser && currUser.allowedTabs) ? currUser.allowedTabs : [
+    // 맞춤 허용 탭 목록 (개인별 권한)
+    const allowed = currUser.allowedTabs || [
       'notices-module', 'worklog-module', 'schedule-module',
       'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
 
-    let html = `
-      <button class="menu-item ${activeModule === 'notices' ? 'active' : ''}" data-module="notices" onclick="App.switchModule('notices', true)">
-        <div class="menu-icon-wrapper">
-          <i class="fas fa-bullhorn"></i>
-          ${badges.notices ? `<span class="menu-item-badge">${badges.notices}</span>` : ''}
-        </div>
-        <span>공지사항 & SOP</span>
-      </button>
+    let html = '';
 
-      ${(isDirector || allowed.includes('worklog-module')) ? `
+    if (isDirector || allowed.includes('notices-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'notices' ? 'active' : ''}" data-module="notices" onclick="App.switchModule('notices', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-bullhorn"></i>
+            ${badges.notices ? `<span class="menu-item-badge">${badges.notices}</span>` : ''}
+          </div>
+          <span>공지사항 & SOP</span>
+        </button>
+      `;
+    }
+
+    if (isDirector || allowed.includes('worklog-module')) {
+      html += `
         <button class="menu-item ${activeModule === 'worklog' ? 'active' : ''}" data-module="worklog" onclick="App.switchModule('worklog', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-pen-fancy"></i>
@@ -187,9 +214,11 @@ function setupEventListeners() {
           </div>
           <span>업무일지 & 인수인계</span>
         </button>
-      ` : ''}
+      `;
+    }
 
-      ${(isDirector || allowed.includes('schedule-module')) ? `
+    if (isDirector || allowed.includes('schedule-module')) {
+      html += `
         <button class="menu-item ${activeModule === 'schedule' ? 'active' : ''}" data-module="schedule" onclick="App.switchModule('schedule', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-calendar-alt"></i>
@@ -197,9 +226,11 @@ function setupEventListeners() {
           </div>
           <span>월간 근무 스케줄</span>
         </button>
-      ` : ''}
+      `;
+    }
 
-      ${(isDirector || allowed.includes('annual-leave-module')) ? `
+    if (isDirector || allowed.includes('annual-leave-module')) {
+      html += `
         <button class="menu-item ${activeModule === 'annual-leave' ? 'active' : ''}" data-module="annual-leave" onclick="App.switchModule('annual-leave', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-umbrella-beach"></i>
@@ -207,9 +238,11 @@ function setupEventListeners() {
           </div>
           <span>연차대장 & 달력</span>
         </button>
-      ` : ''}
+      `;
+    }
 
-      ${(isDirector || allowed.includes('discount-purchase-module')) ? `
+    if (isDirector || allowed.includes('discount-purchase-module')) {
+      html += `
         <button class="menu-item ${activeModule === 'discount-purchase' ? 'active' : ''}" data-module="discount-purchase" onclick="App.switchModule('discount-purchase', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-shopping-bag"></i>
@@ -217,26 +250,30 @@ function setupEventListeners() {
           </div>
           <span>직원할인구매대장</span>
         </button>
-      ` : ''}
+      `;
+    }
 
-      ${(isDirector || allowed.includes('rules-module')) ? `
+    if (isDirector || allowed.includes('rules-module')) {
+      html += `
         <button class="menu-item ${activeModule === 'rules' ? 'active' : ''}" data-module="rules" onclick="App.switchModule('rules', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-book-medical"></i>
           </div>
           <span>취업규칙 전문</span>
         </button>
-      ` : ''}
+      `;
+    }
 
-      ${(isDirector || allowed.includes('emergency-contacts-module')) ? `
+    if (isDirector || allowed.includes('emergency-contacts-module')) {
+      html += `
         <button class="menu-item ${activeModule === 'emergency-contacts' ? 'active' : ''}" data-module="emergency-contacts" onclick="App.switchModule('emergency-contacts', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-phone-alt text-warning"></i>
           </div>
           <span>약국 운영 지원 연락망</span>
         </button>
-      ` : ''}
-    `;
+      `;
+    }
 
     // 약국장 전용 보안 4대 메뉴
     if (isDirector) {
@@ -425,8 +462,8 @@ function setupEventListeners() {
       return;
     }
 
-    if (target.passcode !== pass) {
-      alert(`❌ 비밀번호가 올바르지 않습니다. (${target.name} 님의 비밀번호를 다시 확인해 주세요)`);
+    if (!verifyEmployeePasscode(target, pass)) {
+      alert(`❌ 비밀번호가 올바르지 않습니다.\n(초기 비밀번호는 ${target.name} 님의 휴대폰 뒷 4자리 또는 1234입니다)`);
       return;
     }
 
@@ -555,6 +592,12 @@ function setupEventListeners() {
   }
 
   function renderActiveModule() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) {
+      renderLoginGateway();
+      return;
+    }
+
     switch (activeModule) {
       case 'notices':
         if (window.NoticesModule) window.NoticesModule.render('module-content');
@@ -590,6 +633,166 @@ function setupEventListeners() {
         if (window.ApprovalModule) window.ApprovalModule.render('module-content');
         break;
     }
+  }
+
+  function renderLoginGateway() {
+    const container = document.getElementById('module-content');
+    if (!container) return;
+
+    const titleEl = document.getElementById('active-module-title');
+    if (titleEl) titleEl.innerText = '🔒 사내 인트라넷 로그인';
+
+    const emps = window.SheetsSync.getEmployees() || [];
+    const director = emps.filter(e => e.role === '약국장');
+    const pharmacists = emps.filter(e => e.role === '근무약사');
+    const staff = emps.filter(e => e.role === '일반직원' || e.role === '예비인력');
+
+    container.innerHTML = `
+      <div style="max-width: 580px; margin: 30px auto; padding: 36px 28px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 24px; box-shadow: 0 20px 45px -10px rgba(15,23,42,0.1); text-align: center;">
+        
+        <div style="width: 72px; height: 72px; margin: 0 auto 16px auto; border-radius: 18px; background: #f8fafc; border: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 6px;">
+          <img src="logo.jpg" alt="신세계약국 로고" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+        </div>
+
+        <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 6px; letter-spacing: -0.5px;">
+          신세계약국 스마트 인트라넷
+        </h2>
+        <p style="font-size: 13.5px; color: #64748b; margin-bottom: 24px;">
+          🔒 사내 보안 시스템: 직원 본인 계정으로 로그인해 주세요.
+        </p>
+
+        <!-- 빠른 계정 선택 -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 16px; margin-bottom: 24px; text-align: left;">
+          
+          <div style="font-size: 12px; font-weight: 800; color: #dc2626; margin-bottom: 8px;">👑 대표 약국장</div>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            ${director.map(e => `
+              <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border: none; border-radius: 12px; font-size: 13px; padding: 7px 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 6px rgba(220,38,38,0.25);">
+                🏆 ${e.name} (${e.role})
+              </button>
+            `).join('')}
+          </div>
+
+          <div style="font-size: 12px; font-weight: 800; color: #2563eb; margin-bottom: 8px;">👨‍⚕️ 근무약사</div>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            ${pharmacists.map(e => `
+              <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; border-radius: 12px; font-size: 13px; padding: 6px 12px; font-weight: 700; cursor: pointer;">
+                👨‍⚕️ ${e.name}
+              </button>
+            `).join('')}
+          </div>
+
+          <div style="font-size: 12px; font-weight: 800; color: #059669; margin-bottom: 8px;">👨‍💼 일반직원 및 인력</div>
+          <div class="d-flex flex-wrap gap-2">
+            ${staff.map(e => `
+              <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: #f0fdf4; color: #15803d; border: 1.5px solid #bbf7d0; border-radius: 12px; font-size: 13px; padding: 6px 12px; font-weight: 700; cursor: pointer;">
+                👨‍💼 ${e.name} (${e.position || e.role})
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- 로그인 폼 -->
+        <form onsubmit="App.handleGatewayLoginSubmit(event)" style="text-align: left;">
+          <input type="hidden" id="gw-login-empid" value="">
+
+          <div class="mb-3">
+            <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+              선택된 직원 계정
+            </label>
+            <input type="text" id="gw-login-name" class="form-control" readonly placeholder="위에서 본인 이름을 터치해 주세요" style="height: 46px; font-size: 14px; font-weight: 700; background: #f1f5f9; border-radius: 12px; border: 1.5px solid #cbd5e1;" required>
+          </div>
+
+          <div class="mb-4">
+            <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+              비밀번호 입력 <span style="font-weight: normal; color: #94a3b8; font-size: 12px;">(초기 번호 또는 설정한 번호)</span>
+            </label>
+            <input type="password" id="gw-login-passcode" class="form-control" placeholder="비밀번호를 입력하세요" style="height: 46px; font-size: 16px; border-radius: 12px; border: 1.5px solid #cbd5e1; letter-spacing: 2px;" required>
+          </div>
+
+          <button type="submit" style="width: 100%; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; font-size: 16px; font-weight: 800; border: none; box-shadow: 0 4px 14px rgba(16,185,129,0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fas fa-sign-in-alt"></i> 로그인 및 인트라넷 입장
+          </button>
+        </form>
+
+      </div>
+    `;
+  }
+
+  function quickSelectGatewayLogin(empId) {
+    const emps = window.SheetsSync.getEmployees() || [];
+    const emp = emps.find(e => e.id === empId);
+    if (!emp) return;
+
+    const idInput = document.getElementById('gw-login-empid');
+    const nameInput = document.getElementById('gw-login-name');
+    const passInput = document.getElementById('gw-login-passcode');
+
+    if (idInput) idInput.value = emp.id;
+    if (nameInput) nameInput.value = `${emp.name} (${emp.role} - ${emp.position || ''})`;
+
+    document.querySelectorAll('.gw-emp-btn').forEach(btn => {
+      btn.style.outline = 'none';
+      btn.style.boxShadow = '';
+    });
+    const activeBtn = document.getElementById('gw-emp-btn-' + emp.id);
+    if (activeBtn) {
+      activeBtn.style.outline = '3px solid #059669';
+      activeBtn.style.boxShadow = '0 0 0 4px rgba(5,150,105,0.2)';
+    }
+
+    if (passInput) {
+      passInput.value = '';
+      passInput.focus();
+    }
+  }
+
+  function verifyEmployeePasscode(emp, inputPass) {
+    if (!emp || !inputPass) return false;
+    const p = String(inputPass).trim();
+    const storedPass = String(emp.passcode || '').trim();
+    const phoneDigits = String(emp.phone || '').replace(/[^0-9]/g, '');
+    const phoneLast4 = phoneDigits.length >= 4 ? phoneDigits.slice(-4) : '';
+    const phoneLast6 = phoneDigits.length >= 6 ? phoneDigits.slice(-6) : '';
+
+    // 1. 설정된 비밀번호 일치 (예: 0402, 367900 등)
+    if (storedPass && p === storedPass) return true;
+    // 2. 전화번호 뒷 4자리 일치 (예: 권명주 0402, 양윤지 9807, 이승학 4293 등)
+    if (phoneLast4 && p === phoneLast4) return true;
+    // 3. 약국장 전용 6자리 (367900) 또는 전화번호 뒷 6자리 일치
+    if (emp.role === '약국장' && (p === '367900' || (phoneLast6 && p === phoneLast6))) return true;
+    // 4. 초기 마스터 범용 번호 (1234) 호환
+    if (p === '1234') return true;
+
+    return false;
+  }
+
+  function handleGatewayLoginSubmit(e) {
+    e.preventDefault();
+    const empId = document.getElementById('gw-login-empid').value;
+    const pass = document.getElementById('gw-login-passcode').value.trim();
+
+    if (!empId) {
+      alert('위에서 본인의 이름을 먼저 선택해 주세요.');
+      return;
+    }
+
+    const emps = window.SheetsSync.getEmployees() || [];
+    const target = emps.find(e => e.id === empId);
+    if (!target) {
+      alert('직원 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    if (!verifyEmployeePasscode(target, pass)) {
+      alert(`❌ 비밀번호가 올바르지 않습니다.\n(초기 비밀번호는 ${target.name} 님의 휴대폰 뒷 4자리 또는 1234입니다)`);
+      return;
+    }
+
+    window.SheetsSync.setCurrentUser(target);
+    renderSidebarNavigation();
+    renderUserHeader();
+    checkPendingRejectionNotice(true, target);
   }
 
   function switchModule(moduleName, isUserAction = false) {
@@ -731,7 +934,7 @@ function setupEventListeners() {
       rows.push(['[ 2. 일반직원 급여 정산표 ]']);
       rows.push(['직원명', '직무', '기준시급(원)', '기본월급(원)', '비과세 식대(원)', '초과수당(원)', '공제삭감(원)', '조정반영 세전총급여(원)']);
 
-      const staffMembers = employees.filter(e => !e.role.includes('약사') && e.role !== '약국장');
+      const staffMembers = employees.filter(e => !e.role.includes('약사') && e.role !== '약국장' && e.role !== '예비인력' && e.name !== '이정은');
       const allAdjustments = window.SheetsSync.getOvertimeAdjustments ? window.SheetsSync.getOvertimeAdjustments() : {};
       const monthAdj = allAdjustments[monthKey] || {};
 
@@ -1187,22 +1390,8 @@ function writeSheetData(sheet, dataList) {
             return;
           }
           if (storedVersion !== data.version) {
-            // 배포된 새 버전 감지!
-            // 사용자가 모달에서 타이핑 또는 작성 중인지 확인하여 안전할 때만 갱신
-            const openModals = document.querySelectorAll('.modal-overlay[style*="flex"], .modal-overlay[style*="block"]');
-            const isTyping = openModals.length > 0;
-            
-            if (!isTyping) {
-              localStorage.setItem('ssg_app_version', data.version);
-              if ('caches' in window) {
-                try {
-                  const keys = await caches.keys();
-                  await Promise.all(keys.map(k => caches.delete(k)));
-                } catch(e) {}
-              }
-              // 최신 버전으로 새로고침
-              window.location.reload(true);
-            }
+            localStorage.setItem('ssg_app_version', data.version);
+            console.log("ℹ️ 새 버전 배포 감지:", data.version);
           }
         }
       }
@@ -1214,16 +1403,35 @@ function writeSheetData(sheet, dataList) {
   }
 
   function startAutoUpdateChecker() {
-    // 1. 앱 기동 3초 후 1차 체크
-    setTimeout(() => checkAppUpdate(), 3000);
-    // 2. 다른 앱이나 탭에서 약국 앱으로 돌아올 때(Focus) 체크
-    window.addEventListener('focus', () => checkAppUpdate());
-    // 3. 60초마다 백그라운드 자동 체크
-    setInterval(() => checkAppUpdate(), 60000);
+    // 1. 앱 기동 2초 후 1차 체크 및 클라우드 동기화
+    setTimeout(() => {
+      checkAppUpdate();
+      if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
+        window.SheetsSync.pullFromCloud();
+      }
+    }, 2000);
+
+    // 2. 다른 앱이나 탭에서 약국 앱으로 돌아올 때(Focus) 체크 및 클라우드 동기화
+    window.addEventListener('focus', () => {
+      checkAppUpdate();
+      if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
+        window.SheetsSync.pullFromCloud();
+      }
+    });
+
+    // 3. 백그라운드 자동 동기화 & 버전 체크 (배터리 및 트래픽 절약형 45초 주기)
+    setInterval(() => {
+      checkAppUpdate();
+      if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
+        window.SheetsSync.pullFromCloud();
+      }
+    }, 45000);
   }
 
   return {
     init,
+    renderActiveModule,
+    getActiveModule: () => activeModule,
     renderSidebarNavigation,
     renderUserHeader,
     quickSelectLogin,
@@ -1250,7 +1458,9 @@ function writeSheetData(sheet, dataList) {
     saveNewEmployee,
     openLeaveModal,
     submitLeaveRequest,
-    checkPendingRejectionNotice
+    checkPendingRejectionNotice,
+    quickSelectGatewayLogin,
+    handleGatewayLoginSubmit
   };
 })();
 

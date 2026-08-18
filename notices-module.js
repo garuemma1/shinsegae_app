@@ -160,11 +160,16 @@ window.NoticesModule = (function () {
   }
 
   function renderNoticesList(notices) {
-    if (notices.length === 0) {
+    let list = notices;
+    if (selectedCategory && selectedCategory !== 'ALL') {
+      list = notices.filter(n => n.category === selectedCategory);
+    }
+
+    if (list.length === 0) {
       return `
         <div class="empty-state py-8 text-center text-muted col-span-full">
           <i class="fas fa-bullhorn fs-2 mb-2"></i>
-          <p>등록되거나 검색된 공지사항이 없습니다.</p>
+          <p>선택하신 카테고리에 해당하는 공지사항이 없습니다.</p>
         </div>
       `;
     }
@@ -172,8 +177,15 @@ window.NoticesModule = (function () {
     const currUser = window.SheetsSync.getCurrentUser();
     const isDirector = currUser && (currUser.role === '약국장' || currUser.id === 'emp_1');
 
-    // Pinned notices first
-    const sorted = [...notices].sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+    // 1단계: 📌 최상단 고정글 우선, 2단계: 최신 작성일시(시간순) 내림차순 정렬
+    const sorted = [...list].sort((a, b) => {
+      const pinA = a.isPinned ? 1 : 0;
+      const pinB = b.isPinned ? 1 : 0;
+      if (pinB !== pinA) return pinB - pinA;
+      const timeA = a.createdAt ? Number(a.createdAt) : (new Date(String(a.date || 0).replace(/-/g, '/')).getTime() || 0);
+      const timeB = b.createdAt ? Number(b.createdAt) : (new Date(String(b.date || 0).replace(/-/g, '/')).getTime() || 0);
+      return timeB - timeA;
+    });
 
     return sorted.map(notice => {
       const isMyNotice = currUser && (
@@ -236,25 +248,33 @@ window.NoticesModule = (function () {
 
   function filterCategory(cat, btnElem) {
     selectedCategory = cat;
-    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-    if (btnElem) {
-      btnElem.classList.add('active');
-    }
+    document.querySelectorAll('.cat-btn').forEach(b => {
+      const text = b.innerText;
+      if ((cat === 'ALL' && text.includes('전체')) || (cat !== 'ALL' && text.includes(cat))) {
+        b.classList.add('active');
+      } else {
+        b.classList.remove('active');
+      }
+    });
     filterNotices();
   }
 
   function openCreateModal() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) {
+      alert('⚠️ 공지사항 작성을 위해 먼저 로그인해 주세요.');
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
+
     const form = document.getElementById('notice-form');
     if (form) form.reset();
 
-    const currUser = window.SheetsSync.getCurrentUser();
     const authorInput = document.getElementById('form-notice-author');
     if (authorInput) {
-      if (currUser) {
-        authorInput.value = currUser.name;
-      } else {
-        authorInput.value = '문성도';
-      }
+      authorInput.value = currUser.name;
     }
 
     const modal = document.getElementById('notice-modal');
@@ -269,6 +289,13 @@ window.NoticesModule = (function () {
   function saveNotice(e) {
     e.preventDefault();
     const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) {
+      alert('⚠️ 로그인이 필요한 기능입니다. 먼저 로그인해 주세요.');
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
     const title = document.getElementById('form-notice-title').value.trim();
     const category = document.getElementById('form-notice-category').value;
     let author = document.getElementById('form-notice-author').value.trim();
@@ -282,7 +309,7 @@ window.NoticesModule = (function () {
     if (!data.notices) data.notices = [];
 
     const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     const newNotice = {
       id: 'not_' + Date.now(),
@@ -293,7 +320,8 @@ window.NoticesModule = (function () {
       authorName: currUser ? currUser.name : author,
       isPinned,
       content,
-      date: dateStr
+      date: dateStr,
+      createdAt: Date.now()
     };
 
     data.notices.unshift(newNotice);
@@ -337,8 +365,11 @@ window.NoticesModule = (function () {
 
     if (!confirm(confirmMsg)) return;
 
-    data.notices = data.notices.filter(n => n.id !== id);
-    window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.NOTICES, data.notices);
+    if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+      window.SheetsSync.addDeletedId(id);
+    }
+    data.notices = (data.notices || []).filter(n => n.id !== id);
+    window.SheetsSync.saveNotices(data.notices);
     render('module-content');
   }
 
@@ -346,15 +377,26 @@ window.NoticesModule = (function () {
   function initNoticesChart({ totalCount, urgentCount, dispensingCount, hrCount }) {
     if (typeof Chart === 'undefined') return;
     const ctx = document.getElementById('noticesDonutCanvas');
-    if (!ctx) return;
-    if (noticeChartInst.donut) noticeChartInst.donut.destroy();
+    if (noticeChartInst.donut) {
+      try { noticeChartInst.donut.destroy(); } catch (e) {}
+      noticeChartInst.donut = null;
+    }
+
     noticeChartInst.donut = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: ['긴급/근무', '조제/투약', '인사/휴가', '기타'],
-        datasets: [{ data: [urgentCount, dispensingCount, hrCount, Math.max(0, totalCount - urgentCount - dispensingCount - hrCount)], backgroundColor: ['#f59e0b','#3b82f6','#8b5cf6','#10b981'] }]
+        datasets: [{ 
+          data: [urgentCount, dispensingCount, hrCount, Math.max(0, totalCount - urgentCount - dispensingCount - hrCount)], 
+          backgroundColor: ['#f59e0b','#3b82f6','#8b5cf6','#10b981'] 
+        }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        animation: false,
+        plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } 
+      }
     });
   }
 

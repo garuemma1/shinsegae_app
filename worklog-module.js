@@ -18,22 +18,61 @@ window.WorklogModule = (function () {
     const currUser = window.SheetsSync.getCurrentUser(); // 현재 로그인한 사용자 정보 가져오기
     const logs = window.SheetsSync.getWorklogs() || [];
 
-    // 1. 진행 중인 업무 (PENDING 상태) - 상단 게시판용
-    const pendingTasks = logs.filter(l => l.status === 'PENDING');
+    function getLogMs(log) {
+      if (!log) return 0;
+      // 1. id에 고유 타임스탬프가 있으면 id 기반 초정밀 정렬
+      if (log.id && typeof log.id === 'string' && log.id.startsWith('task_')) {
+        const idNum = parseInt(log.id.replace('task_', ''), 10);
+        if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
+      }
+      const str = log.createdAt || log.date || '';
+      if (!str) return 0;
+      const s = String(str).trim().replace(/-/g, '/');
+      const ms = new Date(s).getTime();
+      return isNaN(ms) ? (new Date(str).getTime() || 0) : ms;
+    }
+
+    function formatLogDateTime(task) {
+      if (!task) return '';
+      if (task.createdAt && task.createdAt.length >= 16) {
+        return task.createdAt.substring(5, 16); // '08-18 11:54'
+      }
+      if (task.createdAt && task.createdAt.length >= 5) {
+        return task.createdAt.substring(5);
+      }
+      if (task.id && typeof task.id === 'string' && task.id.startsWith('task_')) {
+        const ts = parseInt(task.id.replace('task_', ''), 10);
+        if (!isNaN(ts) && ts > 1000000000000) {
+          const d = new Date(ts);
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const h = String(d.getHours()).padStart(2, '0');
+          const min = String(d.getMinutes()).padStart(2, '0');
+          return `${m}-${day} ${h}:${min}`;
+        }
+      }
+      return (task.date || '').substring(5);
+    }
+
+    // 1. 진행 중인 업무 (PENDING 상태) - 가장 최근 입력한 글이 무조건 최상단(1등)에 오도록 완벽 정렬!
+    const pendingTasks = logs
+      .filter(l => l.status === 'PENDING' || !l.status)
+      .sort((a, b) => getLogMs(b) - getLogMs(a));
     
     // 2. 당월 달력용 데이터 (완료된 것 + 당일 등록된 것 모두 포함)
     const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     const monthLogs = logs.filter(l => (l.date || '').startsWith(monthPrefix));
 
-   // 3. 최근 15일 업무 피드 데이터 (가장 최근 글이 위로 오도록 정렬)
+    // 3. 최근 15일 업무 피드 데이터 (가장 최근 글이 위로 오도록 정렬 - 아이폰/갤럭시 100% 호환)
     const todayMs = new Date().getTime();
-    const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
+    const fifteenDaysMs = 20 * 24 * 60 * 60 * 1000;
     const sortedLogs = [...logs]
       .filter(log => {
-        const logDateMs = new Date(log.createdAt || log.date).getTime();
-        return Math.abs(todayMs - logDateMs) <= fifteenDaysMs; // 기준일 앞뒤 15일 이내만 표시
+        const logDateMs = getLogMs(log);
+        if (logDateMs === 0) return true; // 날짜 상관없이 데이터 유실 방지
+        return Math.abs(todayMs - logDateMs) <= fifteenDaysMs;
       })
-      .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+      .sort((a, b) => getLogMs(b) - getLogMs(a));
 
     let html = `
       <div class="module-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
@@ -49,7 +88,6 @@ window.WorklogModule = (function () {
         <div class="d-flex align-items-center gap-3 flex-wrap mt-2">
           
           <!-- 🔍 통합 검색창 -->
-          <!-- 🔍 입체감 있는 화이트 톤 검색창 -->
           <div style="display:flex; align-items:center; background:#ffffff; border:2px solid #e2e8f0; border-radius:12px; padding:6px; width:310px; box-shadow:0 4px 12px rgba(0,0,0,0.06); transition:all 0.2s;" onfocusin="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 4px rgba(59,130,246,0.15)';" onfocusout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)';">
             <input type="text" id="wl-search-input" placeholder="🔍 약 이름, 품절약 검색..." onkeypress="if(event.key==='Enter') WorklogModule.executeSearch()" style="border:none; background:#f1f5f9; border-radius:8px; outline:none; padding:10px 14px; width:100%; font-size:14.5px; color:#0f172a; font-weight:700; transition:background 0.2s;" onfocus="this.style.background='#ffffff'" onblur="this.style.background='#f1f5f9'">
             <button type="button" onclick="WorklogModule.executeSearch()" style="background:#2563eb; border:none; border-radius:8px; color:#ffffff; width:40px; height:40px; flex-shrink:0; display:flex; justify-content:center; align-items:center; cursor:pointer; margin-left:6px; box-shadow:0 2px 4px rgba(37,99,235,0.2); transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
@@ -70,7 +108,7 @@ window.WorklogModule = (function () {
           <h3 style="font-size:16px; font-weight:800; margin:0; color:#1e40af;">
             🚨 미해결 업무 및 품절 현황 <span class="badge bg-danger ms-2" style="border-radius:10px;">${pendingTasks.length}건</span>
           </h3>
-          <span style="font-size:12px; color:#64748b;">처리가 완료되면 우측 체크박스를 눌러주세요.</span>
+          <span style="font-size:12px; color:#64748b;">가장 최근 등록된 순서대로 정렬됩니다.</span>
         </div>
         
         <div class="table-responsive">
@@ -78,9 +116,9 @@ window.WorklogModule = (function () {
             <thead style="background:#f1f5f9; color:#475569; font-size:13px;">
               <tr>
                 <th style="padding:12px 24px; width:10%;">태그</th>
-                <th style="padding:12px 10px; width:50%;">내용 및 사진</th>
-                <th style="padding:12px 10px; width:15%;">등록일 (작성자)</th>
-                <th style="padding:12px 24px; width:20%; text-align:right;">완료 처리</th>
+                <th style="padding:12px 10px; width:48%;">내용 및 사진</th>
+                <th style="padding:12px 10px; width:18%;">등록일시 (작성자)</th>
+                <th style="padding:12px 24px; width:24%; text-align:right;">완료 처리</th>
               </tr>
             </thead>
             <tbody>
@@ -102,8 +140,10 @@ window.WorklogModule = (function () {
                     </div>
                   </td>
                   <td style="padding:14px 10px;">
-                    <div style="font-size:12px; color:#64748b;">${task.date.substring(5)}</div>
-                    <div style="font-size:13.5px; font-weight:800; color:#334155;">${task.authorName}</div>
+                    <div style="font-size:12px; font-weight:700; color:#2563eb; display:flex; align-items:center; gap:4px;">
+                      <i class="far fa-clock" style="font-size:11px;"></i> ${formatLogDateTime(task)}
+                    </div>
+                    <div style="font-size:13.5px; font-weight:800; color:#334155; margin-top:2px;">${task.authorName}</div>
                   </td>
                   <td style="padding:14px 20px; text-align:right;">
                     <button class="btn btn-sm btn-outline-success font-bold" onclick="WorklogModule.completeTask('${task.id}')" style="border-radius:8px; padding:6px 14px; font-size:13px;">
@@ -161,10 +201,17 @@ window.WorklogModule = (function () {
                      <span style="font-size:14.5px; font-weight:800; color:#1e293b;"><i class="fas fa-user-edit me-1" style="color:#94a3b8;"></i>${log.authorName}</span>
                      <span style="font-size:12px; color:#64748b; background:#f8fafc; padding:3px 8px; border-radius:6px; border:1px solid #e2e8f0;"><i class="far fa-clock me-1"></i>${log.createdAt || log.date}</span>
                    </div>
-                   ${isCompleted 
-                     ? `<span style="font-size:12px; font-weight:700; color:#16a34a; background:#dcfce7; padding:4px 8px; border-radius:6px; border:1px solid #bbf7d0;">✅ 해결완료 (${log.completedBy})</span>` 
-                     : `<span style="font-size:12px; font-weight:700; color:#ef4444; background:#fee2e2; padding:4px 8px; border-radius:6px; border:1px solid #fecdd3;">🚨 미해결</span>`
-                   }
+                    <div class="d-flex align-items-center gap-2">
+                      ${isCompleted 
+                        ? `<span style="font-size:12px; font-weight:700; color:#16a34a; background:#dcfce7; padding:4px 8px; border-radius:6px; border:1px solid #bbf7d0;">✅ 해결완료 (${log.completedBy})</span>` 
+                        : `<span style="font-size:12px; font-weight:700; color:#ef4444; background:#fee2e2; padding:4px 8px; border-radius:6px; border:1px solid #fecdd3;">🚨 미해결</span>`
+                      }
+                      ${(currUser && (currUser.role === '약국장' || currUser.id === 'emp_1' || log.authorName === currUser.name)) ? `
+                        <button type="button" class="btn btn-sm text-danger" onclick="WorklogModule.deleteTask('${log.id}')" style="background:#fff1f2; border:1px solid #fecdd3; padding:2px 8px; border-radius:6px; font-size:11.5px; font-weight:700;" title="업무일지 삭제">
+                          <i class="fas fa-trash-alt"></i> 삭제
+                        </button>
+                      ` : ''}
+                    </div>
                  </div>
                  
                  <!-- 본문 내용 및 콤팩트 사진 링크 -->
@@ -385,15 +432,21 @@ window.WorklogModule = (function () {
       }
     }
 
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const fullCreatedAt = `${dateStr} ${timeStr}`;
+
     const newLog = {
       id: 'task_' + Date.now(),
-      date: new Date().toISOString().split('T')[0],
+      date: dateStr,
       authorName: curr.name,
       tag: tag,
       content: content,
       imageUrl: imageUrl,
       status: 'PENDING',
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      createdAt: fullCreatedAt,
       checkedBy: [] // 📌 신규 등록 시 확인자 배열 초기화
     };
 
@@ -446,7 +499,46 @@ window.WorklogModule = (function () {
     }
   }
 
-  function showCreateModal() { document.getElementById('worklog-create-modal').style.display = 'flex'; }
+  function deleteTask(id) {
+    const curr = window.SheetsSync.getCurrentUser();
+    if (!curr) { alert("로그인이 필요합니다."); return; }
+
+    const logs = window.SheetsSync.getWorklogs() || [];
+    const target = logs.find(l => l.id === id);
+    if (!target) return;
+
+    const isDirector = curr.role === '약국장' || curr.id === 'emp_1';
+    const isMyLog = target.authorName === curr.name;
+
+    if (!isDirector && !isMyLog) {
+      alert("🚨 본인이 작성한 업무일지만 삭제할 수 있습니다.\n(약국장은 모든 업무일지를 삭제할 수 있습니다)");
+      return;
+    }
+
+    if (!confirm(`정말로 이 업무일지를 삭제하시겠습니까?\n\n작성자: ${target.authorName}\n내용: ${(target.content || '').substring(0, 30)}...`)) {
+      return;
+    }
+
+    if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+      window.SheetsSync.addDeletedId(id);
+    }
+    const cleanLogs = logs.filter(l => l.id !== id);
+    window.SheetsSync.saveWorklogs(cleanLogs);
+    render('module-content');
+    alert("업무일지가 성공적으로 삭제되었습니다.");
+  }
+
+  function showCreateModal() {
+    const curr = window.SheetsSync.getCurrentUser();
+    if (!curr) {
+      alert("⚠️ 업무 등록을 위해 먼저 로그인해 주세요.");
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
+    document.getElementById('worklog-create-modal').style.display = 'flex';
+  }
   function closeModal() { document.getElementById('worklog-create-modal').style.display = 'none'; }
   function changeMonth(delta) {
     currentMonth += delta;
@@ -581,10 +673,10 @@ window.WorklogModule = (function () {
   }
   function closeDayModal() { document.getElementById('worklog-day-modal').style.display = 'none'; }
 
-  // 외부에서 호출할 수 있도록 함수들을 내보냅니다 (checkTask 포함됨)
+  // 외부에서 호출할 수 있도록 함수들을 내보냅니다 (checkTask, deleteTask 포함됨)
   return { 
     render, showCreateModal, closeModal, previewImage, 
-    submitTask, completeTask, checkTask, changeMonth, 
+    submitTask, completeTask, checkTask, deleteTask, changeMonth, 
     openDayModal, closeDayModal, executeSearch 
   };
 })();

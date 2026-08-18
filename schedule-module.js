@@ -381,7 +381,22 @@ window.ScheduleModule = (function () {
       </div>
     `;
 
+    // 🔒 가로 스크롤 위치 기억 (좌측 튕김 방지)
+    const scrollMap = [];
+    const oldTables = container.querySelectorAll('.table-responsive');
+    oldTables.forEach((t, i) => {
+      scrollMap[i] = t.scrollLeft;
+    });
+
     container.innerHTML = html;
+
+    // 🔒 가로 스크롤 위치 0.01초 내 즉각 복원
+    const newTables = container.querySelectorAll('.table-responsive');
+    newTables.forEach((t, i) => {
+      if (scrollMap[i] !== undefined && scrollMap[i] > 0) {
+        t.scrollLeft = scrollMap[i];
+      }
+    });
   }
 
 // 달력형 뷰 (개인 맞춤화 + 결원 자동 경고 마스터 보드)
@@ -918,8 +933,8 @@ window.ScheduleModule = (function () {
     const currUser = window.SheetsSync.getCurrentUser();
     const isDirector = currUser && currUser.role === '약국장';
 
-    const pharmacists = employees.filter(e => e.role === '근무약사' || (e.role.includes('약사') && e.role !== '약국장'));
-    const staffMembers = employees.filter(e => !e.role.includes('약사') && e.role !== '약국장');
+    const pharmacists = employees.filter(e => (e.role === '근무약사' || (e.role.includes('약사') && e.role !== '약국장')) && e.role !== '예비인력' && e.name !== '이정은');
+    const staffMembers = employees.filter(e => !e.role.includes('약사') && e.role !== '약국장' && e.role !== '예비인력' && e.name !== '이정은');
 
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     let allSchedules = scheduleRecords || [];
@@ -967,13 +982,13 @@ window.ScheduleModule = (function () {
               ${pharmacists.map(p => {
                 const empShifts = allSchedules.filter(r => r.empId === p.id && r.date && r.date.startsWith(monthKey));
                 const rateObj = pRatesMap[p.id] || {};
-                const currentWeekdayRate = Number(p.hourlyRate) || Number(rateObj.weekdayRate) || 40000;
-                const currentHolidayRate = Number(rateObj.holidayRate) || 40000;
+                const currentWeekdayRate = Number(p.weekdayRate) || Number(p.hourlyRate) || Number(rateObj.weekdayRate) || 40000;
+                const currentHolidayRate = Number(p.holidayRate) || Number(rateObj.holidayRate) || 40000;
                 const currentBreakHours = Number(rateObj.breakHours) || 1.0;
                 let calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, currentWeekdayRate, currentHolidayRate, currentBreakHours);
 
                 const empAdj = monthAdj[p.id] || {};
-                const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 200000);
+                const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
                 const overtimePay = Number(empAdj.overtimePay || 0);
                 const deductionPay = Number(empAdj.deductionPay || 0);
                 const pharmacistPretaxTotal = calc.totalPayroll + mealAlw + overtimePay - deductionPay;
@@ -1014,7 +1029,7 @@ window.ScheduleModule = (function () {
                     </td>
                     <td style="text-align:right; padding:10px 10px; white-space:nowrap;">
                       ${isDirector ? `
-                        <input type="text" class="form-control form-control-sm font-bold text-success text-end" style="width:100px; border-radius:8px; border:1.5px solid #86efac; padding:4px 6px; font-size:13px; font-family:'Outfit', sans-serif; display:inline-block;" value="${mealAlw.toLocaleString()}" placeholder="0" oninput="let v = this.value.replace(/[^0-9-]/g, ''); this.value = v ? Number(v).toLocaleString() : '';" onchange="ScheduleModule.updateAdjustment('${p.id}', 'mealAllowance', this.value)" title="약국장 직접 입력: 비과세 식대">
+                        <input type="text" class="form-control form-control-sm font-bold text-success text-end" style="width:100px; border-radius:8px; border:1.5px solid #86efac; padding:4px 6px; font-size:13px; font-family:'Outfit', sans-serif; display:inline-block;" value="${mealAlw === 0 ? '0' : mealAlw.toLocaleString()}" placeholder="0" oninput="let v = this.value.replace(/[^0-9-]/g, ''); this.value = v ? Number(v).toLocaleString() : '';" onchange="ScheduleModule.updateAdjustment('${p.id}', 'mealAllowance', this.value)" title="약국장 직접 입력: 비과세 식대">
                       ` : `
                         <strong style="color:#166534; font-size:13.5px; font-family:'Outfit', sans-serif;">${mealAlw.toLocaleString()}</strong>
                         <span style="font-size:12px; color:#166534; font-weight:600; margin-left:1px;">원</span>
@@ -1095,11 +1110,11 @@ window.ScheduleModule = (function () {
                 const hourlyRate = Number(s.hourlyRate) || 13000;
                 
                 const empAdj = monthAdj[s.id] || {};
-                const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 200000);
+                const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
                 const overtimePay = Number(empAdj.overtimePay || 0);
                 const deductionPay = Number(empAdj.deductionPay || 0);
 
-                const baseSal = Number(s.baseMonthlySalary) || (s.name === '이승학' ? 2821500 : 2717000);
+                const baseSal = Number(s.baseMonthlySalary) || 2717000;
                 const adjustedPretaxTotal = baseSal + mealAlw + overtimePay - deductionPay;
 
                 const ps = monthPaystubs[s.id];
@@ -1116,7 +1131,7 @@ window.ScheduleModule = (function () {
                     </td>
                     <td style="text-align:right; padding:10px 10px; white-space:nowrap;">
                       ${isDirector ? `
-                        <input type="text" class="form-control form-control-sm font-bold text-success text-end" style="width:100px; border-radius:8px; border:1.5px solid #86efac; padding:4px 6px; font-size:13px; font-family:'Outfit', sans-serif; display:inline-block;" value="${mealAlw.toLocaleString()}" placeholder="0" oninput="let v = this.value.replace(/[^0-9-]/g, ''); this.value = v ? Number(v).toLocaleString() : '';" onchange="ScheduleModule.updateAdjustment('${s.id}', 'mealAllowance', this.value)" title="약국장 직접 입력: 비과세 식대">
+                        <input type="text" class="form-control form-control-sm font-bold text-success text-end" style="width:100px; border-radius:8px; border:1.5px solid #86efac; padding:4px 6px; font-size:13px; font-family:'Outfit', sans-serif; display:inline-block;" value="${mealAlw === 0 ? '0' : mealAlw.toLocaleString()}" placeholder="0" oninput="let v = this.value.replace(/[^0-9-]/g, ''); this.value = v ? Number(v).toLocaleString() : '';" onchange="ScheduleModule.updateAdjustment('${s.id}', 'mealAllowance', this.value)" title="약국장 직접 입력: 비과세 식대">
                       ` : `
                         <strong style="color:#166534; font-size:13.5px; font-family:'Outfit', sans-serif;">${mealAlw.toLocaleString()}</strong>
                         <span style="font-size:12px; color:#166534; font-weight:600; margin-left:1px;">원</span>
@@ -1185,7 +1200,7 @@ window.ScheduleModule = (function () {
 
     if (!allAdjustments[monthKey]) allAdjustments[monthKey] = {};
     if (!allAdjustments[monthKey][empId]) {
-      allAdjustments[monthKey][empId] = { mealAllowance: 200000, overtimePay: 0, deductionPay: 0 };
+      allAdjustments[monthKey][empId] = { mealAllowance: 0, overtimePay: 0, deductionPay: 0 };
     }
 
     // 💡 콤마(,)가 포함된 텍스트가 들어오면 콤마를 제거한 뒤 숫자로 저장합니다.
@@ -1233,7 +1248,10 @@ window.ScheduleModule = (function () {
   function openShiftModal(dateStr, empId, empName, currentShift) {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) {
-      alert('로그인이 필요한 서비스입니다.');
+      alert('⚠️ 근무 스케줄 수정을 위해 먼저 로그인해 주세요.');
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
       return;
     }
 
@@ -1285,23 +1303,17 @@ window.ScheduleModule = (function () {
       }
     }
 
-    if (rec) {
-      if (rec.shift === 'OFF') {
-        setModalWorkMode(false);
-      } else {
-        setModalWorkMode(true);
-        if (rec.startTime) document.getElementById('modal-start-time').value = rec.startTime;
-        if (rec.endTime) document.getElementById('modal-end-time').value = rec.endTime;
-      }
+    // 🚀 사용자가 날짜를 클릭했을 때 항상 [🟢 근무 지정] 모드를 1순위로 기본 활성화하여 시간 입력창이 바로 뜨도록 지원!
+    if (rec && rec.shift === 'OFF' && rec.manuallySetOff) {
+      setModalWorkMode(false);
+    } else if (rec && rec.shift !== 'OFF') {
+      setModalWorkMode(true);
+      if (rec.startTime) document.getElementById('modal-start-time').value = rec.startTime;
+      if (rec.endTime) document.getElementById('modal-end-time').value = rec.endTime;
     } else {
-      const d = new Date(dateStr);
-      if (d.getDay() === 0) { // 일요일 기본 OFF
-        setModalWorkMode(false);
-      } else {
-        setModalWorkMode(true);
-        document.getElementById('modal-start-time').value = '09:00';
-        document.getElementById('modal-end-time').value = '17:30';
-      }
+      setModalWorkMode(true);
+      document.getElementById('modal-start-time').value = (rec && rec.startTime) ? rec.startTime : '09:00';
+      document.getElementById('modal-end-time').value = (rec && rec.endTime) ? rec.endTime : '18:00';
     }
   }
 
@@ -1366,7 +1378,8 @@ window.ScheduleModule = (function () {
       shift,
       startTime: currentModalWorkMode ? startTime : '',
       endTime: currentModalWorkMode ? endTime : '',
-      breakHours: currentModalWorkMode ? breakHours : 1.0
+      breakHours: currentModalWorkMode ? breakHours : 1.0,
+      manuallySetOff: !currentModalWorkMode
     };
 
     if (existingIdx >= 0) {
@@ -1534,40 +1547,59 @@ window.ScheduleModule = (function () {
 
   function exportTaxAccountantReport() {
     const data = window.SheetsSync.getData();
-    const employees = (data.employees || []).filter(e => e.role !== '약국장');
+    const employees = (data.employees || []).filter(e => e.role !== '약국장' && e.role !== '예비인력' && e.name !== '이정은');
     const scheduleRecords = data.schedule || [];
+    const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const allAdjustments = window.SheetsSync.getOvertimeAdjustments ? window.SheetsSync.getOvertimeAdjustments() : {};
+    const monthAdj = allAdjustments[monthKey] || {};
+    const pRatesMap = window.SheetsSync.getPharmacistRates ? window.SheetsSync.getPharmacistRates() : {};
 
-    let report = '========================================================\n';
-    report += '신세계약국 ' + currentYear + '년 ' + currentMonth + '월 세무사 제출용 직원 8인 근무시수 및 세전급여 집계표\n';
-    report += '========================================================\n\n';
+    let report = `<${currentMonth}월 급여>\n\n정규직\n\n`;
 
-    employees.forEach((emp, idx) => {
-      const mStr = currentYear + '-' + String(currentMonth).padStart(2, '0');
-      const empShifts = scheduleRecords.filter(r => r.empId === emp.id && r.date.startsWith(mStr));
-      const isPharmacist = emp.role && emp.role.includes('약사');
-      
-      if (isPharmacist) {
-        const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, emp.hourlyRate || 35000);
-        report += '[' + (idx+1) + '] ' + emp.name + ' (' + emp.role + ' - 시급제)\n';
-        report += '    - 총 실근무시간: ' + calc.totalNetHours + ' 시간\n';
-        report += '    - 약정시급: ' + (emp.hourlyRate || 35000).toLocaleString() + ' 원/h\n';
-        report += '    - 세전 총급여: ' + calc.totalPayroll.toLocaleString() + ' 원\n\n';
+    employees.forEach(emp => {
+      const empAdj = monthAdj[emp.id] || {};
+      const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
+      const overtimePay = Number(empAdj.overtimePay || 0);
+      const deductionPay = Number(empAdj.deductionPay || 0);
+
+      let mealText = '';
+      if (mealAlw > 0) {
+        if (mealAlw % 10000 === 0) {
+          mealText = ` +식대 ${mealAlw / 10000}만`;
+        } else {
+          mealText = ` +식대 ${mealAlw.toLocaleString()}원`;
+        }
+      }
+
+      if (emp.name === '이승학') {
+        const mealPart = mealAlw > 0 ? (mealAlw % 10000 === 0 ? `${mealAlw / 10000}만` : `${mealAlw.toLocaleString()}원`) : '15만';
+        report += `${emp.name} 세후249만 (식대포함${mealPart})\n\n`;
       } else {
-        const calc = window.LaborCalculator.calculateStaffPayroll(empShifts, emp.hourlyRate || 13000);
-        const baseSal = emp.baseMonthlySalary || 2621500;
-        report += '[' + (idx+1) + '] ' + emp.name + ' (' + emp.role + ' - 주40시간 월급제)\n';
-        report += '    - 총 실근무시간: ' + calc.totalNetHours + ' 시간\n';
-        report += '    - 기본 월급: ' + baseSal.toLocaleString() + ' 원 (식대 20만 포함)\n';
-        report += '    - 세전 총급여: ' + (baseSal + 200000).toLocaleString() + ' 원\n\n';
+        const isPharmacist = emp.role && emp.role.includes('약사');
+        let pretaxTotal = 0;
+
+        if (isPharmacist) {
+          const empShifts = scheduleRecords.filter(r => r.empId === emp.id && r.date && r.date.startsWith(monthKey));
+          const rateObj = pRatesMap[emp.id] || {};
+          const currentWeekdayRate = Number(emp.weekdayRate) || Number(emp.hourlyRate) || Number(rateObj.weekdayRate) || 40000;
+          const currentHolidayRate = Number(emp.holidayRate) || Number(rateObj.holidayRate) || 40000;
+          const currentBreakHours = Number(rateObj.breakHours) || 1.0;
+          const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, currentWeekdayRate, currentHolidayRate, currentBreakHours);
+          pretaxTotal = calc.totalPayroll + overtimePay - deductionPay;
+        } else {
+          const baseSal = Number(emp.baseMonthlySalary) || 2717000;
+          pretaxTotal = baseSal + overtimePay - deductionPay;
+        }
+
+        report += `${emp.name} 세전 ${pretaxTotal.toLocaleString()}원${mealText}\n\n`;
       }
     });
 
-    report += '========================================================\n';
-    report += '발송일시: ' + new Date().toLocaleString() + '\n';
+    report += `일용직 x\n\n\n세전이신분들은 세후 금액을 부탁드립니다`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(report);
-      alert('📋 [세무사 제출용 집계표]가 클립보드에 복사되었습니다!\n카카오톡이나 이메일에 Ctrl+V로 세무사에게 즉시 전송하세요.\n\n' + report);
+      alert('📋 [세무사 제출용 카톡 급여 집계표]가 복사되었습니다!\n\n카카오톡 세무사 대화방에 Ctrl+V로 즉시 붙여넣기 하세요.\n\n' + report);
     } else {
       alert(report);
     }
@@ -1575,9 +1607,16 @@ window.ScheduleModule = (function () {
 
  
 // 1. 개인 자율 스케줄 제출 함수
+  // 1. 개인 자율 스케줄 제출 함수
   function submitMySchedule() {
     const currUser = window.SheetsSync.getCurrentUser();
-    if (!currUser) return;
+    if (!currUser) {
+      alert("⚠️ 스케줄 제출을 위해 먼저 로그인해 주세요.");
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
 
     const data = window.SheetsSync.getData();
     let scheduleStatus = data.scheduleStatus || {};
@@ -1597,6 +1636,12 @@ window.ScheduleModule = (function () {
 
   // 2. 약국장 통합 마스터 승인 함수
   function approveMasterSchedule() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser || (currUser.role !== '약국장' && currUser.id !== 'emp_1')) {
+      alert("🔒 [보안 권한 통제] 전체 스케줄 최종 승인 및 확정은 대표 약국장(문성도) 권한으로만 가능합니다.");
+      return;
+    }
+
     const data = window.SheetsSync.getData();
     const employees = data.employees || [];
     let scheduleStatus = data.scheduleStatus || {};
@@ -1624,6 +1669,12 @@ window.ScheduleModule = (function () {
 
   // 3. 약국장 개별 스케줄 반려(재수정 요청) 함수
   function rejectMasterSchedule() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser || (currUser.role !== '약국장' && currUser.id !== 'emp_1')) {
+      alert("🔒 [보안 권한 통제] 스케줄 반려 및 재조율 요청은 대표 약국장(문성도) 권한으로만 가능합니다.");
+      return;
+    }
+
     const data = window.SheetsSync.getData();
     const employees = data.employees || [];
     

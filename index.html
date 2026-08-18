@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -85,41 +85,8 @@
         <button class="drawer-close-mobile-btn" onclick="App.closeDrawer()">&times;</button>
       </div>
 
-      <nav class="drawer-menu">
-        <button class="menu-item active" data-module="notices" onclick="App.switchModule('notices', true)">
-          <i class="fas fa-bullhorn"></i>
-          <span>공지사항 & SOP</span>
-        </button>
-
-        <button class="menu-item" data-module="schedule" onclick="App.switchModule('schedule', true)">
-          <i class="fas fa-calendar-alt"></i>
-          <span>월간 근무 스케줄</span>
-        </button>
-
-        <button class="menu-item" data-module="annual-leave" onclick="App.switchModule('annual-leave', true)">
-          <i class="fas fa-umbrella-beach"></i>
-          <span>연차대장 & 달력</span>
-        </button>
-
-        <button class="menu-item" data-module="staff-directory" onclick="App.switchModule('staff-directory', true)">
-          <i class="fas fa-address-book"></i>
-          <span>직원 명부</span>
-        </button>
-
-        <button class="menu-item" data-module="discount-purchase" onclick="App.switchModule('discount-purchase', true)">
-          <i class="fas fa-shopping-bag"></i>
-          <span>직원할인구매대장</span>
-        </button>
-
-        <button class="menu-item" data-module="rules" onclick="App.switchModule('rules', true)">
-          <i class="fas fa-book-medical"></i>
-          <span>취업규칙 전문</span>
-        </button>
-
-        <button class="menu-item" data-module="approval" onclick="App.switchModule('approval', true)">
-          <i class="fas fa-user-check"></i>
-          <span>약국장 결재</span>
-        </button>
+      <nav class="drawer-menu" id="drawer-menu-container">
+        <!-- JS renderSidebarNavigation()으로 로그인 상태 및 개인별 권한에 따라 안전하게 동적 렌더링 -->
       </nav>
 
       <div class="drawer-footer">
@@ -664,21 +631,21 @@
   <!-- JavaScript Scripts Loading -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <script src="rules-data.js?v=47.0"></script>
-  <script src="labor-calculator.js?v=47.0"></script>
-  <script src="sheets-sync.js?v=47.0"></script>
-  <script src="notices-module.js?v=47.0"></script>
-  <script src="worklog-module.js?v=47.0"></script>
-  <script src="schedule-module.js?v=47.0"></script>
-  <script src="annual-leave-module.js?v=47.0"></script>
-  <script src="staff-directory-module.js?v=47.0"></script>
-  <script src="discount-purchase-module.js?v=47.0"></script>
-  <script src="emergency-contacts-module.js?v=47.0"></script>
-  <script src="pharmacy-settlement-module.js?v=47.0"></script>
-  <script src="building-rental-module.js?v=47.0"></script>
-  <script src="approval-module.js?v=47.0"></script>
-  <script src="rules-module.js?v=47.0"></script>
-  <script src="app.js?v=47.0"></script>
+  <script src="rules-data.js?v=20260818_460"></script>
+  <script src="labor-calculator.js?v=20260818_460"></script>
+  <script src="sheets-sync.js?v=20260818_460"></script>
+  <script src="notices-module.js?v=20260818_460"></script>
+  <script src="worklog-module.js?v=20260818_460"></script>
+  <script src="schedule-module.js?v=20260818_460"></script>
+  <script src="annual-leave-module.js?v=20260818_460"></script>
+  <script src="staff-directory-module.js?v=20260818_460"></script>
+  <script src="discount-purchase-module.js?v=20260818_460"></script>
+  <script src="emergency-contacts-module.js?v=20260818_460"></script>
+  <script src="pharmacy-settlement-module.js?v=20260818_460"></script>
+  <script src="building-rental-module.js?v=20260818_460"></script>
+  <script src="approval-module.js?v=20260818_460"></script>
+  <script src="rules-module.js?v=20260818_460"></script>
+  <script src="app.js?v=20260818_460"></script>
 
 </body>
 </html>

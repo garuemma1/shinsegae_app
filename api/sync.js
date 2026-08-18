@@ -1,5 +1,5 @@
 // Vercel Serverless Edge API for Instant Real-Time Cross-Device Data Sync
-// Global in-memory cache for ultra-low latency & zero CORS issues across all devices
+// Global in-memory cache + Google Apps Script Master Persistence
 let memoryStore = global.__GLOBAL_MASTER_DB || null;
 
 export default async function handler(req, res) {
@@ -36,14 +36,14 @@ export default async function handler(req, res) {
         global.__GLOBAL_MASTER_DB = bodyData;
       }
 
-      // 구글 앱스 스크립트 영구 보관소로 백그라운드 전송
+      // 구글 앱스 스크립트 영구 보관소로 확실하게 await 전송하여 인스턴스 종료 전 저장 완료!
       try {
         const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(bodyData || {}));
-        fetch(CLOUD_URL, {
+        await fetch(CLOUD_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
           body: bodyStr
-        }).catch(() => {});
+        });
       } catch(ge) {}
 
       return res.status(200).json({ success: true, data: memoryStore ? memoryStore.data : {} });
@@ -52,16 +52,14 @@ export default async function handler(req, res) {
     }
   }
 
-  // 2. GET: 최신 데이터 조회
+  // 2. GET: 최신 데이터 조회 (실시간 영구 저장소 우선 조회)
   try {
-    if (memoryStore && memoryStore.data) {
-      return res.status(200).json(memoryStore);
-    }
-
-    // 인메모리에 없으면 구글 클라우드에서 조회
-    const getRes = await fetch(CLOUD_URL + '?t=' + Date.now());
+    const getRes = await fetch(CLOUD_URL + '?t=' + Date.now(), {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
     const rawText = await getRes.text();
-    let parsedData = { data: {} };
+    let parsedData = null;
 
     if (rawText && rawText.startsWith('payload=')) {
       const decoded = decodeURIComponent(rawText.substring(8));
@@ -69,17 +67,20 @@ export default async function handler(req, res) {
     } else if (rawText) {
       try {
         parsedData = JSON.parse(rawText);
-      } catch (e) {
-        parsedData = { data: {} };
-      }
+      } catch (e) {}
     }
 
     if (parsedData && parsedData.data) {
       memoryStore = parsedData;
       global.__GLOBAL_MASTER_DB = parsedData;
+      return res.status(200).json(parsedData);
     }
 
-    return res.status(200).json(parsedData);
+    if (memoryStore && memoryStore.data) {
+      return res.status(200).json(memoryStore);
+    }
+
+    return res.status(200).json({ data: {} });
   } catch (err) {
     return res.status(200).json(memoryStore || { data: {} });
   }

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 직원 명부 모듈 컨트롤러 (Staff Directory Module v5.0)
  * 약국장(문성도) 전용 직원 계정 관리, 신규 등록, 세부 정보 수정, 비밀번호 초기화, 급여유형 및 메뉴 탭 맞춤 권한 조정 센터
  */
@@ -282,8 +282,10 @@ window.StaffDirectoryModule = (function () {
       const avatarColor = isDirector ? '#dc2626' : (isPharmacist ? '#2563eb' : '#16a34a');
       const roleBadgeClass = isDirector ? 'bg-danger' : (isPharmacist ? 'bg-primary' : 'bg-success');
       const payBadge = isDirector ? '👑 총괄약국장' : (emp.payType === 'HOURLY' ? '⏱️ 약정시급제' : '💼 주40h 월급제');
-
-      const pRateObj = pRatesMap[emp.id] || { weekdayRate: emp.hourlyRate || 35000, holidayRate: 40000 };
+      const pRateObj = {
+        weekdayRate: emp.weekdayRate || emp.hourlyRate || (pRatesMap[emp.id] && pRatesMap[emp.id].weekdayRate) || 35000,
+        holidayRate: emp.holidayRate || (pRatesMap[emp.id] && pRatesMap[emp.id].holidayRate) || 40000
+      };
 
       // 전체 세부 정보 수정 모드 (Full Edit Mode)
       if (editingEmpId === emp.id) {
@@ -432,32 +434,22 @@ window.StaffDirectoryModule = (function () {
                   <div class="p-3 my-2" style="background:#fff7ed; border-radius:12px; border:1px solid #ffedd5;">
                     <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom border-warning-subtle">
                       <span style="font-size:12.5px; font-weight:700; color:#1e40af;"><i class="fas fa-sun text-primary"></i> 평일 근무시급:</span>
-                      <div class="d-flex align-items-center gap-2">
-                        <strong style="color:#1e40af; font-size:14px; font-family:'Outfit', sans-serif;">${pRateObj.weekdayRate.toLocaleString()} 원/h</strong>
-                        <button type="button" class="btn btn-xs btn-outline-warning font-bold" onclick="StaffDirectoryModule.editPayCondition('${emp.id}')" style="font-size:10.5px; padding:1px 6px; border-radius:6px;" title="시급/급여 조건 수정">
-                          <i class="fas fa-edit"></i> 수정
-                        </button>
-                      </div>
+                      <strong style="color:#1e40af; font-size:14.5px; font-family:'Outfit', sans-serif;">${pRateObj.weekdayRate.toLocaleString()} 원/h</strong>
                     </div>
                     <div class="d-flex justify-content-between align-items-center pt-1">
                       <span style="font-size:12.5px; font-weight:700; color:#c2410c;"><i class="fas fa-umbrella-beach text-warning"></i> 주말·공휴일 시급:</span>
-                      <strong style="color:#c2410c; font-size:14px; font-family:'Outfit', sans-serif;">${pRateObj.holidayRate.toLocaleString()} 원/h</strong>
+                      <strong style="color:#c2410c; font-size:14.5px; font-family:'Outfit', sans-serif;">${pRateObj.holidayRate.toLocaleString()} 원/h</strong>
                     </div>
                   </div>
                 ` : `
                   <div class="p-3 my-2" style="background:#f0fdf4; border-radius:12px; border:1px solid #dcfce7;">
                     <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom border-success-subtle">
                       <span style="font-size:12.5px; font-weight:700; color:#15803d;"><i class="fas fa-wallet text-success"></i> 기본 고정월급:</span>
-                      <div class="d-flex align-items-center gap-2">
-                        <strong style="color:#15803d; font-size:14px; font-family:'Outfit', sans-serif;">${(emp.baseMonthlySalary || 2717000).toLocaleString()} 원/월 <small style="font-size:11px; font-weight:normal; color:#166534;">(식대 20만 포함)</small></strong>
-                        <button type="button" class="btn btn-xs btn-outline-success font-bold" onclick="StaffDirectoryModule.editPayCondition('${emp.id}')" style="font-size:10.5px; padding:1px 6px; border-radius:6px;" title="월급/시급 조건 수정">
-                          <i class="fas fa-edit"></i> 수정
-                        </button>
-                      </div>
+                      <strong style="color:#15803d; font-size:14.5px; font-family:'Outfit', sans-serif;">${(emp.baseMonthlySalary || 2717000).toLocaleString()} 원/월</strong>
                     </div>
                     <div class="d-flex justify-content-between align-items-center pt-1">
                       <span style="font-size:12.5px; font-weight:700; color:#0369a1;"><i class="fas fa-stopwatch text-info"></i> 초과/연장 책정시급:</span>
-                      <strong style="color:#0369a1; font-size:14px; font-family:'Outfit', sans-serif;">${(emp.hourlyRate || 13000).toLocaleString()} 원/h</strong>
+                      <strong style="color:#0369a1; font-size:14.5px; font-family:'Outfit', sans-serif;">${(emp.hourlyRate || 13000).toLocaleString()} 원/h</strong>
                     </div>
                   </div>
                 `)}
@@ -465,12 +457,7 @@ window.StaffDirectoryModule = (function () {
             </div>
 
             <div class="p-3 mt-3" style="background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0; font-size:12.5px;">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="text-muted font-bold"><i class="fas fa-sticky-note text-info"></i> 약국장 참고 메모:</span>
-                <button type="button" class="btn btn-xs btn-outline-secondary font-bold" onclick="StaffDirectoryModule.editMemo('${emp.id}')" style="font-size:11.5px; padding:2px 8px; border-radius:8px;">
-                  <i class="fas fa-edit"></i> 메모 수정
-                </button>
-              </div>
+              <div class="mb-1 text-muted font-bold"><i class="fas fa-sticky-note text-info"></i> 약국장 참고 메모:</div>
               <div id="memo-box-${emp.id}" style="color:#334155; line-height:1.5;">${emp.memo ? emp.memo : '등록된 참고 메모가 없습니다.'}</div>
             </div>
           </div>
@@ -533,6 +520,7 @@ window.StaffDirectoryModule = (function () {
     target.email = newEmail;
     target.username = newEmail;
     target.memo = newMemo;
+    target.updatedAt = Date.now();
 
     const isPharmacist = newRole.includes('약사');
     if (isPharmacist) {
@@ -541,6 +529,8 @@ window.StaffDirectoryModule = (function () {
       const weekdayRate = weekdayRateInput ? (parseInt(weekdayRateInput.value) || 35000) : (target.hourlyRate || 35000);
       const holidayRate = holidayRateInput ? (parseInt(holidayRateInput.value) || 40000) : 40000;
       target.hourlyRate = weekdayRate;
+      target.weekdayRate = weekdayRate;
+      target.holidayRate = holidayRate;
 
       const pRates = window.SheetsSync.getPharmacistRates ? window.SheetsSync.getPharmacistRates() : {};
       pRates[empId] = pRates[empId] || { breakHours: 1.0 };
@@ -632,11 +622,32 @@ window.StaffDirectoryModule = (function () {
     const emps = window.SheetsSync.getEmployees();
     const target = emps.find(e => e.id === empId);
     if (!target) return;
-    if (confirm(`${target.name} 직원의 비밀번호를 초기값 '1234'로 비상 리셋하시겠습니까?`)) {
-      window.SheetsSync.resetPassword(empId);
-      alert(`✅ ${target.name} 직원의 비밀번호가 '1234'로 초기화되었습니다.`);
-      render('module-content');
+
+    // 직원 전화번호 뒷 4자리 추천값 생성
+    let defaultPhoneTail = '1234';
+    if (target.phone && target.phone.length >= 4) {
+      const cleanPhone = target.phone.replace(/[^0-9]/g, '');
+      if (cleanPhone.length >= 4) {
+        defaultPhoneTail = cleanPhone.slice(-4);
+      }
     }
+
+    const newCode = prompt(
+      `🔐 [약국장 전용 개별 비밀번호 설정]\n\n'${target.name}' (${target.role}) 직원의 새로운 초기 비밀번호를 설정해 주세요.\n\n(추천: 해당 직원 휴대폰 뒷 4자리 '${defaultPhoneTail}' 또는 원하시는 개별 임시암호):`,
+      defaultPhoneTail
+    );
+
+    if (newCode === null) return; // 사용자가 취소를 누른 경우
+
+    const cleanCode = newCode.trim();
+    if (!cleanCode) {
+      alert('⚠️ 비밀번호는 공백일 수 없습니다.');
+      return;
+    }
+
+    window.SheetsSync.resetPassword(empId, cleanCode);
+    alert(`🎉 [${target.name}] 직원의 비밀번호가 '${cleanCode}'(으)로 안전하게 설정되었습니다!\n\n해당 직원에게 1:1 카카오톡으로 안내해 주세요.`);
+    render('module-content');
   }
 
   function openPermModal(empId) {
@@ -680,16 +691,7 @@ window.StaffDirectoryModule = (function () {
       return;
     }
 
-    const emps = window.SheetsSync.getEmployees() || [];
-    const targetIndex = emps.findIndex(emp => emp.id === empId);
-
-    if (targetIndex === -1) {
-      alert('❌ 직원 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    emps[targetIndex].allowedTabs = newAllowed;
-    window.SheetsSync.saveEmployees(emps);
+    window.SheetsSync.updateStaffPermissions(empId, newAllowed);
     modal.style.display = 'none';
 
     if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
@@ -700,7 +702,7 @@ window.StaffDirectoryModule = (function () {
     }
 
     render('module-content');
-    alert('✅ 탭 접근 권한이 저장되었습니다!');
+    alert('✅ 탭 접근 권한이 영구적으로 저장되었습니다!');
   }
 
   function editPayCondition(empId) {
@@ -770,6 +772,9 @@ window.StaffDirectoryModule = (function () {
       if (window.SheetsSync.savePharmacistRates) window.SheetsSync.savePharmacistRates(pRates);
 
       target.hourlyRate = weekdayRate;
+      target.weekdayRate = weekdayRate;
+      target.holidayRate = holidayRate;
+      target.updatedAt = Date.now();
       window.SheetsSync.saveEmployees(emps);
       alert(`💰 [${target.name}] 시급이 수정되었습니다.`);
     } else {
@@ -778,6 +783,7 @@ window.StaffDirectoryModule = (function () {
 
       target.baseMonthlySalary = baseMonthlySalary;
       target.hourlyRate = hourlyRate;
+      target.updatedAt = Date.now();
       window.SheetsSync.saveEmployees(emps);
       alert(`💼 [${target.name}] 급여 조건이 수정되었습니다.`);
     }
@@ -977,8 +983,19 @@ window.StaffDirectoryModule = (function () {
     render('module-content');
   }
 
+  if (typeof window !== 'undefined') {
+    window.addEventListener('ssg_cloud_updated', () => {
+      if (window.App && window.App.getActiveModule && window.App.getActiveModule() === 'staff-directory') {
+        if (!editingEmpId) {
+          render('module-content');
+        }
+      }
+    });
+  }
+
   return {
     render,
+    isEditing: () => editingEmpId !== null,
     setRoleFilter,
     toggleInlineRegistrationForm,
     openNewEmpModal,

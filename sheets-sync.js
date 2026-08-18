@@ -38,15 +38,15 @@ window.SheetsSync = (function () {
 
   // 신세계약국 영구 마스터 디폴트 9인 정식 명단 및 디폴트 정보 (약국장 1명, 근무약사 4명, 일반직원 4명)
   const INITIAL_EMPLOYEES = [
-    { id: 'emp_1', username: 'director@shinsegae.com', email: 'director@shinsegae.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'] },
-    { id: 'emp_2', username: 'kwon@shinsegae.com', email: 'kwon@shinsegae.com', passcode: '1234', name: '권명주', role: '근무약사', position: '관리약사', payType: 'HOURLY', joinDate: '2024-09-06', hourlyRate: 40000, baseMonthlySalary: 0, phone: '010-2385-0402', usedLeave: 2, pendingLeave: 0, memo: '조제 팀장 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS] },
-    { id: 'emp_3', username: 'yang@shinsegae.com', email: 'yang@shinsegae.com', passcode: '1234', name: '양윤지', role: '근무약사', position: '근무약사', payType: 'HOURLY', joinDate: '2023-10-04', hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4726-9807', usedLeave: 6, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS] },
-    { id: 'emp_4', username: 'kimdw@shinsegae.com', email: 'kimdw@shinsegae.com', passcode: '1234', name: '김동완', role: '근무약사', position: '근무약사', payType: 'HOURLY', joinDate: '2026-03-01', hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS] },
-    { id: 'emp_5', username: 'yoo@shinsegae.com', email: 'yoo@shinsegae.com', passcode: '1234', name: '유호종', role: '근무약사', position: '파트약사', payType: 'HOURLY', joinDate: '0001-01-01', hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4055-5860', usedLeave: 2, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 파트약사', allowedTabs: [...ALL_COMMON_TABS] },
-    { id: 'emp_6', username: 'lee@shinsegae.com', email: 'lee@shinsegae.com', passcode: '1234', name: '이승학', role: '일반직원', position: '약국전반업무관리', payType: 'MONTHLY', joinDate: '2023-06-12', hourlyRate: 13500, baseMonthlySalary: 2490000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '조제실및전산 약국전반업무관리 / 정액 월급제 (세후급여)', allowedTabs: [...ALL_COMMON_TABS] },
-    { id: 'emp_7', username: 'kimjh@shinsegae.com', email: 'kimjh@shinsegae.com', passcode: '1234', name: '김제희', role: '일반직원', position: '약국전반업무관리', payType: 'MONTHLY', joinDate: '2024-11-01', hourlyRate: 13000, baseMonthlySalary: 2170000, phone: '010-7273-7155', usedLeave: 6, pendingLeave: 0, memo: '조제실및전산 약국전반업무관리 / 정액 월급제', allowedTabs: [...ALL_COMMON_TABS] },
-    { id: 'emp_8', username: 'yoon@shinsegae.com', email: 'yoon@shinsegae.com', passcode: '1234', name: '윤세라', role: '일반직원', position: '조제보조', payType: 'MONTHLY', joinDate: '2026-03-01', hourlyRate: 13000, baseMonthlySalary: 1720810, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '조제보조/정액 월급제', allowedTabs: [...ALL_COMMON_TABS] },
-    { id: 'emp_9', username: 'kimbay@shinsegae.com', email: 'kimbay@shinsegae.com', passcode: '1234', name: '김배영', role: '일반직원', position: '약국재고관리및부장직', payType: 'MONTHLY', joinDate: '2025-11-18', hourlyRate: 15000, baseMonthlySalary: 1106700, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '약국전반업무보조/부장직', allowedTabs: [...ALL_COMMON_TABS] }
+    { id: 'emp_1', username: 'director@shinsegae.com', email: 'director@shinsegae.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', weekdayRate: 45000, holidayRate: 45000, hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'], updatedAt: 1787026500000 },
+    { id: 'emp_2', username: 'iniha@naver.com', email: 'iniha@naver.com', passcode: '0402', name: '권명주', role: '근무약사', position: '조제팀장', payType: 'HOURLY', joinDate: '2024-09-06', weekdayRate: 80000, holidayRate: 20000, hourlyRate: 80000, baseMonthlySalary: 0, phone: '010-2385-0402', usedLeave: 2, pendingLeave: 0, memo: '조제 팀장 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
+    { id: 'emp_3', username: 'yang@shinsegae.com', email: 'yang@shinsegae.com', passcode: '9807', name: '양윤지', role: '근무약사', position: 'DUR검수약사', payType: 'HOURLY', joinDate: '2023-10-04', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4726-9807', usedLeave: 6, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
+    { id: 'emp_4', username: 'kimdw@shinsegae.com', email: 'kimdw@shinsegae.com', passcode: '9650', name: '김동완', role: '근무약사', position: '야간담당약사', payType: 'HOURLY', joinDate: '2026-03-01', weekdayRate: 23000, holidayRate: 23000, hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '야간 및 공휴일 조제 지정 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
+    { id: 'emp_5', username: 'yoo@shinsegae.com', email: 'yoo@shinsegae.com', passcode: '5860', name: '유호종', role: '근무약사', position: '신약/약품관리', payType: 'HOURLY', joinDate: '0001-01-01', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4055-5860', usedLeave: 2, pendingLeave: 0, memo: '신규 입고약 수량 점검 및 검수 약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
+    { id: 'emp_6', username: 'lee@shinsegae.com', email: 'lee@shinsegae.com', passcode: '4293', name: '이승학', role: '일반직원', position: '전산팀장', payType: 'MONTHLY', joinDate: '2023-06-12', weekdayRate: 13500, holidayRate: 13500, hourlyRate: 13500, baseMonthlySalary: 2717000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '팜IT3000 전산 장애 및 심평원 청구', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
+    { id: 'emp_7', username: 'kimjh@shinsegae.com', email: 'kimjh@shinsegae.com', passcode: '7155', name: '김제희', role: '일반직원', position: '조제보조/ATC', payType: 'MONTHLY', joinDate: '2024-11-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-7273-7155', usedLeave: 6, pendingLeave: 0, memo: 'ATC 자동조제기 관리 및 소모품', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
+    { id: 'emp_8', username: 'yoon@shinsegae.com', email: 'yoon@shinsegae.com', passcode: '4079', name: '윤세라', role: '일반직원', position: '매장관리/재고', payType: 'MONTHLY', joinDate: '2026-03-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '일반의약품 및 매장 재고 관리', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
+    { id: 'emp_9', username: 'kimbay@shinsegae.com', email: 'kimbay@shinsegae.com', passcode: '3257', name: '김배영', role: '일반직원', position: '전산/매장보조', payType: 'MONTHLY', joinDate: '2025-11-18', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '매장 안내 및 전산 서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 }
   ];
 
   const INITIAL_DISCOUNT_PURCHASES = [
@@ -490,11 +490,12 @@ window.SheetsSync = (function () {
 
     const raw = safeGetItem(STORAGE_KEYS.CURRENT_USER);
     if (raw) {
-      try { return JSON.parse(raw); } catch (e) {}
+      try {
+        const u = JSON.parse(raw);
+        if (u && u.id && u.name) return u;
+      } catch (e) {}
     }
-    // 기본 첫 접속 시 약국장 세션 기본 적용
-    const emps = getEmployees();
-    return emps.find(e => e.id === 'emp_1') || emps[0];
+    return null;
   }
 
   function setCurrentUser(emp) {
@@ -554,23 +555,25 @@ window.SheetsSync = (function () {
     return { success: true, message: '비밀번호가 성공적으로 변경되었습니다!' };
   }
 
-  function resetPassword(empId) {
+  function resetPassword(empId, customPasscode = '1234') {
     const emps = getEmployees();
     const target = emps.find(e => e.id === empId);
     if (!target) return false;
-    target.passcode = '1234'; // 초기값 1234로 비상 리셋
+    target.passcode = String(customPasscode).trim() || '1234';
+    target.updatedAt = Date.now();
     saveEmployees(emps);
+    
+    // 현재 세션 갱신
+    const curr = getCurrentUser();
+    if (curr && curr.id === empId) {
+      curr.passcode = target.passcode;
+      setCurrentUser(curr);
+    }
     return true;
   }
 
   function updateStaffPermissions(empId, allowedTabs) {
-    const emps = getEmployees();
-    const target = emps.find(e => e.id === empId);
-    if (!target) return false;
-    target.allowedTabs = allowedTabs;
-    saveEmployees(emps);
-
-    // 별도 권한 저장소에도 저장 (클라우드 pull시도 유지됨)
+    // 1. 별도 권한 저장소에 먼저 즉시 영구 저장
     try {
       let permMap = {};
       const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
@@ -579,7 +582,16 @@ window.SheetsSync = (function () {
       safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
     } catch(e) {}
 
-    // 현재 세션 유저 업데이트
+    // 2. 직원 객체 업데이트 & 타임스탬프 갱신 후 클라우드 푸시
+    const emps = getEmployees();
+    const target = emps.find(e => e.id === empId);
+    if (target) {
+      target.allowedTabs = allowedTabs;
+      target.updatedAt = Date.now();
+      saveEmployees(emps);
+    }
+
+    // 3. 현재 세션 유저 업데이트
     const curr = getCurrentUser();
     if (curr && curr.id === empId) {
       curr.allowedTabs = allowedTabs;
@@ -613,6 +625,20 @@ window.SheetsSync = (function () {
       // 저장된 값이 없을 때만 초기값 저장
       emps = INITIAL_EMPLOYEES.map(e => ({ ...e }));
       safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
+    } else {
+      // 9인 마스터 기본 비밀번호 및 전화번호 뒷자리 안전 매핑
+      let updatedPass = false;
+      emps = emps.map(e => {
+        const initMatch = INITIAL_EMPLOYEES.find(init => init.id === e.id || init.name === e.name);
+        if (initMatch && (!e.passcode || e.passcode === '1234')) {
+          e.passcode = initMatch.passcode;
+          updatedPass = true;
+        }
+        return e;
+      });
+      if (updatedPass) {
+        safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
+      }
     }
 
     // 별도 저장된 권한을 병합 (클라우드 덧써쓰더라도 유지)
@@ -629,7 +655,12 @@ window.SheetsSync = (function () {
   }
 
   function saveEmployees(data) {
-    safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(data));
+    const now = Date.now();
+    const list = (data || []).map(e => ({
+      ...e,
+      updatedAt: e.updatedAt || now
+    }));
+    safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(list));
     pushToCloud();
   }
 
@@ -700,40 +731,71 @@ window.SheetsSync = (function () {
     pushToCloud();
   }
 
+  function getDeletedIds() {
+    try {
+      const raw = safeGetItem('ssg_deleted_ids_v1');
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) { return []; }
+  }
+
+  function addDeletedId(id) {
+    if (!id) return;
+    try {
+      const list = getDeletedIds();
+      if (!list.includes(id)) {
+        list.push(id);
+        safeSetItem('ssg_deleted_ids_v1', JSON.stringify(list));
+      }
+    } catch(e) {}
+    pushToCloud();
+  }
+
   function getNotices() {
+    const deletedIds = getDeletedIds();
     try {
       const raw = safeGetItem(STORAGE_KEYS.NOTICES);
-      return raw ? JSON.parse(raw) : INITIAL_NOTICES;
-    } catch(e) { return INITIAL_NOTICES; }
+      const list = raw ? JSON.parse(raw) : INITIAL_NOTICES;
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch(e) { 
+      return INITIAL_NOTICES.filter(item => item && !deletedIds.includes(item.id)); 
+    }
   }
 
   function saveNotices(data) {
-    safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(data));
+    const deletedIds = getDeletedIds();
+    const cleanList = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(cleanList));
     pushToCloud();
   }
 
   function getLeaveRequests() {
+    const deletedIds = getDeletedIds();
     try {
       const raw = safeGetItem(STORAGE_KEYS.LEAVE_REQUESTS);
-      return raw ? JSON.parse(raw) : INITIAL_LEAVE_REQUESTS;
-    } catch(e) { return INITIAL_LEAVE_REQUESTS; }
+      const list = raw ? JSON.parse(raw) : INITIAL_LEAVE_REQUESTS;
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch(e) { 
+      return INITIAL_LEAVE_REQUESTS.filter(item => item && !deletedIds.includes(item.id)); 
+    }
   }
 
   function saveLeaveRequests(data) {
-    safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(data));
+    const deletedIds = getDeletedIds();
+    const cleanList = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(cleanList));
     pushToCloud();
   }
 
   function getDiscountPurchases() {
+    const deletedIds = getDeletedIds();
     try {
       const raw = safeGetItem(STORAGE_KEYS.DISCOUNT_PURCHASES);
-      return raw ? JSON.parse(raw) : INITIAL_DISCOUNT_PURCHASES;
-    } catch(e) { return INITIAL_DISCOUNT_PURCHASES; }
+      const list = raw ? JSON.parse(raw) : INITIAL_DISCOUNT_PURCHASES;
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch(e) { 
+      return INITIAL_DISCOUNT_PURCHASES.filter(item => item && !deletedIds.includes(item.id)); 
+    }
   }
-
-  const API_SYNC_URL = (typeof window !== 'undefined' && window.location.origin.includes('vercel.app'))
-    ? (window.location.origin + '/api/sync')
-    : 'https://shinsaegae-app.vercel.app/api/sync';
 
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
@@ -745,6 +807,7 @@ window.SheetsSync = (function () {
         name: "shinsegae_pharmacy_master_db_v1",
         data: {
           updatedAt: new Date().toISOString(),
+          deletedIds: getDeletedIds(),
           employees: getEmployees(),
           schedule: getSchedule(),
           scheduleStatus: safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {},
@@ -756,33 +819,19 @@ window.SheetsSync = (function () {
           pharmacySettlement: getPharmacySettlement(),
           buildingRental: getBuildingRental(),
           paystubs: getPaystubs(),
-          overtimeAdjustments: getOvertimeAdjustments()
+          overtimeAdjustments: getOvertimeAdjustments(),
+          pharmacistRates: getPharmacistRates()
         }
       };
 
-      // 1. Primary: Vercel Edge API (CORS 프리)
-      let pushed = false;
-      try {
-        const res = await window.fetch(API_SYNC_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res && res.ok) pushed = true;
-      } catch(apiErr) {}
-
-      // 2. Fallback: Direct GAS POST (no-cors)
-      if (!pushed) {
-        try {
-          const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(payload));
-          await window.fetch(DIRECT_GAS_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: bodyStr
-          });
-        } catch(gasErr) {}
-      }
+      // 100% Direct Google Apps Script POST (구글 공식 서버 직통 통신 - Vercel 트래픽 0B)
+      const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+      await window.fetch(DIRECT_GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: bodyStr
+      });
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
@@ -797,65 +846,236 @@ window.SheetsSync = (function () {
     try {
       let cloudData = null;
 
-      // 1. Primary: Vercel Edge API (CORS 프리 즉각 응답)
+      // 100% Direct Google Apps Script GET (구글 공식 서버 직통 조회 - Vercel 트래픽 0B)
       try {
-        const res = await window.fetch(API_SYNC_URL + '?t=' + Date.now());
-        if (res && res.ok) {
-          const json = await res.json();
-          cloudData = json && json.data;
+        const gasRes = await window.fetch(DIRECT_GAS_URL + '?t=' + Date.now());
+        if (gasRes && gasRes.ok) {
+          const rawText = await gasRes.text();
+          if (rawText && rawText.startsWith('payload=')) {
+            const decoded = decodeURIComponent(rawText.substring(8));
+            const gasJson = JSON.parse(decoded);
+            if (gasJson && gasJson.data) cloudData = gasJson.data;
+          } else if (rawText) {
+            const gasJson = JSON.parse(rawText);
+            if (gasJson && gasJson.data) cloudData = gasJson.data;
+          }
         }
-      } catch(apiErr) {
-        console.warn('Vercel API pull error:', apiErr);
+      } catch(gasErr) {
+        console.warn('Google Cloud Sync pull notice:', gasErr);
       }
 
       if (cloudData) {
         let updated = false;
-        
-        // 📝 업무일지 스마트 ID 양방향 병합 (PC와 모바일 작성분 유실 없이 완벽 합체)
-        if (cloudData.worklogs && Array.isArray(cloudData.worklogs) && cloudData.worklogs.length > 0) {
-          const localLogs = getWorklogs() || [];
-          const mergedMap = {};
-          localLogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
-          cloudData.worklogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
-          const mergedList = Object.values(mergedMap).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
-          safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedList));
-          updated = true;
+
+        // 클라우드에서 삭제된 ID 목록 병합
+        if (cloudData.deletedIds && Array.isArray(cloudData.deletedIds)) {
+          cloudData.deletedIds.forEach(did => addDeletedId(did));
         }
-        if (cloudData.notices) { safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(cloudData.notices)); updated = true; }
-        if (cloudData.leaveRequests) { safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(cloudData.leaveRequests)); updated = true; }
-        if (cloudData.discountPurchases) { safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(cloudData.discountPurchases)); updated = true; }
-        if (cloudData.schedule) { safeSetItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(cloudData.schedule)); updated = true; }
-        if (cloudData.scheduleStatus) { safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(cloudData.scheduleStatus)); updated = true; }
-        if (cloudData.paystubs) { safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(cloudData.paystubs)); updated = true; }
-        if (cloudData.overtimeAdjustments) { safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(cloudData.overtimeAdjustments)); updated = true; }
-        if (cloudData.employees) {
-          let cloudEmps = cloudData.employees;
-          try {
-            const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
-            if (permRaw) {
-              const permMap = JSON.parse(permRaw);
-              if (Object.keys(permMap).length > 0) {
-                cloudEmps = cloudEmps.map(e => {
-                  if (permMap[e.id]) return { ...e, allowedTabs: permMap[e.id] };
-                  return e;
-                });
-              }
+
+        const activeDeletedIds = getDeletedIds();
+
+        function mergeById(localList, cloudList, dateField = 'createdAt') {
+          const map = {};
+          (localList || []).forEach(item => {
+            if (item && item.id && !activeDeletedIds.includes(item.id)) {
+              map[item.id] = item;
             }
-          } catch(pe) {}
-          safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(cloudEmps));
-          updated = true;
+          });
+          (cloudList || []).forEach(item => {
+            if (item && item.id && !activeDeletedIds.includes(item.id)) {
+              map[item.id] = item;
+            }
+          });
+          return Object.values(map).sort((a, b) => {
+            const pinA = a.isPinned ? 1 : 0;
+            const pinB = b.isPinned ? 1 : 0;
+            if (pinB !== pinA) return pinB - pinA;
+            const timeA = a.createdAt ? Number(a.createdAt) : (new Date(String(a[dateField] || a.date || 0).replace(/-/g, '/')).getTime() || 0);
+            const timeB = b.createdAt ? Number(b.createdAt) : (new Date(String(b[dateField] || b.date || 0).replace(/-/g, '/')).getTime() || 0);
+            return timeB - timeA;
+          });
         }
+
+        function isListDifferent(listA, listB) {
+          if (!listA && !listB) return false;
+          if (!listA || !listB) return true;
+          if (listA.length !== listB.length) return true;
+          const mapA = {};
+          listA.forEach(item => { if (item && item.id) mapA[item.id] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || ''); });
+          return listB.some(item => !item || !item.id || !mapA[item.id] || mapA[item.id] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || ''));
+        }
+
+        // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
+        if (cloudData.notices && Array.isArray(cloudData.notices)) {
+          const localNotices = getNotices() || [];
+          const mergedNotices = mergeById(localNotices, cloudData.notices, 'date');
+          if (isListDifferent(localNotices, mergedNotices)) {
+            safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(mergedNotices));
+            updated = true;
+          }
+        }
+
+        // 2. 업무일지 스마트 비파괴 병합 (삭제된 글 제외)
+        if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
+          const localLogs = getWorklogs() || [];
+          const mergedLogs = mergeById(localLogs, cloudData.worklogs, 'createdAt');
+          if (isListDifferent(localLogs, mergedLogs)) {
+            safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
+            updated = true;
+          }
+        }
+
+        // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외)
+        if (cloudData.leaveRequests && Array.isArray(cloudData.leaveRequests)) {
+          const localLeaves = getLeaveRequests() || [];
+          const mergedLeaves = mergeById(localLeaves, cloudData.leaveRequests, 'createdAt');
+          if (isListDifferent(localLeaves, mergedLeaves)) {
+            safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(mergedLeaves));
+            updated = true;
+          }
+        }
+
+        // 4. 직원할인구매 스마트 비파괴 병합 (삭제된 글 제외)
+        if (cloudData.discountPurchases && Array.isArray(cloudData.discountPurchases)) {
+          const localDiscounts = getDiscountPurchases() || [];
+          const mergedDiscounts = mergeById(localDiscounts, cloudData.discountPurchases, 'date');
+          if (isListDifferent(localDiscounts, mergedDiscounts)) {
+            safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(mergedDiscounts));
+            updated = true;
+          }
+        }
+
+        // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키로 1일부터 31일까지 모든 일자 100% 영구 보존)
+        if (cloudData.schedule && Array.isArray(cloudData.schedule)) {
+          const localSched = getSchedule() || [];
+          const map = {};
+          localSched.forEach(s => {
+            if (s && s.date && s.empId) {
+              map[`${s.date}_${s.empId}`] = s;
+            }
+          });
+          cloudData.schedule.forEach(s => {
+            if (s && s.date && s.empId) {
+              map[`${s.date}_${s.empId}`] = s;
+            }
+          });
+          const cur = safeGetItem(STORAGE_KEYS.SCHEDULE);
+          const next = JSON.stringify(Object.values(map));
+          if (cur !== next) {
+            safeSetItem(STORAGE_KEYS.SCHEDULE, next);
+            updated = true;
+          }
+        }
+
+        // 6. 스케줄 상태 및 반려 코멘트 병합
+        if (cloudData.scheduleStatus) {
+          const localStatus = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {};
+          const mergedStatus = { ...localStatus, ...cloudData.scheduleStatus };
+          const cur = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS);
+          const next = JSON.stringify(mergedStatus);
+          if (cur !== next) {
+            safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, next);
+            updated = true;
+          }
+        }
+
+        // 7. 급여명세서 및 추가 수당/공제 병합
+        if (cloudData.paystubs) {
+          const localPs = getPaystubs();
+          const mergedPs = { ...localPs, ...cloudData.paystubs };
+          const cur = safeGetItem(STORAGE_KEYS.PAYSTUBS);
+          const next = JSON.stringify(mergedPs);
+          if (cur !== next) {
+            safeSetItem(STORAGE_KEYS.PAYSTUBS, next);
+            updated = true;
+          }
+        }
+        if (cloudData.overtimeAdjustments) {
+          const localAdj = getOvertimeAdjustments();
+          const mergedAdj = { ...localAdj, ...cloudData.overtimeAdjustments };
+          const cur = safeGetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS);
+          const next = JSON.stringify(mergedAdj);
+          if (cur !== next) {
+            safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, next);
+            updated = true;
+          }
+        }
+
+        // 8. 직원 명부 및 시급/권한 스마트 비파괴 병합 (PC ↔ 스마트폰 최신 타임스탬프 자동 감지 동기화)
+        if (cloudData.employees && Array.isArray(cloudData.employees)) {
+          const localEmps = getEmployees() || [];
+          const localMap = {};
+          localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
+          
+          const finalMap = {};
+          cloudData.employees.forEach(ce => {
+            if (!ce || !ce.id) return;
+            const le = localMap[ce.id];
+            if (!le) {
+              finalMap[ce.id] = ce;
+            } else {
+              const cTime = Number(ce.updatedAt) || 0;
+              const lTime = Number(le.updatedAt) || 0;
+              finalMap[ce.id] = (cTime >= lTime) ? ce : le;
+            }
+          });
+
+          // 로컬에만 있고 클라우드에 아직 없는 신규 등록자 보존
+          localEmps.forEach(le => {
+            if (le && le.id && !finalMap[le.id]) {
+              finalMap[le.id] = le;
+            }
+          });
+
+          let mergedEmps = Object.values(finalMap);
+          const currentJson = safeGetItem(STORAGE_KEYS.EMPLOYEES);
+          const newJson = JSON.stringify(mergedEmps);
+          if (currentJson !== newJson) {
+            safeSetItem(STORAGE_KEYS.EMPLOYEES, newJson);
+            updated = true;
+          }
+        }
+
+        // 9. 약사 시급 및 휴게 설정 단일 마스터 연동
+        if (cloudData.pharmacistRates) {
+          const localRates = getPharmacistRates();
+          const mergedRates = { ...localRates, ...cloudData.pharmacistRates };
+          safeSetItem(STORAGE_KEYS.PHARMACIST_RATES, JSON.stringify(mergedRates));
+        }
+
         safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
         updateSyncStatusUI('success');
+
         if (updated) {
-          if (typeof callback === 'function') callback();
-          if (window.App && typeof window.App.renderActiveModule === 'function') {
-            window.App.renderActiveModule();
-            window.App.renderSidebarNavigation();
+          // 🔒 사용자가 어떤 입력창(input/textarea/select)에서든 타이핑 중이거나 모달이 열려있으면 화면 덮어쓰기 방지
+          const activeEl = document.activeElement;
+          const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+          const isEditingStaff = window.StaffDirectoryModule && window.StaffDirectoryModule.isEditing && window.StaffDirectoryModule.isEditing();
+          
+          const anyOpenModal = Array.from(document.querySelectorAll('.modal-overlay')).some(m => {
+            const disp = window.getComputedStyle(m).display;
+            return disp !== 'none' && disp !== '';
+          });
+
+          if (!isTyping && !isEditingStaff && !anyOpenModal) {
+            if (typeof callback === 'function') callback();
+            if (window.App && typeof window.App.renderActiveModule === 'function') {
+              window.App.renderActiveModule();
+              window.App.renderSidebarNavigation();
+            }
+            if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
+              window.App.checkPendingRejectionNotice();
+            }
+            if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+              window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+            }
           }
-          if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
-            window.App.checkPendingRejectionNotice();
-          }
+        }
+      } else {
+        // 🚀 클라우드가 비어있거나 초기 상태일 경우 로컬의 최신 데이터를 클라우드로 자동 시딩(전송)
+        const localLogs = getWorklogs() || [];
+        if (localLogs.length > 0) {
+          pushToCloud();
         }
       }
     } catch(e) {
@@ -996,11 +1216,17 @@ window.SheetsSync = (function () {
     }
   }
 
-  // 앱 시동 및 화면 복귀(Focus) 시 클라우드 동기화 자동 실행
+  // 앱 시동, 화면 복귀(Focus/Visibility), 및 3.5초 주기 초고속 실시간 백그라운드 동기화
   if (typeof window !== 'undefined') {
-    setTimeout(() => pullFromCloud(), 1000);
+    setTimeout(() => {
+      pullFromCloud();
+      setTimeout(() => pushToCloud(), 1000);
+    }, 300);
     window.addEventListener('focus', () => pullFromCloud());
-    setInterval(() => pullFromCloud(), 30000); // 30초마다 백그라운드 자동 동기화
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') pullFromCloud();
+    });
+    setInterval(() => pullFromCloud(), 3500); // 🚀 3.5초 초고속 실시간 무자각 자동 동기화!
   }
 
   function saveDiscountPurchases(data) {
@@ -1059,25 +1285,34 @@ window.SheetsSync = (function () {
   }
 
   function getPharmacistRates() {
-    const defaultRates = {
-      'emp_2': { weekdayRate: 40000, holidayRate: 40000, breakHours: 1.0 },
-      'emp_3': { weekdayRate: 25000, holidayRate: 27000, breakHours: 1.0 },
-      'emp_4': { weekdayRate: 23000, holidayRate: 23000, breakHours: 1.0 },
-      'emp_5': { weekdayRate: 25000, holidayRate: 27000, breakHours: 1.0 }
-    };
-    try {
-      const raw = safeGetItem('ssg_pharmacist_rates_v1');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return { ...defaultRates, ...parsed };
-      }
-    } catch (e) {}
-    safeSetItem('ssg_pharmacist_rates_v1', JSON.stringify(defaultRates));
-    return defaultRates;
+    const emps = getEmployees() || [];
+    const ratesMap = {};
+    emps.filter(e => e.role === '근무약사' || (e.role || '').includes('약사')).forEach(e => {
+      ratesMap[e.id] = {
+        weekdayRate: Number(e.weekdayRate) || Number(e.hourlyRate) || 35000,
+        holidayRate: Number(e.holidayRate) || 40000,
+        breakHours: 1.0
+      };
+    });
+    return ratesMap;
   }
 
-  function savePharmacistRates(data) {
-    safeSetItem('ssg_pharmacist_rates_v1', JSON.stringify(data));
+  function savePharmacistRates(rates) {
+    if (!rates) return;
+    const emps = getEmployees() || [];
+    let changed = false;
+    emps.forEach(e => {
+      if (rates[e.id]) {
+        if (rates[e.id].weekdayRate !== undefined) e.weekdayRate = Number(rates[e.id].weekdayRate);
+        if (rates[e.id].holidayRate !== undefined) e.holidayRate = Number(rates[e.id].holidayRate);
+        if (rates[e.id].weekdayRate !== undefined) e.hourlyRate = Number(rates[e.id].weekdayRate);
+        e.updatedAt = Date.now();
+        changed = true;
+      }
+    });
+    if (changed) {
+      saveEmployees(emps);
+    }
   }
 
   return {
@@ -1109,6 +1344,8 @@ window.SheetsSync = (function () {
     saveLeaveRequests,
     getDiscountPurchases,
     saveDiscountPurchases,
+    getDeletedIds,
+    addDeletedId,
     getPaystubs,
     savePaystubs,
     getOvertimeAdjustments,

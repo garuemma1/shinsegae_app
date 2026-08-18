@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 11. 삼남매아빠 부동산 임대업 대시보드 모듈 컨트롤러 (Building Rental Asset Engine v3.2 - 풀너비 반응형 완벽 고정)
  */
 window.BuildingRentalModule = (function () {
@@ -663,8 +663,11 @@ window.BuildingRentalModule = (function () {
 
   function deleteProperty(id) {
     if (!confirm('정말로 이 마스터 계약을 삭제하시겠습니까?')) return;
+    if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+      window.SheetsSync.addDeletedId(id);
+    }
     const rData = window.SheetsSync.getBuildingRental();
-    rData.units = rData.units.filter(u => u.id !== id);
+    rData.units = (rData.units || []).filter(u => u.id !== id);
     window.SheetsSync.saveBuildingRental(rData);
     document.getElementById('property-crud-modal').style.display = 'none';
     render('module-content');

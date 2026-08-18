@@ -684,6 +684,15 @@ window.AnnualLeaveModule = (function () {
   }
 
   function toggleInlineLeaveForm(forceState) {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) {
+      alert('⚠️ 연차 신청을 위해 먼저 로그인해 주세요.');
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
+
     if (forceState !== undefined) {
       showInlineLeaveForm = forceState;
     } else {
@@ -702,6 +711,15 @@ window.AnnualLeaveModule = (function () {
 
   function submitLeaveApplication(e) {
     if (e) e.preventDefault();
+
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) {
+      alert('⚠️ 연차 신청을 위해 먼저 로그인해 주세요.');
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
 
     const empIdInput = document.getElementById('inline-leave-emp-id');
     const empId = empIdInput ? empIdInput.value.trim() : '';
@@ -911,57 +929,59 @@ window.AnnualLeaveModule = (function () {
   function initLeaveCharts(targetEmployees) {
     if (typeof Chart === 'undefined') return;
 
+    const barLabels = targetEmployees.map(e => e.name);
+    const barData1 = targetEmployees.map(e => {
+      const calc = window.LaborCalculator.calculateStatutoryLeave(e.joinDate);
+      return Math.max(0, calc.totalGranted - (e.usedLeave || 0));
+    });
+    const barData2 = targetEmployees.map(e => e.usedLeave || 0);
+
     const barCtx = document.getElementById('leaveBarCanvas');
     if (barCtx) {
-      if (leaveChartInst.bar) leaveChartInst.bar.destroy();
+      if (leaveChartInst.bar) {
+        try { leaveChartInst.bar.destroy(); } catch (e) {}
+        leaveChartInst.bar = null;
+      }
       leaveChartInst.bar = new Chart(barCtx, {
         type: 'bar',
         indexAxis: 'y',
         data: {
-          labels: targetEmployees.map(e => e.name),
+          labels: barLabels,
           datasets: [
-            {
-              label: '잔여연차',
-              data: targetEmployees.map(e => {
-                const calc = window.LaborCalculator.calculateStatutoryLeave(e.joinDate);
-                return Math.max(0, calc.totalGranted - (e.usedLeave || 0));
-              }),
-              backgroundColor: 'rgba(16,185,129,0.82)',
-              borderRadius: 4
-            },
-            {
-              label: '사용연차',
-              data: targetEmployees.map(e => e.usedLeave || 0),
-              backgroundColor: 'rgba(239,68,68,0.65)',
-              borderRadius: 4
-            }
+            { label: '잔여연차', data: barData1, backgroundColor: 'rgba(16,185,129,0.82)', borderRadius: 4 },
+            { label: '사용연차', data: barData2, backgroundColor: 'rgba(239,68,68,0.65)', borderRadius: 4 }
           ]
         },
         options: {
-          responsive: true, maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false, animation: false,
           plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } },
           scales: { x: { stacked: false, ticks: { stepSize: 1 } } }
         }
       });
     }
 
+    const donutData = [
+      Math.max(0, targetEmployees.reduce((s,e) => { const c = window.LaborCalculator.calculateStatutoryLeave(e.joinDate); return s + c.totalGranted - (e.usedLeave||0); }, 0)),
+      targetEmployees.reduce((s,e) => s + (e.usedLeave||0), 0)
+    ];
+
     const donutCtx = document.getElementById('leaveDonutCanvas');
     if (donutCtx) {
-      if (leaveChartInst.donut) leaveChartInst.donut.destroy();
+      if (leaveChartInst.donut) {
+        try { leaveChartInst.donut.destroy(); } catch (e) {}
+        leaveChartInst.donut = null;
+      }
       leaveChartInst.donut = new Chart(donutCtx, {
         type: 'doughnut',
         data: {
           labels: ['잔여 연차 (마일)', '사용 연차 (마일)'],
           datasets: [{
-            data: [
-              Math.max(0, targetEmployees.reduce((s,e) => { const c = window.LaborCalculator.calculateStatutoryLeave(e.joinDate); return s + c.totalGranted - (e.usedLeave||0); }, 0)),
-              targetEmployees.reduce((s,e) => s + (e.usedLeave||0), 0)
-            ],
+            data: donutData,
             backgroundColor: ['#10b981', '#ef4444']
           }]
         },
         options: {
-          responsive: true, maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false, animation: false,
           plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
         }
       });

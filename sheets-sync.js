@@ -732,8 +732,8 @@ window.SheetsSync = (function () {
   }
 
   const API_SYNC_URL = (typeof window !== 'undefined' && window.location.origin.includes('vercel.app'))
-    ? '/api/sync'
-    : 'https://shinsegae-app.vercel.app/api/sync';
+    ? (window.location.origin + '/api/sync')
+    : 'https://shinsaegae-app.vercel.app/api/sync';
 
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;

@@ -62,9 +62,96 @@ window.SheetsSync = (function () {
   const INITIAL_SCHEDULE = [];
 
   const INITIAL_NOTICES = [
-    { id: 'n1', title: '📢 [중요] 2026년 8월 광복절 및 대체공휴일 교대근무 및 휴일수당 안내', content: '8월 15일(광복절) 및 8월 17일(대체공휴일) 근무는 근로기준법에 따라 휴일근로가산수당(1.5배)이 자동 적용됩니다.', date: '2026-08-01', author: '문성도 약국장', category: '긴급/근무', isPinned: true },
-    { id: 'n2', title: '💊 [SOP] 야간 및 주말 복약지도 및 처방전 조제 보조 지침', content: '야간(18시 이후) 및 주말 처방전 입력 시 이중점검(DUR 확인) 후 투약 봉투 출력 절차를 준수해 주세요.', date: '2026-08-03', author: '권명주 근무약사', category: '조제/투약', isPinned: true },
-    { id: 'n3', title: '🌴 [연차] 8월 여름 휴가 및 연차 신청서 사전 제출 요청', content: '여름 휴가 기간 연차 사용 시 취업규칙 제13조에 따라 최소 14일 전 신청서를 제출하여 약국장 결재를 받으시기 바랍니다.', date: '2026-08-05', author: '문성도 약국장', category: '인사/연차', isPinned: false }
+    {
+      id: 'n_1',
+      title: '안녕하세요 신세계약국 앱이 새롭게 만들어졌습니다.',
+      category: '일반공지',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: true,
+      content: '평소 카카오톡 통해서 공유하던 내용들을 모두 신세계약국 앱을 통해서 진행합니다. 카카오톡에 공유해드릴테니 다운받아서 앱으로 사용 가능합니다. 또한 pc에서도 서버로 로그인 가능하며 업무등의 공유를 앱을 통해서 해주시기 바랍니다.'
+    },
+    {
+      id: 'n_2',
+      title: '월간스케쥴 입력의 건',
+      category: '긴급/근무',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: true,
+      content: '월간 스케쥴이 지금 하나도 입력이 안되어 있습니다. 번거롭더라도 각자 본인 8월 근무일정을 다시 입력을 부탁드리겠습니다.'
+    },
+    {
+      id: 'n_3',
+      title: '아이디 비번의 건',
+      category: '일반공지',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: true,
+      content: '아이디 각자 저에게 보내주신 메일 주소 입니다 초기 비밀번호는 제가 각자 카톡으로 보내드릴 예정입니다. 각자 영어4자이상+숫자4자이상+특수문자2개 이상으로 수정하여 주시면 되겠습니다.'
+    },
+    {
+      id: 'n_4',
+      title: '신세계약국 데모버전 오류 가능성의 건',
+      category: '일반공지',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: true,
+      content: '아직 계속 개발중인 앱이라서 데모버전입니다. 오류가 있을 수 있으니 양해 바랍니다. 오류가 보이는 즉시 저에게 꼭 이야기 해주시기 바랍니다.'
+    },
+    {
+      id: 'n_5',
+      title: '휴가 일정 지정에 관한 건',
+      category: '인사/휴가',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: false,
+      content: '휴가일정은 가급적 메인 병원 휴가에 맞추어 일정을 잡아주시기 바랍니다. 확인된 이후 전달바라며 즐거운 휴가 기간 되시길 바랍니다.'
+    },
+    {
+      id: 'n_6',
+      title: '약국운영지원연락망의 건',
+      category: '긴급/근무',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: false,
+      content: '누구나 지원연락망을 통해 검색을 통해서도 연락처를 알 수 있는 시스템입니다. 현재 업데이트 예정인데 삭제할건 삭제하고 추가 등록 가능합니다. 추가등록이 누구나 가능하니 업데이트를 해주세요.. 이부분은 제가 아직 업데이트 안한 겁니다.'
+    },
+    {
+      id: 'n_7',
+      title: '직원할인구매대장의 건',
+      category: '일반공지',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: false,
+      content: '직원할인대장은 본인이 구매원하는 품목 가격 체크해서 검수약사들에게 검수를 받으면 되고 검수한 약사는 검수체크해주시고 입금처리 확인되면 약국장이 최종승인 되도록 만들어진 폼입니다. 꼼꼼히 투명하게 복지가 될 수 있도록 만들었으니 편리하게 이용 바랍니다.'
+    },
+    {
+      id: 'n_8',
+      title: '월간근무스케쥴의 건',
+      category: '인사/휴가',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: false,
+      content: '월간스케쥴의 각자의 아이디로 로그인해서 꼭 근무시간을 체크해주시기 바라며 약국장에게 승인 요청을 해주시기 바랍니다. 서로 다른분들의 근무도 확인이 가능하며 크로스 체크가 가능합니다.월말에는 급여명세서 또한 이 탭을 통해 확인이 가능합니다. 추가근무 등도 여기 통해서 확인이 가능하니 정확하게 체크해서 신청 바랍니다.'
+    },
+    {
+      id: 'n_9',
+      title: '업무일지/인수인계 활용의 건',
+      category: '일반공지',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: false,
+      content: '제일 자주 사용하는 탭이 될 예정입니다. 사진첨부도 가능하며 근무시 있던 일 들 중에 인수인계사항 등도 여기에 기록해 주시면 됩니다. 그리고 인수받은 분들은 확인란에 꼭 체크 바랍니다. 그리고 미해결된 리스트들은 상단에 있을 예정이며 해결이완료되면 완료를 눌러 주시면 됩니다. 사진 첨부도 가능하니 약 진열 후 사진등록해주시기 바랍니다.'
+    },
+    {
+      id: 'n_10',
+      title: '공지사항 등록 방법',
+      category: '일반공지',
+      author: '문성도',
+      date: '2026-08-18',
+      isPinned: false,
+      content: '누구나 공지사항 등록 가능하며 다같이 긴급하게 공유해야 하거나 서로 필요한 사항 있으면 공지란에 등록 바랍니다. 확인이 되고 나중에 마무리 되면 제가 삭제하겠습니다. 카테코리는 긴급/근무 변경사항의 건, 조제/투약시 오투약 등의 건, 인사/휴가의 건, 일반공지 건으로 구분하여 적절하게 올려주시면 되겠습니다.'
+    }
   ];
 
   const INITIAL_LEAVE_REQUESTS = [
@@ -703,7 +790,17 @@ window.SheetsSync = (function () {
   function getNotices() {
     try {
       const raw = safeGetItem(STORAGE_KEYS.NOTICES);
-      return raw ? JSON.parse(raw) : INITIAL_NOTICES;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const isOldMock = parsed.length <= 3 && parsed.some(n => n.id === 'n1' || (n.title && n.title.includes('광복절')));
+          if (!isOldMock) {
+            return parsed;
+          }
+        }
+      }
+      safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(INITIAL_NOTICES));
+      return INITIAL_NOTICES;
     } catch(e) { return INITIAL_NOTICES; }
   }
 

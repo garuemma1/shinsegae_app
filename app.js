@@ -526,11 +526,7 @@ function setupEventListeners() {
     }
     renderSidebarNavigation();
     renderUserHeader();
-    switchModule('notices', true);
-    // 💡 로그아웃 즉시 다음 직원이 로그인할 수 있도록 로그인 모달을 즉시 오픈합니다!
-    setTimeout(() => {
-      showLoginModal();
-    }, 100);
+    renderActiveModule();
   }
 
   function openChangePwModal() {
@@ -643,66 +639,53 @@ function setupEventListeners() {
     if (titleEl) titleEl.innerText = '🔒 신세계약국 커넥트';
 
     const emps = window.SheetsSync.getEmployees() || [];
-    const activeEmps = emps.filter(e => !e.isCandidate && e.role !== '예비인력' && !e.name.includes('이정은') && !e.name.includes('간영자'));
-    const director = activeEmps.filter(e => e.role === '약국장');
-    const pharmacists = activeEmps.filter(e => e.role === '근무약사');
-    const staff = activeEmps.filter(e => e.role === '일반직원');
+    const activeEmps = emps.filter(e => !e.isCandidate && e.role !== '예비인력' && !e.name.includes('이정은') && !e.name.includes('간영자') && !e.name.includes('테스트'));
+    
+    // 2대 정예 그룹: 조제 케어팀 (약사 5인: 문성도 포함) / 헬스케어 파트너 (지원팀 4인)
+    const careTeam = activeEmps.filter(e => e.role === '약국장' || e.role === '근무약사' || (e.role || '').includes('약사'));
+    const partnerTeam = activeEmps.filter(e => e.role === '일반직원');
 
     container.innerHTML = `
-      <div style="min-height: 85vh; display: flex; align-items: center; justify-content: center; padding: 20px 12px;">
-        <div style="width: 100%; max-width: 580px; padding: 40px 30px; background: rgba(255, 255, 255, 0.98); border: 1.5px solid rgba(203, 213, 225, 0.85); border-radius: 28px; box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.8) inset; text-align: center;">
+      <div style="min-height: 85vh; display: flex; align-items: center; justify-content: center; padding: 24px 14px;">
+        <div style="width: 100%; max-width: 560px; padding: 42px 32px; background: rgba(255, 255, 255, 0.98); border: 1.5px solid rgba(203, 213, 225, 0.85); border-radius: 28px; box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.8) inset; text-align: center;">
           
           <!-- 🌟 3D 엠보싱 대형 로고 -->
           <div style="width: 88px; height: 88px; margin: 0 auto 16px auto; border-radius: 24px; background: radial-gradient(circle at 30% 30%, #ffffff 0%, #ecfdf5 70%, #d1fae5 100%); border: 2.5px solid #6ee7b7; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 32px -4px rgba(5, 150, 105, 0.28), 0 4px 12px rgba(0,0,0,0.06), inset 0 2px 5px rgba(255,255,255,0.95); padding: 8px;">
             <img src="logo.jpg" alt="신세계약국 로고" style="width: 100%; height: 100%; object-fit: contain; border-radius: 16px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
           </div>
 
-          <h2 style="font-size: 24px; font-weight: 900; color: #0f172a; margin-bottom: 4px; letter-spacing: -0.5px;">
+          <h2 style="font-size: 25px; font-weight: 900; color: #0f172a; margin-bottom: 4px; letter-spacing: -0.5px;">
             신세계약국
           </h2>
           <p style="font-size: 13.5px; color: #64748b; font-weight: 600; margin-bottom: 24px; letter-spacing: 0.2px;">
             HR & Operations Platform • Connect Portal
           </p>
 
-          <!-- 빠른 계정 선택 -->
-          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 20px 18px; margin-bottom: 24px; text-align: left;">
+          <!-- 2대 정예 그룹 계정 선택 박스 -->
+          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 22px 18px; margin-bottom: 24px; text-align: left;">
             
-            <!-- 1. 대표약국장 -->
-            <div style="margin-bottom: 16px;">
-              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #b91c1c; background: #fef2f2; border: 1.5px solid #fecaca; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;">
-                <i class="fas fa-crown"></i> 대표약국장
-              </div>
-              <div class="d-flex flex-wrap gap-2">
-                ${director.map(e => `
-                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: #ffffff; border: none; border-radius: 14px; font-size: 15px; padding: 9px 24px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(220,38,38,0.25); transition: all 0.2s ease;">
-                    ${e.name}
-                  </button>
-                `).join('')}
-              </div>
-            </div>
-
-            <!-- 2. 조제 케어팀 -->
-            <div style="margin-bottom: 16px;">
-              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #1d4ed8; background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;">
+            <!-- 1. 💊 조제 케어팀 (약사 5인) -->
+            <div style="margin-bottom: 18px;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: #1d4ed8; background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;">
                 <i class="fas fa-pills"></i> 조제 케어팀
               </div>
-              <div class="d-flex flex-wrap gap-2">
-                ${pharmacists.map(e => `
-                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: #ffffff; color: #1e40af; border: 1.5px solid #cbd5e1; border-radius: 14px; font-size: 14.5px; padding: 8px 18px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: all 0.2s ease;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;">
+                ${careTeam.map(e => `
+                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: #ffffff; color: #1e40af; border: 1.5px solid #cbd5e1; border-radius: 14px; font-size: 14.5px; padding: 9px 6px; font-weight: 800; cursor: pointer; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
                     ${e.name}
                   </button>
                 `).join('')}
               </div>
             </div>
 
-            <!-- 3. 헬스케어 파트너 -->
+            <!-- 2. 🌿 헬스케어 파트너 (지원팀 4인) -->
             <div>
-              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #047857; background: #ecfdf5; border: 1.5px solid #a7f3d0; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: #047857; background: #ecfdf5; border: 1.5px solid #a7f3d0; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;">
                 <i class="fas fa-hand-holding-medical"></i> 헬스케어 파트너
               </div>
-              <div class="d-flex flex-wrap gap-2">
-                ${staff.map(e => `
-                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: #ffffff; color: #047857; border: 1.5px solid #cbd5e1; border-radius: 14px; font-size: 14.5px; padding: 8px 18px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: all 0.2s ease;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;">
+                ${partnerTeam.map(e => `
+                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: #ffffff; color: #047857; border: 1.5px solid #cbd5e1; border-radius: 14px; font-size: 14.5px; padding: 9px 6px; font-weight: 800; cursor: pointer; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
                     ${e.name}
                   </button>
                 `).join('')}
@@ -715,16 +698,16 @@ function setupEventListeners() {
           <form onsubmit="App.handleGatewayLoginSubmit(event)" style="text-align: left;">
             <div class="mb-3">
               <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-                계정 아이디 (이메일 주소)
+                👤 계정 아이디 (이메일 주소)
               </label>
-              <input type="text" id="gw-login-username" class="form-control" placeholder="예: iniha@naver.com (직접 입력 또는 위에서 터치)" style="height: 48px; font-size: 15px; font-weight: 700; color: #0f172a; background: #ffffff; border-radius: 14px; border: 1.5px solid #cbd5e1; padding: 0 16px;" required>
+              <input type="text" id="gw-login-username" class="form-control" placeholder="예: iniha@naver.com (성함 터치 또는 직접 입력)" style="height: 48px; font-size: 14.5px; font-weight: 700; color: #0f172a; background: #ffffff; border-radius: 14px; border: 1.5px solid #cbd5e1; padding: 0 16px;" required>
             </div>
 
             <div class="mb-4">
               <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-                비밀번호 입력 <span style="font-weight: normal; color: #94a3b8; font-size: 12px;">(초기 번호: 휴대폰 뒷 4자리)</span>
+                🔒 비밀번호 <span style="font-weight: normal; color: #94a3b8; font-size: 12px;">(초기 번호: 휴대폰 뒷 4자리)</span>
               </label>
-              <input type="password" id="gw-login-passcode" class="form-control" placeholder="비밀번호를 입력하세요" style="height: 48px; font-size: 16px; border-radius: 14px; border: 1.5px solid #cbd5e1; letter-spacing: 3px; padding: 0 16px;" required>
+              <input type="password" id="gw-login-passcode" class="form-control" placeholder="비밀번호를 입력하세요" style="height: 48px; font-size: 16px; border-radius: 14px; border: 1.5px solid #cbd5e1; letter-spacing: 2px; padding: 0 16px;" required>
             </div>
 
             <button type="submit" style="width: 100%; height: 54px; border-radius: 16px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff; font-size: 16.5px; font-weight: 800; border: none; box-shadow: 0 6px 20px rgba(5,150,105,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s ease;">

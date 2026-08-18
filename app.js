@@ -50,6 +50,14 @@ window.App = (function () {
 
     renderActiveModule();
 
+    // 🌐 클라우드 최우선 데이터 즉시 동기화 (Cloud-First Hydration)
+    if (window.SheetsSync && window.SheetsSync.pullFromCloud) {
+      window.SheetsSync.pullFromCloud(() => {
+        renderActiveModule();
+        renderSidebarNavigation();
+      });
+    }
+
     // 🚀 [Option A] 자동 버전 감지 및 스마트 무중단 자동 업데이트 가동
     startAutoUpdateChecker();
   }

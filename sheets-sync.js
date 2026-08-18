@@ -732,15 +732,16 @@ window.SheetsSync = (function () {
   }
 
   function getSyncEndpoints() {
-    const endpoints = [];
+    const endpoints = [
+      'https://shinsegaeapp.vercel.app/api/sync'
+    ];
     if (typeof window !== 'undefined' && window.location && window.location.origin) {
       if (window.location.origin.startsWith('http')) {
-        endpoints.push(window.location.origin + '/api/sync');
+        endpoints.unshift(window.location.origin + '/api/sync');
       }
     }
     endpoints.push('https://shinsegae-app.vercel.app/api/sync');
     endpoints.push('https://shinsaegae-app.vercel.app/api/sync');
-    // Remove duplicates
     return Array.from(new Set(endpoints));
   }
 
@@ -868,7 +869,7 @@ window.SheetsSync = (function () {
       if (cloudData) {
         let updated = false;
         
-        // 📝 업무일지 스마트 ID 양방향 병합
+        // 📝 업무일지 스마트 ID 양방향 병합 (PC와 모바일 작성분 유실 없이 완벽 합체)
         if (cloudData.worklogs && Array.isArray(cloudData.worklogs) && cloudData.worklogs.length > 0) {
           const localLogs = getWorklogs() || [];
           const mergedMap = {};
@@ -878,7 +879,24 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedList));
           updated = true;
         }
-        if (cloudData.notices) { safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(cloudData.notices)); updated = true; }
+
+        // 📢 공지사항 스마트 ID 양방향 병합 (핸드폰/PC 작성 공지 모두 보존 및 합체)
+        if (cloudData.notices && Array.isArray(cloudData.notices) && cloudData.notices.length > 0) {
+          const localNotices = getNotices() || [];
+          const mergedMap = {};
+          localNotices.forEach(n => {
+            const key = n.id || (n.title + '_' + n.date);
+            if (key) mergedMap[key] = n;
+          });
+          cloudData.notices.forEach(n => {
+            const key = n.id || (n.title + '_' + n.date);
+            if (key) mergedMap[key] = n;
+          });
+          const mergedNotices = Object.values(mergedMap).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+          safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(mergedNotices));
+          updated = true;
+        }
+
         if (cloudData.leaveRequests) { safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(cloudData.leaveRequests)); updated = true; }
         if (cloudData.discountPurchases) { safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(cloudData.discountPurchases)); updated = true; }
         if (cloudData.schedule) { safeSetItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(cloudData.schedule)); updated = true; }
@@ -1117,9 +1135,9 @@ window.SheetsSync = (function () {
     const el = document.getElementById('cloud-sync-badge');
     if (el) {
       if (status === 'success') {
-        el.innerHTML = '<span class="badge bg-success" style="font-size:11.5px; padding:5px 9px; border-radius:12px;"><i class="fas fa-cloud-check me-1"></i> <span class="sync-badge-full-text">☁️ 실시간 클라우드 공유 연동 중</span><span class="sync-badge-short-text">☁️ 연동중</span></span>';
+        el.innerHTML = '<span class="badge cloud-badge-connected" style="font-size:11.5px; padding:6px 12px; border-radius:20px; font-weight:700; display:inline-flex; align-items:center; gap:5px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#ffffff; box-shadow:0 2px 8px rgba(16,185,129,0.35); border:1px solid #059669;"><i class="fas fa-check-circle"></i> <span class="sync-badge-full-text">☁️ 실시간 클라우드 공유 연동 중</span><span class="sync-badge-short-text">☁️ 연동중</span></span>';
       } else {
-        el.innerHTML = '<span class="badge bg-secondary" style="font-size:11.5px; padding:5px 9px; border-radius:12px;"><i class="fas fa-cloud me-1"></i> <span class="sync-badge-full-text">☁️ 동기화 가동 중</span><span class="sync-badge-short-text">☁️ 동기화</span></span>';
+        el.innerHTML = '<span class="badge cloud-badge-syncing" style="font-size:11.5px; padding:6px 12px; border-radius:20px; font-weight:700; display:inline-flex; align-items:center; gap:5px; background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;"><i class="fas fa-sync fa-spin"></i> <span class="sync-badge-full-text">☁️ 클라우드 동기화 중...</span><span class="sync-badge-short-text">☁️ 동기화</span></span>';
       }
     }
   }

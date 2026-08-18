@@ -32,6 +32,20 @@ async function handler(req, res) {
           bodyData.data.worklogs = Object.values(map).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
         }
 
+        // 공지사항 인메모리 스마트 병합
+        if (memoryStore && memoryStore.data && memoryStore.data.notices && bodyData.data.notices) {
+          const nMap = {};
+          memoryStore.data.notices.forEach(n => {
+            const k = n.id || (n.title + '_' + n.date);
+            if (k) nMap[k] = n;
+          });
+          bodyData.data.notices.forEach(n => {
+            const k = n.id || (n.title + '_' + n.date);
+            if (k) nMap[k] = n;
+          });
+          bodyData.data.notices = Object.values(nMap).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        }
+
         memoryStore = bodyData;
         global.__GLOBAL_MASTER_DB = bodyData;
       }

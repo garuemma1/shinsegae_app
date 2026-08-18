@@ -161,14 +161,46 @@ window.SheetsSync = (function () {
 
   // 신규: 약국 업무일지 & 교대 인수인계 초기 데이터 (실시간 연동 기본값)
   const INITIAL_WORKLOGS = [
-    { id: 'task_1', date: '2026-08-18', tag: '품절', content: '타이레놀', authorName: '이승학', status: 'PENDING', createdAt: '2026-08-18 10:30', checkedBy: [] },
-    { id: 'task_2', date: '2026-08-18', tag: '주문', content: '뭐 없어요', authorName: '양윤지', status: 'PENDING', createdAt: '2026-08-18 09:15', checkedBy: [] },
-    { id: 'task_3', date: '2026-08-18', tag: '일반/메모', content: '안녕하세여', authorName: '권명주', status: 'PENDING', createdAt: '2026-08-18 08:50', checkedBy: [] },
-    { id: 'task_4', date: '2026-08-17', tag: '입고/처리', content: '둘코락스 찌그러진거 회메에서 입고된거 판매가 됐을까요???', authorName: '권명주', status: 'PENDING', createdAt: '2026-08-17 18:20', checkedBy: [] },
-    { id: 'task_5', date: '2026-08-17', tag: '주문', content: '케어가글왔습니디 주문요청', authorName: '이승학', status: 'PENDING', createdAt: '2026-08-17 16:40', checkedBy: [] },
-    { id: 'task_6', date: '2026-08-17', tag: '주문', content: '넥스가드 전화요청', authorName: '김제희', status: 'PENDING', createdAt: '2026-08-17 14:10', checkedBy: [] },
-    { id: 'task_7', date: '2026-08-17', tag: '일반/메모', content: '먹는약 내일 오기로', authorName: '문성도', status: 'PENDING', createdAt: '2026-08-17 11:30', checkedBy: ['문성도 약국장'] },
-    { id: 'task_8', date: '2026-08-16', tag: '품절', content: '듀라티얼즈 안연고', authorName: '문성도', status: 'PENDING', createdAt: '2026-08-16 17:00', checkedBy: ['문성도 약국장'] }
+    {
+      id: 'task_real_1',
+      date: '2026-08-18',
+      tag: '주문',
+      content: '아로나민골드프리미엄 1개\n아로나민실버 1개\n암치싹 로라 50개 부탁드립니다',
+      authorName: '문성도',
+      status: 'PENDING',
+      createdAt: '2026-08-18 10:30',
+      checkedBy: []
+    },
+    {
+      id: 'task_real_2',
+      date: '2026-08-18',
+      tag: '품절',
+      content: '넥스가드 품절 9월',
+      authorName: '김제희',
+      status: 'PENDING',
+      createdAt: '2026-08-18 09:15',
+      checkedBy: []
+    },
+    {
+      id: 'task_real_3',
+      date: '2026-08-17',
+      tag: '입고/처리',
+      content: '둘코락스 찌그러진거 회메에서 입고된거 판매가 됐을까요???',
+      authorName: '권명주',
+      status: 'PENDING',
+      createdAt: '2026-08-17 18:20',
+      checkedBy: []
+    },
+    {
+      id: 'task_real_4',
+      date: '2026-08-17',
+      tag: '주문',
+      content: '케어가글왔습니디 주문요청',
+      authorName: '이승학',
+      status: 'PENDING',
+      createdAt: '2026-08-17 16:40',
+      checkedBy: []
+    }
   ];
 
   // 신규: 약국 운영 지원 연락망 초기 데이터 (4대 카테고리)
@@ -826,6 +858,28 @@ window.SheetsSync = (function () {
       const raw = safeGetItem(STORAGE_KEYS.DISCOUNT_PURCHASES);
       return raw ? JSON.parse(raw) : INITIAL_DISCOUNT_PURCHASES;
     } catch(e) { return INITIAL_DISCOUNT_PURCHASES; }
+  }
+
+  function getWorklogs() {
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.WORKLOGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const isOldMock = parsed.some(p => p.content === '타이레놀' || p.content === '뭐 없어요');
+          if (!isOldMock) {
+            return parsed;
+          }
+        }
+      }
+      safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(INITIAL_WORKLOGS));
+      return INITIAL_WORKLOGS;
+    } catch(e) { return INITIAL_WORKLOGS; }
+  }
+
+  function saveWorklogs(data) {
+    safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(data));
+    pushToCloud();
   }
 
   function getSyncEndpoints() {

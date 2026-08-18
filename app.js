@@ -163,24 +163,24 @@ function setupEventListeners() {
 
   function renderSidebarNavigation() {
     const nav = document.querySelector('.drawer-menu');
-    if (!nav) return;
+    const drawer = document.getElementById('app-drawer');
+    const mainWrapper = document.getElementById('main-wrapper');
+    const topHeader = document.querySelector('.top-header');
 
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) {
-      nav.innerHTML = `
-        <div style="padding: 28px 14px; text-align: center; color: #94a3b8; font-size: 13px; line-height: 1.6;">
-          <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(255,255,255,0.06); color: #cbd5e1; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; font-size: 20px;">
-            <i class="fas fa-lock"></i>
-          </div>
-          <strong style="color: #ffffff; font-size: 14.5px; display: block; margin-bottom: 4px;">사내 인트라넷 보안 잠금</strong>
-          직원 로그인 완료 시<br>개인별 맞춤 메뉴가 열립니다.
-          <button type="button" onclick="App.showLoginModal()" style="margin-top: 16px; width: 100%; padding: 10px; border-radius: 10px; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; font-weight: 800; font-size: 13px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.35);">
-            <i class="fas fa-sign-in-alt me-1"></i> 직원 로그인하기
-          </button>
-        </div>
-      `;
+      if (drawer) drawer.style.display = 'none';
+      if (mainWrapper) mainWrapper.classList.add('full-width');
+      if (topHeader) topHeader.style.display = 'none';
+      if (nav) nav.innerHTML = '';
       return;
+    } else {
+      if (drawer) drawer.style.display = '';
+      if (mainWrapper) mainWrapper.classList.remove('full-width');
+      if (topHeader) topHeader.style.display = '';
     }
+
+    if (!nav) return;
 
     const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
     const badges = computeNotificationBadges();
@@ -640,7 +640,7 @@ function setupEventListeners() {
     if (!container) return;
 
     const titleEl = document.getElementById('active-module-title');
-    if (titleEl) titleEl.innerText = '🔒 사내 인트라넷 로그인';
+    if (titleEl) titleEl.innerText = '🔒 신세계약국 커넥트';
 
     const emps = window.SheetsSync.getEmployees() || [];
     const activeEmps = emps.filter(e => !e.isCandidate && e.role !== '예비인력' && !e.name.includes('이정은') && !e.name.includes('간영자'));
@@ -649,73 +649,90 @@ function setupEventListeners() {
     const staff = activeEmps.filter(e => e.role === '일반직원');
 
     container.innerHTML = `
-      <div style="max-width: 580px; margin: 30px auto; padding: 36px 28px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 24px; box-shadow: 0 20px 45px -10px rgba(15,23,42,0.1); text-align: center;">
-        
-        <div style="width: 72px; height: 72px; margin: 0 auto 16px auto; border-radius: 18px; background: #f8fafc; border: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 6px;">
-          <img src="logo.jpg" alt="신세계약국 로고" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
-        </div>
-
-        <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 6px; letter-spacing: -0.5px;">
-          신세계약국 스마트 인트라넷
-        </h2>
-        <p style="font-size: 13.5px; color: #64748b; margin-bottom: 24px;">
-          🔒 사내 보안 시스템: 직원 본인 계정으로 로그인해 주세요.
-        </p>
-
-        <!-- 빠른 계정 선택 -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 16px; margin-bottom: 24px; text-align: left;">
+      <div style="min-height: 85vh; display: flex; align-items: center; justify-content: center; padding: 20px 12px;">
+        <div style="width: 100%; max-width: 580px; padding: 40px 30px; background: rgba(255, 255, 255, 0.98); border: 1.5px solid rgba(203, 213, 225, 0.85); border-radius: 28px; box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.8) inset; text-align: center;">
           
-          <div style="font-size: 12px; font-weight: 800; color: #dc2626; margin-bottom: 8px;">👑 대표 약국장</div>
-          <div class="d-flex flex-wrap gap-2 mb-3">
-            ${director.map(e => `
-              <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border: none; border-radius: 12px; font-size: 13px; padding: 7px 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 6px rgba(220,38,38,0.25);">
-                🏆 ${e.name} (${e.role})
-              </button>
-            `).join('')}
+          <!-- 🌟 3D 엠보싱 대형 로고 -->
+          <div style="width: 88px; height: 88px; margin: 0 auto 16px auto; border-radius: 24px; background: radial-gradient(circle at 30% 30%, #ffffff 0%, #ecfdf5 70%, #d1fae5 100%); border: 2.5px solid #6ee7b7; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 32px -4px rgba(5, 150, 105, 0.28), 0 4px 12px rgba(0,0,0,0.06), inset 0 2px 5px rgba(255,255,255,0.95); padding: 8px;">
+            <img src="logo.jpg" alt="신세계약국 로고" style="width: 100%; height: 100%; object-fit: contain; border-radius: 16px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
           </div>
 
-          <div style="font-size: 12px; font-weight: 800; color: #2563eb; margin-bottom: 8px;">👨‍⚕️ 근무약사 (4인)</div>
-          <div class="d-flex flex-wrap gap-2 mb-3">
-            ${pharmacists.map(e => `
-              <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; border-radius: 12px; font-size: 13px; padding: 6px 12px; font-weight: 700; cursor: pointer;">
-                👨‍⚕️ ${e.name}
-              </button>
-            `).join('')}
+          <h2 style="font-size: 24px; font-weight: 900; color: #0f172a; margin-bottom: 4px; letter-spacing: -0.5px;">
+            신세계약국
+          </h2>
+          <p style="font-size: 13.5px; color: #64748b; font-weight: 600; margin-bottom: 24px; letter-spacing: 0.2px;">
+            HR & Operations Platform • Connect Portal
+          </p>
+
+          <!-- 빠른 계정 선택 -->
+          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 20px 18px; margin-bottom: 24px; text-align: left;">
+            
+            <!-- 1. 대표약국장 -->
+            <div style="margin-bottom: 16px;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #b91c1c; background: #fef2f2; border: 1.5px solid #fecaca; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;">
+                <i class="fas fa-crown"></i> 대표약국장
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                ${director.map(e => `
+                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: #ffffff; border: none; border-radius: 14px; font-size: 15px; padding: 9px 24px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(220,38,38,0.25); transition: all 0.2s ease;">
+                    ${e.name}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- 2. 조제 케어팀 -->
+            <div style="margin-bottom: 16px;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #1d4ed8; background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;">
+                <i class="fas fa-pills"></i> 조제 케어팀
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                ${pharmacists.map(e => `
+                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: #ffffff; color: #1e40af; border: 1.5px solid #cbd5e1; border-radius: 14px; font-size: 14.5px; padding: 8px 18px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: all 0.2s ease;">
+                    ${e.name}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- 3. 헬스케어 파트너 -->
+            <div>
+              <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #047857; background: #ecfdf5; border: 1.5px solid #a7f3d0; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px;">
+                <i class="fas fa-hand-holding-medical"></i> 헬스케어 파트너
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                ${staff.map(e => `
+                  <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn" style="background: #ffffff; color: #047857; border: 1.5px solid #cbd5e1; border-radius: 14px; font-size: 14.5px; padding: 8px 18px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: all 0.2s ease;">
+                    ${e.name}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
           </div>
 
-          <div style="font-size: 12px; font-weight: 800; color: #059669; margin-bottom: 8px;">👨‍💼 일반직원 (4인)</div>
-          <div class="d-flex flex-wrap gap-2">
-            ${staff.map(e => `
-              <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: #f0fdf4; color: #15803d; border: 1.5px solid #bbf7d0; border-radius: 12px; font-size: 13px; padding: 6px 12px; font-weight: 700; cursor: pointer;">
-                👨‍💼 ${e.name} (${e.position || e.role})
-              </button>
-            `).join('')}
-          </div>
+          <!-- 로그인 폼 (이메일 직접 입력 및 상단 터치 자동완성 지원) -->
+          <form onsubmit="App.handleGatewayLoginSubmit(event)" style="text-align: left;">
+            <div class="mb-3">
+              <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                계정 아이디 (이메일 주소)
+              </label>
+              <input type="text" id="gw-login-username" class="form-control" placeholder="예: iniha@naver.com (직접 입력 또는 위에서 터치)" style="height: 48px; font-size: 15px; font-weight: 700; color: #0f172a; background: #ffffff; border-radius: 14px; border: 1.5px solid #cbd5e1; padding: 0 16px;" required>
+            </div>
+
+            <div class="mb-4">
+              <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                비밀번호 입력 <span style="font-weight: normal; color: #94a3b8; font-size: 12px;">(초기 번호: 휴대폰 뒷 4자리)</span>
+              </label>
+              <input type="password" id="gw-login-passcode" class="form-control" placeholder="비밀번호를 입력하세요" style="height: 48px; font-size: 16px; border-radius: 14px; border: 1.5px solid #cbd5e1; letter-spacing: 3px; padding: 0 16px;" required>
+            </div>
+
+            <button type="submit" style="width: 100%; height: 54px; border-radius: 16px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff; font-size: 16.5px; font-weight: 800; border: none; box-shadow: 0 6px 20px rgba(5,150,105,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s ease;">
+              <i class="fas fa-link"></i> ✨ 신세계약국 커넥트 입장
+            </button>
+          </form>
+
         </div>
-
-        <!-- 로그인 폼 -->
-        <form onsubmit="App.handleGatewayLoginSubmit(event)" style="text-align: left;">
-          <input type="hidden" id="gw-login-empid" value="">
-
-          <div class="mb-3">
-            <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-              선택된 직원 계정
-            </label>
-            <input type="text" id="gw-login-name" class="form-control" readonly placeholder="위에서 본인 이름을 터치해 주세요" style="height: 46px; font-size: 14px; font-weight: 700; background: #f1f5f9; border-radius: 12px; border: 1.5px solid #cbd5e1;" required>
-          </div>
-
-          <div class="mb-4">
-            <label style="display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-              비밀번호 입력 <span style="font-weight: normal; color: #94a3b8; font-size: 12px;">(초기 번호 또는 설정한 번호)</span>
-            </label>
-            <input type="password" id="gw-login-passcode" class="form-control" placeholder="비밀번호를 입력하세요" style="height: 46px; font-size: 16px; border-radius: 12px; border: 1.5px solid #cbd5e1; letter-spacing: 2px;" required>
-          </div>
-
-          <button type="submit" style="width: 100%; height: 50px; border-radius: 14px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #ffffff; font-size: 16px; font-weight: 800; border: none; box-shadow: 0 4px 14px rgba(16,185,129,0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fas fa-sign-in-alt"></i> 로그인 및 인트라넷 입장
-          </button>
-        </form>
-
       </div>
     `;
   }
@@ -725,21 +742,21 @@ function setupEventListeners() {
     const emp = emps.find(e => e.id === empId);
     if (!emp) return;
 
-    const idInput = document.getElementById('gw-login-empid');
-    const nameInput = document.getElementById('gw-login-name');
+    const userInput = document.getElementById('gw-login-username');
     const passInput = document.getElementById('gw-login-passcode');
 
-    if (idInput) idInput.value = emp.id;
-    if (nameInput) nameInput.value = `${emp.name} (${emp.role} - ${emp.position || ''})`;
+    if (userInput) userInput.value = emp.email || emp.username || emp.name;
 
     document.querySelectorAll('.gw-emp-btn').forEach(btn => {
       btn.style.outline = 'none';
       btn.style.boxShadow = '';
+      btn.style.borderColor = '#cbd5e1';
     });
     const activeBtn = document.getElementById('gw-emp-btn-' + emp.id);
     if (activeBtn) {
       activeBtn.style.outline = '3px solid #059669';
-      activeBtn.style.boxShadow = '0 0 0 4px rgba(5,150,105,0.2)';
+      activeBtn.style.boxShadow = '0 0 0 4px rgba(5,150,105,0.25)';
+      activeBtn.style.borderColor = '#059669';
     }
 
     if (passInput) {
@@ -770,18 +787,35 @@ function setupEventListeners() {
 
   function handleGatewayLoginSubmit(e) {
     e.preventDefault();
-    const empId = document.getElementById('gw-login-empid').value;
+    const inputVal = (document.getElementById('gw-login-username').value || '').trim().toLowerCase();
     const pass = document.getElementById('gw-login-passcode').value.trim();
 
-    if (!empId) {
-      alert('위에서 본인의 이름을 먼저 선택해 주세요.');
+    if (!inputVal) {
+      alert('계정 아이디(이메일 주소)를 입력하거나 위에서 본인 이름을 선택해 주세요.');
       return;
     }
 
     const emps = window.SheetsSync.getEmployees() || [];
-    const target = emps.find(e => e.id === empId);
+    const target = emps.find(emp => {
+      const u = (emp.username || '').toLowerCase();
+      const email = (emp.email || '').toLowerCase();
+      const name = (emp.name || '').toLowerCase();
+      const id = (emp.id || '').toLowerCase();
+      const shortUser = u.split('@')[0];
+      const shortEmail = email.split('@')[0];
+
+      return inputVal === u ||
+             inputVal === email ||
+             inputVal === name ||
+             inputVal === id ||
+             inputVal === shortUser ||
+             inputVal === shortEmail ||
+             u.startsWith(inputVal) ||
+             email.startsWith(inputVal);
+    });
+
     if (!target) {
-      alert('직원 정보를 찾을 수 없습니다.');
+      alert('❌ 일치하는 직원 계정(이메일 또는 성함)을 찾을 수 없습니다.');
       return;
     }
 

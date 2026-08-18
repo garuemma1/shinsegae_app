@@ -770,6 +770,13 @@ window.SheetsSync = (function () {
       });
     }
 
+    // 🚫 테스트약사 및 임시 테스트 계정 영구 삭제 필터링
+    const cleanEmps = emps.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
+    if (cleanEmps.length !== emps.length) {
+      safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(cleanEmps));
+      emps = cleanEmps;
+    }
+
     return emps;
   }
 

@@ -102,58 +102,66 @@ window.WorklogModule = (function () {
         </div>
       </div>
 
-      <!-- 상단: 진행 중인 실시간 업무 보드 -->
-      <div class="card shadow-sm mb-5" style="border-radius:16px; border:1px solid #e2e8f0; background:#ffffff; overflow:hidden;">
-        <div class="card-header d-flex justify-content-between align-items-center" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:16px 24px;">
-          <h3 style="font-size:16px; font-weight:800; margin:0; color:#1e40af;">
-            🚨 미해결 업무 및 품절 현황 <span class="badge bg-danger ms-2" style="border-radius:10px;">${pendingTasks.length}건</span>
-          </h3>
-          <span style="font-size:12px; color:#64748b;">가장 최근 등록된 순서대로 정렬됩니다.</span>
+      <!-- 상단: 진행 중인 실시간 업무 보드 (반응형 럭셔리 카드 피드) -->
+      <div class="card shadow-sm mb-5" style="border-radius:20px; border:1.5px solid #cbd5e1; background:#ffffff; overflow:hidden; box-shadow:0 10px 25px -5px rgba(15,23,42,0.06);">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:18px 24px;">
+          <div class="d-flex align-items-center gap-2">
+            <h3 style="font-size:17px; font-weight:800; margin:0; color:#0f172a; display:flex; align-items:center; gap:8px;">
+              🚨 미해결 업무 및 품절 현황
+            </h3>
+            <span class="badge" style="background:#ef4444; color:#ffffff; font-size:12px; font-weight:800; border-radius:12px; padding:4px 10px;">
+              ${pendingTasks.length}건 대기중
+            </span>
+          </div>
+          <span style="font-size:12.5px; color:#64748b; font-weight:600;">
+            <i class="fas fa-arrow-down-short-wide me-1"></i> 최근 등록순
+          </span>
         </div>
         
-        <div class="table-responsive">
-          <table class="table mb-0" style="font-size:14px; vertical-align:middle;">
-            <thead style="background:#f1f5f9; color:#475569; font-size:13px;">
-              <tr>
-                <th style="padding:12px 24px; width:10%;">태그</th>
-                <th style="padding:12px 10px; width:48%;">내용 및 사진</th>
-                <th style="padding:12px 10px; width:18%;">등록일시 (작성자)</th>
-                <th style="padding:12px 24px; width:24%; text-align:right;">완료 처리</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${pendingTasks.length === 0 ? `
-                <tr><td colspan="4" class="text-center py-5 text-muted" style="font-weight:600;"><i class="fas fa-check-circle fa-2x mb-2 text-success" style="opacity:0.5;"></i><br>현재 대기 중인 업무가 없습니다.</td></tr>
-              ` : pendingTasks.map(task => `
-                <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
-                  <td style="padding:14px 20px;">${getTagBadge(task.tag)}</td>
-                  <td style="padding:14px 12px;">
-                    <div style="display:flex; flex-direction:column; gap:6px;">
-                      <div style="font-size:15.5px; font-weight:800; color:#0f172a; line-height:1.5; white-space:pre-wrap; word-break:break-word;">${task.content}</div>
-                      ${task.imageUrl ? `
-                        <div>
-                          <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; background:#eff6ff; border:1px solid #bfdbfe; padding:3px 10px; border-radius:6px; font-size:12px; color:#1d4ed8; text-decoration:none; font-weight:700; transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                            <i class="far fa-image" style="font-size:12px;"></i> 첨부사진
-                          </a>
-                        </div>
-                      ` : ''}
-                    </div>
-                  </td>
-                  <td style="padding:14px 10px;">
-                    <div style="font-size:12px; font-weight:700; color:#2563eb; display:flex; align-items:center; gap:4px;">
-                      <i class="far fa-clock" style="font-size:11px;"></i> ${formatLogDateTime(task)}
-                    </div>
-                    <div style="font-size:13.5px; font-weight:800; color:#334155; margin-top:2px;">${task.authorName}</div>
-                  </td>
-                  <td style="padding:14px 20px; text-align:right;">
-                    <button class="btn btn-sm btn-outline-success font-bold" onclick="WorklogModule.completeTask('${task.id}')" style="border-radius:8px; padding:6px 14px; font-size:13px;">
-                      <i class="fas fa-check me-1"></i> 완료 확인
-                    </button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div style="padding: 20px 20px; display: flex; flex-direction: column; gap: 14px; background: #f8fafc;">
+          ${pendingTasks.length === 0 ? `
+            <div style="text-align: center; padding: 48px 20px; background: #ffffff; border-radius: 16px; border: 1.5px dashed #cbd5e1; color: #64748b;">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px auto;">
+                <i class="fas fa-check-double"></i>
+              </div>
+              <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">모든 미해결 업무가 완료되었습니다!</div>
+              <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 [새 업무 등록]을 눌러주세요.</div>
+            </div>
+          ` : pendingTasks.map(task => `
+            <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 18px 20px; box-shadow: 0 4px 14px rgba(15,23,42,0.04); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);" onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 8px 20px rgba(59,130,246,0.1)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 14px rgba(15,23,42,0.04)';">
+              
+              <!-- 카드 상단: 태그 + 작성자 + 등록일시 + 완료 버튼 -->
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pb-3 mb-3" style="border-bottom: 1.5px solid #f1f5f9;">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  ${getTagBadge(task.tag)}
+                  <div style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #334155;">
+                    <i class="fas fa-user-circle" style="color: #64748b;"></i> ${task.authorName}
+                  </div>
+                  <span style="font-size: 12.5px; font-weight: 600; color: #64748b; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="far fa-clock" style="color: #94a3b8;"></i> ${formatLogDateTime(task)}
+                  </span>
+                </div>
+
+                <button type="button" class="btn btn-sm font-bold" onclick="WorklogModule.completeTask('${task.id}')" style="background: #ecfdf5; color: #047857; border: 1.5px solid #a7f3d0; border-radius: 10px; font-size: 13px; padding: 7px 16px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='#10b981'; this.style.color='#ffffff';" onmouseout="this.style.background='#ecfdf5'; this.style.color='#047857';">
+                  <i class="fas fa-check-circle"></i> 완료 처리
+                </button>
+              </div>
+
+              <!-- 카드 본문: 100% 가로폭 넓고 쾌적한 내용 및 사진 -->
+              <div>
+                <div style="font-size: 16px; font-weight: 700; color: #0f172a; line-height: 1.65; white-space: pre-wrap; word-break: break-word; letter-spacing: -0.2px;">${task.content}</div>
+                
+                ${task.imageUrl ? `
+                  <div style="margin-top: 14px;">
+                    <a href="${task.imageUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 8px 16px; border-radius: 12px; font-size: 13.5px; color: #1d4ed8; text-decoration: none; font-weight: 800; transition: all 0.2s; box-shadow: 0 2px 6px rgba(37,99,235,0.08);" onmouseover="this.style.background='#dbeafe';" onmouseout="this.style.background='#eff6ff';">
+                      <i class="fas fa-image" style="font-size: 15px;"></i> 📷 실시간 첨부 사진 보기 (클릭 시 확대)
+                    </a>
+                  </div>
+                ` : ''}
+              </div>
+
+            </div>
+          `).join('')}
         </div>
       </div>
 

@@ -1132,46 +1132,67 @@ function setupEventListeners() {
     const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
 
     modal.innerHTML = `
-      <div class="modal-card" style="background:#ffffff; border-radius:22px; max-width:620px; width:94%; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); position:relative; max-height:92vh; overflow-y:auto;">
+      <div class="modal-card" style="background:#ffffff; border-radius:22px; max-width:640px; width:94%; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); position:relative; max-height:92vh; overflow-y:auto;">
         <button type="button" class="close-btn" onclick="document.getElementById('sheet-sync-setup-modal').style.display='none'" style="position:absolute; top:20px; right:24px; font-size:26px; background:none; border:none; color:#64748b; cursor:pointer;">&times;</button>
         
         <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
           <div style="width:50px; height:50px; border-radius:14px; background:#dcfce7; color:#15803d; display:flex; justify-content:center; align-items:center; font-size:26px; flex-shrink:0;">
-            <i class="fas fa-file-excel"></i>
+            <i class="fas fa-database"></i>
           </div>
           <div>
-            <span class="badge bg-success mb-1" style="font-size:11.5px; border-radius:8px;">약국장 전용 엑셀 백업 & 연동 센터</span>
-            <h3 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">📊 구글 스프레드시트 연동 및 엑셀 백업</h3>
+            <span class="badge bg-success mb-1" style="font-size:11.5px; border-radius:8px;">약국장 전용 데이터 & 동기화 센터</span>
+            <h3 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">🔄 기기 간 실시간 동기화 & 백업 센터</h3>
           </div>
         </div>
 
-        <!-- 1. 구글 시트 원클릭 바로가기 카드 -->
+        <!-- 1. 클라우드 실시간 동기화 카드 -->
+        <div class="card p-3 mb-3" style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border:1.5px solid #93c5fd; border-radius:16px;">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <span style="font-size:12px; font-weight:700; color:#1d4ed8;">☁️ 집 ↔ 약국 컴퓨터 실시간 클라우드 동기화</span>
+              <div style="font-size:13px; color:#1e40af;">최신 데이터를 즉시 불러오거나 클라우드에 업로드합니다.</div>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-primary font-bold" onclick="App.forceSyncCloudNow()" style="border-radius:10px; padding:8px 16px; font-size:13px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+                <i class="fas fa-cloud-download-alt me-1"></i> 지금 클라우드 동기화
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 기기 간 원클릭 파일 백업 및 복원 카드 -->
         <div class="card p-3 mb-3" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:16px;">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <span style="font-size:12px; font-weight:700; color:#64748b;">연동된 마스터 엑셀 시트</span>
-              <div style="font-size:15px; font-weight:800; color:#0f172a;">신세계약국 통합 백업 스프레드시트</div>
-            </div>
-            <a href="${sheetUrl}" target="_blank" class="btn btn-primary font-bold" style="border-radius:10px; padding:8px 16px; font-size:13.5px;">
-              <i class="fas fa-external-link-alt me-1"></i> 시트 바로 열기
-            </a>
-          </div>
-        </div>
-
-        <!-- 2. 실시간 동기화 실행 -->
-        <div class="card p-3 mb-4" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:1.5px solid #86efac; border-radius:16px;">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <span style="font-size:12px; font-weight:700; color:#166534;">⚡ 실시간 양방향 데이터 동기화</span>
-              <div style="font-size:13px; color:#15803d;">구글 시트와 앱의 데이터를 최신 상태로 맞춥니다.</div>
-            </div>
-            <button type="button" class="btn btn-success font-bold" onclick="App.triggerDirectSheetSync()" style="border-radius:10px; padding:8px 18px; font-size:13.5px; box-shadow:0 4px 12px rgba(16,185,129,0.25);">
-              <i class="fas fa-sync-alt me-1"></i> 지금 동기화 가동
+          <span style="font-size:12px; font-weight:700; color:#475569;">💾 집 컴퓨터 ↔ 약국 컴퓨터 100% 완전 복원 (파일 백업)</span>
+          <p class="text-muted mb-2" style="font-size:12.5px;">네트워크 환경과 무관하게 집 컴퓨터의 모든 데이터를 파일(.json)로 저장하여 약국 컴퓨터에 즉시 복원할 수 있습니다.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-primary font-bold" onclick="App.exportBackupFile()" style="border-radius:10px; padding:8px 14px; font-size:13px;">
+              <i class="fas fa-download me-1"></i> 📥 집 컴퓨터 데이터 백업 저장 (.json)
+            </button>
+            <button type="button" class="btn btn-success font-bold" onclick="App.triggerImportBackup()" style="border-radius:10px; padding:8px 14px; font-size:13px;">
+              <i class="fas fa-upload me-1"></i> 📤 약국 컴퓨터에 백업 파일 복원
             </button>
           </div>
         </div>
 
-        <!-- 3. 하단 액션 버튼 -->
+        <!-- 3. 구글 스프레드시트 연동 카드 -->
+        <div class="card p-3 mb-4" style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px;">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <span style="font-size:12px; font-weight:700; color:#64748b;">📊 구글 스프레드시트 연동</span>
+              <div style="font-size:14px; font-weight:700; color:#0f172a;">신세계약국 마스터 구글 시트</div>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="${sheetUrl}" target="_blank" class="btn btn-outline-secondary font-bold" style="border-radius:10px; padding:7px 14px; font-size:12.5px;">
+                <i class="fas fa-external-link-alt me-1"></i> 시트 열기
+              </a>
+              <button type="button" class="btn btn-outline-success font-bold" onclick="App.triggerDirectSheetSync()" style="border-radius:10px; padding:7px 14px; font-size:12.5px;">
+                <i class="fas fa-sync-alt me-1"></i> 시트 연동
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 하단 액션 버튼 -->
         <div class="d-flex justify-content-between align-items-center pt-2">
           <button type="button" class="btn btn-outline-dark font-bold" onclick="App.downloadActiveModuleToGoogleSheets()" style="border-radius:10px; padding:8px 16px; font-size:13px;">
             <i class="fas fa-file-csv me-1 text-success"></i> 현재 화면 엑셀(CSV) 다운로드
@@ -1182,6 +1203,62 @@ function setupEventListeners() {
     `;
 
     modal.style.display = 'flex';
+  }
+
+  function exportBackupFile() {
+    if (window.SheetsSync && window.SheetsSync.exportFullBackupJSON) {
+      window.SheetsSync.exportFullBackupJSON();
+      alert('💾 현재 모든 데이터(직원명부, 스케줄, 업무일지, 결산, 연차 등)가 백업 파일(.json)로 안전하게 다운로드되었습니다!\n\n이 파일을 카카오톡이나 메일/USB를 통해 약국 컴퓨터로 전송하신 뒤, 약국 컴퓨터에서 [📤 약국 컴퓨터에 백업 파일 복원]을 누르시면 1초 만에 100% 동일하게 복원됩니다.');
+    }
+  }
+
+  function triggerImportBackup() {
+    let input = document.getElementById('backup-file-hidden-input');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'file';
+      input.id = 'backup-file-hidden-input';
+      input.accept = '.json,application/json';
+      input.style.display = 'none';
+      input.onchange = function(e) {
+        handleBackupFileSelect(e);
+      };
+      document.body.appendChild(input);
+    }
+    input.value = '';
+    input.click();
+  }
+
+  function handleBackupFileSelect(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const text = evt.target.result;
+        const res = window.SheetsSync.importFullBackupJSON(text);
+        if (res && res.success) {
+          alert('🎉 백업 파일의 모든 데이터가 성공적으로 복원되었습니다!\n(직원명부, 스케줄, 업무일지, 결산, 연차 등 모든 데이터가 최신으로 갱신되었습니다)');
+          const modal = document.getElementById('sheet-sync-setup-modal');
+          if (modal) modal.style.display = 'none';
+        } else {
+          alert('❌ 백업 파일 복원 실패: ' + (res.error || '올바른 파일 형식이 아닙니다.'));
+        }
+      } catch(err) {
+        alert('❌ 파일 읽기 오류: ' + err.message);
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  async function forceSyncCloudNow() {
+    if (window.SheetsSync && window.SheetsSync.pullFromCloud) {
+      await window.SheetsSync.pullFromCloud();
+      alert('🎉 클라우드 최신 데이터 동기화가 완료되었습니다!');
+      renderActiveModule();
+      renderSidebarNavigation();
+    }
   }
 
   async function triggerDirectSheetSync() {

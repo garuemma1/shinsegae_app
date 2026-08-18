@@ -792,6 +792,7 @@ function setupEventListeners() {
     window.SheetsSync.setCurrentUser(target);
     renderSidebarNavigation();
     renderUserHeader();
+    renderActiveModule();
     checkPendingRejectionNotice(true, target);
   }
 

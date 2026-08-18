@@ -72,10 +72,16 @@ window.SheetsSync = (function () {
     { id: 'l2', empId: 'emp_2', empName: '권명주', role: '근무약사', startDate: '2026-08-21', endDate: '2026-08-21', daysCount: 1.0, type: '연차', reason: '학회 참석 및 정기휴가', status: 'APPROVED', createdAt: '2026-08-01 14:00' }
   ];
 
-  // 신규: 약국 업무일지 & 교대 인수인계 초기 데이터
+  // 신규: 약국 업무일지 & 교대 인수인계 초기 데이터 (실시간 연동 기본값)
   const INITIAL_WORKLOGS = [
-    { id: 'w1', date: '2026-08-11', shift: 'A조 오프닝', authorName: '권명주', authorRole: '근무약사', contentRx: '유로펜정 재고 2병 남음. 백제약품 긴급 주문완료.', contentPos: '자동조제기 2번 카세트 소모품 교체 및 클리닝 완료.', contentDelivery: '지오영 3상자 입고 검수 완료 및 라벨링 수령함.', note: 'B조 마감 시 18시 이후 처방전 DUR 이중확인 부탁드립니다.', checkedBy: ['문성도 약국장', '이승학 전산팀장'], createdAt: '2026-08-11 13:30' },
-    { id: 'w2', date: '2026-08-10', shift: 'B조 마감', authorName: '이승학', authorRole: '일반직원', contentRx: '야간 처방전 총 142건 입력 완료.', contentPos: 'POS 단말기 2번 정산 완료 및 현금 영수증 차액 이상 없음.', contentDelivery: '택배 수거 물품 매장 입구 전산 수거함 배치 완료.', note: '내일 오프닝 조 8:50분 매장 라인 정돈 부탁드립니다.', checkedBy: ['문성도 약국장'], createdAt: '2026-08-10 22:05' }
+    { id: 'task_1', date: '2026-08-18', tag: '품절', content: '타이레놀', authorName: '이승학', status: 'PENDING', createdAt: '2026-08-18 10:30', checkedBy: [] },
+    { id: 'task_2', date: '2026-08-18', tag: '주문', content: '뭐 없어요', authorName: '양윤지', status: 'PENDING', createdAt: '2026-08-18 09:15', checkedBy: [] },
+    { id: 'task_3', date: '2026-08-18', tag: '일반/메모', content: '안녕하세여', authorName: '권명주', status: 'PENDING', createdAt: '2026-08-18 08:50', checkedBy: [] },
+    { id: 'task_4', date: '2026-08-17', tag: '입고/처리', content: '둘코락스 찌그러진거 회메에서 입고된거 판매가 됐을까요???', authorName: '권명주', status: 'PENDING', createdAt: '2026-08-17 18:20', checkedBy: [] },
+    { id: 'task_5', date: '2026-08-17', tag: '주문', content: '케어가글왔습니디 주문요청', authorName: '이승학', status: 'PENDING', createdAt: '2026-08-17 16:40', checkedBy: [] },
+    { id: 'task_6', date: '2026-08-17', tag: '주문', content: '넥스가드 전화요청', authorName: '김제희', status: 'PENDING', createdAt: '2026-08-17 14:10', checkedBy: [] },
+    { id: 'task_7', date: '2026-08-17', tag: '일반/메모', content: '먹는약 내일 오기로', authorName: '문성도', status: 'PENDING', createdAt: '2026-08-17 11:30', checkedBy: ['문성도 약국장'] },
+    { id: 'task_8', date: '2026-08-16', tag: '품절', content: '듀라티얼즈 안연고', authorName: '문성도', status: 'PENDING', createdAt: '2026-08-16 17:00', checkedBy: ['문성도 약국장'] }
   ];
 
   // 신규: 약국 운영 지원 연락망 초기 데이터 (4대 카테고리)
@@ -750,11 +756,13 @@ window.SheetsSync = (function () {
         }
       };
 
-     await window.fetch(CLOUD_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
-  });
+      const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+
+      await window.fetch(CLOUD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+        body: bodyStr
+      });
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
     } catch(e) {
@@ -766,13 +774,36 @@ window.SheetsSync = (function () {
     if (isSyncing || typeof window === 'undefined' || typeof window.fetch !== 'function') return;
     isSyncing = true;
     try {
-      const res = await window.fetch(CLOUD_URL);
+      const res = await window.fetch(CLOUD_URL + '?t=' + Date.now());
       if (res && res.ok) {
-        const json = await res.json();
-        const cloudData = json && json.data;
+        const text = await res.text();
+        let cloudData = null;
+        try {
+          if (text.startsWith('payload=')) {
+            const rawDecoded = decodeURIComponent(text.substring(8));
+            const parsedObj = JSON.parse(rawDecoded);
+            cloudData = parsedObj && parsedObj.data;
+          } else {
+            const parsedObj = JSON.parse(text);
+            cloudData = parsedObj && parsedObj.data;
+          }
+        } catch(pe) {
+          console.warn('Cloud parse error:', pe);
+        }
+
         if (cloudData) {
           let updated = false;
-          if (cloudData.worklogs) { safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(cloudData.worklogs)); updated = true; }
+          
+          // 📝 업무일지 스마트 ID 양방향 병합 (PC와 모바일 작성분 유실 없이 완벽 합체)
+          if (cloudData.worklogs && Array.isArray(cloudData.worklogs) && cloudData.worklogs.length > 0) {
+            const localLogs = getWorklogs() || [];
+            const mergedMap = {};
+            localLogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
+            cloudData.worklogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
+            const mergedList = Object.values(mergedMap).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+            safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedList));
+            updated = true;
+          }
           if (cloudData.notices) { safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(cloudData.notices)); updated = true; }
           if (cloudData.leaveRequests) { safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(cloudData.leaveRequests)); updated = true; }
           if (cloudData.discountPurchases) { safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(cloudData.discountPurchases)); updated = true; }
@@ -781,7 +812,6 @@ window.SheetsSync = (function () {
           if (cloudData.paystubs) { safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(cloudData.paystubs)); updated = true; }
           if (cloudData.overtimeAdjustments) { safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(cloudData.overtimeAdjustments)); updated = true; }
           if (cloudData.employees) {
-            // 클라우드 employees 로드 후 햤시 저장된 권한 병합
             let cloudEmps = cloudData.employees;
             try {
               const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
@@ -802,6 +832,10 @@ window.SheetsSync = (function () {
           updateSyncStatusUI('success');
           if (updated) {
             if (typeof callback === 'function') callback();
+            if (window.App && typeof window.App.renderActiveModule === 'function') {
+              window.App.renderActiveModule();
+              window.App.renderSidebarNavigation();
+            }
             if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
               window.App.checkPendingRejectionNotice();
             }
@@ -809,6 +843,7 @@ window.SheetsSync = (function () {
         }
       }
     } catch(e) {
+      console.warn('Pull cloud error:', e);
     } finally {
       isSyncing = false;
     }

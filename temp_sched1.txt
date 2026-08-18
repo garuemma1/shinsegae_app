@@ -1,0 +1,121 @@
+﻿      <!-- ?뮕 ?앹뾽李?李⑤떒 ?먯쿇 ?닿껐: ?몃씪???묒뾽 移대뱶 ?⑤꼸 (?붾㈃??吏곸젒 諛붾줈 ?쇱퀜吏???몃씪???묒뾽李? -->
+      ${renderInlineWorkPanel(currUser, employees)}
+
+      <!-- ?붽컙 洹쇰Т?ㅼ?以??щ젰 ?곸뿭 (?묎퀬 ?닿린 ?좉? 吏?? -->
+      ${showCalendar ? `
+        <div class="card-section mb-4">
+          <div class="mobile-scroll-hint mb-3">
+            <i class="fas fa-mobile-alt"></i> ?벑 ?덈뱶濡쒖씠???꾩씠??理쒖쟻?? ?쇱슂?쇰????좎슂?쇨퉴吏 7???꾩껜媛 ?ㅻ쭏?명룿 ?붾㈃??留욎땄 ?먮룞 ?뺣젹?섏뿀?듬땲?? (?좎쭨/諭껋? ?곗튂 ??洹쇰Т?쒓컙 諛?OFF ?ㅼ젙)
+          </div>
+          <div class="calendar-scroll-wrapper">
+            ${renderImage1StyleCalendar(currentYear, currentMonth, employees, scheduleRecords)}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 湲됱뿬 ?뺤궛???곸뿭: ?쎄뎅???묒냽 ???곸떆 ?꾨㈃ ?몄텧, 吏곸썝 媛쒖씤 ?묒냽 ??蹂몄씤 紐낆꽭?쒕쭔 ?쒖떆 -->
+      ${(currUser && currUser.role === '?쎄뎅??) ? renderSettlementDashboard(employees, scheduleRecords) : renderStaffPersonalPaystubSection(currUser)}
+
+      <!-- ?먯쑉 異쒗눜洹??쒓컙 諛?OFF(?대Т) ?ㅼ젙 紐⑤떖 -->
+      <div class="modal-overlay" id="shift-modal" style="display:none;">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>??洹쇰Т?먮퀎 異쒗눜洹??쒓컙 諛?OFF (?대Т) ?ㅼ젙</h3>
+            <button type="button" class="close-btn" onclick="ScheduleModule.closeShiftModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="modal-shift-date">
+            
+            <div class="form-group">
+              <label>洹쇰Т???좏깮</label>
+              <select id="modal-shift-empid" class="form-control" onchange="ScheduleModule.onModalEmpChange()">
+                ${employees.map(e => `<option value="${e.id}">${e.name} (${e.role} - ${e.position})</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>洹쇰Т / OFF(?대Т) ?щ? 援щ텇</label>
+              <div class="role-filter-toggle w-100" style="display: flex;">
+                <button type="button" id="btn-shift-mode-work" class="filter-btn active" style="flex:1;" onclick="ScheduleModule.setModalWorkMode(true)">
+                  ?윟 洹쇰Т 吏??                </button>
+                <button type="button" id="btn-shift-mode-off" class="filter-btn" style="flex:1;" onclick="ScheduleModule.setModalWorkMode(false)">
+                  ??OFF (?대Т) 吏??                </button>
+              </div>
+            </div>
+
+            <div id="work-time-fields-group">
+              <div class="form-group">
+                <label>鍮좊Ⅸ 湲곕낯 議??좏깮</label>
+                <div class="shift-preset-grid">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="ScheduleModule.setPresetTime('09:00', '17:30', 'A')">A議?(09:00~17:30, ??.5h)</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="ScheduleModule.setPresetTime('13:30', '22:00', 'B')">B議?(13:30~22:00, ??.5h)</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="ScheduleModule.setPresetTime('09:00', '22:00', 'FULL')">FULL (09:00~22:00, ??2h)</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="ScheduleModule.setPresetTime('18:00', '22:00', 'C')">C議?(18:00~22:00, ?쇨컙)</button>
+                </div>
+              </div>
+
+              <div class="form-row my-3">
+                <div class="form-group">
+                  <label>異쒓렐 ?쒓컙</label>
+                  <input type="time" id="modal-start-time" value="09:00">
+                </div>
+                <div class="form-group">
+                  <label>?닿렐 ?쒓컙</label>
+                  <input type="time" id="modal-end-time" value="17:30">
+                </div>
+              </div>
+
+              <div class="form-group my-3">
+                <label style="font-weight:700; color:#334155; margin-bottom:6px;">
+                  ???닿쾶?쒓컙 ?ㅼ젙 (?ㅺ렐臾??쒖닔 李④컧)
+                </label>
+                <select id="modal-break-hours" class="form-select form-control font-bold" style="border-radius:12px; border:1.5px solid #93c5fd; padding:10px 14px; font-size:14px; color:#1e293b;">
+                  <option value="1.0">??1?쒓컙 李④컧 (湲곕낯 ?앹궗/?닿쾶?쒓컙)</option>
+                  <option value="0.5">?깍툘 30遺?(0.5?쒓컙) 李④컧</option>
+                  <option value="0.0">??0?쒓컙 (李④컧 ?놁쓬 - ?곗냽 洹쇰Т)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="labor-notice-box mb-3">
+              <i class="fas fa-utensils"></i> <strong>?닿쾶?쒓컙 李④컧 ?덈궡:</strong> ?좏깮?섏떊 ?닿쾶?쒓컙(1?쒓컙 / 30遺?/ 0?쒓컙)???먮룞 諛섏쁺?섏뼱 ?ㅺ렐臾댁떆??諛???湲됱뿬 ?뺤궛?쒖뿉 利됱떆 ?곕룞?⑸땲??
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="ScheduleModule.closeShiftModal()">痍⑥냼</button>
+              <button type="button" class="btn btn-primary" onclick="ScheduleModule.saveCustomShift()">?ㅼ젙 ???/button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  }
+
+  // ?щ젰??酉?(?ъ쭊 1 ?ㅽ??? ?뚮뜑留?  function renderImage1StyleCalendar(year, month, employees, scheduleRecords) {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstDayIndex = new Date(year, month - 1, 1).getDay();
+
+    let filteredEmployees = employees;
+    if (roleFilter === 'pharmacist') {
+      filteredEmployees = employees.filter(e => e.role.includes('?쎌궗') || e.role.includes('?쎄뎅??));
+    }
+
+    let gridHtml = '<div class="roster-image1-calendar">';
+    const dayNames = ['??, '??, '??, '??, '紐?, '湲?, '??];
+
+    dayNames.forEach((d, idx) => {
+      gridHtml += `<div class="img1-cal-header ${idx === 0 ? 'text-danger' : (idx === 6 ? 'text-primary' : '')}">${d}</div>`;
+    });
+
+    for (let i = 0; i < firstDayIndex; i++) {
+      gridHtml += `<div class="img1-cal-cell empty-cell"></div>`;
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const multInfo = window.LaborCalculator.getDateMultiplierInfo(dateStr);
+      const d = new Date(dateStr);
+      const isSun = d.getDay() === 0;
+      const isSat = d.getDay() === 6;

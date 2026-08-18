@@ -643,9 +643,10 @@ function setupEventListeners() {
     if (titleEl) titleEl.innerText = '🔒 사내 인트라넷 로그인';
 
     const emps = window.SheetsSync.getEmployees() || [];
-    const director = emps.filter(e => e.role === '약국장');
-    const pharmacists = emps.filter(e => e.role === '근무약사');
-    const staff = emps.filter(e => e.role === '일반직원' || e.role === '예비인력');
+    const activeEmps = emps.filter(e => !e.isCandidate && e.role !== '예비인력' && !e.name.includes('이정은') && !e.name.includes('간영자'));
+    const director = activeEmps.filter(e => e.role === '약국장');
+    const pharmacists = activeEmps.filter(e => e.role === '근무약사');
+    const staff = activeEmps.filter(e => e.role === '일반직원');
 
     container.innerHTML = `
       <div style="max-width: 580px; margin: 30px auto; padding: 36px 28px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 24px; box-shadow: 0 20px 45px -10px rgba(15,23,42,0.1); text-align: center;">
@@ -673,7 +674,7 @@ function setupEventListeners() {
             `).join('')}
           </div>
 
-          <div style="font-size: 12px; font-weight: 800; color: #2563eb; margin-bottom: 8px;">👨‍⚕️ 근무약사</div>
+          <div style="font-size: 12px; font-weight: 800; color: #2563eb; margin-bottom: 8px;">👨‍⚕️ 근무약사 (4인)</div>
           <div class="d-flex flex-wrap gap-2 mb-3">
             ${pharmacists.map(e => `
               <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; border-radius: 12px; font-size: 13px; padding: 6px 12px; font-weight: 700; cursor: pointer;">
@@ -682,7 +683,7 @@ function setupEventListeners() {
             `).join('')}
           </div>
 
-          <div style="font-size: 12px; font-weight: 800; color: #059669; margin-bottom: 8px;">👨‍💼 일반직원 및 인력</div>
+          <div style="font-size: 12px; font-weight: 800; color: #059669; margin-bottom: 8px;">👨‍💼 일반직원 (4인)</div>
           <div class="d-flex flex-wrap gap-2">
             ${staff.map(e => `
               <button type="button" onclick="App.quickSelectGatewayLogin('${e.id}')" id="gw-emp-btn-${e.id}" class="gw-emp-btn btn btn-sm" style="background: #f0fdf4; color: #15803d; border: 1.5px solid #bbf7d0; border-radius: 12px; font-size: 13px; padding: 6px 12px; font-weight: 700; cursor: pointer;">

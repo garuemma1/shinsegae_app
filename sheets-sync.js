@@ -38,15 +38,15 @@ window.SheetsSync = (function () {
 
   // 신세계약국 영구 마스터 디폴트 9인 정식 명단 및 디폴트 정보 (약국장 1명, 근무약사 4명, 일반직원 4명)
   const INITIAL_EMPLOYEES = [
-    { id: 'emp_1', username: 'director@shinsegae.com', email: 'director@shinsegae.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', weekdayRate: 45000, holidayRate: 45000, hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'], updatedAt: 1787026500000 },
-    { id: 'emp_2', username: 'iniha@naver.com', email: 'iniha@naver.com', passcode: '0402', name: '권명주', role: '근무약사', position: '조제팀장', payType: 'HOURLY', joinDate: '2024-09-06', weekdayRate: 80000, holidayRate: 20000, hourlyRate: 80000, baseMonthlySalary: 0, phone: '010-2385-0402', usedLeave: 2, pendingLeave: 0, memo: '조제 팀장 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
-    { id: 'emp_3', username: 'yang@shinsegae.com', email: 'yang@shinsegae.com', passcode: '9807', name: '양윤지', role: '근무약사', position: 'DUR검수약사', payType: 'HOURLY', joinDate: '2023-10-04', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4726-9807', usedLeave: 6, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
-    { id: 'emp_4', username: 'kimdw@shinsegae.com', email: 'kimdw@shinsegae.com', passcode: '9650', name: '김동완', role: '근무약사', position: '야간담당약사', payType: 'HOURLY', joinDate: '2026-03-01', weekdayRate: 23000, holidayRate: 23000, hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '야간 및 공휴일 조제 지정 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
-    { id: 'emp_5', username: 'yoo@shinsegae.com', email: 'yoo@shinsegae.com', passcode: '5860', name: '유호종', role: '근무약사', position: '신약/약품관리', payType: 'HOURLY', joinDate: '0001-01-01', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4055-5860', usedLeave: 2, pendingLeave: 0, memo: '신규 입고약 수량 점검 및 검수 약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
-    { id: 'emp_6', username: 'lee@shinsegae.com', email: 'lee@shinsegae.com', passcode: '4293', name: '이승학', role: '일반직원', position: '전산팀장', payType: 'MONTHLY', joinDate: '2023-06-12', weekdayRate: 13500, holidayRate: 13500, hourlyRate: 13500, baseMonthlySalary: 2717000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '팜IT3000 전산 장애 및 심평원 청구', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
-    { id: 'emp_7', username: 'kimjh@shinsegae.com', email: 'kimjh@shinsegae.com', passcode: '7155', name: '김제희', role: '일반직원', position: '조제보조/ATC', payType: 'MONTHLY', joinDate: '2024-11-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-7273-7155', usedLeave: 6, pendingLeave: 0, memo: 'ATC 자동조제기 관리 및 소모품', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
-    { id: 'emp_8', username: 'yoon@shinsegae.com', email: 'yoon@shinsegae.com', passcode: '4079', name: '윤세라', role: '일반직원', position: '매장관리/재고', payType: 'MONTHLY', joinDate: '2026-03-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '일반의약품 및 매장 재고 관리', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 },
-    { id: 'emp_9', username: 'kimbay@shinsegae.com', email: 'kimbay@shinsegae.com', passcode: '3257', name: '김배영', role: '일반직원', position: '전산/매장보조', payType: 'MONTHLY', joinDate: '2025-11-18', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '매장 안내 및 전산 서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 1787026500000 }
+    { id: 'emp_1', username: 'director@shinsegae.com', email: 'director@shinsegae.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', weekdayRate: 45000, holidayRate: 45000, hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'], updatedAt: 0 },
+    { id: 'emp_2', username: 'iniha@naver.com', email: 'iniha@naver.com', passcode: '0402', name: '권명주', role: '근무약사', position: '조제팀장', payType: 'HOURLY', joinDate: '2024-09-06', weekdayRate: 80000, holidayRate: 20000, hourlyRate: 80000, baseMonthlySalary: 0, phone: '010-2385-0402', usedLeave: 2, pendingLeave: 0, memo: '조제 팀장 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_3', username: 'yang@shinsegae.com', email: 'yang@shinsegae.com', passcode: '9807', name: '양윤지', role: '근무약사', position: 'DUR검수약사', payType: 'HOURLY', joinDate: '2023-10-04', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4726-9807', usedLeave: 6, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_4', username: 'kimdw@shinsegae.com', email: 'kimdw@shinsegae.com', passcode: '9650', name: '김동완', role: '근무약사', position: '야간담당약사', payType: 'HOURLY', joinDate: '2026-03-01', weekdayRate: 23000, holidayRate: 23000, hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '야간 및 공휴일 조제 지정 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_5', username: 'yoo@shinsegae.com', email: 'yoo@shinsegae.com', passcode: '5860', name: '유호종', role: '근무약사', position: '신약/약품관리', payType: 'HOURLY', joinDate: '0001-01-01', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4055-5860', usedLeave: 2, pendingLeave: 0, memo: '신규 입고약 수량 점검 및 검수 약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_6', username: 'lee@shinsegae.com', email: 'lee@shinsegae.com', passcode: '4293', name: '이승학', role: '일반직원', position: '전산팀장', payType: 'MONTHLY', joinDate: '2023-06-12', weekdayRate: 13500, holidayRate: 13500, hourlyRate: 13500, baseMonthlySalary: 2717000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '팜IT3000 전산 장애 및 심평원 청구', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_7', username: 'kimjh@shinsegae.com', email: 'kimjh@shinsegae.com', passcode: '7155', name: '김제희', role: '일반직원', position: '조제보조/ATC', payType: 'MONTHLY', joinDate: '2024-11-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-7273-7155', usedLeave: 6, pendingLeave: 0, memo: 'ATC 자동조제기 관리 및 소모품', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_8', username: 'yoon@shinsegae.com', email: 'yoon@shinsegae.com', passcode: '4079', name: '윤세라', role: '일반직원', position: '매장관리/재고', payType: 'MONTHLY', joinDate: '2026-03-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '일반의약품 및 매장 재고 관리', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_9', username: 'kimbay@shinsegae.com', email: 'kimbay@shinsegae.com', passcode: '3257', name: '김배영', role: '일반직원', position: '전산/매장보조', payType: 'MONTHLY', joinDate: '2025-11-18', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '매장 안내 및 전산 서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 }
   ];
 
   const INITIAL_DISCOUNT_PURCHASES = [
@@ -934,6 +934,7 @@ window.SheetsSync = (function () {
           updatedAt: new Date().toISOString(),
           deletedIds: getDeletedIds(),
           employees: getEmployees(),
+          empPermissions: safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS) ? JSON.parse(safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS)) : {},
           schedule: getSchedule(),
           scheduleStatus: safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {},
           notices: getNotices(),
@@ -1127,6 +1128,17 @@ window.SheetsSync = (function () {
         }
 
         // 8. 직원 명부 및 시급/권한 스마트 비파괴 병합 (PC ↔ 스마트폰 최신 타임스탬프 자동 감지 동기화)
+        let permMap = {};
+        try {
+          const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
+          if (permRaw) permMap = JSON.parse(permRaw);
+        } catch(e) {}
+
+        if (cloudData.empPermissions && typeof cloudData.empPermissions === 'object') {
+          permMap = { ...permMap, ...cloudData.empPermissions };
+          safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
+        }
+
         if (cloudData.employees && Array.isArray(cloudData.employees)) {
           const localEmps = getEmployees() || [];
           const localMap = {};
@@ -1135,22 +1147,29 @@ window.SheetsSync = (function () {
           const finalMap = {};
           cloudData.employees.forEach(ce => {
             if (!ce || !ce.id) return;
+            // 권한 맵 동기화
+            if (Array.isArray(ce.allowedTabs)) {
+              permMap[ce.id] = ce.allowedTabs;
+            }
             const le = localMap[ce.id];
             if (!le) {
-              finalMap[ce.id] = ce;
+              finalMap[ce.id] = { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
             } else {
               const cTime = Number(ce.updatedAt) || 0;
               const lTime = Number(le.updatedAt) || 0;
-              finalMap[ce.id] = (cTime >= lTime) ? ce : le;
+              const chosen = (cTime >= lTime) ? ce : le;
+              finalMap[ce.id] = { ...chosen, allowedTabs: permMap[ce.id] || chosen.allowedTabs };
             }
           });
 
           // 로컬에만 있고 클라우드에 아직 없는 신규 등록자 보존
           localEmps.forEach(le => {
             if (le && le.id && !finalMap[le.id]) {
-              finalMap[le.id] = le;
+              finalMap[le.id] = { ...le, allowedTabs: permMap[le.id] || le.allowedTabs };
             }
           });
+
+          safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
 
           let mergedEmps = Object.values(finalMap);
           const currentJson = safeGetItem(STORAGE_KEYS.EMPLOYEES);
@@ -1158,6 +1177,16 @@ window.SheetsSync = (function () {
           if (currentJson !== newJson) {
             safeSetItem(STORAGE_KEYS.EMPLOYEES, newJson);
             updated = true;
+          }
+
+          // 🔒 현재 로그인되어 있는 세션의 허용 탭 권한 실시간 갱신 & 사이드바 즉각 재렌더링
+          const curr = getCurrentUser();
+          if (curr && curr.id && permMap[curr.id]) {
+            curr.allowedTabs = permMap[curr.id];
+            setCurrentUser(curr);
+            if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
+              window.App.renderSidebarNavigation();
+            }
           }
         }
 

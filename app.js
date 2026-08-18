@@ -433,6 +433,9 @@ function setupEventListeners() {
     window.SheetsSync.setCurrentUser(target);
     closeLoginModal();
 
+    // 🌐 로그인 직후 즉시 최신 클라우드 전체 데이터 동기화
+    window.SheetsSync.pullFromCloud();
+
     if (window.ScheduleModule && window.ScheduleModule.closeInlinePanel) {
       window.ScheduleModule.closeInlinePanel();
     }

@@ -731,7 +731,11 @@ window.SheetsSync = (function () {
     } catch(e) { return INITIAL_DISCOUNT_PURCHASES; }
   }
 
-  const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
+  const API_SYNC_URL = (typeof window !== 'undefined' && window.location.origin.includes('vercel.app'))
+    ? '/api/sync'
+    : 'https://shinsegae-app.vercel.app/api/sync';
+
+  const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
 
   async function pushToCloud() {
@@ -756,13 +760,30 @@ window.SheetsSync = (function () {
         }
       };
 
-      const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+      // 1. Primary: Vercel Edge API (CORS 프리)
+      let pushed = false;
+      try {
+        const res = await window.fetch(API_SYNC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res && res.ok) pushed = true;
+      } catch(apiErr) {}
 
-      await window.fetch(CLOUD_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
-        body: bodyStr
-      });
+      // 2. Fallback: Direct GAS POST (no-cors)
+      if (!pushed) {
+        try {
+          const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+          await window.fetch(DIRECT_GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: bodyStr
+          });
+        } catch(gasErr) {}
+      }
+
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
     } catch(e) {
@@ -774,71 +795,66 @@ window.SheetsSync = (function () {
     if (isSyncing || typeof window === 'undefined' || typeof window.fetch !== 'function') return;
     isSyncing = true;
     try {
-      const res = await window.fetch(CLOUD_URL + '?t=' + Date.now());
-      if (res && res.ok) {
-        const text = await res.text();
-        let cloudData = null;
-        try {
-          if (text.startsWith('payload=')) {
-            const rawDecoded = decodeURIComponent(text.substring(8));
-            const parsedObj = JSON.parse(rawDecoded);
-            cloudData = parsedObj && parsedObj.data;
-          } else {
-            const parsedObj = JSON.parse(text);
-            cloudData = parsedObj && parsedObj.data;
-          }
-        } catch(pe) {
-          console.warn('Cloud parse error:', pe);
-        }
+      let cloudData = null;
 
-        if (cloudData) {
-          let updated = false;
-          
-          // 📝 업무일지 스마트 ID 양방향 병합 (PC와 모바일 작성분 유실 없이 완벽 합체)
-          if (cloudData.worklogs && Array.isArray(cloudData.worklogs) && cloudData.worklogs.length > 0) {
-            const localLogs = getWorklogs() || [];
-            const mergedMap = {};
-            localLogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
-            cloudData.worklogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
-            const mergedList = Object.values(mergedMap).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
-            safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedList));
-            updated = true;
-          }
-          if (cloudData.notices) { safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(cloudData.notices)); updated = true; }
-          if (cloudData.leaveRequests) { safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(cloudData.leaveRequests)); updated = true; }
-          if (cloudData.discountPurchases) { safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(cloudData.discountPurchases)); updated = true; }
-          if (cloudData.schedule) { safeSetItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(cloudData.schedule)); updated = true; }
-          if (cloudData.scheduleStatus) { safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(cloudData.scheduleStatus)); updated = true; }
-          if (cloudData.paystubs) { safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(cloudData.paystubs)); updated = true; }
-          if (cloudData.overtimeAdjustments) { safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(cloudData.overtimeAdjustments)); updated = true; }
-          if (cloudData.employees) {
-            let cloudEmps = cloudData.employees;
-            try {
-              const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
-              if (permRaw) {
-                const permMap = JSON.parse(permRaw);
-                if (Object.keys(permMap).length > 0) {
-                  cloudEmps = cloudEmps.map(e => {
-                    if (permMap[e.id]) return { ...e, allowedTabs: permMap[e.id] };
-                    return e;
-                  });
-                }
+      // 1. Primary: Vercel Edge API (CORS 프리 즉각 응답)
+      try {
+        const res = await window.fetch(API_SYNC_URL + '?t=' + Date.now());
+        if (res && res.ok) {
+          const json = await res.json();
+          cloudData = json && json.data;
+        }
+      } catch(apiErr) {
+        console.warn('Vercel API pull error:', apiErr);
+      }
+
+      if (cloudData) {
+        let updated = false;
+        
+        // 📝 업무일지 스마트 ID 양방향 병합 (PC와 모바일 작성분 유실 없이 완벽 합체)
+        if (cloudData.worklogs && Array.isArray(cloudData.worklogs) && cloudData.worklogs.length > 0) {
+          const localLogs = getWorklogs() || [];
+          const mergedMap = {};
+          localLogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
+          cloudData.worklogs.forEach(l => { if (l && l.id) mergedMap[l.id] = l; });
+          const mergedList = Object.values(mergedMap).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+          safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedList));
+          updated = true;
+        }
+        if (cloudData.notices) { safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(cloudData.notices)); updated = true; }
+        if (cloudData.leaveRequests) { safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(cloudData.leaveRequests)); updated = true; }
+        if (cloudData.discountPurchases) { safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(cloudData.discountPurchases)); updated = true; }
+        if (cloudData.schedule) { safeSetItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(cloudData.schedule)); updated = true; }
+        if (cloudData.scheduleStatus) { safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(cloudData.scheduleStatus)); updated = true; }
+        if (cloudData.paystubs) { safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(cloudData.paystubs)); updated = true; }
+        if (cloudData.overtimeAdjustments) { safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(cloudData.overtimeAdjustments)); updated = true; }
+        if (cloudData.employees) {
+          let cloudEmps = cloudData.employees;
+          try {
+            const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
+            if (permRaw) {
+              const permMap = JSON.parse(permRaw);
+              if (Object.keys(permMap).length > 0) {
+                cloudEmps = cloudEmps.map(e => {
+                  if (permMap[e.id]) return { ...e, allowedTabs: permMap[e.id] };
+                  return e;
+                });
               }
-            } catch(pe) {}
-            safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(cloudEmps));
-            updated = true;
+            }
+          } catch(pe) {}
+          safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(cloudEmps));
+          updated = true;
+        }
+        safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+        updateSyncStatusUI('success');
+        if (updated) {
+          if (typeof callback === 'function') callback();
+          if (window.App && typeof window.App.renderActiveModule === 'function') {
+            window.App.renderActiveModule();
+            window.App.renderSidebarNavigation();
           }
-          safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
-          updateSyncStatusUI('success');
-          if (updated) {
-            if (typeof callback === 'function') callback();
-            if (window.App && typeof window.App.renderActiveModule === 'function') {
-              window.App.renderActiveModule();
-              window.App.renderSidebarNavigation();
-            }
-            if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
-              window.App.checkPendingRejectionNotice();
-            }
+          if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
+            window.App.checkPendingRejectionNotice();
           }
         }
       }

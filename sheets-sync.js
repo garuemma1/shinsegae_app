@@ -731,9 +731,18 @@ window.SheetsSync = (function () {
     } catch(e) { return INITIAL_DISCOUNT_PURCHASES; }
   }
 
-  const API_SYNC_URL = (typeof window !== 'undefined' && window.location.origin.includes('vercel.app'))
-    ? (window.location.origin + '/api/sync')
-    : 'https://shinsaegae-app.vercel.app/api/sync';
+  function getSyncEndpoints() {
+    const endpoints = [];
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+      if (window.location.origin.startsWith('http')) {
+        endpoints.push(window.location.origin + '/api/sync');
+      }
+    }
+    endpoints.push('https://shinsegae-app.vercel.app/api/sync');
+    endpoints.push('https://shinsaegae-app.vercel.app/api/sync');
+    // Remove duplicates
+    return Array.from(new Set(endpoints));
+  }
 
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
@@ -756,20 +765,36 @@ window.SheetsSync = (function () {
           pharmacySettlement: getPharmacySettlement(),
           buildingRental: getBuildingRental(),
           paystubs: getPaystubs(),
-          overtimeAdjustments: getOvertimeAdjustments()
+          overtimeAdjustments: getOvertimeAdjustments(),
+          pharmacistRates: getPharmacistRates()
         }
       };
 
-      // 1. Primary: Vercel Edge API (CORS 프리)
       let pushed = false;
-      try {
-        const res = await window.fetch(API_SYNC_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res && res.ok) pushed = true;
-      } catch(apiErr) {}
+      const endpoints = getSyncEndpoints();
+
+      // 1. Primary: Vercel Edge API candidates
+      for (const endpoint of endpoints) {
+        try {
+          const res = await window.fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res && res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              const resJson = await res.json();
+              if (resJson && resJson.success) {
+                pushed = true;
+                break;
+              }
+            }
+          }
+        } catch(apiErr) {
+          // Continue to next candidate
+        }
+      }
 
       // 2. Fallback: Direct GAS POST (no-cors)
       if (!pushed) {
@@ -781,7 +806,10 @@ window.SheetsSync = (function () {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: bodyStr
           });
-        } catch(gasErr) {}
+          pushed = true;
+        } catch(gasErr) {
+          console.warn('Direct GAS push failed:', gasErr);
+        }
       }
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
@@ -796,22 +824,51 @@ window.SheetsSync = (function () {
     isSyncing = true;
     try {
       let cloudData = null;
+      const endpoints = getSyncEndpoints();
 
-      // 1. Primary: Vercel Edge API (CORS 프리 즉각 응답)
-      try {
-        const res = await window.fetch(API_SYNC_URL + '?t=' + Date.now());
-        if (res && res.ok) {
-          const json = await res.json();
-          cloudData = json && json.data;
+      // 1. Primary: Try Vercel Edge API endpoints
+      for (const endpoint of endpoints) {
+        try {
+          const res = await window.fetch(endpoint + '?t=' + Date.now());
+          if (res && res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              const json = await res.json();
+              if (json && json.data && Object.keys(json.data).length > 0) {
+                cloudData = json.data;
+                break;
+              }
+            }
+          }
+        } catch(apiErr) {
+          // Continue to next
         }
-      } catch(apiErr) {
-        console.warn('Vercel API pull error:', apiErr);
+      }
+
+      // 2. Fallback: Direct GAS GET
+      if (!cloudData) {
+        try {
+          const gasRes = await window.fetch(DIRECT_GAS_URL + '?t=' + Date.now());
+          if (gasRes && gasRes.ok) {
+            const rawText = await gasRes.text();
+            if (rawText && rawText.startsWith('payload=')) {
+              const decoded = decodeURIComponent(rawText.substring(8));
+              const parsed = JSON.parse(decoded);
+              cloudData = parsed && parsed.data;
+            } else if (rawText && !rawText.trim().startsWith('<')) {
+              const parsed = JSON.parse(rawText);
+              cloudData = parsed && parsed.data;
+            }
+          }
+        } catch (gasErr) {
+          console.warn('GAS Direct pull fallback error:', gasErr);
+        }
       }
 
       if (cloudData) {
         let updated = false;
         
-        // 📝 업무일지 스마트 ID 양방향 병합 (PC와 모바일 작성분 유실 없이 완벽 합체)
+        // 📝 업무일지 스마트 ID 양방향 병합
         if (cloudData.worklogs && Array.isArray(cloudData.worklogs) && cloudData.worklogs.length > 0) {
           const localLogs = getWorklogs() || [];
           const mergedMap = {};
@@ -828,6 +885,11 @@ window.SheetsSync = (function () {
         if (cloudData.scheduleStatus) { safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(cloudData.scheduleStatus)); updated = true; }
         if (cloudData.paystubs) { safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(cloudData.paystubs)); updated = true; }
         if (cloudData.overtimeAdjustments) { safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(cloudData.overtimeAdjustments)); updated = true; }
+        if (cloudData.emergencyContacts) { safeSetItem(STORAGE_KEYS.EMERGENCY_CONTACTS, JSON.stringify(cloudData.emergencyContacts)); updated = true; }
+        if (cloudData.pharmacySettlement) { safeSetItem(STORAGE_KEYS.PHARMACY_SETTLEMENT, JSON.stringify(cloudData.pharmacySettlement)); updated = true; }
+        if (cloudData.buildingRental) { safeSetItem(STORAGE_KEYS.BUILDING_RENTAL, JSON.stringify(cloudData.buildingRental)); updated = true; }
+        if (cloudData.pharmacistRates) { safeSetItem('ssg_pharmacist_rates_v1', JSON.stringify(cloudData.pharmacistRates)); updated = true; }
+
         if (cloudData.employees) {
           let cloudEmps = cloudData.employees;
           try {
@@ -864,6 +926,72 @@ window.SheetsSync = (function () {
       isSyncing = false;
     }
   }
+
+  // 💾 전체 데이터 원클릭 백업 파일 (.json) 내보내기 & 불러오기 기능
+  function exportFullBackupJSON() {
+    const fullData = getData();
+    const backupObj = {
+      app: "shinsegae_pharmacy_app",
+      version: "5.0",
+      exportedAt: new Date().toISOString(),
+      exportedAtFormatted: new Date().toLocaleString('ko-KR'),
+      data: fullData
+    };
+
+    const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    
+    a.href = url;
+    a.download = `shinsegae_pharmacy_backup_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importFullBackupJSON(jsonString) {
+    try {
+      const parsed = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+      const targetData = parsed.data || parsed;
+
+      if (!targetData) {
+        throw new Error('올바른 백업 데이터 형식이 아닙니다.');
+      }
+
+      if (targetData.employees) safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(targetData.employees));
+      if (targetData.schedule) safeSetItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(targetData.schedule));
+      if (targetData.scheduleStatus) safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(targetData.scheduleStatus));
+      if (targetData.notices) safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(targetData.notices));
+      if (targetData.leaveRequests) safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(targetData.leaveRequests));
+      if (targetData.discountPurchases) safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(targetData.discountPurchases));
+      if (targetData.worklogs) safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(targetData.worklogs));
+      if (targetData.emergencyContacts) safeSetItem(STORAGE_KEYS.EMERGENCY_CONTACTS, JSON.stringify(targetData.emergencyContacts));
+      if (targetData.pharmacySettlement) safeSetItem(STORAGE_KEYS.PHARMACY_SETTLEMENT, JSON.stringify(targetData.pharmacySettlement));
+      if (targetData.buildingRental) safeSetItem(STORAGE_KEYS.BUILDING_RENTAL, JSON.stringify(targetData.buildingRental));
+      if (targetData.paystubs) safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(targetData.paystubs));
+      if (targetData.overtimeAdjustments) safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(targetData.overtimeAdjustments));
+      if (targetData.pharmacistRates) safeSetItem('ssg_pharmacist_rates_v1', JSON.stringify(targetData.pharmacistRates));
+
+      // 클라우드에도 즉시 전송
+      pushToCloud();
+
+      // UI 새로고침
+      if (window.App) {
+        if (typeof window.App.renderActiveModule === 'function') window.App.renderActiveModule();
+        if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
+        if (typeof window.App.renderUserHeader === 'function') window.App.renderUserHeader();
+      }
+
+      return { success: true };
+    } catch(err) {
+      return { success: false, error: err.message };
+    }
+  }
+
 
   // 🌐 JSONP 기반 100% 무제한 크로스도메인 구글 스프레드시트 직통 로더 (file:/// 및 웹 배포 모두 완벽 호환)
   function fetchSheetGvizJsonp(sheetId, sheetName) {
@@ -1120,6 +1248,8 @@ window.SheetsSync = (function () {
     pullFromCloud,
     syncDirectWithGoogleSheet,
     getSheetUrl,
-    setSheetUrl
+    setSheetUrl,
+    exportFullBackupJSON,
+    importFullBackupJSON
   };
 })();

@@ -13,8 +13,14 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const payloadObj = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(payloadObj));
+      let bodyData = req.body;
+      if (typeof bodyData === 'string') {
+        try { bodyData = JSON.parse(bodyData); } catch (e) {}
+      } else if (Buffer.isBuffer(bodyData)) {
+        try { bodyData = JSON.parse(bodyData.toString('utf-8')); } catch (e) {}
+      }
+
+      const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(bodyData || {}));
 
       const postRes = await fetch(CLOUD_URL, {
         method: 'POST',
@@ -34,11 +40,15 @@ export default async function handler(req, res) {
       const decoded = decodeURIComponent(rawText.substring(8));
       parsedData = JSON.parse(decoded);
     } else if (rawText) {
-      parsedData = JSON.parse(rawText);
+      try {
+        parsedData = JSON.parse(rawText);
+      } catch (e) {
+        parsedData = { data: {} };
+      }
     }
 
     return res.status(200).json(parsedData);
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json({ success: false, error: err.message, fallback: true });
   }
 }

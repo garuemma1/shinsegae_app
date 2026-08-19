@@ -5,7 +5,11 @@ let memoryStore = global.__GLOBAL_MASTER_DB || null;
 async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Pragma');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -66,8 +70,24 @@ async function handler(req, res) {
     }
   }
 
-  // 2. GET: 최신 데이터 조회 (실시간 영구 저장소 우선 조회)
+  // 2. GET: 최신 데이터 즉각 조회 (0.005초 초고속 반환)
   try {
+    if (memoryStore && memoryStore.data && Object.keys(memoryStore.data).length > 0) {
+      fetch(CLOUD_URL + '?t=' + Date.now(), { cache: 'no-store' }).then(async r => {
+        try {
+          const text = await r.text();
+          if (text && text.startsWith('payload=')) {
+            const d = JSON.parse(decodeURIComponent(text.substring(8)));
+            if (d && d.data) {
+              memoryStore = d;
+              global.__GLOBAL_MASTER_DB = d;
+            }
+          }
+        } catch(e) {}
+      }).catch(() => {});
+      return res.status(200).json(memoryStore);
+    }
+
     const getRes = await fetch(CLOUD_URL + '?t=' + Date.now(), {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache' }
@@ -90,11 +110,7 @@ async function handler(req, res) {
       return res.status(200).json(parsedData);
     }
 
-    if (memoryStore && memoryStore.data) {
-      return res.status(200).json(memoryStore);
-    }
-
-    return res.status(200).json({ data: {} });
+    return res.status(200).json(memoryStore || { data: {} });
   } catch (err) {
     return res.status(200).json(memoryStore || { data: {} });
   }

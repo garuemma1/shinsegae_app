@@ -1096,6 +1096,20 @@ window.SheetsSync = (function () {
 
         const activeDeletedIds = getDeletedIds();
 
+        function getSafeTime(item, dateField) {
+          if (!item) return 0;
+          if (item.id && typeof item.id === 'string' && item.id.startsWith('task_')) {
+            const idNum = parseInt(item.id.replace('task_', ''), 10);
+            if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
+          }
+          const str = item.createdAt || item[dateField] || item.date || item.updatedAt || '';
+          if (!str) return 0;
+          if (typeof str === 'number') return str;
+          const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/');
+          const ms = new Date(s).getTime();
+          return isNaN(ms) ? 0 : ms;
+        }
+
         function mergeById(localList, cloudList, dateField = 'createdAt') {
           const map = {};
           (localList || []).forEach(item => {
@@ -1112,8 +1126,8 @@ window.SheetsSync = (function () {
             const pinA = a.isPinned ? 1 : 0;
             const pinB = b.isPinned ? 1 : 0;
             if (pinB !== pinA) return pinB - pinA;
-            const timeA = a.createdAt ? Number(a.createdAt) : (new Date(String(a[dateField] || a.date || 0).replace(/-/g, '/')).getTime() || 0);
-            const timeB = b.createdAt ? Number(b.createdAt) : (new Date(String(b[dateField] || b.date || 0).replace(/-/g, '/')).getTime() || 0);
+            const timeA = getSafeTime(a, dateField);
+            const timeB = getSafeTime(b, dateField);
             return timeB - timeA;
           });
         }
@@ -1123,8 +1137,8 @@ window.SheetsSync = (function () {
           if (!listA || !listB) return true;
           if (listA.length !== listB.length) return true;
           const mapA = {};
-          listA.forEach(item => { if (item && item.id) mapA[item.id] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || ''); });
-          return listB.some(item => !item || !item.id || !mapA[item.id] || mapA[item.id] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || ''));
+          listA.forEach(item => { if (item && item.id) mapA[item.id] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''); });
+          return listB.some(item => !item || !item.id || !mapA[item.id] || mapA[item.id] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''));
         }
 
         // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
@@ -1342,20 +1356,12 @@ window.SheetsSync = (function () {
           }
         }
 
-        // 6. 업무일지 실시간 연동
+        // 6. 업무일지 스마트 정렬 연동
         if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
           const localWorklogs = getWorklogs() || [];
-          const localMap = {};
-          localWorklogs.forEach(w => { if (w && w.id) localMap[w.id] = w; });
-          const cloudMap = {};
-          cloudData.worklogs.forEach(w => { if (w && w.id) cloudMap[w.id] = w; });
-          const allIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
-          const deleted = new Set(getDeletedIds());
-          const finalWorklogs = allIds.filter(id => !deleted.has(id)).map(id => cloudMap[id] || localMap[id]);
-          const currJson = safeGetItem(STORAGE_KEYS.WORKLOGS);
-          const newJson = JSON.stringify(finalWorklogs);
-          if (currJson !== newJson) {
-            safeSetItem(STORAGE_KEYS.WORKLOGS, newJson);
+          const mergedLogs = mergeById(localWorklogs, cloudData.worklogs, 'createdAt');
+          if (isListDifferent(localWorklogs, mergedLogs)) {
+            safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
             updated = true;
           }
         }

@@ -8,246 +8,292 @@ window.WorklogModule = (function () {
   let currentMonth = new Date().getMonth() + 1;
   let showCalendar = true;
   
-  // 구글 앱스 스크립트 웹 앱 URL (★ 1단계에서 배포한 URL로 반드시 변경해주세요!)
+  // 구글 앱스 스크립트 웹 앱 URL (사진 업로드 및 백엔드)
   const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyVsOK5a0PVtW1-h8SlSZ1PGa4J-xx6T6i-tKAICePoP7D3aZ52coIFFYzRvRR0G8IVEw/exec'; 
+
+  // 안전 텍스트 디코더 (URL 인코딩 및 특수문자 완벽 처리)
+  function safeDecode(str) {
+    if (!str) return '';
+    try {
+      let s = String(str).replace(/\+/g, ' ');
+      if (s.includes('%')) {
+        try {
+          s = decodeURIComponent(s);
+        } catch(e) {
+          try { s = decodeURIComponent(escape(s)); } catch(e2) {}
+        }
+      }
+      return s;
+    } catch(e) {
+      return String(str || '').replace(/\+/g, ' ');
+    }
+  }
+
+  // 모바일 ↔ PC 간 데이터 키값 자동 표준화
+  function normalizeLog(log) {
+    if (!log) return null;
+    const rawContent = log.content || log.text || log.contentRx || log.note || '내용 없음';
+    const content = safeDecode(rawContent);
+    const rawAuthor = log.authorName || log.author || '문성도';
+    const author = safeDecode(rawAuthor);
+    const rawTag = log.tag || log.type || '메모';
+    const tag = safeDecode(rawTag);
+    const date = log.date || (log.createdAt ? String(log.createdAt).split(' ')[0] : new Date().toISOString().split('T')[0]);
+    const createdAt = safeDecode(log.createdAt || log.date || '');
+
+    return {
+      ...log,
+      id: log.id || ('task_' + Date.now()),
+      content: content,
+      text: content,
+      authorName: author,
+      author: author,
+      tag: tag,
+      type: tag,
+      date: date,
+      createdAt: createdAt,
+      status: log.status || 'PENDING',
+      checkedBy: Array.isArray(log.checkedBy) ? log.checkedBy : []
+    };
+  }
+
+  function getLogMs(log) {
+    if (!log) return 0;
+    if (log.id && typeof log.id === 'string' && log.id.startsWith('task_')) {
+      const idNum = parseInt(log.id.replace('task_', ''), 10);
+      if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
+    }
+    const str = log.createdAt || log.date || '';
+    if (!str) return 0;
+    const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/');
+    const ms = new Date(s).getTime();
+    return isNaN(ms) ? (new Date(str).getTime() || 0) : ms;
+  }
+
+  function formatLogDateTime(task) {
+    if (!task) return '';
+    const created = task.createdAt || '';
+    if (created && created.length >= 16) {
+      return created.substring(5, 16); // '08-18 11:54'
+    }
+    if (created && created.length >= 5) {
+      return created.substring(5);
+    }
+    if (task.id && typeof task.id === 'string' && task.id.startsWith('task_')) {
+      const ts = parseInt(task.id.replace('task_', ''), 10);
+      if (!isNaN(ts) && ts > 1000000000000) {
+        const d = new Date(ts);
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${m}-${day} ${h}:${min}`;
+      }
+    }
+    return (task.date || '').substring(5);
+  }
 
   function render(containerId) {
     const container = document.getElementById(containerId || 'module-content');
     if (!container) return;
 
-    const currUser = window.SheetsSync.getCurrentUser(); // 현재 로그인한 사용자 정보 가져오기
-    const logs = window.SheetsSync.getWorklogs() || [];
+    try {
+      const currUser = window.SheetsSync.getCurrentUser();
+      const rawLogs = window.SheetsSync.getWorklogs() || [];
+      const logs = rawLogs.map(normalizeLog).filter(Boolean);
 
-    function getLogMs(log) {
-      if (!log) return 0;
-      // 1. id에 고유 타임스탬프가 있으면 id 기반 초정밀 정렬
-      if (log.id && typeof log.id === 'string' && log.id.startsWith('task_')) {
-        const idNum = parseInt(log.id.replace('task_', ''), 10);
-        if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
-      }
-      const str = log.createdAt || log.date || '';
-      if (!str) return 0;
-      const s = String(str).trim().replace(/-/g, '/');
-      const ms = new Date(s).getTime();
-      return isNaN(ms) ? (new Date(str).getTime() || 0) : ms;
-    }
+      // 1. 진행 중인 업무 (PENDING 상태)
+      const pendingTasks = logs
+        .filter(l => l.status === 'PENDING' || !l.status)
+        .sort((a, b) => getLogMs(b) - getLogMs(a));
+      
+      // 2. 당월 달력용 데이터
+      const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+      const monthLogs = logs.filter(l => (l.date || '').startsWith(monthPrefix));
 
-    function formatLogDateTime(task) {
-      if (!task) return '';
-      if (task.createdAt && task.createdAt.length >= 16) {
-        return task.createdAt.substring(5, 16); // '08-18 11:54'
-      }
-      if (task.createdAt && task.createdAt.length >= 5) {
-        return task.createdAt.substring(5);
-      }
-      if (task.id && typeof task.id === 'string' && task.id.startsWith('task_')) {
-        const ts = parseInt(task.id.replace('task_', ''), 10);
-        if (!isNaN(ts) && ts > 1000000000000) {
-          const d = new Date(ts);
-          const m = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          const h = String(d.getHours()).padStart(2, '0');
-          const min = String(d.getMinutes()).padStart(2, '0');
-          return `${m}-${day} ${h}:${min}`;
-        }
-      }
-      return (task.date || '').substring(5);
-    }
+      // 3. 최근 15일 업무 피드 데이터
+      const todayMs = new Date().getTime();
+      const fifteenDaysMs = 20 * 24 * 60 * 60 * 1000;
+      const sortedLogs = [...logs]
+        .filter(log => {
+          const logDateMs = getLogMs(log);
+          if (logDateMs === 0) return true;
+          return Math.abs(todayMs - logDateMs) <= fifteenDaysMs;
+        })
+        .sort((a, b) => getLogMs(b) - getLogMs(a));
 
-    // 1. 진행 중인 업무 (PENDING 상태) - 가장 최근 입력한 글이 무조건 최상단(1등)에 오도록 완벽 정렬!
-    const pendingTasks = logs
-      .filter(l => l.status === 'PENDING' || !l.status)
-      .sort((a, b) => getLogMs(b) - getLogMs(a));
-    
-    // 2. 당월 달력용 데이터 (완료된 것 + 당일 등록된 것 모두 포함)
-    const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    const monthLogs = logs.filter(l => (l.date || '').startsWith(monthPrefix));
-
-    // 3. 최근 15일 업무 피드 데이터 (가장 최근 글이 위로 오도록 정렬 - 아이폰/갤럭시 100% 호환)
-    const todayMs = new Date().getTime();
-    const fifteenDaysMs = 20 * 24 * 60 * 60 * 1000;
-    const sortedLogs = [...logs]
-      .filter(log => {
-        const logDateMs = getLogMs(log);
-        if (logDateMs === 0) return true; // 날짜 상관없이 데이터 유실 방지
-        return Math.abs(todayMs - logDateMs) <= fifteenDaysMs;
-      })
-      .sort((a, b) => getLogMs(b) - getLogMs(a));
-
-    let html = `
-      <div class="module-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <div>
-          <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-bottom:4px; letter-spacing:-0.5px;">
-            📝 실시간 약국 업무 & 인수인계 보드
-          </h2>
-          <p class="subtitle" style="color:#64748b; font-size:14px; margin:0;">
-            품절약, 주문 요청, 특이사항을 카톡 대신 올리고 완료 시 체크해 주세요.
-          </p>
-        </div>
-        
-        <div class="d-flex align-items-center gap-3 flex-wrap mt-2">
-          
-          <!-- 🔍 통합 검색창 -->
-          <div style="display:flex; align-items:center; background:#ffffff; border:2px solid #e2e8f0; border-radius:12px; padding:6px; width:310px; box-shadow:0 4px 12px rgba(0,0,0,0.06); transition:all 0.2s;" onfocusin="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 4px rgba(59,130,246,0.15)';" onfocusout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)';">
-            <input type="text" id="wl-search-input" placeholder="🔍 약 이름, 품절약 검색..." onkeypress="if(event.key==='Enter') WorklogModule.executeSearch()" style="border:none; background:#f1f5f9; border-radius:8px; outline:none; padding:10px 14px; width:100%; font-size:14.5px; color:#0f172a; font-weight:700; transition:background 0.2s;" onfocus="this.style.background='#ffffff'" onblur="this.style.background='#f1f5f9'">
-            <button type="button" onclick="WorklogModule.executeSearch()" style="background:#2563eb; border:none; border-radius:8px; color:#ffffff; width:40px; height:40px; flex-shrink:0; display:flex; justify-content:center; align-items:center; cursor:pointer; margin-left:6px; box-shadow:0 2px 4px rgba(37,99,235,0.2); transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-              <i class="fas fa-search"></i>
-            </button>
-          </div>
-
-          <!-- 📝 새 업무 등록 버튼 -->
-          <button type="button" onclick="WorklogModule.showCreateModal()" style="display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:none; border-radius:12px; padding:10px 20px; font-size:15px; font-weight:800; box-shadow:0 4px 12px rgba(5, 150, 105, 0.25); cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-            <i class="fas fa-plus-circle" style="font-size:16px;"></i> 새 업무 등록
-          </button>
-        </div>
-      </div>
-
-      <!-- 상단: 진행 중인 실시간 업무 보드 (대표님 맞춤형 정갈 럭셔리 소통 테이블) -->
-      <div class="card shadow-sm mb-5" style="border-radius:20px; border:1.5px solid #cbd5e1; background:#ffffff; overflow:hidden; box-shadow:0 10px 25px -5px rgba(15,23,42,0.06);">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:18px 24px;">
+      let html = `
+        <div class="module-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
           <div>
-            <h3 style="font-size:18px; font-weight:800; margin:0; color:#0f172a; display:flex; align-items:center; gap:8px;">
-              🚨 미해결 업무 및 품절 현황
-              <span class="badge" style="background:#ef4444; color:#ffffff; font-size:12.5px; font-weight:800; border-radius:12px; padding:3px 10px;">
-                ${pendingTasks.length}건 대기중
-              </span>
-            </h3>
-            <p style="font-size:12.5px; color:#64748b; margin:4px 0 0 0; font-weight:600;">
-              가장 최근 등록된 순서대로 정렬됩니다.
+            <h2 style="font-size:24px; font-weight:800; color:#0f172a; margin-bottom:4px; letter-spacing:-0.5px;">
+              📝 실시간 약국 업무 & 인수인계 보드
+            </h2>
+            <p class="subtitle" style="color:#64748b; font-size:14px; margin:0;">
+              품절약, 주문 요청, 특이사항을 카톡 대신 올리고 완료 시 체크해 주세요.
             </p>
           </div>
-          <span style="font-size:12.5px; color:#64748b; font-weight:700;">
-            <i class="fas fa-arrow-down-short-wide me-1 text-primary"></i> 최근 등록순
-          </span>
-        </div>
-        
-        <!-- 반응형 정갈 럭셔리 보드 (모바일: 100% 쾌적 카드 / PC: 4열 와이드 테이블) -->
-        <div style="padding: 16px; background: #f8fafc; text-align: left !important;">
-          ${pendingTasks.length === 0 ? `
-            <div style="text-align: center; padding: 48px 20px; background: #ffffff; color: #64748b; border-radius:16px; border:1.5px dashed #cbd5e1;">
-              <div style="width: 52px; height: 52px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px auto;">
-                <i class="fas fa-check-double"></i>
-              </div>
-              <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">모든 미해결 업무가 완료되었습니다!</div>
-              <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 상단의 [새 업무 등록]을 눌러주세요.</div>
+          
+          <div class="d-flex align-items-center gap-3 flex-wrap mt-2">
+            
+            <!-- 🔍 통합 검색창 -->
+            <div style="display:flex; align-items:center; background:#ffffff; border:2px solid #e2e8f0; border-radius:12px; padding:6px; width:310px; box-shadow:0 4px 12px rgba(0,0,0,0.06); transition:all 0.2s;" onfocusin="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 4px rgba(59,130,246,0.15)';" onfocusout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)';">
+              <input type="text" id="wl-search-input" placeholder="🔍 약 이름, 품절약 검색..." onkeypress="if(event.key==='Enter') WorklogModule.executeSearch()" style="border:none; background:#f1f5f9; border-radius:8px; outline:none; padding:10px 14px; width:100%; font-size:14.5px; color:#0f172a; font-weight:700; transition:background 0.2s;" onfocus="this.style.background='#ffffff'" onblur="this.style.background='#f1f5f9'">
+              <button type="button" onclick="WorklogModule.executeSearch()" style="background:#2563eb; border:none; border-radius:8px; color:#ffffff; width:40px; height:40px; flex-shrink:0; display:flex; justify-content:center; align-items:center; cursor:pointer; margin-left:6px; box-shadow:0 2px 4px rgba(37,99,235,0.2); transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <i class="fas fa-search"></i>
+              </button>
             </div>
-          ` : `
-            <div class="wl-card-list">
-              ${pendingTasks.map((task) => {
-                const rawContent = String(task.content || task.text || task.contentRx || task.note || '내용 없음').replace(/\+/g, ' ');
-                const contentText = rawContent.split('\n').map(line => line.trim()).join('\n');
-                const authorStr = String(task.authorName || task.author || '문성도').replace(/\+/g, ' ');
-                const timeStr = String(formatLogDateTime(task)).replace(/\+/g, ' ');
-                const rawTag = String(task.tag || task.type || '메모');
-                const tagBadge = getTagBadge(rawTag);
 
-                let tagClass = 'tag-memo';
-                if (rawTag.includes('품절')) tagClass = 'tag-soldout';
-                else if (rawTag.includes('주문')) tagClass = 'tag-order';
-                else if (rawTag.includes('입고') || rawTag.includes('처리')) tagClass = 'tag-stock';
-                else if (rawTag.includes('고객')) tagClass = 'tag-customer';
+            <!-- 📝 새 업무 등록 버튼 -->
+            <button type="button" onclick="WorklogModule.showCreateModal()" style="display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:none; border-radius:12px; padding:10px 20px; font-size:15px; font-weight:800; box-shadow:0 4px 12px rgba(5, 150, 105, 0.25); cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              <i class="fas fa-plus-circle" style="font-size:16px;"></i> 새 업무 등록
+            </button>
+          </div>
+        </div>
 
-                return `
-                  <div class="wl-premium-card ${tagClass}" style="text-align: left !important; width: 100% !important; background: #ffffff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(15,23,42,0.04); box-sizing: border-box; display: block;">
-                    
-                    <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 -->
-                    <div class="wl-card-header" style="display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 8px !important; padding-bottom: 10px !important; margin-bottom: 10px !important; border-bottom: 1px solid #f1f5f9 !important; text-align: left !important;">
-                      <div class="wl-card-meta" style="display: flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important; text-align: left !important;">
-                        ${tagBadge}
-                        <span style="font-size:12px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:3px 9px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
-                          <i class="far fa-clock"></i> ${timeStr}
-                        </span>
-                        <span style="font-size:13px; font-weight:800; color:#1e293b; display:inline-flex; align-items:center; gap:4px;">
-                          <i class="fas fa-user-circle" style="color:#64748b;"></i> ${authorStr}
-                        </span>
+        <!-- 상단: 진행 중인 실시간 업무 보드 -->
+        <div class="card shadow-sm mb-5" style="border-radius:20px; border:1.5px solid #cbd5e1; background:#ffffff; overflow:hidden; box-shadow:0 10px 25px -5px rgba(15,23,42,0.06);">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:18px 24px;">
+            <div>
+              <h3 style="font-size:18px; font-weight:800; margin:0; color:#0f172a; display:flex; align-items:center; gap:8px;">
+                🚨 미해결 업무 및 품절 현황
+                <span class="badge" style="background:#ef4444; color:#ffffff; font-size:12.5px; font-weight:800; border-radius:12px; padding:3px 10px;">
+                  ${pendingTasks.length}건 대기중
+                </span>
+              </h3>
+              <p style="font-size:12.5px; color:#64748b; margin:4px 0 0 0; font-weight:600;">
+                가장 최근 등록된 순서대로 정렬됩니다.
+              </p>
+            </div>
+            <span style="font-size:12.5px; color:#64748b; font-weight:700;">
+              <i class="fas fa-arrow-down-short-wide me-1 text-primary"></i> 최근 등록순
+            </span>
+          </div>
+          
+          <div style="padding: 16px; background: #f8fafc; text-align: left !important;">
+            ${pendingTasks.length === 0 ? `
+              <div style="text-align: center; padding: 48px 20px; background: #ffffff; color: #64748b; border-radius:16px; border:1.5px dashed #cbd5e1;">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px auto;">
+                  <i class="fas fa-check-double"></i>
+                </div>
+                <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">모든 미해결 업무가 완료되었습니다!</div>
+                <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 상단의 [새 업무 등록]을 눌러주세요.</div>
+              </div>
+            ` : `
+              <div class="wl-card-list">
+                ${pendingTasks.map((task) => {
+                  const contentText = String(task.content || '내용 없음').split('\n').map(line => line.trim()).join('\n');
+                  const authorStr = String(task.authorName || '문성도');
+                  const timeStr = String(formatLogDateTime(task));
+                  const rawTag = String(task.tag || '메모');
+                  const tagBadge = getTagBadge(rawTag);
+
+                  let tagClass = 'tag-memo';
+                  if (rawTag.includes('품절')) tagClass = 'tag-soldout';
+                  else if (rawTag.includes('주문')) tagClass = 'tag-order';
+                  else if (rawTag.includes('입고') || rawTag.includes('처리')) tagClass = 'tag-stock';
+                  else if (rawTag.includes('고객')) tagClass = 'tag-customer';
+
+                  return `
+                    <div class="wl-premium-card ${tagClass}" style="text-align: left !important; width: 100% !important; background: #ffffff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(15,23,42,0.04); box-sizing: border-box; display: block;">
+                      
+                      <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 -->
+                      <div class="wl-card-header" style="display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 8px !important; padding-bottom: 10px !important; margin-bottom: 10px !important; border-bottom: 1px solid #f1f5f9 !important; text-align: left !important;">
+                        <div class="wl-card-meta" style="display: flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important; text-align: left !important;">
+                          ${tagBadge}
+                          <span style="font-size:12px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:3px 9px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
+                            <i class="far fa-clock"></i> ${timeStr}
+                          </span>
+                          <span style="font-size:13px; font-weight:800; color:#1e293b; display:inline-flex; align-items:center; gap:4px;">
+                            <i class="fas fa-user-circle" style="color:#64748b;"></i> ${authorStr}
+                          </span>
+                        </div>
+
+                        <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background:#10b981; color:#ffffff; border:none; border-radius:8px; font-size:12.5px; padding:6px 14px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(16,185,129,0.3); transition:all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                          <i class="fas fa-check"></i> 완료
+                        </button>
                       </div>
 
-                      <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background:#10b981; color:#ffffff; border:none; border-radius:8px; font-size:12.5px; padding:6px 14px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(16,185,129,0.3); transition:all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
-                        <i class="fas fa-check"></i> 완료
-                      </button>
+                      <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 (좌측 강제 밀착 정렬) -->
+                      <div class="wl-card-content-box" style="text-align: left !important; width: 100% !important; padding: 4px 0 !important; margin: 0 !important; display: block !important;">
+                        <p class="wl-card-text" style="text-align: left !important; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15px !important; font-weight: 600 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-wrap !important; word-break: break-word !important; letter-spacing: -0.3px !important; margin: 0 !important; padding: 0 !important; width: 100% !important; display: block !important;">
+                          ${contentText}
+                        </p>
+                        ${task.imageUrl ? `
+                          <div style="margin-top:10px; text-align:left !important; display:block !important;">
+                            <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; color:#1d4ed8; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 1px 3px rgba(37,99,235,0.08); transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                              <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
+                            </a>
+                          </div>
+                        ` : ''}
+                      </div>
+
                     </div>
-
-                    <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 (좌측 강제 밀착 정렬) -->
-                    <div class="wl-card-content-box" style="text-align: left !important; width: 100% !important; padding: 4px 0 !important; margin: 0 !important; display: block !important;">
-                      <p class="wl-card-text" style="text-align: left !important; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15px !important; font-weight: 600 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-wrap !important; word-break: break-word !important; letter-spacing: -0.3px !important; margin: 0 !important; padding: 0 !important; width: 100% !important; display: block !important;">
-                        ${contentText}
-                      </p>
-                      ${task.imageUrl ? `
-                        <div style="margin-top:10px; text-align:left !important; display:block !important;">
-                          <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; color:#1d4ed8; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 1px 3px rgba(37,99,235,0.08); transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                            <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
-                          </a>
-                        </div>
-                      ` : ''}
-                    </div>
-
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          `}
-        </div>
-      </div>
-
-      <!-- 중간: 일일 교대일지 달력 (히스토리 보관소) -->
-      <div class="card shadow-sm mb-5" style="border-radius:20px; border:1px solid #cbd5e1; background:#ffffff; overflow:hidden;">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3" style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#ffffff; padding:18px 24px;">
-          <div class="d-flex align-items-center gap-3">
-            <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.1); display:flex; justify-content:center; align-items:center;"><i class="fas fa-calendar-alt text-warning" style="font-size:20px;"></i></div>
-            <div>
-              <h3 style="font-size:17px; font-weight:bold; margin:0; color:#ffffff;">📅 ${currentYear}년 ${currentMonth}월 업무 달력 (완료 보관소)</h3>
-              <p style="font-size:12.5px; margin:0; color:#94a3b8; margin-top:2px;">날짜를 누르시면 당일 히스토리가 팝업으로 나타납니다.</p>
-            </div>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-sm btn-outline-light" onclick="WorklogModule.changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
-            <span class="badge bg-primary" style="font-size:14px; padding:8px 16px;">${currentYear}년 ${String(currentMonth).padStart(2, '0')}월</span>
-            <button class="btn btn-sm btn-outline-light" onclick="WorklogModule.changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                  `;
+                }).join('')}
+              </div>
+            `}
           </div>
         </div>
-        <div class="card-body" style="padding:20px;">
-          ${renderMonthlyCalendar(logs, currentYear, currentMonth)}
-        </div>
-      </div>
 
-      <!-- 하단: 최근 15일 인수인계 & 피드 (V체크 기능 포함) -->
-      <div class="card shadow-sm mb-5" style="border-radius:20px; border:1px solid #cbd5e1; background:#ffffff; overflow:hidden;">
-        <div class="card-header" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:18px 24px;">
-          <h3 style="font-size:17px; font-weight:800; margin:0; color:#0f172a;">📋 최근 15일 인수인계 & 업무 피드</h3>
-          <p style="font-size:12.5px; margin:0; color:#64748b; margin-top:4px;">최근 15일 내역만 최신순으로 나열됩니다. 내용을 확인하신 후 하단의 <b>'✔ 확인 완료'</b>를 눌러 인계받았음을 표시해 주세요.</p>
+        <!-- 중간: 일일 교대일지 달력 (히스토리 보관소) -->
+        <div class="card shadow-sm mb-5" style="border-radius:20px; border:1px solid #cbd5e1; background:#ffffff; overflow:hidden;">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3" style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#ffffff; padding:18px 24px;">
+            <div class="d-flex align-items-center gap-3">
+              <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.1); display:flex; justify-content:center; align-items:center;"><i class="fas fa-calendar-alt text-warning" style="font-size:20px;"></i></div>
+              <div>
+                <h3 style="font-size:17px; font-weight:bold; margin:0; color:#ffffff;">📅 ${currentYear}년 ${currentMonth}월 업무 달력 (완료 보관소)</h3>
+                <p style="font-size:12.5px; margin:0; color:#94a3b8; margin-top:2px;">날짜를 누르시면 당일 히스토리가 팝업으로 나타납니다.</p>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-sm btn-outline-light" onclick="WorklogModule.changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+              <span class="badge bg-primary" style="font-size:14px; padding:8px 16px;">${currentYear}년 ${String(currentMonth).padStart(2, '0')}월</span>
+              <button class="btn btn-sm btn-outline-light" onclick="WorklogModule.changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:20px;">
+            ${renderMonthlyCalendar(logs, currentYear, currentMonth)}
+          </div>
         </div>
-        <div class="card-body" style="padding:24px; background:#f1f5f9; display:flex; flex-direction:column; gap:16px; max-height:800px; overflow-y:auto;">
-          ${sortedLogs.length === 0 ? '<div class="text-center text-muted py-4">최근 15일 내에 등록된 업무 내역이 없습니다.</div>' : ''}
-          ${sortedLogs.map(log => {
-             const checkedArr = log.checkedBy || []; // 확인한 사람들 배열
-             const hasChecked = currUser && checkedArr.includes(currUser.name); // 내가 이미 체크했는지 여부
-             const contentText = String(log.content || log.text || log.contentRx || log.note || '<span style="color:#94a3b8; font-style:italic;">내용 없음</span>').replace(/\+/g, ' ');
-             const authorStr = String(log.authorName || log.author || '문성도').replace(/\+/g, ' ');
-             const timeDisplay = String(log.createdAt || log.date || '').replace(/\+/g, ' ');
-             const isCompleted = log.status === 'COMPLETED';
-             const compBy = String(log.completedBy || '담당자').replace(/\+/g, ' ');
 
-             return `
-               <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:16px; padding:18px 20px; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
-                 <!-- 상단: 작성자 및 상태 정보 -->
-                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                   <div class="d-flex align-items-center gap-2 flex-wrap">
-                     ${log.tag ? getTagBadge(log.tag) : '<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:5px 10px; border-radius:6px; font-size:12px;">⚪ 일반/메모</span>'}
-                     <span style="font-size:14.5px; font-weight:800; color:#1e293b;"><i class="fas fa-user-edit me-1" style="color:#94a3b8;"></i>${authorStr}</span>
-                     <span style="font-size:12px; color:#64748b; background:#f8fafc; padding:3px 8px; border-radius:6px; border:1px solid #e2e8f0;"><i class="far fa-clock me-1"></i>${timeDisplay}</span>
+        <!-- 하단: 최근 15일 인수인계 & 피드 (V체크 기능 포함) -->
+        <div class="card shadow-sm mb-5" style="border-radius:20px; border:1px solid #cbd5e1; background:#ffffff; overflow:hidden;">
+          <div class="card-header" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:18px 24px;">
+            <h3 style="font-size:17px; font-weight:800; margin:0; color:#0f172a;">📋 최근 15일 인수인계 & 업무 피드</h3>
+            <p style="font-size:12.5px; margin:0; color:#64748b; margin-top:4px;">최근 15일 내역만 최신순으로 나열됩니다. 내용을 확인하신 후 하단의 <b>'✔ 확인 완료'</b>를 눌러 인계받았음을 표시해 주세요.</p>
+          </div>
+          <div class="card-body" style="padding:24px; background:#f1f5f9; display:flex; flex-direction:column; gap:16px; max-height:800px; overflow-y:auto;">
+            ${sortedLogs.length === 0 ? '<div class="text-center text-muted py-4">최근 15일 내에 등록된 업무 내역이 없습니다.</div>' : ''}
+            ${sortedLogs.map(log => {
+               const checkedArr = log.checkedBy || [];
+               const hasChecked = currUser && checkedArr.includes(currUser.name);
+               const contentText = String(log.content || '<span style="color:#94a3b8; font-style:italic;">내용 없음</span>');
+               const authorStr = String(log.authorName || '문성도');
+               const timeDisplay = String(log.createdAt || log.date || '');
+               const isCompleted = log.status === 'COMPLETED';
+               const compBy = String(log.completedBy || '담당자');
+
+               return `
+                 <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:16px; padding:18px 20px; box-shadow:0 2px 4px rgba(0,0,0,0.02); text-align:left !important;">
+                   <!-- 상단: 작성자 및 상태 정보 -->
+                   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                     <div class="d-flex align-items-center gap-2 flex-wrap">
+                       ${log.tag ? getTagBadge(log.tag) : '<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:5px 10px; border-radius:6px; font-size:12px;">⚪ 일반/메모</span>'}
+                       <span style="font-size:14.5px; font-weight:800; color:#1e293b;"><i class="fas fa-user-edit me-1" style="color:#94a3b8;"></i>${authorStr}</span>
+                       <span style="font-size:12px; color:#64748b; background:#f8fafc; padding:3px 8px; border-radius:6px; border:1px solid #e2e8f0;"><i class="far fa-clock me-1"></i>${timeDisplay}</span>
+                     </div>
+                      <div class="d-flex align-items-center gap-2">
+                        ${isCompleted 
+                          ? `<span style="font-size:12px; font-weight:700; color:#16a34a; background:#dcfce7; padding:4px 10px; border-radius:6px; border:1px solid #bbf7d0;">✅ 해결완료 (완료자: ${compBy})</span>` 
+                          : `<span style="font-size:12px; font-weight:700; color:#ef4444; background:#fee2e2; padding:4px 10px; border-radius:6px; border:1px solid #fecdd3;">🚨 미해결</span>`
+                        }
+                        ${(currUser && (currUser.role === '약국장' || currUser.id === 'emp_1' || authorStr === currUser.name)) ? `
+                          <button type="button" class="btn btn-sm text-danger" onclick="WorklogModule.deleteTask('${log.id}')" style="background:#fff1f2; border:1px solid #fecdd3; padding:2px 8px; border-radius:6px; font-size:11.5px; font-weight:700;" title="업무일지 삭제">
+                            <i class="fas fa-trash-alt"></i> 삭제
+                          </button>
+                        ` : ''}
+                      </div>
                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                      ${isCompleted 
-                        ? `<span style="font-size:12px; font-weight:700; color:#16a34a; background:#dcfce7; padding:4px 10px; border-radius:6px; border:1px solid #bbf7d0;">✅ 해결완료 (완료자: ${compBy})</span>` 
-                        : `<span style="font-size:12px; font-weight:700; color:#ef4444; background:#fee2e2; padding:4px 10px; border-radius:6px; border:1px solid #fecdd3;">🚨 미해결</span>`
-                      }
-                      ${(currUser && (currUser.role === '약국장' || currUser.id === 'emp_1' || authorStr === currUser.name)) ? `
-                        <button type="button" class="btn btn-sm text-danger" onclick="WorklogModule.deleteTask('${log.id}')" style="background:#fff1f2; border:1px solid #fecdd3; padding:2px 8px; border-radius:6px; font-size:11.5px; font-weight:700;" title="업무일지 삭제">
-                          <i class="fas fa-trash-alt"></i> 삭제
-                        </button>
-                      ` : ''}
-                    </div>
-                 </div>
                  
                  <!-- 본문 내용 및 콤팩트 사진 링크 -->
                  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; margin-bottom:14px;">
@@ -477,12 +523,15 @@ window.WorklogModule = (function () {
       id: 'task_' + Date.now(),
       date: dateStr,
       authorName: curr.name,
+      author: curr.name,
       tag: tag,
+      type: tag,
       content: content,
+      text: content,
       imageUrl: imageUrl,
       status: 'PENDING',
       createdAt: fullCreatedAt,
-      checkedBy: [] // 📌 신규 등록 시 확인자 배열 초기화
+      checkedBy: []
     };
 
     const logs = window.SheetsSync.getWorklogs() || [];

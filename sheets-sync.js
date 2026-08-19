@@ -1175,19 +1175,31 @@ window.SheetsSync = (function () {
         }
 
         if (cloudData.employees && Array.isArray(cloudData.employees) && cloudData.employees.length > 0) {
-          // 🚫 테스트 계정 필터링 & 클라우드 마스터 데이터 100% 무조건 채택 (시계 비교 오류 원천 제거)
+          // 🚫 테스트 계정 필터링 & 로컬 방금 수정본 롤백 방지 (Winner Lock Guard)
           const cleanCloudEmps = cloudData.employees.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
           
+          const localEmps = getEmployees() || [];
+          const localMap = {};
+          localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
+
           cleanCloudEmps.forEach(ce => {
             if (ce && ce.id && Array.isArray(ce.allowedTabs)) {
               permMap[ce.id] = ce.allowedTabs;
             }
           });
 
-          const finalEmps = cleanCloudEmps.map(ce => ({
-            ...ce,
-            allowedTabs: permMap[ce.id] || ce.allowedTabs
-          }));
+          const finalEmps = cleanCloudEmps.map(ce => {
+            const le = localMap[ce.id];
+            const cTime = Number(ce.updatedAt) || 0;
+            const lTime = Number(le && le.updatedAt) || 0;
+            // 방금(15초 이내) 내 기기에서 직접 저장한 최신 수정본이 있으면 서버가 따라올 때까지 로컬 우선 유지!
+            const chosen = (lTime > cTime && (Date.now() - lTime < 15000)) ? le : ce;
+
+            return {
+              ...chosen,
+              allowedTabs: permMap[ce.id] || chosen.allowedTabs
+            };
+          });
 
           safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
 

@@ -161,14 +161,95 @@ window.SheetsSync = (function () {
     { id: 'l2', empId: 'emp_2', empName: '권명주', role: '근무약사', startDate: '2026-08-21', endDate: '2026-08-21', daysCount: 1.0, type: '연차', reason: '학회 참석 및 정기휴가', status: 'APPROVED', createdAt: '2026-08-01 14:00' }
   ];
 
-  // 신규: 약국 업무일지 & 교대 인수인계 초기 데이터 (실시간 연동 기본값)
+  // 신규: 약국 업무일지 & 교대 인수인계 초기 데이터 (10인 전원 실시간 통합 마스터)
   const INITIAL_WORKLOGS = [
+    {
+      id: 'task_1787157720000',
+      date: '2026-08-20',
+      tag: '고객',
+      type: '고객',
+      content: '500원선결제했습니다 이체건 확인 바랍니다.',
+      text: '500원선결제했습니다 이체건 확인 바랍니다.',
+      authorName: '문성도',
+      author: '문성도',
+      status: 'PENDING',
+      createdAt: '2026-08-20 01:42',
+      checkedBy: []
+    },
+    {
+      id: 'task_1787150077731',
+      date: '2026-08-19',
+      tag: '메모',
+      type: '메모',
+      content: '오늘 관리비 관련하여 4층 피부관리실 사장님께서 오셔서 세입자 분들끼리 단톡방 만들고 싶다고 하셔서 국장님 전화번호를 받아서 단체 톡방에 초대해드려도 되는지에 대한 여부를 전달해달라고 하셔서 카톡 남겨드립니다.',
+      text: '오늘 관리비 관련하여 4층 피부관리실 사장님께서 오셔서 세입자 분들끼리 단톡방 만들고 싶다고 하셔서 국장님 전화번호를 받아서 단체 톡방에 초대해드려도 되는지에 대한 여부를 전달해달라고 하셔서 카톡 남겨드립니다.',
+      authorName: '문성도',
+      author: '문성도',
+      status: 'PENDING',
+      createdAt: '2026-08-19 23:34',
+      checkedBy: []
+    },
+    {
+      id: 'task_1787149709062',
+      date: '2026-08-19',
+      tag: '품절',
+      type: '품절',
+      content: '식염수재고가 0입니다 백제에고 없습니다.\n다른 도매상 긴급히 알아봐 주시면 감사드려요',
+      text: '식염수재고가 0입니다 백제에고 없습니다.\n다른 도매상 긴급히 알아봐 주시면 감사드려요',
+      authorName: '문성도',
+      author: '문성도',
+      status: 'PENDING',
+      createdAt: '2026-08-19 23:28',
+      checkedBy: []
+    },
+    {
+      id: 'task_1787147697981',
+      date: '2026-08-19',
+      tag: '메모',
+      type: '메모',
+      content: '부장님 콘돔진열대 재고 확인 후 채워주시길 부탁드려요',
+      text: '부장님 콘돔진열대 재고 확인 후 채워주시길 부탁드려요',
+      authorName: '문성도',
+      author: '문성도',
+      status: 'PENDING',
+      createdAt: '2026-08-19 22:54',
+      checkedBy: []
+    },
+    {
+      id: 'task_1787144551589',
+      date: '2026-08-19',
+      tag: '품절',
+      type: '품절',
+      content: '가드날 없습니다. 확인 바랍니다',
+      text: '가드날 없습니다. 확인 바랍니다',
+      authorName: '문성도',
+      author: '문성도',
+      status: 'PENDING',
+      createdAt: '2026-08-19 22:02',
+      checkedBy: []
+    },
+    {
+      id: 'task_1787144518642',
+      date: '2026-08-19',
+      tag: '품절',
+      type: '품절',
+      content: '둘코락스 확인 요망',
+      text: '둘코락스 확인 요망',
+      authorName: '문성도',
+      author: '문성도',
+      status: 'PENDING',
+      createdAt: '2026-08-19 22:01',
+      checkedBy: []
+    },
     {
       id: 'task_real_1',
       date: '2026-08-18',
       tag: '주문',
+      type: '주문',
       content: '아로나민골드프리미엄 1개\n아로나민실버 1개\n암치싹 로라 50개 부탁드립니다',
+      text: '아로나민골드프리미엄 1개\n아로나민실버 1개\n암치싹 로라 50개 부탁드립니다',
       authorName: '문성도',
+      author: '문성도',
       status: 'PENDING',
       createdAt: '2026-08-18 10:30',
       checkedBy: []
@@ -177,8 +258,11 @@ window.SheetsSync = (function () {
       id: 'task_real_2',
       date: '2026-08-18',
       tag: '품절',
+      type: '품절',
       content: '넥스가드 품절 9월',
+      text: '넥스가드 품절 9월',
       authorName: '김제희',
+      author: '김제희',
       status: 'PENDING',
       createdAt: '2026-08-18 09:15',
       checkedBy: []
@@ -186,9 +270,12 @@ window.SheetsSync = (function () {
     {
       id: 'task_real_3',
       date: '2026-08-17',
-      tag: '입고/처리',
+      tag: '메모',
+      type: '메모',
       content: '둘코락스 찌그러진거 회메에서 입고된거 판매가 됐을까요???',
+      text: '둘코락스 찌그러진거 회메에서 입고된거 판매가 됐을까요???',
       authorName: '권명주',
+      author: '권명주',
       status: 'PENDING',
       createdAt: '2026-08-17 18:20',
       checkedBy: []
@@ -197,8 +284,11 @@ window.SheetsSync = (function () {
       id: 'task_real_4',
       date: '2026-08-17',
       tag: '주문',
+      type: '주문',
       content: '케어가글왔습니디 주문요청',
-      authorName: '이승학',
+      text: '케어가글왔습니디 주문요청',
+      authorName: '양윤지',
+      author: '양윤지',
       status: 'PENDING',
       createdAt: '2026-08-17 16:40',
       checkedBy: []
@@ -1089,7 +1179,7 @@ window.SheetsSync = (function () {
         }
       }
 
-      // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키)
+      // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키 & 실제 근무시간 절대 보호)
       if (cloudData.schedule && Array.isArray(cloudData.schedule)) {
         const localSched = getSchedule() || [];
         const map = {};
@@ -1098,16 +1188,38 @@ window.SheetsSync = (function () {
             map[`${s.date}_${s.empId}`] = s;
           }
         });
-        cloudData.schedule.forEach(s => {
-          if (s && s.date && s.empId) {
-            map[`${s.date}_${s.empId}`] = s;
+        
+        let localHasUniqueShift = false;
+        cloudData.schedule.forEach(cs => {
+          if (cs && cs.date && cs.empId) {
+            const key = `${cs.date}_${cs.empId}`;
+            const ls = map[key];
+            if (!ls) {
+              map[key] = cs;
+            } else {
+              // 🛡️ 스마트 우선순위: 실제 근무(A,B,C,D,FULL,CUSTOM)가 입력되어 있으면 빈 OFF가 덮어쓰지 못하도록 보호
+              const cIsWork = cs.shift && cs.shift !== 'OFF';
+              const lIsWork = ls.shift && ls.shift !== 'OFF';
+              if (cIsWork && !lIsWork) {
+                map[key] = cs;
+              } else if (!cIsWork && lIsWork) {
+                map[key] = ls;
+                localHasUniqueShift = true;
+              } else {
+                map[key] = cs;
+              }
+            }
           }
         });
+
         const cur = safeGetItem(STORAGE_KEYS.SCHEDULE);
         const next = JSON.stringify(Object.values(map));
         if (cur !== next) {
           safeSetItem(STORAGE_KEYS.SCHEDULE, next);
           updated = true;
+        }
+        if (localHasUniqueShift) {
+          needPushBack = true;
         }
       }
 
@@ -1120,6 +1232,9 @@ window.SheetsSync = (function () {
         if (cur !== next) {
           safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, next);
           updated = true;
+        }
+        if (JSON.stringify(localStatus) !== JSON.stringify(mergedStatus)) {
+          needPushBack = true;
         }
       }
 

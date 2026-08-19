@@ -752,17 +752,16 @@ function setupEventListeners() {
     if (!emp || !inputPass) return false;
     const p = String(inputPass).trim();
     const storedPass = String(emp.passcode || '').trim();
+
+    // 1. 등록/수정된 최신 비밀번호와 100% 일치할 때만 승인 (이전 번호 및 1234 완전 차단)
+    if (storedPass) {
+      return p === storedPass;
+    }
+
+    // 2. 비밀번호가 설정되어 있지 않은 경우에만 휴대폰 뒷 4자리 또는 1234 허용
     const phoneDigits = String(emp.phone || '').replace(/[^0-9]/g, '');
     const phoneLast4 = phoneDigits.length >= 4 ? phoneDigits.slice(-4) : '';
-    const phoneLast6 = phoneDigits.length >= 6 ? phoneDigits.slice(-6) : '';
-
-    // 1. 설정된 비밀번호 일치 (예: 0402, 367900 등)
-    if (storedPass && p === storedPass) return true;
-    // 2. 전화번호 뒷 4자리 일치 (예: 권명주 0402, 양윤지 9807, 이승학 4293 등)
     if (phoneLast4 && p === phoneLast4) return true;
-    // 3. 약국장 전용 6자리 (367900) 또는 전화번호 뒷 6자리 일치
-    if (emp.role === '약국장' && (p === '367900' || (phoneLast6 && p === phoneLast6))) return true;
-    // 4. 초기 마스터 범용 번호 (1234) 호환
     if (p === '1234') return true;
 
     return false;

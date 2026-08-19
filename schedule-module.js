@@ -1272,12 +1272,16 @@ window.ScheduleModule = (function () {
     
     if (select) {
       if (!isDirector) {
-        select.innerHTML = '<option value="' + currUser.id + '">' + currUser.name + ' (' + currUser.role + ' - 본인)</option>';
+        const pos = (currUser.position && currUser.position !== 'undefined') ? ' / ' + currUser.position : '';
+        select.innerHTML = '<option value="' + currUser.id + '">' + currUser.name + ' (' + currUser.role + pos + ' - 본인)</option>';
         select.value = currUser.id;
         select.disabled = true;
       } else {
         const emps = window.SheetsSync.getEmployees() || [];
-        select.innerHTML = emps.map(e => '<option value="' + e.id + '">' + e.name + ' (' + e.role + ' - ' + e.position + ')</option>').join('');
+        select.innerHTML = emps.map(e => {
+          const pos = (e.position && e.position !== 'undefined') ? ' / ' + e.position : '';
+          return '<option value="' + e.id + '">' + e.name + ' (' + (e.role || '직원') + pos + ')</option>';
+        }).join('');
         select.value = targetEmpId;
         select.disabled = false;
       }

@@ -195,20 +195,26 @@ window.NoticesModule = (function () {
       );
       const canDelete = isDirector || isMyNotice;
 
+      const noticeTitle = String(notice.title || '').replace(/\+/g, ' ');
+      const noticeContent = String(notice.content || '').replace(/\+/g, ' ').replace(/\n/g, '<br>');
+      const noticeCategory = (notice.category && notice.category !== 'undefined') ? notice.category : '일반공지';
+      const noticeAuthor = String(notice.author || '문성도').replace(/\+/g, ' ');
+      const noticeDate = String(notice.date || '').replace(/\+/g, ' ');
+
       return `
         <div class="notice-card ${notice.isPinned ? 'pinned' : ''}">
           <div class="notice-card-header">
             <div class="notice-badges">
               ${notice.isPinned ? `<span class="badge badge-pinned"><i class="fas fa-thumbtack"></i> 최상단 고정</span>` : ''}
-              <span class="badge badge-category">${notice.category}</span>
+              <span class="badge badge-category">${noticeCategory}</span>
             </div>
-            <span class="notice-date"><i class="far fa-clock"></i> ${notice.date}</span>
+            <span class="notice-date"><i class="far fa-clock"></i> ${noticeDate}</span>
           </div>
-          <h3 class="notice-title">${notice.title}</h3>
-          <p class="notice-content">${notice.content.replace(/\n/g, '<br>')}</p>
+          <h3 class="notice-title">${noticeTitle}</h3>
+          <p class="notice-content">${noticeContent}</p>
           <div class="notice-card-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:12px; border-top:1px solid #f1f5f9;">
             <span class="notice-author" style="font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:6px; font-size:13px;">
-              <i class="fas fa-user-circle text-primary"></i> ${notice.author}
+              <i class="fas fa-user-circle text-primary"></i> ${noticeAuthor}
               ${isMyNotice && !isDirector ? '<span class="badge" style="background:#eff6ff; color:#2563eb; font-size:10.5px; padding:2px 7px; border-radius:10px; font-weight:700; border:1px solid #bfdbfe;">내 작성글</span>' : ''}
             </span>
             ${canDelete ? `

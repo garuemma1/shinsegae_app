@@ -1133,22 +1133,22 @@ window.SheetsSync = (function () {
           const localMap = {};
           localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
 
-          cleanCloudEmps.forEach(ce => {
-            if (ce && ce.id && Array.isArray(ce.allowedTabs)) {
-              permMap[ce.id] = ce.allowedTabs;
-            }
-          });
-
           const finalEmps = cleanCloudEmps.map(ce => {
             const le = localMap[ce.id];
-            if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
+            if (!le) {
+              if (Array.isArray(ce.allowedTabs)) permMap[ce.id] = ce.allowedTabs;
+              return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
+            }
             const cTime = Number(ce.updatedAt) || 0;
             const lTime = Number(le.updatedAt) || 0;
             const chosen = (lTime > cTime) ? le : ce;
 
+            const targetAllowed = permMap[ce.id] || chosen.allowedTabs;
+            if (targetAllowed) permMap[ce.id] = targetAllowed;
+
             return {
               ...chosen,
-              allowedTabs: permMap[ce.id] || chosen.allowedTabs
+              allowedTabs: targetAllowed
             };
           });
 

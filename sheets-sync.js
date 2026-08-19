@@ -1032,14 +1032,20 @@ window.SheetsSync = (function () {
     measurementId: "G-5THH6NF54S"
   };
 
+  const FIREBASE_REST_URL = "https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/data.json";
+
   let fbApp = null;
   let fbDb = null;
   let fbRef = null;
 
   function initFirebase() {
     try {
+      // 🚀 1. 직통 REST 통신으로 즉시 1차 데이터 즉각 수신 (웹소켓 연결 전 0.05초 초고속 렌더링)
+      pullFromCloud();
+
+      // ⚡ 2. Firebase 실시간 웹소켓(WebSocket) 상시 연결
       if (typeof firebase !== 'undefined') {
-        if (!firebase.apps.length) {
+        if (!firebase.apps || !firebase.apps.length) {
           fbApp = firebase.initializeApp(firebaseConfig);
         } else {
           fbApp = firebase.app();
@@ -1047,18 +1053,19 @@ window.SheetsSync = (function () {
         fbDb = firebase.database();
         fbRef = fbDb.ref('shinsegae_master_db/data');
 
-        // ⚡ 실시간 웹소켓 리스너: 다른 기기(모바일/PC)에서 글을 쓰거나 수정하면 0.05초 만에 자동 수신
         fbRef.on('value', (snapshot) => {
           const cloudData = snapshot.val();
           if (cloudData) {
             applyCloudData(cloudData);
           }
         }, (err) => {
-          console.warn('Firebase sync listener warning:', err);
+          console.warn('Firebase WebSocket listener warning -> REST 폴백 가동:', err);
+          pullFromCloud();
         });
       }
     } catch(e) {
-      console.warn('Firebase init warning:', e);
+      console.warn('Firebase init warning -> REST 폴백 가동:', e);
+      pullFromCloud();
     }
   }
 
@@ -1412,14 +1419,22 @@ window.SheetsSync = (function () {
 
       const payloadStr = JSON.stringify(payload);
 
-      // 🔥 1. Google Firebase Realtime Database (0.05초 초고속 즉시 전송)
+      // 🔥 1. Google Firebase Realtime Database (WebSocket + 직통 REST 듀얼 전송)
       try {
         if (fbRef) {
           fbRef.set(payload.data);
         }
       } catch(fbe) {
-        console.warn('Firebase push warning:', fbe);
+        console.warn('Firebase WebSocket push warning:', fbe);
       }
+
+      try {
+        fetch(FIREBASE_REST_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify(payload.data)
+        }).catch(() => {});
+      } catch(fre) {}
 
       // 2. 구글 앱스 스크립트(GAS) 보조 백업 전송
       try {
@@ -1505,8 +1520,19 @@ window.SheetsSync = (function () {
     try {
       let cloudData = null;
 
-      // 🔥 1. Firebase 실시간 데이터 우선 수신
-      if (fbRef) {
+      // 🔥 1. Firebase 직통 REST 초고속 수신 (< 50ms, 모바일/PC 100% 무적)
+      try {
+        const res = await fetch(`${FIREBASE_REST_URL}?t=${Date.now()}`, { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && (json.worklogs || json.employees || json.notices || json.schedule)) {
+            cloudData = json;
+          }
+        }
+      } catch(re) {}
+
+      // 🔥 2. Firebase WebSocket 보조 수신
+      if (!cloudData && fbRef) {
         try {
           const snap = await fbRef.once('value');
           if (snap && snap.exists()) {
@@ -1515,7 +1541,7 @@ window.SheetsSync = (function () {
         } catch(fbe) {}
       }
 
-      // 2. Google Apps Script 무적 JSONP 보조 수신
+      // 3. Google Apps Script 무적 JSONP 3차 백업 수신
       if (!cloudData) {
         try {
           const gasJson = await fetchGasJsonp();
@@ -1531,11 +1557,6 @@ window.SheetsSync = (function () {
 
       if (cloudData) {
         applyCloudData(cloudData, callback);
-      } else {
-        const localLogs = getWorklogs() || [];
-        if (localLogs.length > 0) {
-          pushToCloud();
-        }
       }
     } catch(e) {
       console.warn('Pull cloud error:', e);

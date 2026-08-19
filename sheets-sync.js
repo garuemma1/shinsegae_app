@@ -1017,6 +1017,11 @@ window.SheetsSync = (function () {
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
+    } catch(e) {
+      updateSyncStatusUI('error');
+    }
+  }
+
   // 🌐 무적 JSONP 클라우드 로더 (CORS 403 보안 검사 완전 우회 & 0.05초 초고속 수신)
   function fetchGasJsonp() {
     return new Promise((resolve) => {

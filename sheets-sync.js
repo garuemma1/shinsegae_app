@@ -1004,14 +1004,16 @@ window.SheetsSync = (function () {
         }
       } catch(fe) {}
 
-      // 2. 신세계약국 전용 초고속 REST 릴레이 브릿지 실시간 전송 (CORS 200 OK 무적 전송)
-      try {
-        window.fetch('https://shinsegaeapp.vercel.app/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: payloadStr
-        }).catch(() => {});
-      } catch(ve) {}
+      // 2. 버셀 호스팅 환경에서만 보조 REST 전송
+      if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
+        try {
+          window.fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payloadStr
+          }).catch(() => {});
+        } catch(ve) {}
+      }
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
@@ -1021,26 +1023,28 @@ window.SheetsSync = (function () {
   }
 
   async function pullFromCloud(callback) {
-    if (isSyncing || typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+    if (isSyncing || typeof window === 'undefined') return;
     isSyncing = true;
     try {
       let cloudData = null;
 
-      // 1. 신세계약국 전용 초고속 REST 클라우드 브릿지 0.05초 실시간 조회 (403 차단 0% 완전 정복)
-      try {
-        const bridgeRes = await window.fetch('https://shinsegaeapp.vercel.app/api/sync?t=' + Date.now(), {
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-        });
-        if (bridgeRes && bridgeRes.ok) {
-          const bridgeJson = await bridgeRes.json();
-          if (bridgeJson && bridgeJson.data && Object.keys(bridgeJson.data).length > 0) {
-            cloudData = bridgeJson.data;
-          } else if (bridgeJson && bridgeJson.employees) {
-            cloudData = bridgeJson;
+      // 1. 버셀 호스팅 환경 전용 REST 조회
+      if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app') && typeof window.fetch === 'function') {
+        try {
+          const bridgeRes = await window.fetch('/api/sync?t=' + Date.now(), {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+          });
+          if (bridgeRes && bridgeRes.ok) {
+            const bridgeJson = await bridgeRes.json();
+            if (bridgeJson && bridgeJson.data && Object.keys(bridgeJson.data).length > 0) {
+              cloudData = bridgeJson.data;
+            } else if (bridgeJson && bridgeJson.employees) {
+              cloudData = bridgeJson;
+            }
           }
-        }
-      } catch(be) {}
+        } catch(be) {}
+      }
 
       if (cloudData) {
         let updated = false;

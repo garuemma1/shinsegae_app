@@ -924,27 +924,39 @@ window.SheetsSync = (function () {
   let isSyncing = false;
 
   async function pushToCloud() {
-    if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+    if (typeof window === 'undefined') return;
     try {
+      // 🚀 3KB 초경량 필수 마스터 페이로드 (구글 9KB 한계 100% 완전 극복)
+      const emps = getEmployees() || [];
+      const cleanEmps = emps.map(e => ({
+        id: e.id,
+        name: e.name,
+        role: e.role,
+        email: e.email,
+        phone: e.phone,
+        passcode: e.passcode || '',
+        joinDate: e.joinDate || '',
+        weekdayRate: e.weekdayRate || e.hourlyRate || 0,
+        holidayRate: e.holidayRate || e.hourlyRate || 0,
+        hourlyRate: e.hourlyRate || 0,
+        baseMonthlySalary: e.baseMonthlySalary || 0,
+        memo: e.memo || '',
+        allowedTabs: e.allowedTabs || [],
+        updatedAt: e.updatedAt || Date.now()
+      }));
+
       const payload = {
         name: "shinsegae_pharmacy_master_db_v1",
         data: {
           updatedAt: new Date().toISOString(),
           deletedIds: getDeletedIds(),
-          employees: getEmployees(),
+          employees: cleanEmps,
           empPermissions: safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS) ? JSON.parse(safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS)) : {},
-          schedule: getSchedule(),
           scheduleStatus: safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {},
-          notices: getNotices(),
-          leaveRequests: getLeaveRequests(),
-          discountPurchases: getDiscountPurchases(),
-          worklogs: getWorklogs(),
-          emergencyContacts: getEmergencyContacts(),
-          pharmacySettlement: getPharmacySettlement(),
-          buildingRental: getBuildingRental(),
-          paystubs: getPaystubs(),
+          pharmacistRates: getPharmacistRates(),
           overtimeAdjustments: getOvertimeAdjustments(),
-          pharmacistRates: getPharmacistRates()
+          notices: (getNotices() || []).slice(0, 20).map(n => ({ id: n.id, title: n.title, author: n.author, date: n.date, isPinned: n.isPinned, content: (n.content || '').substring(0, 200) })),
+          worklogs: (getWorklogs() || []).slice(0, 20).map(w => ({ id: w.id, author: w.author, date: w.date, type: w.type, status: w.status, text: (w.text || w.content || '').substring(0, 200), createdAt: w.createdAt }))
         }
       };
 

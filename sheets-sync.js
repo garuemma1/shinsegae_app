@@ -744,42 +744,10 @@ window.SheetsSync = (function () {
       }
     } catch(e) {}
 
-    if (!emps) {
+    if (!emps || emps.length === 0) {
       // 저장된 값이 없을 때만 초기값 저장
       emps = INITIAL_EMPLOYEES.map(e => ({ ...e }));
       safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
-    } else {
-      // 11인 마스터 정식 명부 및 이메일/연락처/직책 자동 복원 및 안전 매핑
-      let updatedEmpsList = false;
-      INITIAL_EMPLOYEES.forEach(initEmp => {
-        const found = emps.find(e => e.id === initEmp.id || e.name === initEmp.name);
-        if (!found) {
-          emps.push({ ...initEmp });
-          updatedEmpsList = true;
-        } else {
-          if (!found.email || (found.email.includes('shinsegae.com') && initEmp.email.includes('@naver.com')) || found.email === 'director@shinsegae.com') {
-            found.email = initEmp.email;
-            found.username = initEmp.username;
-            updatedEmpsList = true;
-          }
-          if (initEmp.position && !found.position) {
-            found.position = initEmp.position;
-            updatedEmpsList = true;
-          }
-          if (initEmp.memo && !found.memo) {
-            found.memo = initEmp.memo;
-            updatedEmpsList = true;
-          }
-          if (!found.passcode || found.passcode === '1234') {
-            found.passcode = initEmp.passcode;
-            updatedEmpsList = true;
-          }
-        }
-      });
-
-      if (updatedEmpsList) {
-        safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
-      }
     }
 
     // 별도 저장된 권한을 병합 (클라우드 덧써쓰더라도 유지)
@@ -806,7 +774,7 @@ window.SheetsSync = (function () {
     const now = Date.now();
     const list = (data || []).map(e => ({
       ...e,
-      updatedAt: e.updatedAt || now
+      updatedAt: now
     }));
     safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(list));
     pushToCloud();
@@ -1173,10 +1141,10 @@ window.SheetsSync = (function () {
 
           const finalEmps = cleanCloudEmps.map(ce => {
             const le = localMap[ce.id];
+            if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
             const cTime = Number(ce.updatedAt) || 0;
-            const lTime = Number(le && le.updatedAt) || 0;
-            // 방금(15초 이내) 내 기기에서 직접 저장한 최신 수정본이 있으면 서버가 따라올 때까지 로컬 우선 유지!
-            const chosen = (lTime > cTime && (Date.now() - lTime < 15000)) ? le : ce;
+            const lTime = Number(le.updatedAt) || 0;
+            const chosen = (lTime > cTime) ? le : ce;
 
             return {
               ...chosen,
@@ -1455,11 +1423,10 @@ window.SheetsSync = (function () {
     }
   }
 
-  // 앱 시동, 화면 복귀(Focus/Visibility), 및 3.5초 주기 초고속 실시간 백그라운드 동기화
+  // 앱 시동, 화면 복귀(Focus/Visibility), 및 3.5초 주기 초고속 실시간 백그라운드 동기화 (오직 pull만 수행하여 덮어쓰기 원천 차단!)
   if (typeof window !== 'undefined') {
     setTimeout(() => {
       pullFromCloud();
-      setTimeout(() => pushToCloud(), 1000);
     }, 300);
     window.addEventListener('focus', () => pullFromCloud());
     document.addEventListener('visibilitychange', () => {

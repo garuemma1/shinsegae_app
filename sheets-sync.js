@@ -1141,53 +1141,42 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
         }
 
-        if (cloudData.employees && Array.isArray(cloudData.employees)) {
-          const localEmps = getEmployees() || [];
-          const localMap = {};
-          localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
+        if (cloudData.employees && Array.isArray(cloudData.employees) && cloudData.employees.length > 0) {
+          // 🚫 테스트 계정 필터링 & 클라우드 마스터 데이터 100% 무조건 채택 (시계 비교 오류 원천 제거)
+          const cleanCloudEmps = cloudData.employees.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
           
-          const finalMap = {};
-          cloudData.employees.forEach(ce => {
-            if (!ce || !ce.id) return;
-            // 권한 맵 동기화
-            if (Array.isArray(ce.allowedTabs)) {
+          cleanCloudEmps.forEach(ce => {
+            if (ce && ce.id && Array.isArray(ce.allowedTabs)) {
               permMap[ce.id] = ce.allowedTabs;
-            }
-            const le = localMap[ce.id];
-            if (!le) {
-              finalMap[ce.id] = { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
-            } else {
-              const cTime = Number(ce.updatedAt) || 0;
-              const lTime = Number(le.updatedAt) || 0;
-              const chosen = (cTime >= lTime) ? ce : le;
-              finalMap[ce.id] = { ...chosen, allowedTabs: permMap[ce.id] || chosen.allowedTabs };
             }
           });
 
-          // 로컬에만 있고 클라우드에 아직 없는 신규 등록자 보존
-          localEmps.forEach(le => {
-            if (le && le.id && !finalMap[le.id]) {
-              finalMap[le.id] = { ...le, allowedTabs: permMap[le.id] || le.allowedTabs };
-            }
-          });
+          const finalEmps = cleanCloudEmps.map(ce => ({
+            ...ce,
+            allowedTabs: permMap[ce.id] || ce.allowedTabs
+          }));
 
           safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
 
-          let mergedEmps = Object.values(finalMap);
           const currentJson = safeGetItem(STORAGE_KEYS.EMPLOYEES);
-          const newJson = JSON.stringify(mergedEmps);
+          const newJson = JSON.stringify(finalEmps);
           if (currentJson !== newJson) {
             safeSetItem(STORAGE_KEYS.EMPLOYEES, newJson);
             updated = true;
           }
 
-          // 🔒 현재 로그인되어 있는 세션의 허용 탭 권한 실시간 갱신 & 사이드바 즉각 재렌더링
+          // 🔒 현재 로그인되어 있는 세션의 유저 정보(이메일, 연락처, 권한 등) 실시간 동기화
           const curr = getCurrentUser();
-          if (curr && curr.id && permMap[curr.id]) {
-            curr.allowedTabs = permMap[curr.id];
-            setCurrentUser(curr);
-            if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
-              window.App.renderSidebarNavigation();
+          if (curr && curr.id) {
+            const matched = finalEmps.find(e => e.id === curr.id);
+            if (matched) {
+              setCurrentUser(matched);
+              if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
+                window.App.renderSidebarNavigation();
+              }
+              if (window.App && typeof window.App.renderUserHeader === 'function') {
+                window.App.renderUserHeader();
+              }
             }
           }
         }

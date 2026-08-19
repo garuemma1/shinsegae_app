@@ -131,10 +131,10 @@ window.WorklogModule = (function () {
               <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">모든 미해결 업무가 완료되었습니다!</div>
               <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 상단의 [새 업무 등록]을 눌러주세요.</div>
             </div>
-          ` : `
             <div class="wl-card-list">
               ${pendingTasks.map((task) => {
-                const contentText = String(task.content || task.text || task.contentRx || task.note || '내용 없음').replace(/\+/g, ' ');
+                const rawContent = String(task.content || task.text || task.contentRx || task.note || '내용 없음').replace(/\+/g, ' ');
+                const contentText = rawContent.split('\n').map(line => line.trim()).join('\n');
                 const authorStr = String(task.authorName || task.author || '문성도').replace(/\+/g, ' ');
                 const timeStr = String(formatLogDateTime(task)).replace(/\+/g, ' ');
                 const rawTag = String(task.tag || task.type || '메모');

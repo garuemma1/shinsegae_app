@@ -759,7 +759,15 @@ window.SheetsSync = (function () {
         localMap[ie.id] = { ...ie };
       }
     });
-    emps = INITIAL_EMPLOYEES.map(ie => localMap[ie.id] || ie);
+    emps = INITIAL_EMPLOYEES.map(ie => {
+      const e = localMap[ie.id] || ie;
+      return {
+        ...ie,
+        ...e,
+        position: (e.position && e.position !== 'undefined' && e.position !== '') ? e.position : ie.position,
+        role: (e.role && e.role !== 'undefined' && e.role !== '') ? e.role : ie.role
+      };
+    });
     safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
 
     // 별도 저장된 권한을 병합 (클라우드 덧써쓰더라도 유지)
@@ -954,8 +962,11 @@ window.SheetsSync = (function () {
           scheduleStatus: safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {},
           pharmacistRates: getPharmacistRates(),
           overtimeAdjustments: getOvertimeAdjustments(),
-          notices: (getNotices() || []).slice(0, 20).map(n => ({ id: n.id, title: n.title, author: n.author, date: n.date, isPinned: n.isPinned, content: (n.content || '').substring(0, 200) })),
-          worklogs: (getWorklogs() || []).slice(0, 20).map(w => ({ id: w.id, author: w.author, date: w.date, type: w.type, status: w.status, text: (w.text || w.content || '').substring(0, 200), createdAt: w.createdAt }))
+          discountPurchases: getDiscountPurchases(),
+          schedule: getSchedule(),
+          leaveRequests: getLeaveRequests(),
+          notices: getNotices(),
+          worklogs: getWorklogs()
         }
       };
 
@@ -1004,14 +1015,16 @@ window.SheetsSync = (function () {
         }).catch(() => {});
       } catch(ge) {}
 
-      // 2. 버셀 릴레이 보조 전송
-      try {
-        window.fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: payloadStr
-        }).catch(() => {});
-      } catch(ve) {}
+      // 2. 버셀 릴레이 보조 전송 (버셀 호스팅 환경에서만 안전 가동)
+      if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
+        try {
+          window.fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payloadStr
+          }).catch(() => {});
+        } catch(ve) {}
+      }
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
@@ -1049,8 +1062,8 @@ window.SheetsSync = (function () {
         }
       } catch(ge) {}
 
-      // 2. 보조 릴레이 조회 (Fallback)
-      if (!cloudData || !cloudData.employees) {
+      // 2. 보조 릴레이 조회 (Fallback - 버셀 호스팅 환경 전용)
+      if ((!cloudData || !cloudData.employees) && typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
         try {
           const edgeRes = await window.fetch('/api/sync?t=' + Date.now(), {
             cache: 'no-store',
@@ -1268,7 +1281,78 @@ window.SheetsSync = (function () {
           }
         }
 
-        // 9. 약사 시급 및 휴게 설정 단일 마스터 연동
+        // 3. 할인구매대장 실시간 연동 및 병합
+        if (cloudData.discountPurchases && Array.isArray(cloudData.discountPurchases)) {
+          const localPurchases = getDiscountPurchases() || [];
+          const localMap = {};
+          localPurchases.forEach(p => { if (p && p.id) localMap[p.id] = p; });
+          const cloudMap = {};
+          cloudData.discountPurchases.forEach(p => { if (p && p.id) cloudMap[p.id] = p; });
+          const allIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
+          const deleted = new Set(getDeletedIds());
+          const finalPurchases = allIds.filter(id => !deleted.has(id)).map(id => cloudMap[id] || localMap[id]);
+          const currJson = safeGetItem(STORAGE_KEYS.DISCOUNT_PURCHASES);
+          const newJson = JSON.stringify(finalPurchases);
+          if (currJson !== newJson) {
+            safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, newJson);
+            updated = true;
+          }
+        }
+
+        // 4. 근무 스케줄 실시간 연동 및 병합
+        if (cloudData.schedule && Array.isArray(cloudData.schedule) && cloudData.schedule.length > 0) {
+          const localSchedule = getSchedule() || [];
+          const localMap = {};
+          localSchedule.forEach(s => { if (s && s.date && s.empId) localMap[`${s.date}_${s.empId}`] = s; });
+          const cloudMap = {};
+          cloudData.schedule.forEach(s => { if (s && s.date && s.empId) cloudMap[`${s.date}_${s.empId}`] = s; });
+          const allKeys = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
+          const finalSchedule = allKeys.map(k => cloudMap[k] || localMap[k]);
+          const currJson = safeGetItem(STORAGE_KEYS.SCHEDULE);
+          const newJson = JSON.stringify(finalSchedule);
+          if (currJson !== newJson) {
+            safeSetItem(STORAGE_KEYS.SCHEDULE, newJson);
+            updated = true;
+          }
+        }
+
+        // 5. 공지사항 실시간 연동
+        if (cloudData.notices && Array.isArray(cloudData.notices)) {
+          const localNotices = getNotices() || [];
+          const localMap = {};
+          localNotices.forEach(n => { if (n && n.id) localMap[n.id] = n; });
+          const cloudMap = {};
+          cloudData.notices.forEach(n => { if (n && n.id) cloudMap[n.id] = n; });
+          const allIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
+          const deleted = new Set(getDeletedIds());
+          const finalNotices = allIds.filter(id => !deleted.has(id)).map(id => cloudMap[id] || localMap[id]);
+          const currJson = safeGetItem(STORAGE_KEYS.NOTICES);
+          const newJson = JSON.stringify(finalNotices);
+          if (currJson !== newJson) {
+            safeSetItem(STORAGE_KEYS.NOTICES, newJson);
+            updated = true;
+          }
+        }
+
+        // 6. 업무일지 실시간 연동
+        if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
+          const localWorklogs = getWorklogs() || [];
+          const localMap = {};
+          localWorklogs.forEach(w => { if (w && w.id) localMap[w.id] = w; });
+          const cloudMap = {};
+          cloudData.worklogs.forEach(w => { if (w && w.id) cloudMap[w.id] = w; });
+          const allIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
+          const deleted = new Set(getDeletedIds());
+          const finalWorklogs = allIds.filter(id => !deleted.has(id)).map(id => cloudMap[id] || localMap[id]);
+          const currJson = safeGetItem(STORAGE_KEYS.WORKLOGS);
+          const newJson = JSON.stringify(finalWorklogs);
+          if (currJson !== newJson) {
+            safeSetItem(STORAGE_KEYS.WORKLOGS, newJson);
+            updated = true;
+          }
+        }
+
+        // 7. 약사 시급 및 휴게 설정 단일 마스터 연동
         if (cloudData.pharmacistRates) {
           const localRates = getPharmacistRates();
           const mergedRates = { ...localRates, ...cloudData.pharmacistRates };

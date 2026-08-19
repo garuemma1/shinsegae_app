@@ -1121,10 +1121,18 @@ window.ScheduleModule = (function () {
                 const isPublished = ps && ps.published;
                 const activeUnsettledPretaxStaff = isPublished ? 0 : adjustedPretaxTotal;
 
+                const posDisplay = (s.position && s.position !== 'undefined' && s.position !== '') ? s.position : (
+                  s.name === '이승학' ? '조제실 및 전산' :
+                  s.name === '김제희' ? '조제실 일반전산' :
+                  s.name === '윤세라' ? '조제실 서포트' :
+                  s.name === '김배영' ? '매장관리 및 서포트' :
+                  (s.role || '일반직원')
+                );
+
                 return `
                   <tr>
                     <td style="text-align:center; padding:10px 8px;"><strong>${s.name}</strong></td>
-                    <td style="text-align:center; padding:10px 8px;"><span class="badge badge-staff" style="padding:4px 8px; font-size:12px;">${s.position}</span></td>
+                    <td style="text-align:center; padding:10px 8px;"><span class="badge badge-staff" style="padding:4px 8px; font-size:12px;">${posDisplay}</span></td>
                     <td style="text-align:right; padding:10px 12px; white-space:nowrap;">
                       <strong style="color:#15803d; font-size:14px; font-family:'Outfit', sans-serif;">${baseSal.toLocaleString()}</strong>
                       <span style="font-size:12px; color:#15803d; font-weight:600; margin-left:1px;">원</span>

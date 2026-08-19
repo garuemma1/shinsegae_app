@@ -140,11 +140,11 @@ window.WorklogModule = (function () {
                 const tagBadge = getTagBadge(task.tag || task.type || '메모');
 
                 return `
-                  <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 4px 12px rgba(15,23,42,0.03); transition:all 0.2s;" onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 8px 20px rgba(59,130,246,0.08)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(15,23,42,0.03)';">
+                  <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 4px 12px rgba(15,23,42,0.03); text-align:left !important; transition:all 0.2s;" onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 8px 20px rgba(59,130,246,0.08)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(15,23,42,0.03)';">
                     
                     <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 (모바일/PC 모두 완벽 정렬) -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid #f1f5f9;">
-                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid #f1f5f9; text-align:left !important;">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; text-align:left !important;">
                         ${tagBadge}
                         <span style="font-size:12.5px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:4px 10px; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
                           <i class="far fa-clock"></i> ${timeStr}
@@ -159,13 +159,13 @@ window.WorklogModule = (function () {
                       </button>
                     </div>
 
-                    <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 -->
-                    <div>
-                      <div style="font-size:15.5px; font-weight:800; color:#0f172a; line-height:1.7; white-space:pre-wrap; word-break:break-word; letter-spacing:-0.2px;">
+                    <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 (좌측 강제 정렬) -->
+                    <div style="text-align:left !important;">
+                      <div style="text-align:left !important; font-size:15.5px; font-weight:800; color:#0f172a; line-height:1.7; white-space:pre-wrap; word-break:break-word; letter-spacing:-0.2px;">
                         ${contentText}
                       </div>
                       ${task.imageUrl ? `
-                        <div style="margin-top:12px;">
+                        <div style="margin-top:12px; text-align:left !important;">
                           <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:10px; color:#1d4ed8; font-size:13px; font-weight:800; text-decoration:none; box-shadow:0 2px 4px rgba(37,99,235,0.08); transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
                             <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
                           </a>

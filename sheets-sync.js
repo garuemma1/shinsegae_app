@@ -950,7 +950,7 @@ window.SheetsSync = (function () {
 
       const payloadStr = JSON.stringify(payload);
 
-      // 1. 구글 공식 클라우드 직통 영구 보관 (100% 무제한 무료)
+      // 1. 구글 공식 클라우드 직통 영구 보관 (URLSearchParams + FormData 이중 직통)
       try {
         const params = new URLSearchParams();
         params.append('payload', payloadStr);
@@ -960,6 +960,15 @@ window.SheetsSync = (function () {
           body: params
         }).catch(() => {});
       } catch(ge) {}
+      try {
+        const fd = new FormData();
+        fd.append('payload', payloadStr);
+        window.fetch(DIRECT_GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: fd
+        }).catch(() => {});
+      } catch(fe) {}
 
       // 2. 버셀 릴레이 보조 전송
       try {

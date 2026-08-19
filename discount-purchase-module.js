@@ -371,7 +371,13 @@ window.DiscountPurchaseModule = (function () {
 
   function handleSearch(val) {
     searchQuery = val;
-    render('module-content');
+    const tabContent = document.getElementById('discount-tab-content');
+    if (tabContent) {
+      const data = window.SheetsSync.getData();
+      const purchases = data.discountPurchases || [];
+      const employees = data.employees || [];
+      tabContent.innerHTML = renderTabContent(purchases, employees);
+    }
   }
 
   // 💵 천원 단위 콤마 입력 서식

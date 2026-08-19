@@ -121,10 +121,10 @@ window.WorklogModule = (function () {
           </span>
         </div>
         
-        <!-- 반응형 정갈 테이블 레이아웃 -->
-        <div style="overflow-x:auto;">
+        <!-- 반응형 정갈 럭셔리 보드 (모바일: 100% 쾌적 카드 / PC: 4열 와이드 테이블) -->
+        <div style="padding: 16px; background: #f8fafc;">
           ${pendingTasks.length === 0 ? `
-            <div style="text-align: center; padding: 48px 20px; background: #ffffff; color: #64748b;">
+            <div style="text-align: center; padding: 48px 20px; background: #ffffff; color: #64748b; border-radius:16px; border:1.5px dashed #cbd5e1;">
               <div style="width: 52px; height: 52px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px auto;">
                 <i class="fas fa-check-double"></i>
               </div>
@@ -132,64 +132,51 @@ window.WorklogModule = (function () {
               <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 상단의 [새 업무 등록]을 눌러주세요.</div>
             </div>
           ` : `
-            <table style="width:100%; border-collapse:collapse; text-align:left;">
-              <thead>
-                <tr style="background:#f1f5f9; border-bottom:1.5px solid #cbd5e1; color:#475569; font-size:13.5px; font-weight:800;">
-                  <th style="padding:14px 18px; width:130px; text-align:center;">태그</th>
-                  <th style="padding:14px 18px; min-width:260px;">내용 및 사진</th>
-                  <th style="padding:14px 18px; width:160px;">등록일시 (작성자)</th>
-                  <th style="padding:14px 18px; width:110px; text-align:center;">완료</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${pendingTasks.map((task, idx) => {
-                  const contentText = String(task.content || task.text || task.contentRx || task.note || '내용 없음').replace(/\+/g, ' ');
-                  const authorStr = String(task.authorName || task.author || '문성도').replace(/\+/g, ' ');
-                  const timeStr = String(formatLogDateTime(task)).replace(/\+/g, ' ');
-                  const tagBadge = getTagBadge(task.tag || task.type || '메모');
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              ${pendingTasks.map((task) => {
+                const contentText = String(task.content || task.text || task.contentRx || task.note || '내용 없음').replace(/\+/g, ' ');
+                const authorStr = String(task.authorName || task.author || '문성도').replace(/\+/g, ' ');
+                const timeStr = String(formatLogDateTime(task)).replace(/\+/g, ' ');
+                const tagBadge = getTagBadge(task.tag || task.type || '메모');
 
-                  return `
-                    <tr style="border-bottom:1px solid #e2e8f0; background:${idx % 2 === 0 ? '#ffffff' : '#f8fafc'}; transition:background 0.2s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='${idx % 2 === 0 ? '#ffffff' : '#f8fafc'}'">
-                      <!-- 1. 태그 -->
-                      <td style="padding:18px 14px; text-align:center; vertical-align:middle;">
+                return `
+                  <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 4px 12px rgba(15,23,42,0.03); transition:all 0.2s;" onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 8px 20px rgba(59,130,246,0.08)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(15,23,42,0.03)';">
+                    
+                    <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 (모바일/PC 모두 완벽 정렬) -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid #f1f5f9;">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         ${tagBadge}
-                      </td>
-
-                      <!-- 2. 내용 및 사진 -->
-                      <td style="padding:18px 18px; vertical-align:middle;">
-                        <div style="font-size:15px; font-weight:800; color:#0f172a; line-height:1.65; white-space:pre-wrap; word-break:break-word; letter-spacing:-0.2px;">
-                          ${contentText}
-                        </div>
-                        ${task.imageUrl ? `
-                          <div style="margin-top:8px;">
-                            <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:8px; color:#1d4ed8; font-size:12.5px; font-weight:800; text-decoration:none; box-shadow:0 1px 3px rgba(37,99,235,0.1);" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                              <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (확대)
-                            </a>
-                          </div>
-                        ` : ''}
-                      </td>
-
-                      <!-- 3. 등록일시 (작성자) -->
-                      <td style="padding:18px 18px; vertical-align:middle;">
-                        <div style="font-size:13px; font-weight:700; color:#2563eb; display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                        <span style="font-size:12.5px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:4px 10px; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
                           <i class="far fa-clock"></i> ${timeStr}
-                        </div>
-                        <div style="font-size:14px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:5px;">
+                        </span>
+                        <span style="font-size:13.5px; font-weight:800; color:#1e293b; display:inline-flex; align-items:center; gap:4px;">
                           <i class="fas fa-user-circle" style="color:#64748b;"></i> ${authorStr}
-                        </div>
-                      </td>
+                        </span>
+                      </div>
 
-                      <!-- 4. 완료 버튼 -->
-                      <td style="padding:18px 14px; text-align:center; vertical-align:middle;">
-                        <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background:#ffffff; color:#059669; border:1.5px solid #10b981; border-radius:10px; font-size:13px; padding:8px 14px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 4px rgba(0,0,0,0.03); transition:all 0.2s;" onmouseover="this.style.background='#10b981'; this.style.color='#ffffff';" onmouseout="this.style.background='#ffffff'; this.style.color='#059669';">
-                          <i class="fas fa-check"></i> 완료
-                        </button>
-                      </td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
+                      <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background:#ffffff; color:#059669; border:1.5px solid #10b981; border-radius:10px; font-size:13px; padding:7px 16px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 4px rgba(0,0,0,0.03); transition:all 0.2s;" onmouseover="this.style.background='#10b981'; this.style.color='#ffffff';" onmouseout="this.style.background='#ffffff'; this.style.color='#059669';">
+                        <i class="fas fa-check"></i> 완료
+                      </button>
+                    </div>
+
+                    <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 -->
+                    <div>
+                      <div style="font-size:15.5px; font-weight:800; color:#0f172a; line-height:1.7; white-space:pre-wrap; word-break:break-word; letter-spacing:-0.2px;">
+                        ${contentText}
+                      </div>
+                      ${task.imageUrl ? `
+                        <div style="margin-top:12px;">
+                          <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:10px; color:#1d4ed8; font-size:13px; font-weight:800; text-decoration:none; box-shadow:0 2px 4px rgba(37,99,235,0.08); transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                            <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
+                          </a>
+                        </div>
+                      ` : ''}
+                    </div>
+
+                  </div>
+                `;
+              }).join('')}
+            </div>
           `}
         </div>
       </div>

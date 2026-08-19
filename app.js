@@ -1497,7 +1497,10 @@ function writeSheetData(sheet, dataList) {
           }
           if (storedVersion !== data.version) {
             localStorage.setItem('ssg_app_version', data.version);
-            console.log("ℹ️ 새 버전 배포 감지:", data.version);
+            console.log("🚀 새 버전 배포 감지 - 즉시 최신화 새로고침:", data.version);
+            if (window.location) {
+              window.location.reload(true);
+            }
           }
         }
       }

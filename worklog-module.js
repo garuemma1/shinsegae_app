@@ -132,41 +132,48 @@ window.WorklogModule = (function () {
               <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 상단의 [새 업무 등록]을 눌러주세요.</div>
             </div>
           ` : `
-            <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="wl-card-list">
               ${pendingTasks.map((task) => {
                 const contentText = String(task.content || task.text || task.contentRx || task.note || '내용 없음').replace(/\+/g, ' ');
                 const authorStr = String(task.authorName || task.author || '문성도').replace(/\+/g, ' ');
                 const timeStr = String(formatLogDateTime(task)).replace(/\+/g, ' ');
-                const tagBadge = getTagBadge(task.tag || task.type || '메모');
+                const rawTag = String(task.tag || task.type || '메모');
+                const tagBadge = getTagBadge(rawTag);
+
+                let tagClass = 'tag-memo';
+                if (rawTag.includes('품절')) tagClass = 'tag-soldout';
+                else if (rawTag.includes('주문')) tagClass = 'tag-order';
+                else if (rawTag.includes('입고') || rawTag.includes('처리')) tagClass = 'tag-stock';
+                else if (rawTag.includes('고객')) tagClass = 'tag-customer';
 
                 return `
-                  <div class="wl-pending-card">
+                  <div class="wl-premium-card ${tagClass}">
                     
-                    <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 (모바일/PC 모두 완벽 정렬) -->
-                    <div class="wl-pending-top">
-                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; text-align:left !important;">
+                    <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 -->
+                    <div class="wl-card-header">
+                      <div class="wl-card-meta">
                         ${tagBadge}
-                        <span style="font-size:12.5px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:4px 10px; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+                        <span style="font-size:12px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:3px 9px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
                           <i class="far fa-clock"></i> ${timeStr}
                         </span>
-                        <span style="font-size:13.5px; font-weight:800; color:#1e293b; display:inline-flex; align-items:center; gap:4px;">
+                        <span style="font-size:13px; font-weight:800; color:#1e293b; display:inline-flex; align-items:center; gap:4px;">
                           <i class="fas fa-user-circle" style="color:#64748b;"></i> ${authorStr}
                         </span>
                       </div>
 
-                      <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background:#ffffff; color:#059669; border:1.5px solid #10b981; border-radius:10px; font-size:13px; padding:7px 16px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 4px rgba(0,0,0,0.03); transition:all 0.2s;" onmouseover="this.style.background='#10b981'; this.style.color='#ffffff';" onmouseout="this.style.background='#ffffff'; this.style.color='#059669';">
+                      <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background:#10b981; color:#ffffff; border:none; border-radius:8px; font-size:12.5px; padding:6px 14px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(16,185,129,0.3); transition:all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
                         <i class="fas fa-check"></i> 완료
                       </button>
                     </div>
 
                     <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 (좌측 강제 정렬) -->
-                    <div class="wl-pending-body">
-                      <p class="wl-pending-text">
+                    <div class="wl-card-content-box">
+                      <p class="wl-card-text">
                         ${contentText}
                       </p>
                       ${task.imageUrl ? `
-                        <div style="margin-top:12px; text-align:left !important;">
-                          <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:10px; color:#1d4ed8; font-size:13px; font-weight:800; text-decoration:none; box-shadow:0 2px 4px rgba(37,99,235,0.08); transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                        <div style="margin-top:10px; text-align:left !important;">
+                          <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; color:#1d4ed8; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 1px 3px rgba(37,99,235,0.08); transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
                             <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
                           </a>
                         </div>

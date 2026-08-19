@@ -405,7 +405,18 @@ window.WorklogModule = (function () {
       </div>
     `;
 
-    container.innerHTML = html;
+      container.innerHTML = html;
+    } catch (err) {
+      console.error("Worklog render error:", err);
+      container.innerHTML = `
+        <div style="padding: 30px; text-align: center; background: #ffffff; border-radius: 16px; border: 1.5px solid #cbd5e1; margin: 20px;">
+          <div style="font-size: 32px; color: #ef4444; margin-bottom: 12px;"><i class="fas fa-exclamation-triangle"></i></div>
+          <h3 style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">업무일지 화면을 불러오는 중 문제가 발생했습니다.</h3>
+          <p style="font-size: 13.5px; color: #64748b; margin-bottom: 16px;">${err && err.message ? err.message : '일시적인 오류입니다.'}</p>
+          <button type="button" class="btn btn-primary font-bold" onclick="location.reload(true)" style="border-radius: 10px; padding: 8px 18px;">새로고침</button>
+        </div>
+      `;
+    }
   }
 
   // 헬퍼: 태그 배지 생성기

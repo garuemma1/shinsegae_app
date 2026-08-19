@@ -602,29 +602,31 @@ window.SheetsSync = (function () {
   }
 
   function getCurrentUser() {
-    const isLoggedOut = safeGetItem('ssg_is_logged_out');
-    if (isLoggedOut === 'true') {
-      return null;
-    }
-
-    const raw = safeGetItem(STORAGE_KEYS.CURRENT_USER);
-    if (raw) {
-      try {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (raw) {
         const u = JSON.parse(raw);
         if (u && u.id && u.name) return u;
-      } catch (e) {}
-    }
+      }
+    } catch (e) {}
     return null;
   }
 
   function setCurrentUser(emp) {
-    safeSetItem('ssg_is_logged_out', 'false');
-    safeSetItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(emp));
+    try {
+      sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(emp));
+      safeSetItem('ssg_is_logged_out', 'false');
+    } catch(e) {}
   }
 
   function logoutUser() {
-    safeSetItem('ssg_is_logged_out', 'true');
-    try { localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch(e) {}
+    try {
+      sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      safeSetItem('ssg_is_logged_out', 'true');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      }
+    } catch(e) {}
   }
 
   // 비밀번호 10자리 복합 규칙 검증 (숫자4+영문4+특수기호2)

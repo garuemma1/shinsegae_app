@@ -36,17 +36,19 @@ window.SheetsSync = (function () {
     'emergency-contacts-module'
   ];
 
-  // 신세계약국 영구 마스터 디폴트 9인 정식 명단 및 디폴트 정보 (약국장 1명, 근무약사 4명, 일반직원 4명)
+  // 신세계약국 영구 마스터 정식 11인 통합 명부 (약국장 1인 + 근무약사 4인 + 일반직원 4인 + 예비인력 2인)
   const INITIAL_EMPLOYEES = [
     { id: 'emp_1', username: 'garuemma@naver.com', email: 'garuemma@naver.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', weekdayRate: 45000, holidayRate: 45000, hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'], updatedAt: 0 },
-    { id: 'emp_2', username: 'iniha@naver.com', email: 'iniha@naver.com', passcode: '0402', name: '권명주', role: '근무약사', position: '조제팀장', payType: 'HOURLY', joinDate: '2024-09-06', weekdayRate: 80000, holidayRate: 20000, hourlyRate: 80000, baseMonthlySalary: 0, phone: '010-2385-0402', usedLeave: 2, pendingLeave: 0, memo: '조제 팀장 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_3', username: 'yang@shinsegae.com', email: 'yang@shinsegae.com', passcode: '9807', name: '양윤지', role: '근무약사', position: 'DUR검수약사', payType: 'HOURLY', joinDate: '2023-10-04', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4726-9807', usedLeave: 6, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_4', username: 'kimdw@shinsegae.com', email: 'kimdw@shinsegae.com', passcode: '9650', name: '김동완', role: '근무약사', position: '야간담당약사', payType: 'HOURLY', joinDate: '2026-03-01', weekdayRate: 23000, holidayRate: 23000, hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '야간 및 공휴일 조제 지정 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_5', username: 'yoo@shinsegae.com', email: 'yoo@shinsegae.com', passcode: '5860', name: '유호종', role: '근무약사', position: '신약/약품관리', payType: 'HOURLY', joinDate: '0001-01-01', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4055-5860', usedLeave: 2, pendingLeave: 0, memo: '신규 입고약 수량 점검 및 검수 약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_6', username: 'lee@shinsegae.com', email: 'lee@shinsegae.com', passcode: '4293', name: '이승학', role: '일반직원', position: '전산팀장', payType: 'MONTHLY', joinDate: '2023-06-12', weekdayRate: 13500, holidayRate: 13500, hourlyRate: 13500, baseMonthlySalary: 2717000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '팜IT3000 전산 장애 및 심평원 청구', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_7', username: 'kimjh@shinsegae.com', email: 'kimjh@shinsegae.com', passcode: '7155', name: '김제희', role: '일반직원', position: '조제보조/ATC', payType: 'MONTHLY', joinDate: '2024-11-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-7273-7155', usedLeave: 6, pendingLeave: 0, memo: 'ATC 자동조제기 관리 및 소모품', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_8', username: 'yoon@shinsegae.com', email: 'yoon@shinsegae.com', passcode: '4079', name: '윤세라', role: '일반직원', position: '매장관리/재고', payType: 'MONTHLY', joinDate: '2026-03-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '일반의약품 및 매장 재고 관리', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_9', username: 'kimbay@shinsegae.com', email: 'kimbay@shinsegae.com', passcode: '3257', name: '김배영', role: '일반직원', position: '전산/매장보조', payType: 'MONTHLY', joinDate: '2025-11-18', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2717000, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '매장 안내 및 전산 서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 }
+    { id: 'emp_2', username: 'iniha@naver.com', email: 'iniha@naver.com', passcode: '0402', name: '권명주', role: '근무약사', position: '약국전반업무총괄', payType: 'HOURLY', joinDate: '2024-09-06', weekdayRate: 40000, holidayRate: 40000, hourlyRate: 40000, baseMonthlySalary: 0, phone: '010-2385-0402', usedLeave: 2, pendingLeave: 0, memo: '조제 팀장 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_3', username: 'yohg787@naver.com', email: 'yohg787@naver.com', passcode: '9807', name: '양윤지', role: '근무약사', position: '처방검수및일반약재고관리', payType: 'HOURLY', joinDate: '2023-10-04', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4726-9807', usedLeave: 6, pendingLeave: 0, memo: '처방검수및일반관리 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_4', username: 'steve9650@naver.com', email: 'steve9650@naver.com', passcode: '9650', name: '김동완', role: '근무약사', position: '처방검수및일반약재고관리', payType: 'HOURLY', joinDate: '2026-03-01', weekdayRate: 23000, holidayRate: 23000, hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '처방검수및일반관리 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_5', username: 'yoop@shinsegae.com', email: 'yoop@shinsegae.com', passcode: '5860', name: '유호종', role: '근무약사', position: '파트약사', payType: 'HOURLY', joinDate: '0001-01-01', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4055-5860', usedLeave: 2, pendingLeave: 0, memo: '신규 입고약 수량 점검 및 검수 약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_6', username: 'sshak6871@naver.com', email: 'sshak6871@naver.com', passcode: '4293', name: '이승학', role: '일반직원', position: '조제실 및 전산 업무총괄', payType: 'MONTHLY', joinDate: '2023-06-12', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2490000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '조제실 및 전산 전반 업무 총괄관리', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_7', username: 'pcs677@naver.com', email: 'pcs677@naver.com', passcode: '7155', name: '김제희', role: '일반직원', position: '조제실일반전산업무', payType: 'MONTHLY', joinDate: '2024-11-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2170000, phone: '010-7273-7155', usedLeave: 6, pendingLeave: 0, memo: '세전계약', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_8', username: 'ysr7979@nate.com', email: 'ysr7979@nate.com', passcode: '4079', name: '윤세라', role: '일반직원', position: '조제실서포트및전산', payType: 'MONTHLY', joinDate: '2026-03-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 1720810, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '조제실재고관리및서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_9', username: 'short0338@naver.com', email: 'short0338@naver.com', passcode: '3257', name: '김배영', role: '일반직원', position: '매장재고관리및 전산서포트', payType: 'MONTHLY', joinDate: '2025-11-18', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 1106700, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '매장 안내 및 전산 서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_10', username: 'mikii1123@naver.com', email: 'mikii1123@naver.com', passcode: '1817', name: '이정은', role: '예비인력', position: '부상', payType: 'MONTHLY', joinDate: '2026-08-18', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-7765-1817', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_11', username: 'inihaach@naver.com', email: 'inihaach@naver.com', passcode: '7807', name: '간명자', role: '예비인력', position: '매장관리', payType: 'MONTHLY', joinDate: '2024-09-09', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 3000000, phone: '010-4164-7807', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 }
   ];
 
   const INITIAL_DISCOUNT_PURCHASES = [
@@ -747,25 +749,34 @@ window.SheetsSync = (function () {
       emps = INITIAL_EMPLOYEES.map(e => ({ ...e }));
       safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
     } else {
-      // 9인 마스터 기본 비밀번호 및 이메일(garuemma@naver.com) 자동 마이그레이션 안전 매핑
+      // 11인 마스터 정식 명부 및 이메일/연락처/직책 자동 복원 및 안전 매핑
       let updatedEmpsList = false;
-      emps = emps.map(e => {
-        const initMatch = INITIAL_EMPLOYEES.find(init => init.id === e.id || init.name === e.name);
-        if (initMatch) {
-          if (!e.passcode || e.passcode === '1234') {
-            e.passcode = initMatch.passcode;
+      INITIAL_EMPLOYEES.forEach(initEmp => {
+        const found = emps.find(e => e.id === initEmp.id || e.name === initEmp.name);
+        if (!found) {
+          emps.push({ ...initEmp });
+          updatedEmpsList = true;
+        } else {
+          if (!found.email || (found.email.includes('shinsegae.com') && initEmp.email.includes('@naver.com')) || found.email === 'director@shinsegae.com') {
+            found.email = initEmp.email;
+            found.username = initEmp.username;
             updatedEmpsList = true;
           }
-          if (e.id === 'emp_1' || e.name === '문성도') {
-            if (e.email !== 'garuemma@naver.com') {
-              e.email = 'garuemma@naver.com';
-              e.username = 'garuemma@naver.com';
-              updatedEmpsList = true;
-            }
+          if (initEmp.position && !found.position) {
+            found.position = initEmp.position;
+            updatedEmpsList = true;
+          }
+          if (initEmp.memo && !found.memo) {
+            found.memo = initEmp.memo;
+            updatedEmpsList = true;
+          }
+          if (!found.passcode || found.passcode === '1234') {
+            found.passcode = initEmp.passcode;
+            updatedEmpsList = true;
           }
         }
-        return e;
       });
+
       if (updatedEmpsList) {
         safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
       }

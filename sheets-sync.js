@@ -1216,25 +1216,28 @@ window.SheetsSync = (function () {
         }
 
         if (cloudData.employees && Array.isArray(cloudData.employees) && cloudData.employees.length > 0) {
-          // 🚫 테스트 계정 필터링 & 로컬 방금 수정본 롤백 방지 (Winner Lock Guard)
+          // 🚫 테스트 계정 필터링 & 11인 전원 상시 보존 합집합 병합 (직원 증발 0% 원천 차단)
           const cleanCloudEmps = cloudData.employees.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
           
           const localEmps = getEmployees() || [];
           const localMap = {};
           localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
+          INITIAL_EMPLOYEES.forEach(e => { if (e && e.id && !localMap[e.id]) localMap[e.id] = { ...e }; });
 
-          const finalEmps = cleanCloudEmps.map(ce => {
-            const le = localMap[ce.id];
+          const cloudMap = {};
+          cleanCloudEmps.forEach(ce => { if (ce && ce.id) cloudMap[ce.id] = ce; });
+
+          const allEmpIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
+          const finalEmps = allEmpIds.map(id => {
+            const ce = cloudMap[id];
+            const le = localMap[id];
+            if (!ce) return le;
             if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
             const cTime = Number(ce.updatedAt) || 0;
             const lTime = Number(le.updatedAt) || 0;
-            
-            // 🚀 클라우드 데이터가 초기 기본값보다 항상 우선 적용 (단, 방금 로컬에서 수정한 것은 보존)
             const chosen = (cTime >= lTime || lTime === 0) ? ce : le;
-
             const targetAllowed = (cTime >= lTime || lTime === 0) ? (ce.allowedTabs || permMap[ce.id]) : (le.allowedTabs || permMap[ce.id]);
-            if (targetAllowed) permMap[ce.id] = targetAllowed;
-
+            if (targetAllowed) permMap[id] = targetAllowed;
             return {
               ...chosen,
               allowedTabs: targetAllowed || chosen.allowedTabs

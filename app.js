@@ -70,22 +70,98 @@ window.App = (function () {
     startAutoUpdateChecker();
   }
 
-function setupEventListeners() {
+  let lastBackPressTime = 0;
+
+  function closeAllOpenModalsAndDrawers() {
+    let handled = false;
+
+    // 1. 사이드바(드로어)가 열려있으면 닫기
+    const sidebar = document.getElementById('app-drawer');
+    if (sidebar && sidebar.classList.contains('open')) {
+      closeDrawer();
+      handled = true;
+    }
+
+    // 2. 전역 모달 창들 닫기
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(m => {
+      const disp = window.getComputedStyle(m).display;
+      if (disp !== 'none' && disp !== '') {
+        m.style.display = 'none';
+        handled = true;
+      }
+    });
+
+    closeSheetModal();
+    closeEmpModal();
+    closeLeaveModal();
+    closeDateDetailModal();
+    closeDiscountModal();
+    closeChangePwModal();
+    if (window.NoticesModule && typeof window.NoticesModule.closeModal === 'function') window.NoticesModule.closeModal();
+    if (window.ScheduleModule && typeof window.ScheduleModule.closeShiftModal === 'function') window.ScheduleModule.closeShiftModal();
+    if (window.WorklogModule && typeof window.WorklogModule.closeModal === 'function') window.WorklogModule.closeModal();
+    if (window.DiscountPurchaseModule && typeof window.DiscountPurchaseModule.closeModal === 'function') window.DiscountPurchaseModule.closeModal();
+    const pModal = document.getElementById('property-crud-modal');
+    if (pModal && pModal.style.display !== 'none') {
+      pModal.style.display = 'none';
+      handled = true;
+    }
+
+    return handled;
+  }
+
+  function showExitToast() {
+    let toast = document.getElementById('ssg-exit-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'ssg-exit-toast';
+      toast.style.cssText = 'position:fixed; bottom:36px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.92); color:#ffffff; padding:11px 22px; border-radius:24px; font-size:13.5px; font-weight:700; z-index:9999999; box-shadow:0 6px 20px rgba(0,0,0,0.35); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.15); transition:opacity 0.25s ease; opacity:0; pointer-events:none; white-space:nowrap;';
+      toast.innerText = '뒤로가기 버튼을 한 번 더 누르면 앱이 닫힙니다.';
+      document.body.appendChild(toast);
+    }
+    toast.style.opacity = '1';
+    setTimeout(() => { if (toast) toast.style.opacity = '0'; }, 2000);
+  }
+
+  function setupSmartBackKey() {
+    try {
+      if (window.history && window.history.pushState) {
+        window.history.pushState({ appRoot: true }, '');
+      }
+    } catch(e) {}
+
+    window.addEventListener('popstate', (e) => {
+      const closed = closeAllOpenModalsAndDrawers();
+      if (closed) {
+        if (window.history && window.history.pushState) {
+          window.history.pushState({ appRoot: true }, '');
+        }
+        return;
+      }
+
+      // 메인 화면에서 2초 이내 연속 2회 뒤로가기 누를 시 깔끔하게 종료
+      const now = Date.now();
+      if (now - lastBackPressTime < 2000) {
+        try {
+          window.close();
+        } catch(err) {}
+      } else {
+        lastBackPressTime = now;
+        showExitToast();
+        if (window.history && window.history.pushState) {
+          window.history.pushState({ appRoot: true }, '');
+        }
+      }
+    });
+  }
+
+  function setupEventListeners() {
+    setupSmartBackKey();
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        closeSheetModal();
-        closeDrawer();
-        closeEmpModal();
-        closeLeaveModal();
-        closeDateDetailModal();
-        closeDiscountModal();
-        closeChangePwModal();
-        if (window.NoticesModule) window.NoticesModule.closeModal();
-        if (window.ScheduleModule) window.ScheduleModule.closeShiftModal();
-        if (window.WorklogModule) window.WorklogModule.closeModal();
-        if (window.DiscountPurchaseModule) window.DiscountPurchaseModule.closeModal();
-        const pModal = document.getElementById('property-crud-modal');
-        if (pModal) pModal.style.display = 'none';
+        closeAllOpenModalsAndDrawers();
       }
     });
 
@@ -105,16 +181,12 @@ function setupEventListeners() {
       });
     }
 
-    // 2. ★ 대표님 요청 기능: 사이드바 내부의 까만 '빈 공간' 터치 시 닫기
+    // 2. 사이드바 내부의 빈 공간 터치 시 닫기
     const drawer = document.getElementById('app-drawer');
     if (drawer) {
       drawer.addEventListener('click', (e) => {
-        // 스마트폰(모바일) 화면 크기일 때만 작동
         if (window.innerWidth <= 900) {
-          // 터치한 곳이 버튼이나 하단 서명란인지 확인
           const isButtonOrFooter = e.target.closest('button') || e.target.closest('.drawer-footer');
-          
-          // 버튼이나 서명란이 아닌, 사진에 동그라미 치신 진짜 '빈 공간'을 터치했을 때만 사이드바 닫기
           if (!isButtonOrFooter) {
             closeDrawer();
           }
@@ -1511,6 +1583,22 @@ function writeSheetData(sheet, dataList) {
     }
   }
 
+  function forceHardReload() {
+    try {
+      const icon = document.getElementById('refresh-spin-icon');
+      if (icon) icon.classList.add('fa-spin');
+      if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
+        window.SheetsSync.pullFromCloud();
+      }
+      setTimeout(() => {
+        const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + '?v=' + Date.now();
+        window.location.replace(cleanUrl);
+      }, 250);
+    } catch(e) {
+      window.location.reload(true);
+    }
+  }
+
   function startAutoUpdateChecker() {
     // 1. 앱 기동 1초 후 1차 체크 및 클라우드 동기화
     setTimeout(() => {
@@ -1552,6 +1640,7 @@ function writeSheetData(sheet, dataList) {
 
   return {
     init,
+    forceHardReload,
     renderActiveModule,
     getActiveModule: () => activeModule,
     renderSidebarNavigation,

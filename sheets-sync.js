@@ -1208,6 +1208,9 @@ window.SheetsSync = (function () {
               window.App.renderActiveModule();
               window.App.renderSidebarNavigation();
             }
+            if (window.App && typeof window.App.renderQuickLoginButtons === 'function') {
+              window.App.renderQuickLoginButtons();
+            }
             if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
               window.App.checkPendingRejectionNotice();
             }

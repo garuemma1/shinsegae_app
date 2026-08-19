@@ -122,7 +122,7 @@ window.WorklogModule = (function () {
         </div>
         
         <!-- 반응형 정갈 럭셔리 보드 (모바일: 100% 쾌적 카드 / PC: 4열 와이드 테이블) -->
-        <div style="padding: 16px; background: #f8fafc;">
+        <div style="padding: 16px; background: #f8fafc; text-align: left !important;">
           ${pendingTasks.length === 0 ? `
             <div style="text-align: center; padding: 48px 20px; background: #ffffff; color: #64748b; border-radius:16px; border:1.5px dashed #cbd5e1;">
               <div style="width: 52px; height: 52px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px auto;">
@@ -131,6 +131,7 @@ window.WorklogModule = (function () {
               <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">모든 미해결 업무가 완료되었습니다!</div>
               <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 상단의 [새 업무 등록]을 눌러주세요.</div>
             </div>
+          ` : `
             <div class="wl-card-list">
               ${pendingTasks.map((task) => {
                 const rawContent = String(task.content || task.text || task.contentRx || task.note || '내용 없음').replace(/\+/g, ' ');
@@ -147,7 +148,7 @@ window.WorklogModule = (function () {
                 else if (rawTag.includes('고객')) tagClass = 'tag-customer';
 
                 return `
-                  <div class="wl-premium-card ${tagClass}" style="text-align: left !important; width: 100% !important; background: #ffffff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(15,23,42,0.04);">
+                  <div class="wl-premium-card ${tagClass}" style="text-align: left !important; width: 100% !important; background: #ffffff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(15,23,42,0.04); box-sizing: border-box; display: block;">
                     
                     <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 -->
                     <div class="wl-card-header" style="display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 8px !important; padding-bottom: 10px !important; margin-bottom: 10px !important; border-bottom: 1px solid #f1f5f9 !important; text-align: left !important;">
@@ -167,12 +168,12 @@ window.WorklogModule = (function () {
                     </div>
 
                     <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 (좌측 강제 밀착 정렬) -->
-                    <div class="wl-card-content-box" style="text-align: left !important; width: 100% !important; padding: 4px 0 !important; margin: 0 !important;">
+                    <div class="wl-card-content-box" style="text-align: left !important; width: 100% !important; padding: 4px 0 !important; margin: 0 !important; display: block !important;">
                       <p class="wl-card-text" style="text-align: left !important; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15px !important; font-weight: 600 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-wrap !important; word-break: break-word !important; letter-spacing: -0.3px !important; margin: 0 !important; padding: 0 !important; width: 100% !important; display: block !important;">
                         ${contentText}
                       </p>
                       ${task.imageUrl ? `
-                        <div style="margin-top:10px; text-align:left !important;">
+                        <div style="margin-top:10px; text-align:left !important; display:block !important;">
                           <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; color:#1d4ed8; font-size:12px; font-weight:800; text-decoration:none; box-shadow:0 1px 3px rgba(37,99,235,0.08); transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
                             <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
                           </a>

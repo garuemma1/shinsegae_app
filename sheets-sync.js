@@ -747,17 +747,26 @@ window.SheetsSync = (function () {
       emps = INITIAL_EMPLOYEES.map(e => ({ ...e }));
       safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
     } else {
-      // 9인 마스터 기본 비밀번호 및 전화번호 뒷자리 안전 매핑
-      let updatedPass = false;
+      // 9인 마스터 기본 비밀번호 및 이메일(garuemma@naver.com) 자동 마이그레이션 안전 매핑
+      let updatedEmpsList = false;
       emps = emps.map(e => {
         const initMatch = INITIAL_EMPLOYEES.find(init => init.id === e.id || init.name === e.name);
-        if (initMatch && (!e.passcode || e.passcode === '1234')) {
-          e.passcode = initMatch.passcode;
-          updatedPass = true;
+        if (initMatch) {
+          if (!e.passcode || e.passcode === '1234') {
+            e.passcode = initMatch.passcode;
+            updatedEmpsList = true;
+          }
+          if (e.id === 'emp_1' || e.name === '문성도') {
+            if (e.email !== 'garuemma@naver.com') {
+              e.email = 'garuemma@naver.com';
+              e.username = 'garuemma@naver.com';
+              updatedEmpsList = true;
+            }
+          }
         }
         return e;
       });
-      if (updatedPass) {
+      if (updatedEmpsList) {
         safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
       }
     }

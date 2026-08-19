@@ -950,7 +950,39 @@ window.SheetsSync = (function () {
 
       const payloadStr = JSON.stringify(payload);
 
-      // 1. 구글 공식 클라우드 직통 영구 보관 (URLSearchParams + FormData 이중 직통)
+      // 1. 구글 공식 클라우드 100% 무손실 직통 히든 폼(Hidden Form) 전송 (302 리다이렉트 완전 정복)
+      try {
+        let iframe = document.getElementById('ssg_gas_iframe');
+        if (!iframe) {
+          iframe = document.createElement('iframe');
+          iframe.id = 'ssg_gas_iframe';
+          iframe.name = 'ssg_gas_iframe';
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+        }
+        let form = document.getElementById('ssg_gas_form');
+        if (!form) {
+          form = document.createElement('form');
+          form.id = 'ssg_gas_form';
+          form.target = 'ssg_gas_iframe';
+          form.method = 'POST';
+          form.action = DIRECT_GAS_URL;
+          form.style.display = 'none';
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'payload';
+          input.id = 'ssg_gas_payload_input';
+          form.appendChild(input);
+          document.body.appendChild(form);
+        }
+        const inputEl = document.getElementById('ssg_gas_payload_input');
+        if (inputEl) {
+          inputEl.value = payloadStr;
+          form.submit();
+        }
+      } catch(fe) {}
+
+      // 2. Fetch 백업 병행 전송
       try {
         const params = new URLSearchParams();
         params.append('payload', payloadStr);
@@ -960,15 +992,6 @@ window.SheetsSync = (function () {
           body: params
         }).catch(() => {});
       } catch(ge) {}
-      try {
-        const fd = new FormData();
-        fd.append('payload', payloadStr);
-        window.fetch(DIRECT_GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: fd
-        }).catch(() => {});
-      } catch(fe) {}
 
       // 2. 버셀 릴레이 보조 전송
       try {

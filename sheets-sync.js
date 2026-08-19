@@ -38,7 +38,7 @@ window.SheetsSync = (function () {
 
   // 신세계약국 영구 마스터 디폴트 9인 정식 명단 및 디폴트 정보 (약국장 1명, 근무약사 4명, 일반직원 4명)
   const INITIAL_EMPLOYEES = [
-    { id: 'emp_1', username: 'director@shinsegae.com', email: 'director@shinsegae.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', weekdayRate: 45000, holidayRate: 45000, hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'], updatedAt: 0 },
+    { id: 'emp_1', username: 'garuemma@naver.com', email: 'garuemma@naver.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', weekdayRate: 45000, holidayRate: 45000, hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'], updatedAt: 0 },
     { id: 'emp_2', username: 'iniha@naver.com', email: 'iniha@naver.com', passcode: '0402', name: '권명주', role: '근무약사', position: '조제팀장', payType: 'HOURLY', joinDate: '2024-09-06', weekdayRate: 80000, holidayRate: 20000, hourlyRate: 80000, baseMonthlySalary: 0, phone: '010-2385-0402', usedLeave: 2, pendingLeave: 0, memo: '조제 팀장 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_3', username: 'yang@shinsegae.com', email: 'yang@shinsegae.com', passcode: '9807', name: '양윤지', role: '근무약사', position: 'DUR검수약사', payType: 'HOURLY', joinDate: '2023-10-04', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4726-9807', usedLeave: 6, pendingLeave: 0, memo: '처방검수및일반관리/ 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_4', username: 'kimdw@shinsegae.com', email: 'kimdw@shinsegae.com', passcode: '9650', name: '김동완', role: '근무약사', position: '야간담당약사', payType: 'HOURLY', joinDate: '2026-03-01', weekdayRate: 23000, holidayRate: 23000, hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '야간 및 공휴일 조제 지정 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
@@ -952,13 +952,15 @@ window.SheetsSync = (function () {
         }
       };
 
-      // 100% Direct Google Apps Script POST (구글 공식 서버 직통 통신 - Vercel 트래픽 0B)
-      const bodyStr = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+      // 100% Direct Google Apps Script POST (구글 공식 서버 직통 통신 - FormData 지원)
+      const payloadStr = JSON.stringify(payload);
+      const formData = new FormData();
+      formData.append('payload', payloadStr);
+
       await window.fetch(DIRECT_GAS_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: bodyStr
+        body: formData
       });
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());

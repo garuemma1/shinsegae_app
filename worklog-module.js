@@ -147,11 +147,11 @@ window.WorklogModule = (function () {
                 else if (rawTag.includes('고객')) tagClass = 'tag-customer';
 
                 return `
-                  <div class="wl-premium-card ${tagClass}">
+                  <div class="wl-premium-card ${tagClass}" style="text-align: left !important; width: 100% !important; background: #ffffff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(15,23,42,0.04);">
                     
                     <!-- 1단: 태그 + 작성시간 + 작성자 + 완료 버튼 -->
-                    <div class="wl-card-header">
-                      <div class="wl-card-meta">
+                    <div class="wl-card-header" style="display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 8px !important; padding-bottom: 10px !important; margin-bottom: 10px !important; border-bottom: 1px solid #f1f5f9 !important; text-align: left !important;">
+                      <div class="wl-card-meta" style="display: flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important; text-align: left !important;">
                         ${tagBadge}
                         <span style="font-size:12px; font-weight:700; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:3px 9px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
                           <i class="far fa-clock"></i> ${timeStr}
@@ -166,9 +166,9 @@ window.WorklogModule = (function () {
                       </button>
                     </div>
 
-                    <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 (좌측 강제 정렬) -->
-                    <div class="wl-card-content-box">
-                      <p class="wl-card-text">
+                    <!-- 2단: 100% 가로폭 넓고 시원한 내용 및 사진 (좌측 강제 밀착 정렬) -->
+                    <div class="wl-card-content-box" style="text-align: left !important; width: 100% !important; padding: 4px 0 !important; margin: 0 !important;">
+                      <p class="wl-card-text" style="text-align: left !important; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15px !important; font-weight: 600 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-wrap !important; word-break: break-word !important; letter-spacing: -0.3px !important; margin: 0 !important; padding: 0 !important; width: 100% !important; display: block !important;">
                         ${contentText}
                       </p>
                       ${task.imageUrl ? `

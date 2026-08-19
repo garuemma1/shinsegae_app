@@ -740,8 +740,8 @@ window.SheetsSync = (function () {
       if (permRaw) permMap = JSON.parse(permRaw);
     } catch(e) {}
 
-    // 직원 기본 데이터 로드
-    let emps;
+    // 직원 기본 데이터 로드 및 11인 전원 상시 보존 보장
+    let emps = [];
     try {
       const raw = safeGetItem(STORAGE_KEYS.EMPLOYEES);
       if (raw) {
@@ -752,11 +752,15 @@ window.SheetsSync = (function () {
       }
     } catch(e) {}
 
-    if (!emps || emps.length === 0) {
-      // 저장된 값이 없을 때만 초기값 저장
-      emps = INITIAL_EMPLOYEES.map(e => ({ ...e }));
-      safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
-    }
+    const localMap = {};
+    (emps || []).forEach(e => { if (e && e.id) localMap[e.id] = e; });
+    INITIAL_EMPLOYEES.forEach(ie => {
+      if (ie && ie.id && !localMap[ie.id]) {
+        localMap[ie.id] = { ...ie };
+      }
+    });
+    emps = INITIAL_EMPLOYEES.map(ie => localMap[ie.id] || ie);
+    safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
 
     // 별도 저장된 권한을 병합 (클라우드 덧써쓰더라도 유지)
     if (Object.keys(permMap).length > 0) {
@@ -770,12 +774,7 @@ window.SheetsSync = (function () {
 
     // 🚫 테스트약사 및 임시 테스트 계정 영구 삭제 필터링
     const cleanEmps = emps.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
-    if (cleanEmps.length !== emps.length) {
-      safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(cleanEmps));
-      emps = cleanEmps;
-    }
-
-    return emps;
+    return cleanEmps;
   }
 
   function saveEmployees(data) {

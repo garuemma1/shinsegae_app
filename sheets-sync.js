@@ -1030,6 +1030,8 @@ window.SheetsSync = (function () {
         return listB.some(item => !item || !item.id || !mapA[item.id] || mapA[item.id] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''));
       }
 
+      let needPushBack = false;
+
       // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.notices && Array.isArray(cloudData.notices)) {
         const localNotices = getNotices() || [];
@@ -1038,15 +1040,24 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(mergedNotices));
           updated = true;
         }
+        const cloudNoticeIds = new Set((cloudData.notices || []).map(n => n.id));
+        if ((localNotices || []).some(n => n && n.id && !cloudNoticeIds.has(n.id))) {
+          needPushBack = true;
+        }
       }
 
-      // 2. 업무일지 스마트 비파괴 병합 (삭제된 글 제외)
+      // 2. 업무일지 스마트 비파괴 양방향 융합 (핸드폰 글 + PC 글 완전 통합)
       if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
         const localLogs = getWorklogs() || [];
         const mergedLogs = mergeById(localLogs, cloudData.worklogs, 'createdAt');
         if (isListDifferent(localLogs, mergedLogs)) {
           safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
           updated = true;
+        }
+        // 🔥 핸드폰에만 있거나 PC에만 있는 고유 글을 감지하여 파이어베이스에 즉시 업로드 (양방향 합집합 완성)
+        const cloudWorklogIds = new Set((cloudData.worklogs || []).map(w => w.id));
+        if ((localLogs || []).some(l => l && l.id && !cloudWorklogIds.has(l.id))) {
+          needPushBack = true;
         }
       }
 
@@ -1058,6 +1069,10 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(mergedLeaves));
           updated = true;
         }
+        const cloudLeaveIds = new Set((cloudData.leaveRequests || []).map(l => l.id));
+        if ((localLeaves || []).some(l => l && l.id && !cloudLeaveIds.has(l.id))) {
+          needPushBack = true;
+        }
       }
 
       // 4. 직원할인구매 스마트 비파괴 병합 (삭제된 글 제외)
@@ -1067,6 +1082,10 @@ window.SheetsSync = (function () {
         if (isListDifferent(localDiscounts, mergedDiscounts)) {
           safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(mergedDiscounts));
           updated = true;
+        }
+        const cloudDiscIds = new Set((cloudData.discountPurchases || []).map(d => d.id));
+        if ((localDiscounts || []).some(d => d && d.id && !cloudDiscIds.has(d.id))) {
+          needPushBack = true;
         }
       }
 
@@ -1199,6 +1218,11 @@ window.SheetsSync = (function () {
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
+
+      // 🔥 로컬에만 있던 고유 데이터가 감지되면 즉시 파이어베이스로 2차 역전송(Push)
+      if (needPushBack) {
+        pushToCloud();
+      }
 
       if (updated) {
         const activeEl = document.activeElement;

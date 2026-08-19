@@ -661,7 +661,13 @@ window.StaffDirectoryModule = (function () {
     document.getElementById('perm-emp-id').value = target.id;
     document.getElementById('perm-emp-name').innerText = target.name + ' (' + target.role + ')';
 
-    const allowed = target.allowedTabs || [
+    let permMap = {};
+    try {
+      const pRaw = localStorage.getItem('ssg_emp_permissions_v1');
+      if (pRaw) permMap = JSON.parse(pRaw);
+    } catch(e) {}
+
+    const allowed = (permMap && permMap[target.id]) || target.allowedTabs || [
       'notices-module', 'worklog-module', 'schedule-module',
       'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];

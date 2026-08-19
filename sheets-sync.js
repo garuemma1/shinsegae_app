@@ -608,7 +608,14 @@ window.SheetsSync = (function () {
       const raw = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
       if (raw) {
         const u = JSON.parse(raw);
-        if (u && u.id && u.name) return u;
+        if (u && u.id) {
+          const emps = getEmployees();
+          const liveEmp = emps.find(e => e.id === u.id);
+          if (liveEmp) {
+            return { ...u, ...liveEmp };
+          }
+          return u;
+        }
       }
     } catch (e) {}
     return null;
@@ -1121,7 +1128,7 @@ window.SheetsSync = (function () {
         } catch(e) {}
 
         if (cloudData.empPermissions && typeof cloudData.empPermissions === 'object') {
-          permMap = { ...permMap, ...cloudData.empPermissions };
+          permMap = { ...cloudData.empPermissions, ...permMap };
           safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
         }
 
@@ -1135,20 +1142,17 @@ window.SheetsSync = (function () {
 
           const finalEmps = cleanCloudEmps.map(ce => {
             const le = localMap[ce.id];
-            if (!le) {
-              if (Array.isArray(ce.allowedTabs)) permMap[ce.id] = ce.allowedTabs;
-              return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
-            }
+            if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
             const cTime = Number(ce.updatedAt) || 0;
             const lTime = Number(le.updatedAt) || 0;
             const chosen = (lTime > cTime) ? le : ce;
 
-            const targetAllowed = permMap[ce.id] || chosen.allowedTabs;
+            const targetAllowed = (lTime > cTime) ? (le.allowedTabs || permMap[ce.id]) : (ce.allowedTabs || permMap[ce.id]);
             if (targetAllowed) permMap[ce.id] = targetAllowed;
 
             return {
               ...chosen,
-              allowedTabs: targetAllowed
+              allowedTabs: targetAllowed || chosen.allowedTabs
             };
           });
 

@@ -930,10 +930,311 @@ window.SheetsSync = (function () {
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
 
+  // 🔥 구글 파이어베이스 실시간 데이터베이스 (초고속 0.05초 웹소켓 동기화)
+  const firebaseConfig = {
+    apiKey: "AIzaSyBHUy2_CZ1PZJjK2ah73WbCoE7oYVMAMYU",
+    authDomain: "shinsegae-pharmacy.firebaseapp.com",
+    databaseURL: "https://shinsegae-pharmacy-default-rtdb.firebaseio.com",
+    projectId: "shinsegae-pharmacy",
+    storageBucket: "shinsegae-pharmacy.firebasestorage.app",
+    messagingSenderId: "742577443162",
+    appId: "1:742577443162:web:1cb9c0260a0e146c8c6363",
+    measurementId: "G-5THH6NF54S"
+  };
+
+  let fbApp = null;
+  let fbDb = null;
+  let fbRef = null;
+
+  function initFirebase() {
+    try {
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+          fbApp = firebase.initializeApp(firebaseConfig);
+        } else {
+          fbApp = firebase.app();
+        }
+        fbDb = firebase.database();
+        fbRef = fbDb.ref('shinsegae_master_db/data');
+
+        // ⚡ 실시간 웹소켓 리스너: 다른 기기(모바일/PC)에서 글을 쓰거나 수정하면 0.05초 만에 자동 수신
+        fbRef.on('value', (snapshot) => {
+          const cloudData = snapshot.val();
+          if (cloudData) {
+            applyCloudData(cloudData);
+          }
+        }, (err) => {
+          console.warn('Firebase sync listener warning:', err);
+        });
+      }
+    } catch(e) {
+      console.warn('Firebase init warning:', e);
+    }
+  }
+
+  // 데이터 통합 및 화면 갱신 엔진
+  function applyCloudData(cloudData, callback) {
+    if (!cloudData) return;
+    try {
+      let updated = false;
+
+      // 클라우드에서 삭제된 ID 목록 병합
+      if (cloudData.deletedIds && Array.isArray(cloudData.deletedIds)) {
+        cloudData.deletedIds.forEach(did => addDeletedId(did));
+      }
+
+      const activeDeletedIds = getDeletedIds();
+
+      function getSafeTime(item, dateField) {
+        if (!item) return 0;
+        if (item.id && typeof item.id === 'string' && item.id.startsWith('task_')) {
+          const idNum = parseInt(item.id.replace('task_', ''), 10);
+          if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
+        }
+        const str = item.createdAt || item[dateField] || item.date || item.updatedAt || '';
+        if (!str) return 0;
+        if (typeof str === 'number') return str;
+        const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/');
+        const ms = new Date(s).getTime();
+        return isNaN(ms) ? 0 : ms;
+      }
+
+      function mergeById(localList, cloudList, dateField = 'createdAt') {
+        const map = {};
+        (localList || []).forEach(item => {
+          if (item && item.id && !activeDeletedIds.includes(item.id)) {
+            map[item.id] = item;
+          }
+        });
+        (cloudList || []).forEach(item => {
+          if (item && item.id && !activeDeletedIds.includes(item.id)) {
+            map[item.id] = item;
+          }
+        });
+        return Object.values(map).sort((a, b) => {
+          const pinA = a.isPinned ? 1 : 0;
+          const pinB = b.isPinned ? 1 : 0;
+          if (pinB !== pinA) return pinB - pinA;
+          const timeA = getSafeTime(a, dateField);
+          const timeB = getSafeTime(b, dateField);
+          return timeB - timeA;
+        });
+      }
+
+      function isListDifferent(listA, listB) {
+        if (!listA && !listB) return false;
+        if (!listA || !listB) return true;
+        if (listA.length !== listB.length) return true;
+        const mapA = {};
+        listA.forEach(item => { if (item && item.id) mapA[item.id] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''); });
+        return listB.some(item => !item || !item.id || !mapA[item.id] || mapA[item.id] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''));
+      }
+
+      // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
+      if (cloudData.notices && Array.isArray(cloudData.notices)) {
+        const localNotices = getNotices() || [];
+        const mergedNotices = mergeById(localNotices, cloudData.notices, 'date');
+        if (isListDifferent(localNotices, mergedNotices)) {
+          safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(mergedNotices));
+          updated = true;
+        }
+      }
+
+      // 2. 업무일지 스마트 비파괴 병합 (삭제된 글 제외)
+      if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
+        const localLogs = getWorklogs() || [];
+        const mergedLogs = mergeById(localLogs, cloudData.worklogs, 'createdAt');
+        if (isListDifferent(localLogs, mergedLogs)) {
+          safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
+          updated = true;
+        }
+      }
+
+      // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외)
+      if (cloudData.leaveRequests && Array.isArray(cloudData.leaveRequests)) {
+        const localLeaves = getLeaveRequests() || [];
+        const mergedLeaves = mergeById(localLeaves, cloudData.leaveRequests, 'createdAt');
+        if (isListDifferent(localLeaves, mergedLeaves)) {
+          safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(mergedLeaves));
+          updated = true;
+        }
+      }
+
+      // 4. 직원할인구매 스마트 비파괴 병합 (삭제된 글 제외)
+      if (cloudData.discountPurchases && Array.isArray(cloudData.discountPurchases)) {
+        const localDiscounts = getDiscountPurchases() || [];
+        const mergedDiscounts = mergeById(localDiscounts, cloudData.discountPurchases, 'date');
+        if (isListDifferent(localDiscounts, mergedDiscounts)) {
+          safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(mergedDiscounts));
+          updated = true;
+        }
+      }
+
+      // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키)
+      if (cloudData.schedule && Array.isArray(cloudData.schedule)) {
+        const localSched = getSchedule() || [];
+        const map = {};
+        localSched.forEach(s => {
+          if (s && s.date && s.empId) {
+            map[`${s.date}_${s.empId}`] = s;
+          }
+        });
+        cloudData.schedule.forEach(s => {
+          if (s && s.date && s.empId) {
+            map[`${s.date}_${s.empId}`] = s;
+          }
+        });
+        const cur = safeGetItem(STORAGE_KEYS.SCHEDULE);
+        const next = JSON.stringify(Object.values(map));
+        if (cur !== next) {
+          safeSetItem(STORAGE_KEYS.SCHEDULE, next);
+          updated = true;
+        }
+      }
+
+      // 6. 스케줄 상태 및 반려 코멘트 병합
+      if (cloudData.scheduleStatus) {
+        const localStatus = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {};
+        const mergedStatus = { ...localStatus, ...cloudData.scheduleStatus };
+        const cur = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS);
+        const next = JSON.stringify(mergedStatus);
+        if (cur !== next) {
+          safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, next);
+          updated = true;
+        }
+      }
+
+      // 7. 급여명세서 및 추가 수당/공제 병합
+      if (cloudData.paystubs) {
+        const localPs = getPaystubs();
+        const mergedPs = { ...localPs, ...cloudData.paystubs };
+        const cur = safeGetItem(STORAGE_KEYS.PAYSTUBS);
+        const next = JSON.stringify(mergedPs);
+        if (cur !== next) {
+          safeSetItem(STORAGE_KEYS.PAYSTUBS, next);
+          updated = true;
+        }
+      }
+      if (cloudData.overtimeAdjustments) {
+        const localAdj = getOvertimeAdjustments();
+        const mergedAdj = { ...localAdj, ...cloudData.overtimeAdjustments };
+        const cur = safeGetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS);
+        const next = JSON.stringify(mergedAdj);
+        if (cur !== next) {
+          safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, next);
+          updated = true;
+        }
+      }
+
+      // 8. 직원 명부 및 시급/권한 스마트 비파괴 병합
+      let permMap = {};
+      try {
+        const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
+        if (permRaw) permMap = JSON.parse(permRaw);
+      } catch(e) {}
+
+      if (cloudData.empPermissions && typeof cloudData.empPermissions === 'object') {
+        permMap = { ...cloudData.empPermissions, ...permMap };
+        safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
+      }
+
+      if (cloudData.employees && Array.isArray(cloudData.employees) && cloudData.employees.length > 0) {
+        const cleanCloudEmps = cloudData.employees.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
+        
+        const localEmps = getEmployees() || [];
+        const localMap = {};
+        localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
+        INITIAL_EMPLOYEES.forEach(e => { if (e && e.id && !localMap[e.id]) localMap[e.id] = { ...e }; });
+
+        const cloudMap = {};
+        cleanCloudEmps.forEach(ce => { if (ce && ce.id) cloudMap[ce.id] = ce; });
+
+        const allEmpIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
+        const finalEmps = allEmpIds.map(id => {
+          const ce = cloudMap[id];
+          const le = localMap[id];
+          if (!ce) return le;
+          if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
+          const cTime = Number(ce.updatedAt) || 0;
+          const lTime = Number(le.updatedAt) || 0;
+          const chosen = (cTime >= lTime || lTime === 0) ? ce : le;
+          const targetAllowed = (cTime >= lTime || lTime === 0) ? (ce.allowedTabs || permMap[ce.id]) : (le.allowedTabs || permMap[ce.id]);
+          if (targetAllowed) permMap[id] = targetAllowed;
+          return {
+            ...chosen,
+            allowedTabs: targetAllowed || chosen.allowedTabs
+          };
+        });
+
+        safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
+
+        const currentJson = safeGetItem(STORAGE_KEYS.EMPLOYEES);
+        const newJson = JSON.stringify(finalEmps);
+        if (currentJson !== newJson) {
+          safeSetItem(STORAGE_KEYS.EMPLOYEES, newJson);
+          updated = true;
+        }
+
+        const curr = getCurrentUser();
+        if (curr && curr.id) {
+          const matched = finalEmps.find(e => e.id === curr.id);
+          if (matched) {
+            setCurrentUser(matched);
+            if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
+              window.App.renderSidebarNavigation();
+            }
+            if (window.App && typeof window.App.renderUserHeader === 'function') {
+              window.App.renderUserHeader();
+            }
+          }
+        }
+      }
+
+      // 9. 약사 시급 및 휴게 설정 단일 마스터 연동
+      if (cloudData.pharmacistRates) {
+        const localRates = getPharmacistRates();
+        const mergedRates = { ...localRates, ...cloudData.pharmacistRates };
+        safeSetItem(STORAGE_KEYS.PHARMACIST_RATES, JSON.stringify(mergedRates));
+      }
+
+      safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+      updateSyncStatusUI('success');
+
+      if (updated) {
+        const activeEl = document.activeElement;
+        const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+        const isEditingStaff = window.StaffDirectoryModule && window.StaffDirectoryModule.isEditing && window.StaffDirectoryModule.isEditing();
+        
+        const anyOpenModal = Array.from(document.querySelectorAll('.modal-overlay')).some(m => {
+          const disp = window.getComputedStyle(m).display;
+          return disp !== 'none' && disp !== '';
+        });
+
+        if (!isTyping && !isEditingStaff && !anyOpenModal) {
+          if (typeof callback === 'function') callback();
+          if (window.App && typeof window.App.renderActiveModule === 'function') {
+            window.App.renderActiveModule();
+            window.App.renderSidebarNavigation();
+          }
+          if (window.App && typeof window.App.renderQuickLoginButtons === 'function') {
+            window.App.renderQuickLoginButtons();
+          }
+          if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
+            window.App.checkPendingRejectionNotice();
+          }
+          if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+            window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+          }
+        }
+      }
+    } catch(e) {
+      console.warn('applyCloudData error:', e);
+    }
+  }
+
   async function pushToCloud() {
     if (typeof window === 'undefined') return;
     try {
-      // 🚀 3KB 초경량 필수 마스터 페이로드 (구글 9KB 한계 100% 완전 극복)
       const emps = getEmployees() || [];
       const cleanEmps = emps.map(e => ({
         id: e.id,
@@ -972,7 +1273,16 @@ window.SheetsSync = (function () {
 
       const payloadStr = JSON.stringify(payload);
 
-      // 1. 구글 공식 클라우드 100% 무손실 직통 히든 폼(Hidden Form) 전송 (302 리다이렉트 완전 정복)
+      // 🔥 1. Google Firebase Realtime Database (0.05초 초고속 즉시 전송)
+      try {
+        if (fbRef) {
+          fbRef.set(payload.data);
+        }
+      } catch(fbe) {
+        console.warn('Firebase push warning:', fbe);
+      }
+
+      // 2. 구글 앱스 스크립트(GAS) 보조 백업 전송
       try {
         let iframe = document.getElementById('ssg_gas_iframe');
         if (!iframe) {
@@ -1004,7 +1314,7 @@ window.SheetsSync = (function () {
         }
       } catch(fe) {}
 
-      // 2. 버셀 호스팅 환경에서만 보조 REST 전송
+      // 3. 버셀 호스팅 환경에서만 보조 REST 전송
       if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
         try {
           window.fetch('/api/sync', {
@@ -1022,7 +1332,7 @@ window.SheetsSync = (function () {
     }
   }
 
-  // 🌐 무적 JSONP 클라우드 로더 (CORS 403 보안 검사 완전 우회 & 0.05초 초고속 수신)
+  // 🌐 무적 JSONP 클라우드 로더 (보조 백업)
   function fetchGasJsonp() {
     return new Promise((resolve) => {
       const cbName = '_ssg_gas_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
@@ -1056,356 +1366,33 @@ window.SheetsSync = (function () {
     try {
       let cloudData = null;
 
-      // 1. Google Apps Script 무적 JSONP 0.05초 수신 (CORS 403 100% 우회)
-      try {
-        const gasJson = await fetchGasJsonp();
-        if (gasJson) {
-          if (gasJson.data && Object.keys(gasJson.data).length > 0) {
-            cloudData = gasJson.data;
-          } else if (gasJson.employees || gasJson.worklogs || gasJson.discountPurchases) {
-            cloudData = gasJson;
-          }
-        }
-      } catch(ge) {}
-
-      // 2. 버셀 호스팅 환경 전용 REST 조회
-      if (!cloudData && typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app') && typeof window.fetch === 'function') {
+      // 🔥 1. Firebase 실시간 데이터 우선 수신
+      if (fbRef) {
         try {
-          const bridgeRes = await window.fetch('/api/sync?t=' + Date.now(), {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-          });
-          if (bridgeRes && bridgeRes.ok) {
-            const bridgeJson = await bridgeRes.json();
-            if (bridgeJson && bridgeJson.data && Object.keys(bridgeJson.data).length > 0) {
-              cloudData = bridgeJson.data;
-            } else if (bridgeJson && bridgeJson.employees) {
-              cloudData = bridgeJson;
+          const snap = await fbRef.once('value');
+          if (snap && snap.exists()) {
+            cloudData = snap.val();
+          }
+        } catch(fbe) {}
+      }
+
+      // 2. Google Apps Script 무적 JSONP 보조 수신
+      if (!cloudData) {
+        try {
+          const gasJson = await fetchGasJsonp();
+          if (gasJson) {
+            if (gasJson.data && Object.keys(gasJson.data).length > 0) {
+              cloudData = gasJson.data;
+            } else if (gasJson.employees || gasJson.worklogs || gasJson.discountPurchases) {
+              cloudData = gasJson;
             }
           }
-        } catch(be) {}
+        } catch(ge) {}
       }
 
       if (cloudData) {
-        let updated = false;
-
-        // 클라우드에서 삭제된 ID 목록 병합
-        if (cloudData.deletedIds && Array.isArray(cloudData.deletedIds)) {
-          cloudData.deletedIds.forEach(did => addDeletedId(did));
-        }
-
-        const activeDeletedIds = getDeletedIds();
-
-        function getSafeTime(item, dateField) {
-          if (!item) return 0;
-          if (item.id && typeof item.id === 'string' && item.id.startsWith('task_')) {
-            const idNum = parseInt(item.id.replace('task_', ''), 10);
-            if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
-          }
-          const str = item.createdAt || item[dateField] || item.date || item.updatedAt || '';
-          if (!str) return 0;
-          if (typeof str === 'number') return str;
-          const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/');
-          const ms = new Date(s).getTime();
-          return isNaN(ms) ? 0 : ms;
-        }
-
-        function mergeById(localList, cloudList, dateField = 'createdAt') {
-          const map = {};
-          (localList || []).forEach(item => {
-            if (item && item.id && !activeDeletedIds.includes(item.id)) {
-              map[item.id] = item;
-            }
-          });
-          (cloudList || []).forEach(item => {
-            if (item && item.id && !activeDeletedIds.includes(item.id)) {
-              map[item.id] = item;
-            }
-          });
-          return Object.values(map).sort((a, b) => {
-            const pinA = a.isPinned ? 1 : 0;
-            const pinB = b.isPinned ? 1 : 0;
-            if (pinB !== pinA) return pinB - pinA;
-            const timeA = getSafeTime(a, dateField);
-            const timeB = getSafeTime(b, dateField);
-            return timeB - timeA;
-          });
-        }
-
-        function isListDifferent(listA, listB) {
-          if (!listA && !listB) return false;
-          if (!listA || !listB) return true;
-          if (listA.length !== listB.length) return true;
-          const mapA = {};
-          listA.forEach(item => { if (item && item.id) mapA[item.id] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''); });
-          return listB.some(item => !item || !item.id || !mapA[item.id] || mapA[item.id] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''));
-        }
-
-        // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
-        if (cloudData.notices && Array.isArray(cloudData.notices)) {
-          const localNotices = getNotices() || [];
-          const mergedNotices = mergeById(localNotices, cloudData.notices, 'date');
-          if (isListDifferent(localNotices, mergedNotices)) {
-            safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(mergedNotices));
-            updated = true;
-          }
-        }
-
-        // 2. 업무일지 스마트 비파괴 병합 (삭제된 글 제외)
-        if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
-          const localLogs = getWorklogs() || [];
-          const mergedLogs = mergeById(localLogs, cloudData.worklogs, 'createdAt');
-          if (isListDifferent(localLogs, mergedLogs)) {
-            safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
-            updated = true;
-          }
-        }
-
-        // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외)
-        if (cloudData.leaveRequests && Array.isArray(cloudData.leaveRequests)) {
-          const localLeaves = getLeaveRequests() || [];
-          const mergedLeaves = mergeById(localLeaves, cloudData.leaveRequests, 'createdAt');
-          if (isListDifferent(localLeaves, mergedLeaves)) {
-            safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(mergedLeaves));
-            updated = true;
-          }
-        }
-
-        // 4. 직원할인구매 스마트 비파괴 병합 (삭제된 글 제외)
-        if (cloudData.discountPurchases && Array.isArray(cloudData.discountPurchases)) {
-          const localDiscounts = getDiscountPurchases() || [];
-          const mergedDiscounts = mergeById(localDiscounts, cloudData.discountPurchases, 'date');
-          if (isListDifferent(localDiscounts, mergedDiscounts)) {
-            safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(mergedDiscounts));
-            updated = true;
-          }
-        }
-
-        // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키로 1일부터 31일까지 모든 일자 100% 영구 보존)
-        if (cloudData.schedule && Array.isArray(cloudData.schedule)) {
-          const localSched = getSchedule() || [];
-          const map = {};
-          localSched.forEach(s => {
-            if (s && s.date && s.empId) {
-              map[`${s.date}_${s.empId}`] = s;
-            }
-          });
-          cloudData.schedule.forEach(s => {
-            if (s && s.date && s.empId) {
-              map[`${s.date}_${s.empId}`] = s;
-            }
-          });
-          const cur = safeGetItem(STORAGE_KEYS.SCHEDULE);
-          const next = JSON.stringify(Object.values(map));
-          if (cur !== next) {
-            safeSetItem(STORAGE_KEYS.SCHEDULE, next);
-            updated = true;
-          }
-        }
-
-        // 6. 스케줄 상태 및 반려 코멘트 병합
-        if (cloudData.scheduleStatus) {
-          const localStatus = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {};
-          const mergedStatus = { ...localStatus, ...cloudData.scheduleStatus };
-          const cur = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS);
-          const next = JSON.stringify(mergedStatus);
-          if (cur !== next) {
-            safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, next);
-            updated = true;
-          }
-        }
-
-        // 7. 급여명세서 및 추가 수당/공제 병합
-        if (cloudData.paystubs) {
-          const localPs = getPaystubs();
-          const mergedPs = { ...localPs, ...cloudData.paystubs };
-          const cur = safeGetItem(STORAGE_KEYS.PAYSTUBS);
-          const next = JSON.stringify(mergedPs);
-          if (cur !== next) {
-            safeSetItem(STORAGE_KEYS.PAYSTUBS, next);
-            updated = true;
-          }
-        }
-        if (cloudData.overtimeAdjustments) {
-          const localAdj = getOvertimeAdjustments();
-          const mergedAdj = { ...localAdj, ...cloudData.overtimeAdjustments };
-          const cur = safeGetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS);
-          const next = JSON.stringify(mergedAdj);
-          if (cur !== next) {
-            safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, next);
-            updated = true;
-          }
-        }
-
-        // 8. 직원 명부 및 시급/권한 스마트 비파괴 병합 (PC ↔ 스마트폰 최신 타임스탬프 자동 감지 동기화)
-        let permMap = {};
-        try {
-          const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
-          if (permRaw) permMap = JSON.parse(permRaw);
-        } catch(e) {}
-
-        if (cloudData.empPermissions && typeof cloudData.empPermissions === 'object') {
-          permMap = { ...cloudData.empPermissions, ...permMap };
-          safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
-        }
-
-        if (cloudData.employees && Array.isArray(cloudData.employees) && cloudData.employees.length > 0) {
-          // 🚫 테스트 계정 필터링 & 11인 전원 상시 보존 합집합 병합 (직원 증발 0% 원천 차단)
-          const cleanCloudEmps = cloudData.employees.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
-          
-          const localEmps = getEmployees() || [];
-          const localMap = {};
-          localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
-          INITIAL_EMPLOYEES.forEach(e => { if (e && e.id && !localMap[e.id]) localMap[e.id] = { ...e }; });
-
-          const cloudMap = {};
-          cleanCloudEmps.forEach(ce => { if (ce && ce.id) cloudMap[ce.id] = ce; });
-
-          const allEmpIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
-          const finalEmps = allEmpIds.map(id => {
-            const ce = cloudMap[id];
-            const le = localMap[id];
-            if (!ce) return le;
-            if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
-            const cTime = Number(ce.updatedAt) || 0;
-            const lTime = Number(le.updatedAt) || 0;
-            const chosen = (cTime >= lTime || lTime === 0) ? ce : le;
-            const targetAllowed = (cTime >= lTime || lTime === 0) ? (ce.allowedTabs || permMap[ce.id]) : (le.allowedTabs || permMap[ce.id]);
-            if (targetAllowed) permMap[id] = targetAllowed;
-            return {
-              ...chosen,
-              allowedTabs: targetAllowed || chosen.allowedTabs
-            };
-          });
-
-          safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
-
-          const currentJson = safeGetItem(STORAGE_KEYS.EMPLOYEES);
-          const newJson = JSON.stringify(finalEmps);
-          if (currentJson !== newJson) {
-            safeSetItem(STORAGE_KEYS.EMPLOYEES, newJson);
-            updated = true;
-          }
-
-          // 🔒 현재 로그인되어 있는 세션의 유저 정보(이메일, 연락처, 권한 등) 실시간 동기화
-          const curr = getCurrentUser();
-          if (curr && curr.id) {
-            const matched = finalEmps.find(e => e.id === curr.id);
-            if (matched) {
-              setCurrentUser(matched);
-              if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
-                window.App.renderSidebarNavigation();
-              }
-              if (window.App && typeof window.App.renderUserHeader === 'function') {
-                window.App.renderUserHeader();
-              }
-            }
-          }
-        }
-
-        // 3. 할인구매대장 실시간 연동 및 병합
-        if (cloudData.discountPurchases && Array.isArray(cloudData.discountPurchases)) {
-          const localPurchases = getDiscountPurchases() || [];
-          const localMap = {};
-          localPurchases.forEach(p => { if (p && p.id) localMap[p.id] = p; });
-          const cloudMap = {};
-          cloudData.discountPurchases.forEach(p => { if (p && p.id) cloudMap[p.id] = p; });
-          const allIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
-          const deleted = new Set(getDeletedIds());
-          const finalPurchases = allIds.filter(id => !deleted.has(id)).map(id => cloudMap[id] || localMap[id]);
-          const currJson = safeGetItem(STORAGE_KEYS.DISCOUNT_PURCHASES);
-          const newJson = JSON.stringify(finalPurchases);
-          if (currJson !== newJson) {
-            safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, newJson);
-            updated = true;
-          }
-        }
-
-        // 4. 근무 스케줄 실시간 연동 및 병합
-        if (cloudData.schedule && Array.isArray(cloudData.schedule) && cloudData.schedule.length > 0) {
-          const localSchedule = getSchedule() || [];
-          const localMap = {};
-          localSchedule.forEach(s => { if (s && s.date && s.empId) localMap[`${s.date}_${s.empId}`] = s; });
-          const cloudMap = {};
-          cloudData.schedule.forEach(s => { if (s && s.date && s.empId) cloudMap[`${s.date}_${s.empId}`] = s; });
-          const allKeys = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
-          const finalSchedule = allKeys.map(k => cloudMap[k] || localMap[k]);
-          const currJson = safeGetItem(STORAGE_KEYS.SCHEDULE);
-          const newJson = JSON.stringify(finalSchedule);
-          if (currJson !== newJson) {
-            safeSetItem(STORAGE_KEYS.SCHEDULE, newJson);
-            updated = true;
-          }
-        }
-
-        // 5. 공지사항 실시간 연동
-        if (cloudData.notices && Array.isArray(cloudData.notices)) {
-          const localNotices = getNotices() || [];
-          const localMap = {};
-          localNotices.forEach(n => { if (n && n.id) localMap[n.id] = n; });
-          const cloudMap = {};
-          cloudData.notices.forEach(n => { if (n && n.id) cloudMap[n.id] = n; });
-          const allIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
-          const deleted = new Set(getDeletedIds());
-          const finalNotices = allIds.filter(id => !deleted.has(id)).map(id => cloudMap[id] || localMap[id]);
-          const currJson = safeGetItem(STORAGE_KEYS.NOTICES);
-          const newJson = JSON.stringify(finalNotices);
-          if (currJson !== newJson) {
-            safeSetItem(STORAGE_KEYS.NOTICES, newJson);
-            updated = true;
-          }
-        }
-
-        // 6. 업무일지 스마트 정렬 연동
-        if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
-          const localWorklogs = getWorklogs() || [];
-          const mergedLogs = mergeById(localWorklogs, cloudData.worklogs, 'createdAt');
-          if (isListDifferent(localWorklogs, mergedLogs)) {
-            safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
-            updated = true;
-          }
-        }
-
-        // 7. 약사 시급 및 휴게 설정 단일 마스터 연동
-        if (cloudData.pharmacistRates) {
-          const localRates = getPharmacistRates();
-          const mergedRates = { ...localRates, ...cloudData.pharmacistRates };
-          safeSetItem(STORAGE_KEYS.PHARMACIST_RATES, JSON.stringify(mergedRates));
-        }
-
-        safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
-        updateSyncStatusUI('success');
-
-        if (updated) {
-          // 🔒 사용자가 어떤 입력창(input/textarea/select)에서든 타이핑 중이거나 모달이 열려있으면 화면 덮어쓰기 방지
-          const activeEl = document.activeElement;
-          const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
-          const isEditingStaff = window.StaffDirectoryModule && window.StaffDirectoryModule.isEditing && window.StaffDirectoryModule.isEditing();
-          
-          const anyOpenModal = Array.from(document.querySelectorAll('.modal-overlay')).some(m => {
-            const disp = window.getComputedStyle(m).display;
-            return disp !== 'none' && disp !== '';
-          });
-
-          if (!isTyping && !isEditingStaff && !anyOpenModal) {
-            if (typeof callback === 'function') callback();
-            if (window.App && typeof window.App.renderActiveModule === 'function') {
-              window.App.renderActiveModule();
-              window.App.renderSidebarNavigation();
-            }
-            if (window.App && typeof window.App.renderQuickLoginButtons === 'function') {
-              window.App.renderQuickLoginButtons();
-            }
-            if (window.App && typeof window.App.checkPendingRejectionNotice === 'function') {
-              window.App.checkPendingRejectionNotice();
-            }
-            if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
-              window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
-            }
-          }
-        }
+        applyCloudData(cloudData, callback);
       } else {
-        // 🚀 클라우드가 비어있거나 초기 상태일 경우 로컬의 최신 데이터를 클라우드로 자동 시딩(전송)
         const localLogs = getWorklogs() || [];
         if (localLogs.length > 0) {
           pushToCloud();
@@ -1750,7 +1737,7 @@ window.SheetsSync = (function () {
     saveOvertimeAdjustments,
     getPharmacistRates,
     savePharmacistRates,
-    generateScheduleForMonth,
+    initFirebase,
     pushToCloud,
     pullFromCloud,
     syncDirectWithGoogleSheet,
@@ -1759,4 +1746,13 @@ window.SheetsSync = (function () {
     exportFullBackupJSON,
     importFullBackupJSON
   };
+
+  // 🚀 초기 로드 시 Firebase 실시간 연결 즉시 개시
+  try {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('DOMContentLoaded', initFirebase);
+      initFirebase();
+    }
+  } catch(e) {}
+
 })();

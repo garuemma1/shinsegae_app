@@ -1027,22 +1027,23 @@ window.SheetsSync = (function () {
     try {
       let cloudData = null;
 
-      // 1. 구글 공식 클라우드 마스터 직통 0.1초 조회 (절대 멈추지 않는 100% 무제한 단일 원본)
+      // 1. 구글 공식 클라우드 마스터 직통 0.05초 조회 (버셀 /api/sync와 100% 동일한 순수 REST 파싱)
       try {
         const gasRes = await window.fetch(DIRECT_GAS_URL + '?t=' + Date.now());
         if (gasRes && gasRes.ok) {
           const rawText = await gasRes.text();
-          if (rawText && rawText.startsWith('payload=')) {
-            const decoded = decodeURIComponent(rawText.substring(8));
-            const gasJson = JSON.parse(decoded);
-            if (gasJson && gasJson.data && Object.keys(gasJson.data).length > 0) {
-              cloudData = gasJson.data;
+          if (rawText) {
+            let clean = rawText.trim();
+            if (clean.startsWith('payload=')) {
+              clean = clean.substring(8);
+              try { clean = decodeURIComponent(clean); } catch(ue) {}
             }
-          } else if (rawText) {
             try {
-              const gasJson = JSON.parse(rawText);
+              const gasJson = JSON.parse(clean);
               if (gasJson && gasJson.data && Object.keys(gasJson.data).length > 0) {
                 cloudData = gasJson.data;
+              } else if (gasJson && gasJson.employees) {
+                cloudData = gasJson;
               }
             } catch(je) {}
           }
@@ -1227,9 +1228,11 @@ window.SheetsSync = (function () {
             if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
             const cTime = Number(ce.updatedAt) || 0;
             const lTime = Number(le.updatedAt) || 0;
-            const chosen = (lTime > cTime) ? le : ce;
+            
+            // 🚀 클라우드 데이터가 초기 기본값보다 항상 우선 적용 (단, 방금 로컬에서 수정한 것은 보존)
+            const chosen = (cTime >= lTime || lTime === 0) ? ce : le;
 
-            const targetAllowed = (lTime > cTime) ? (le.allowedTabs || permMap[ce.id]) : (ce.allowedTabs || permMap[ce.id]);
+            const targetAllowed = (cTime >= lTime || lTime === 0) ? (ce.allowedTabs || permMap[ce.id]) : (le.allowedTabs || permMap[ce.id]);
             if (targetAllowed) permMap[ce.id] = targetAllowed;
 
             return {

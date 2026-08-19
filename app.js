@@ -1509,15 +1509,15 @@ function writeSheetData(sheet, dataList) {
   }
 
   function startAutoUpdateChecker() {
-    // 1. 앱 기동 2초 후 1차 체크 및 클라우드 동기화
+    // 1. 앱 기동 1초 후 1차 체크 및 클라우드 동기화
     setTimeout(() => {
       checkAppUpdate();
       if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
         window.SheetsSync.pullFromCloud();
       }
-    }, 2000);
+    }, 1000);
 
-    // 2. 다른 앱이나 탭에서 약국 앱으로 돌아올 때(Focus) 체크 및 클라우드 동기화
+    // 2. 다른 앱이나 탭에서 약국 앱으로 돌아올 때(Focus / VisibilityChange) 즉각 초고속 동기화
     window.addEventListener('focus', () => {
       checkAppUpdate();
       if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
@@ -1525,13 +1525,26 @@ function writeSheetData(sheet, dataList) {
       }
     });
 
-    // 3. 백그라운드 자동 동기화 & 버전 체크 (배터리 및 트래픽 절약형 45초 주기)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkAppUpdate();
+        if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
+          window.SheetsSync.pullFromCloud();
+        }
+      }
+    });
+
+    // 3. 백그라운드 실시간 초고속 동기화 (5초 주기)
     setInterval(() => {
-      checkAppUpdate();
       if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
         window.SheetsSync.pullFromCloud();
       }
-    }, 45000);
+    }, 5000);
+
+    // 버전 체크 (30초 주기)
+    setInterval(() => {
+      checkAppUpdate();
+    }, 30000);
   }
 
   return {

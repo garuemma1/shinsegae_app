@@ -1923,3 +1923,46 @@ body[data-theme="dark"] .toggle-drawer-btn {
 body[data-theme="dark"] .toggle-drawer-btn:active {
   background: #334155 !important;
 }
+
+/* 📝 업무일지 및 미해결 업무 카드 100% 좌측 강제 칼정렬 보장 */
+.wl-pending-card {
+  text-align: left !important;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  transition: all 0.2s;
+}
+.wl-pending-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.08);
+}
+.wl-pending-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 12px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  text-align: left !important;
+}
+.wl-pending-body {
+  text-align: left !important;
+  width: 100% !important;
+}
+.wl-pending-text {
+  text-align: left !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  line-height: 1.7 !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  letter-spacing: -0.2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+

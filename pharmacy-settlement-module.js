@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 10. 스마트약국 정산 시스템 모듈 컨트롤러 (Smart Pharmacy Financial Settlement Engine v42.0)
  * 약국장 전용: 일일결산 회계장부(31일 개별 수정/추가/삭제) 및 월간 손익계산서(P&L 수입/사입/고정비/금융비용 항목별 추가/수정/삭제)
  * 구글 스프레드시트 100% 양방향 연동 지원
@@ -1106,7 +1106,10 @@ window.PharmacySettlementModule = (function () {
     // 1. Trend Chart
     const trendCtx = document.getElementById('settlementTrendCanvas');
     if (trendCtx) {
-      if (chartInstances.trend) chartInstances.trend.destroy();
+      if (chartInstances.trend) {
+        try { chartInstances.trend.destroy(); } catch (e) {}
+        chartInstances.trend = null;
+      }
       chartInstances.trend = new Chart(trendCtx, {
         type: 'bar',
         data: {
@@ -1139,6 +1142,7 @@ window.PharmacySettlementModule = (function () {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: false,
           plugins: {
             legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
             tooltip: {
@@ -1157,7 +1161,10 @@ window.PharmacySettlementModule = (function () {
     // 2. Expense Donut Chart
     const donutCtx = document.getElementById('settlementDonutCanvas');
     if (donutCtx) {
-      if (chartInstances.donut) chartInstances.donut.destroy();
+      if (chartInstances.donut) {
+        try { chartInstances.donut.destroy(); } catch (e) {}
+        chartInstances.donut = null;
+      }
       chartInstances.donut = new Chart(donutCtx, {
         type: 'doughnut',
         data: {
@@ -1177,6 +1184,7 @@ window.PharmacySettlementModule = (function () {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: false,
           plugins: {
             legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
           }

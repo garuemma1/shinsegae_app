@@ -486,7 +486,7 @@ window.BuildingRentalModule = (function () {
 
     Object.keys(rentalChartInstances).forEach(key => {
       if (rentalChartInstances[key]) {
-        rentalChartInstances[key].destroy();
+        try { rentalChartInstances[key].destroy(); } catch (e) {}
         rentalChartInstances[key] = null;
       }
     });
@@ -506,7 +506,7 @@ window.BuildingRentalModule = (function () {
       rentalChartInstances.yearlyTrend = new Chart(yearlyTrendCtx, {
         type: 'bar',
         data: { labels, datasets: [{ label: '월별 순수익(만원)', data: trendData, backgroundColor: '#3b82f6', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } } }
       });
     }
 
@@ -529,7 +529,7 @@ window.BuildingRentalModule = (function () {
       rentalChartInstances.yearlyAggregate = new Chart(yearlyAggregateCtx, {
         type: 'bar',
         data: { labels: aggYears, datasets: [{ label: '연도별 순수익(만원)', data: aggData, backgroundColor: '#059669', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } } }
       });
     }
 
@@ -542,7 +542,7 @@ window.BuildingRentalModule = (function () {
           labels: posUnits.map(u => u.buildingName.substring(0, 6)),
           datasets: [{ data: posUnits.map(u => fmt2(Math.round((u.actualRent - u.actualInterest) * (u.shareRate / 100)))), backgroundColor: ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#06b6d4'] }]
         },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+        options: { responsive: true, maintainAspectRatio: false, animation: false, cutout: '65%', plugins: { legend: { display: false } } }
       });
     }
 
@@ -564,7 +564,7 @@ window.BuildingRentalModule = (function () {
           labels: ytdArray.map(u => u.name.substring(0, 6)),
           datasets: [{ data: ytdArray.map(u => fmt2(u.net)), backgroundColor: ['#8b5cf6','#f59e0b','#3b82f6','#10b981','#ef4444','#06b6d4'] }]
         },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+        options: { responsive: true, maintainAspectRatio: false, animation: false, cutout: '65%', plugins: { legend: { display: false } } }
       });
     }
   }

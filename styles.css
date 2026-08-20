@@ -1941,8 +1941,8 @@ body[data-theme="dark"] .toggle-drawer-btn:active {
   background: #ffffff !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 16px !important;
-  padding: 18px 20px !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.03) !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
   position: relative !important;
   width: 100% !important;
@@ -1951,27 +1951,27 @@ body[data-theme="dark"] .toggle-drawer-btn:active {
 
 .wl-premium-card:hover {
   border-color: #94a3b8 !important;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06) !important;
 }
 
 .wl-premium-card.tag-soldout {
-  border-left: 6px solid #ef4444 !important;
+  border-left: 5px solid #ef4444 !important;
 }
 
 .wl-premium-card.tag-order {
-  border-left: 6px solid #f59e0b !important;
+  border-left: 5px solid #f59e0b !important;
 }
 
 .wl-premium-card.tag-stock {
-  border-left: 6px solid #10b981 !important;
+  border-left: 5px solid #10b981 !important;
 }
 
 .wl-premium-card.tag-customer {
-  border-left: 6px solid #3b82f6 !important;
+  border-left: 5px solid #3b82f6 !important;
 }
 
 .wl-premium-card.tag-memo {
-  border-left: 6px solid #64748b !important;
+  border-left: 5px solid #64748b !important;
 }
 
 .wl-card-header {

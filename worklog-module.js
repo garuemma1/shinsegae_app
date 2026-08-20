@@ -312,7 +312,7 @@ window.WorklogModule = (function () {
                      </div>
                    </div>
 
-                   <!-- 본문 내용 (단일 화이트 카드 위 15.5px 칼정렬 텍스트) -->
+                   <!-- 본문 내용 -->
                    <div style="font-family:'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:15.5px; font-weight:700; color:#1e293b; line-height:1.65; white-space:pre-wrap; word-break:break-word; text-align:left !important; margin:0; padding:0;">
                      ${contentText}
                    </div>
@@ -323,14 +323,25 @@ window.WorklogModule = (function () {
                        </a>
                      </div>
                    ` : ''}
-                           ${hasChecked 
-                             ? 'background:#f1f5f9; color:#94a3b8; border:1px solid #cbd5e1; cursor:not-allowed;' 
-                             : 'background:#2563eb; color:#ffffff; border:none; box-shadow:0 2px 6px rgba(37,99,235,0.25); cursor:pointer;'}"
-                           ${hasChecked ? 'disabled' : ''}>
-                     ${hasChecked ? '<i class="fas fa-check-double"></i> 내 확인 완료' : '<i class="fas fa-check"></i> 확인 완료'}
-                   </button>
+                    <!-- 하단 인수인계 확인 바: 1:1 수평 완벽 배치 -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid #f1f5f9; margin-top:2px;">
+                      <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                        <span style="font-size:12.5px; color:#64748b; font-weight:700;"><i class="fas fa-user-check me-1" style="color:#059669;"></i>인계 확인:</span>
+                        ${checkedArr.length > 0 
+                          ? checkedArr.map(n => `<span style="font-size:12px; font-weight:700; color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; padding:2px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;"><i class="fas fa-check" style="font-size:9px;"></i> ${n}</span>`).join('') 
+                          : '<span style="font-size:12px; color:#94a3b8; font-style:italic;">미확인</span>'}
+                      </div>
+                      
+                      <button type="button" onclick="WorklogModule.checkTask('${log.id}')" 
+                              style="border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:800; height:32px; display:inline-flex; align-items:center; justify-content:center; gap:5px; transition:all 0.2s; 
+                              ${hasChecked 
+                                ? 'background:#f1f5f9; color:#94a3b8; border:1px solid #cbd5e1; cursor:not-allowed;' 
+                                : 'background:#2563eb; color:#ffffff; border:none; box-shadow:0 2px 6px rgba(37,99,235,0.25); cursor:pointer;'}"
+                              ${hasChecked ? 'disabled' : ''}>
+                        ${hasChecked ? '<i class="fas fa-check-double"></i> 내 확인 완료' : '<i class="fas fa-check"></i> 확인 완료'}
+                      </button>
+                    </div>
                  </div>
-               </div>
              `;
           }).join('')}
         </div>

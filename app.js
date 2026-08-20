@@ -670,11 +670,21 @@ window.App = (function () {
     }
   }
 
-  function renderActiveModule() {
+  function renderActiveModule(preserveScroll = true) {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) {
       renderLoginGateway();
       return;
+    }
+
+    // 📌 전 모듈 스크롤 위치 자석 기억 (Window Scroll + Module Content Scroll)
+    let savedWindowScrollY = 0;
+    let savedContainerScrollTop = 0;
+    const contentEl = document.getElementById('module-content');
+
+    if (preserveScroll) {
+      savedWindowScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      if (contentEl) savedContainerScrollTop = contentEl.scrollTop || 0;
     }
 
     switch (activeModule) {
@@ -711,6 +721,14 @@ window.App = (function () {
       case 'approval':
         if (window.ApprovalModule) window.ApprovalModule.render('module-content');
         break;
+    }
+
+    // 🎯 0.001초 만에 읽던 스크롤 위치로 즉각 복원
+    if (preserveScroll && (savedWindowScrollY > 0 || savedContainerScrollTop > 0)) {
+      requestAnimationFrame(() => {
+        if (savedWindowScrollY > 0) window.scrollTo({ top: savedWindowScrollY, behavior: 'instant' });
+        if (contentEl && savedContainerScrollTop > 0) contentEl.scrollTop = savedContainerScrollTop;
+      });
     }
   }
 

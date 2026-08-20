@@ -1128,6 +1128,15 @@ window.SheetsSync = (function () {
       }
 
       let needPushBack = false;
+      let noticesChanged = false;
+      let worklogsChanged = false;
+      let leavesChanged = false;
+      let discountsChanged = false;
+      let scheduleChanged = false;
+      let scheduleStatusChanged = false;
+      let paystubsChanged = false;
+      let empsChanged = false;
+      let ratesChanged = false;
 
       // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.notices && Array.isArray(cloudData.notices)) {
@@ -1136,6 +1145,7 @@ window.SheetsSync = (function () {
         if (isListDifferent(localNotices, mergedNotices)) {
           safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(mergedNotices));
           updated = true;
+          noticesChanged = true;
         }
         const cloudNoticeIds = new Set((cloudData.notices || []).map(n => n.id));
         if ((localNotices || []).some(n => n && n.id && !cloudNoticeIds.has(n.id))) {
@@ -1150,6 +1160,7 @@ window.SheetsSync = (function () {
         if (isListDifferent(localLogs, mergedLogs)) {
           safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
           updated = true;
+          worklogsChanged = true;
         }
         // 🔥 핸드폰에만 있거나 PC에만 있는 고유 글을 감지하여 파이어베이스에 즉시 업로드 (양방향 합집합 완성)
         const cloudWorklogIds = new Set((cloudData.worklogs || []).map(w => w.id));
@@ -1165,6 +1176,7 @@ window.SheetsSync = (function () {
         if (isListDifferent(localLeaves, mergedLeaves)) {
           safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(mergedLeaves));
           updated = true;
+          leavesChanged = true;
         }
         const cloudLeaveIds = new Set((cloudData.leaveRequests || []).map(l => l.id));
         if ((localLeaves || []).some(l => l && l.id && !cloudLeaveIds.has(l.id))) {
@@ -1179,6 +1191,7 @@ window.SheetsSync = (function () {
         if (isListDifferent(localDiscounts, mergedDiscounts)) {
           safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(mergedDiscounts));
           updated = true;
+          discountsChanged = true;
         }
         const cloudDiscIds = new Set((cloudData.discountPurchases || []).map(d => d.id));
         if ((localDiscounts || []).some(d => d && d.id && !cloudDiscIds.has(d.id))) {
@@ -1224,6 +1237,7 @@ window.SheetsSync = (function () {
         if (cur !== next) {
           safeSetItem(STORAGE_KEYS.SCHEDULE, next);
           updated = true;
+          scheduleChanged = true;
         }
         if (localHasUniqueShift) {
           needPushBack = true;
@@ -1239,6 +1253,7 @@ window.SheetsSync = (function () {
         if (cur !== next) {
           safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, next);
           updated = true;
+          scheduleStatusChanged = true;
         }
         if (JSON.stringify(localStatus) !== JSON.stringify(mergedStatus)) {
           needPushBack = true;
@@ -1254,6 +1269,7 @@ window.SheetsSync = (function () {
         if (cur !== next) {
           safeSetItem(STORAGE_KEYS.PAYSTUBS, next);
           updated = true;
+          paystubsChanged = true;
         }
       }
       if (cloudData.overtimeAdjustments) {
@@ -1264,6 +1280,7 @@ window.SheetsSync = (function () {
         if (cur !== next) {
           safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, next);
           updated = true;
+          paystubsChanged = true;
         }
       }
 
@@ -1314,6 +1331,7 @@ window.SheetsSync = (function () {
         if (currentJson !== newJson) {
           safeSetItem(STORAGE_KEYS.EMPLOYEES, newJson);
           updated = true;
+          empsChanged = true;
         }
 
         const curr = getCurrentUser();
@@ -1335,7 +1353,10 @@ window.SheetsSync = (function () {
       if (cloudData.pharmacistRates) {
         const localRates = getPharmacistRates();
         const mergedRates = { ...localRates, ...cloudData.pharmacistRates };
-        safeSetItem(STORAGE_KEYS.PHARMACIST_RATES, JSON.stringify(mergedRates));
+        if (JSON.stringify(localRates) !== JSON.stringify(mergedRates)) {
+          safeSetItem(STORAGE_KEYS.PHARMACIST_RATES, JSON.stringify(mergedRates));
+          ratesChanged = true;
+        }
       }
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
@@ -1358,8 +1379,24 @@ window.SheetsSync = (function () {
 
         if (!isTyping && !isEditingStaff && !anyOpenModal) {
           if (typeof callback === 'function') callback();
-          if (window.App && typeof window.App.renderActiveModule === 'function') {
-            window.App.renderActiveModule();
+
+          // 🎯 활성 모듈과 관련된 데이터가 실제로 변경되었을 때만 화면 갱신 (스크롤 위치 자석 보존)
+          const currMod = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
+          let activeModChanged = false;
+          if (currMod === 'notices' && noticesChanged) activeModChanged = true;
+          else if (currMod === 'worklog' && worklogsChanged) activeModChanged = true;
+          else if (currMod === 'schedule' && (scheduleChanged || scheduleStatusChanged)) activeModChanged = true;
+          else if (currMod === 'annual-leave' && leavesChanged) activeModChanged = true;
+          else if (currMod === 'discount-purchase' && discountsChanged) activeModChanged = true;
+          else if (currMod === 'staff-directory' && empsChanged) activeModChanged = true;
+          else if (currMod === 'pharmacy-settlement' && (scheduleChanged || paystubsChanged || ratesChanged)) activeModChanged = true;
+
+          if (activeModChanged && window.App && typeof window.App.renderActiveModule === 'function') {
+            window.App.renderActiveModule(true); // 📌 스크롤 위치 자석 보존 렌더링
+          }
+
+          // 사이드바 뱃지/카운터만 조용히 백그라운드 갱신
+          if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
             window.App.renderSidebarNavigation();
           }
           if (window.App && typeof window.App.renderQuickLoginButtons === 'function') {

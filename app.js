@@ -1626,7 +1626,7 @@ function writeSheetData(sheet, dataList) {
       }
     }, 1000);
 
-    // 2. 다른 앱이나 탭에서 약국 앱으로 돌아올 때(Focus / VisibilityChange) 즉각 초고속 동기화
+    // 2. 다른 앱이나 탭에서 약국 앱으로 돌아올 때(Focus / VisibilityChange) 1회만 초고속 최신화 (가만히 있을 때는 0 Byte 대기!)
     window.addEventListener('focus', () => {
       checkAppUpdate();
       if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
@@ -1642,18 +1642,6 @@ function writeSheetData(sheet, dataList) {
         }
       }
     });
-
-    // 3. 백그라운드 실시간 초고속 동기화 (5초 주기)
-    setInterval(() => {
-      if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
-        window.SheetsSync.pullFromCloud();
-      }
-    }, 5000);
-
-    // 버전 체크 (30초 주기)
-    setInterval(() => {
-      checkAppUpdate();
-    }, 30000);
   }
 
   return {

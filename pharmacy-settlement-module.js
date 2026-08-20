@@ -236,40 +236,7 @@ window.PharmacySettlementModule = (function () {
         </div>
       </div>
 
-      <!-- 📈 Lean-OPS 인터랙티브 시각화 차트 섹션 (Trend Bar & Expense Donut Charts) -->
-      <div class="row g-3 mb-4">
-        <div class="col-lg-8 col-12">
-          <div class="card p-3 shadow-sm" style="border-radius:18px; border:1.5px solid #cbd5e1; background:#ffffff;">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div>
-                <h4 style="font-size:15px; font-weight:800; color:#0f172a; margin:0;"><i class="fas fa-chart-line text-primary me-2"></i>📈 약국 월별/연도별 매출 vs 지출 vs 영업이익 추세 차트</h4>
-                <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">수입(파랑) vs 지출(분홍) vs 영업이익 마진곡선(초록선) 실시간 연동</p>
-              </div>
-              <span class="badge bg-primary" style="font-size:11px; padding:5px 10px; border-radius:8px;">Chart.js 트렌드</span>
-            </div>
-            <div style="position:relative; height:220px; width:100%;">
-              <canvas id="settlementTrendCanvas"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-4 col-12">
-          <div class="card p-3 shadow-sm" style="border-radius:18px; border:1.5px solid #cbd5e1; background:#ffffff;">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div>
-                <h4 style="font-size:15px; font-weight:800; color:#0f172a; margin:0;"><i class="fas fa-chart-pie text-danger me-2"></i>🍩 지출 구조 비율 분석</h4>
-                <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">약품비 · 인건비 · 임차료 · 기타고정비 비중</p>
-              </div>
-              <span class="badge bg-danger" style="font-size:11px; padding:5px 10px; border-radius:8px;">지출 Donut</span>
-            </div>
-            <div style="position:relative; height:220px; width:100%;">
-              <canvas id="settlementDonutCanvas"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 📌 세부 3대 서브 탭 네비게이션 -->
+      <!-- 📌 세부 3대 서브 탭 네비게이션 (100% 풀 와이드) -->
       <div class="d-flex gap-2 border-bottom pb-3 mb-4 flex-wrap">
         <button type="button" class="btn ${activeSubTab === 'daily' ? 'btn-primary font-bold' : 'btn-outline-secondary'}" onclick="PharmacySettlementModule.setSubTab('daily')" style="border-radius:10px; padding:10px 20px; font-size:14px;">
           <i class="fas fa-book me-1"></i> ① 일일 결산 & 회계 장부 (Daily Log)
@@ -711,21 +678,6 @@ window.PharmacySettlementModule = (function () {
     }
 
     container.innerHTML = html;
-
-    setTimeout(() => {
-      initSettlementCharts({
-        totalRevenue,
-        variableCosts,
-        fixedCosts,
-        operatingProfit,
-        totalDrugCost,
-        parttimePayroll,
-        posFee,
-        rentExp,
-        fulltimePayroll,
-        otherFixed: ins4Cost + taxFee + totalCustomOperating + totalFinancialCost
-      });
-    }, 50);
   }
 
   // --- 기본 수치 업데이트 ---
@@ -1096,101 +1048,6 @@ window.PharmacySettlementModule = (function () {
       }
     };
     reader.readAsText(file, 'UTF-8');
-  }
-
-  let chartInstances = {};
-
-  function initSettlementCharts(data) {
-    if (typeof Chart === 'undefined') return;
-
-    // 1. Trend Chart
-    const trendCtx = document.getElementById('settlementTrendCanvas');
-    if (trendCtx) {
-      if (chartInstances.trend) {
-        try { chartInstances.trend.destroy(); } catch (e) {}
-        chartInstances.trend = null;
-      }
-      chartInstances.trend = new Chart(trendCtx, {
-        type: 'bar',
-        data: {
-          labels: ['2026-03월', '2026-04월', '2026-05월', '2026-06월', '2026-07월', '2026-08월 (당월)'],
-          datasets: [
-            {
-              label: '총 수입 (매출)',
-              data: [6800, 7100, 7300, 7200, 7600, Math.round(data.totalRevenue / 10000)],
-              backgroundColor: 'rgba(37, 99, 235, 0.85)',
-              borderRadius: 6
-            },
-            {
-              label: '총 지출 (변동+고정)',
-              data: [6100, 6300, 6500, 6400, 6700, Math.round((data.variableCosts + data.fixedCosts) / 10000)],
-              backgroundColor: 'rgba(239, 68, 68, 0.75)',
-              borderRadius: 6
-            },
-            {
-              type: 'line',
-              label: '영업이익 (순이익)',
-              data: [700, 800, 800, 800, 900, Math.round(data.operatingProfit / 10000)],
-              borderColor: '#10b981',
-              backgroundColor: '#10b981',
-              borderWidth: 3,
-              tension: 0.3,
-              pointRadius: 5
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) { return ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') + '만 원'; }
-              }
-            }
-          },
-          scales: {
-            y: { ticks: { callback: v => v.toLocaleString('ko-KR') + '만' } }
-          }
-        }
-      });
-    }
-
-    // 2. Expense Donut Chart
-    const donutCtx = document.getElementById('settlementDonutCanvas');
-    if (donutCtx) {
-      if (chartInstances.donut) {
-        try { chartInstances.donut.destroy(); } catch (e) {}
-        chartInstances.donut = null;
-      }
-      chartInstances.donut = new Chart(donutCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['약품 사입비', '파트타임 약사', 'POS/카드수수료', '약국 임차료', '정직원 인건비', '기타 고정비/금융'],
-          datasets: [{
-            data: [
-              Math.round((data.totalDrugCost || 0) / 10000),
-              Math.round((data.parttimePayroll || 0) / 10000),
-              Math.round((data.posFee || 0) / 10000),
-              Math.round((data.rentExp || 0) / 10000),
-              Math.round((data.fulltimePayroll || 0) / 10000),
-              Math.round((data.otherFixed || 0) / 10000)
-            ],
-            backgroundColor: ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#8b5cf6', '#10b981']
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: {
-            legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
-          }
-        }
-      });
-    }
   }
 
   return {

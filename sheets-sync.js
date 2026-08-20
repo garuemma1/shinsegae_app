@@ -823,14 +823,12 @@ window.SheetsSync = (function () {
 
   // --- 저장소 Getter & Setter 유틸리티 ---
   function getEmployees() {
-    // 권한 데이터 로드 (별도 키에 저장된 것 우선)
     let permMap = {};
     try {
       const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
       if (permRaw) permMap = JSON.parse(permRaw);
     } catch(e) {}
 
-    // 직원 기본 데이터 로드 및 11인 전원 상시 보존 보장
     let emps = [];
     try {
       const raw = safeGetItem(STORAGE_KEYS.EMPLOYEES);
@@ -842,35 +840,33 @@ window.SheetsSync = (function () {
       }
     } catch(e) {}
 
-    const localMap = {};
-    (emps || []).forEach(e => { if (e && e.id) localMap[e.id] = e; });
-    INITIAL_EMPLOYEES.forEach(ie => {
-      if (ie && ie.id && !localMap[ie.id]) {
-        localMap[ie.id] = { ...ie };
-      }
-    });
-    emps = INITIAL_EMPLOYEES.map(ie => {
-      const e = localMap[ie.id] || ie;
-      return {
-        ...ie,
-        ...e,
-        position: (e.position && e.position !== 'undefined' && e.position !== '') ? e.position : ie.position,
-        role: (e.role && e.role !== 'undefined' && e.role !== '') ? e.role : ie.role
-      };
-    });
-    safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
-
-    // 별도 저장된 권한을 병합 (클라우드 덧써쓰더라도 유지)
-    if (Object.keys(permMap).length > 0) {
-      emps = emps.map(e => {
-        if (permMap[e.id]) {
-          return { ...e, allowedTabs: permMap[e.id] };
-        }
-        return e;
-      });
+    if (!emps || emps.length === 0) {
+      emps = INITIAL_EMPLOYEES.map(ie => ({ ...ie }));
+      safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
     }
 
-    // 🚫 테스트약사 및 임시 테스트 계정 영구 삭제 필터링
+    // 누락된 기본 직원이 있다면 보존 추가
+    const localMap = {};
+    emps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
+    let needSave = false;
+    INITIAL_EMPLOYEES.forEach(ie => {
+      if (ie && ie.id && !localMap[ie.id]) {
+        emps.push({ ...ie });
+        needSave = true;
+      }
+    });
+    if (needSave) {
+      safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
+    }
+
+    // 별도 저장된 최신 권한 맵 병합
+    emps = emps.map(e => {
+      if (permMap && permMap[e.id]) {
+        return { ...e, allowedTabs: permMap[e.id] };
+      }
+      return e;
+    });
+
     const cleanEmps = emps.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
     return cleanEmps;
   }
@@ -1310,7 +1306,6 @@ window.SheetsSync = (function () {
         const localEmps = getEmployees() || [];
         const localMap = {};
         localEmps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
-        INITIAL_EMPLOYEES.forEach(e => { if (e && e.id && !localMap[e.id]) localMap[e.id] = { ...e }; });
 
         const cloudMap = {};
         cleanCloudEmps.forEach(ce => { if (ce && ce.id) cloudMap[ce.id] = ce; });
@@ -1321,13 +1316,22 @@ window.SheetsSync = (function () {
           const le = localMap[id];
           if (!ce) return le;
           if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
+
           const cTime = Number(ce.updatedAt) || 0;
           const lTime = Number(le.updatedAt) || 0;
-          const chosen = (cTime >= lTime || lTime === 0) ? ce : le;
-          const targetAllowed = (cTime >= lTime || lTime === 0) ? (ce.allowedTabs || permMap[ce.id]) : (le.allowedTabs || permMap[ce.id]);
+
+          // 🔥 항상 최신 타임스탬프(더 최근에 수정한 쪽)를 기본 객체로 채택!
+          const chosen = (cTime > lTime) ? ce : le;
+          
+          // 권한은 로컬 permMap[id]가 있으면 최우선 유지
+          const targetAllowed = permMap[id] || chosen.allowedTabs || (cTime > lTime ? ce.allowedTabs : le.allowedTabs);
           if (targetAllowed) permMap[id] = targetAllowed;
+
           return {
             ...chosen,
+            position: chosen.position || (le ? le.position : '') || (ce ? ce.position : '') || '',
+            role: chosen.role || (le ? le.role : '') || (ce ? ce.role : '') || '',
+            memo: (chosen.memo !== undefined && chosen.memo !== '') ? chosen.memo : ((le && le.memo) || (ce && ce.memo) || ''),
             allowedTabs: targetAllowed || chosen.allowedTabs
           };
         });
@@ -1427,10 +1431,14 @@ window.SheetsSync = (function () {
     if (typeof window === 'undefined') return;
     try {
       const emps = getEmployees() || [];
+      const permMap = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS) ? JSON.parse(safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS)) : {};
       const cleanEmps = emps.map(e => ({
         id: e.id,
         name: e.name,
         role: e.role,
+        position: e.position || '',
+        username: e.username || e.email || '',
+        payType: e.payType || (e.role && e.role.includes('약사') ? 'HOURLY' : 'MONTHLY'),
         email: e.email,
         phone: e.phone,
         passcode: e.passcode || '',
@@ -1439,8 +1447,10 @@ window.SheetsSync = (function () {
         holidayRate: e.holidayRate || e.hourlyRate || 0,
         hourlyRate: e.hourlyRate || 0,
         baseMonthlySalary: e.baseMonthlySalary || 0,
+        usedLeave: e.usedLeave || 0,
+        pendingLeave: e.pendingLeave || 0,
         memo: e.memo || '',
-        allowedTabs: e.allowedTabs || [],
+        allowedTabs: (permMap && permMap[e.id]) || e.allowedTabs || [],
         updatedAt: e.updatedAt || Date.now()
       }));
 

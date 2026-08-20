@@ -600,6 +600,7 @@ window.StaffDirectoryModule = (function () {
     if (!input) return;
 
     target.memo = input.value.trim();
+    target.updatedAt = Date.now();
     window.SheetsSync.saveEmployees(emps);
     alert(`📝 ${target.name} 직원의 약국장 참고 메모가 저장되었습니다.`);
     render('module-content');

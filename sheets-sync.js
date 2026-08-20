@@ -1123,8 +1123,17 @@ window.SheetsSync = (function () {
         if (!listA || !listB) return true;
         if (listA.length !== listB.length) return true;
         const mapA = {};
-        listA.forEach(item => { if (item && item.id) mapA[item.id] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''); });
-        return listB.some(item => !item || !item.id || !mapA[item.id] || mapA[item.id] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || ''));
+        listA.forEach(item => {
+          if (item) {
+            const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
+            if (key) mapA[key] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || item.shift || '');
+          }
+        });
+        return listB.some(item => {
+          if (!item) return false;
+          const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
+          return !key || !mapA[key] || mapA[key] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || item.shift || '');
+        });
       }
 
       let needPushBack = false;
@@ -1232,10 +1241,9 @@ window.SheetsSync = (function () {
           }
         });
 
-        const cur = safeGetItem(STORAGE_KEYS.SCHEDULE);
-        const next = JSON.stringify(Object.values(map));
-        if (cur !== next) {
-          safeSetItem(STORAGE_KEYS.SCHEDULE, next);
+        const nextList = Object.values(map);
+        if (isListDifferent(localSched, nextList)) {
+          safeSetItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(nextList));
           updated = true;
           scheduleChanged = true;
         }
@@ -1808,7 +1816,6 @@ window.SheetsSync = (function () {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') pullFromCloud();
     });
-    setInterval(() => pullFromCloud(), 3500); // 🚀 3.5초 초고속 실시간 무자각 자동 동기화!
   }
 
   function saveDiscountPurchases(data) {

@@ -69,27 +69,7 @@ window.DiscountPurchaseModule = (function () {
           </div>
         </div>
 
-        <!-- 📊 Chart.js 영역 -->
-        <div class="row g-3 mb-4">
-          <div class="col-lg-7">
-            <div class="card" style="border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 15px rgba(0,0,0,0.02); overflow:hidden;">
-              <div class="card-header d-flex justify-content-between align-items-center" style="background:#ffffff; border-bottom:1px solid #f1f5f9; padding:16px 20px;">
-                <h4 style="font-size:15px; font-weight:800; color:#1e293b; margin:0;"><i class="fas fa-chart-bar text-primary me-2"></i>월별 할인 구매금액 추세</h4>
-              </div>
-              <div style="position:relative; height:240px; width:100%; padding:16px;"><canvas id="discountBarCanvas"></canvas></div>
-            </div>
-          </div>
-          <div class="col-lg-5">
-            <div class="card" style="border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 15px rgba(0,0,0,0.02); overflow:hidden;">
-              <div class="card-header d-flex justify-content-between align-items-center" style="background:#ffffff; border-bottom:1px solid #f1f5f9; padding:16px 20px;">
-                <h4 style="font-size:15px; font-weight:800; color:#1e293b; margin:0;"><i class="fas fa-chart-pie text-success me-2"></i>직원별 구매비중</h4>
-              </div>
-              <div style="position:relative; height:240px; width:100%; padding:16px;"><canvas id="discountDonutCanvas"></canvas></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 하단 탭 및 데이터 리스트 -->
+        <!-- 하단 탭 및 데이터 리스트 (100% 와이드) -->
         <div class="card-section" style="border-radius: 20px; padding: 28px; background:#ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
             <h3 style="font-size: 19px; font-weight: 800; color: #0f172a; margin:0;"><i class="fas fa-receipt text-primary me-2"></i>할인 구매 내역 및 월별 정산 집계</h3>
@@ -177,11 +157,6 @@ window.DiscountPurchaseModule = (function () {
       `;
 
       container.innerHTML = html;
-
-      setTimeout(() => {
-        initDiscountBarChart(purchases);
-        initDiscountDonutChart(purchases);
-      }, 150);
 
     } catch (e) {
       console.error("할인구매대장 렌더링 오류:", e);
@@ -655,97 +630,6 @@ window.DiscountPurchaseModule = (function () {
     purchases = purchases.filter(p => p.id !== id);
     window.SheetsSync.saveDiscountPurchases(purchases);
     render('module-content');
-  }
-
-  // ── Chart.js 시각화 ──
-  function initDiscountBarChart(purchases) {
-    const canvas = document.getElementById('discountBarCanvas');
-    if (!canvas) return;
-    if (typeof Chart === 'undefined') return;
-
-    const labels = [];
-    const totals = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      labels.push(`${y}.${m}`);
-      const monthTotal = purchases
-        .filter(p => { const ds = p.dateStr || ''; return ds.includes(`${y}. ${m}`) || ds.includes(`${y}-${m}`); })
-        .reduce((sum, p) => sum + (p.totalPrice || 0), 0);
-      totals.push(monthTotal);
-    }
-
-    const ctx = canvas.getContext('2d');
-    if (discountBarChartInstance) {
-      try { discountBarChartInstance.destroy(); } catch (e) {}
-      discountBarChartInstance = null;
-    }
-
-    discountBarChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: '구매 금액',
-          data: totals,
-          backgroundColor: totals.map((v, i) => i === 5 ? 'rgba(59,130,246,0.85)' : 'rgba(59,130,246,0.3)'),
-          borderColor: totals.map((v, i) => i === 5 ? '#2563eb' : '#93c5fd'),
-          borderWidth: 1.5,
-          borderRadius: 6,
-          borderSkipped: false
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `  ${ctx.parsed.y.toLocaleString()}원` } } },
-        scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' }, color: '#64748b' } },
-          y: { grid: { color: 'rgba(226,232,240,0.6)' }, ticks: { font: { size: 10 }, color: '#94a3b8', callback: v => v === 0 ? '0' : (v >= 10000 ? (v / 10000).toFixed(0) + '만' : v.toLocaleString()) } }
-        }
-      }
-    });
-  }
-
-  function initDiscountDonutChart(purchases) {
-    const canvas = document.getElementById('discountDonutCanvas');
-    if (!canvas) return;
-    if (typeof Chart === 'undefined') return;
-
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const monthPurchases = purchases.filter(p => { const ds = p.dateStr || ''; return ds.includes(`${y}. ${m}`) || ds.includes(`${y}-${m}`); });
-
-    const staffMap = {};
-    monthPurchases.forEach(p => { const name = p.empName || '미상'; staffMap[name] = (staffMap[name] || 0) + (p.totalPrice || 0); });
-
-    const entries = Object.entries(staffMap).sort((a, b) => b[1] - a[1]);
-    const totalAmount = entries.reduce((s, e) => s + e[1], 0);
-
-    const palette = ['#10b981','#3b82f6','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#f97316','#14b8a6','#a855f7','#64748b'];
-    const labels = entries.length === 0 ? ['데이터 없음'] : entries.map(([name, amt]) => { const pct = totalAmount > 0 ? ((amt / totalAmount) * 100).toFixed(1) : 0; return `${name} (${pct}%)`; });
-    const data = entries.length === 0 ? [1] : entries.map(([, amt]) => amt);
-    const colors = entries.length === 0 ? ['#f1f5f9'] : entries.map((_, i) => palette[i % palette.length]);
-
-    const ctx = canvas.getContext('2d');
-    if (discountDonutChartInstance) {
-      try { discountDonutChartInstance.destroy(); } catch (e) {}
-      discountDonutChartInstance = null;
-    }
-
-    discountDonutChartInstance = new Chart(ctx, {
-      type: 'doughnut',
-      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff', hoverBorderWidth: 3, hoverOffset: 6 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '65%', animation: false,
-        plugins: {
-          legend: { display: entries.length > 0, position: 'bottom', labels: { font: { size: 11, weight: '600' }, color: '#475569', padding: 12, boxWidth: 12, boxHeight: 12 } },
-          tooltip: { callbacks: { label: ctx => { const val = ctx.parsed; const pct = totalAmount > 0 ? ((val / totalAmount) * 100).toFixed(1) : 0; return `  ${val.toLocaleString()}원 (${pct}%)`; } } }
-        }
-      }
-    });
   }
 
   return {

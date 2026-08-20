@@ -377,32 +377,8 @@ window.AnnualLeaveModule = (function () {
         </div>
       </div>
 
-      <!-- 👑 약국장에게만 통계 차트 및 전체 산정 대장 노출 -->
+      <!-- 👑 약국장에게만 통계 및 전체 산정 대장 노출 -->
       ${isDirector ? `
-        <!-- 📊 Chart.js: 직원별 잔여연차 Bar + 사용/잔여 비율 Donut -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-7">
-            <div class="card shadow-sm" style="border-radius:16px; border:1.5px solid #cbd5e1; overflow:hidden;">
-              <div class="card-header d-flex justify-content-between align-items-center" style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 18px;">
-                <h4 style="font-size:14px; font-weight:800; color:#0f172a; margin:0;"><i class="fas fa-chart-bar text-success me-2"></i>🌴 전 직원 잔여 연차일수 비교</h4>
-              </div>
-              <div style="position:relative; height:200px; width:100%; padding:12px;">
-                <canvas id="leaveBarCanvas"></canvas>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-5">
-            <div class="card shadow-sm" style="border-radius:16px; border:1.5px solid #cbd5e1; overflow:hidden;">
-              <div class="card-header d-flex justify-content-between align-items-center" style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 18px;">
-                <h4 style="font-size:14px; font-weight:800; color:#0f172a; margin:0;"><i class="fas fa-chart-pie text-warning me-2"></i>🍩 약국 연차 사용/잔여 비율</h4>
-              </div>
-              <div style="position:relative; height:200px; width:100%; padding:12px;">
-                <canvas id="leaveDonutCanvas"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- 1. 신세계약국 직원별 연차 유급휴가 산정 대장 -->
         <div class="card-section mb-6" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:20px; padding:24px; box-shadow:0 4px 18px rgba(15,23,42,0.03);">
           <div class="section-title-bar mb-4 pb-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -537,12 +513,6 @@ window.AnnualLeaveModule = (function () {
     `;
 
     container.innerHTML = html;
-
-    if (isDirector) {
-      setTimeout(() => {
-        initLeaveCharts(targetEmployees);
-      }, 50);
-    }
   }
 
   // 👑 약국장 연차 단건 승인 함수
@@ -923,69 +893,6 @@ window.AnnualLeaveModule = (function () {
       currentCalYear--;
     }
     render('module-content');
-  }
-
-  let leaveChartInst = {};
-  function initLeaveCharts(targetEmployees) {
-    if (typeof Chart === 'undefined') return;
-
-    const barLabels = targetEmployees.map(e => e.name);
-    const barData1 = targetEmployees.map(e => {
-      const calc = window.LaborCalculator.calculateStatutoryLeave(e.joinDate);
-      return Math.max(0, calc.totalGranted - (e.usedLeave || 0));
-    });
-    const barData2 = targetEmployees.map(e => e.usedLeave || 0);
-
-    const barCtx = document.getElementById('leaveBarCanvas');
-    if (barCtx) {
-      if (leaveChartInst.bar) {
-        try { leaveChartInst.bar.destroy(); } catch (e) {}
-        leaveChartInst.bar = null;
-      }
-      leaveChartInst.bar = new Chart(barCtx, {
-        type: 'bar',
-        indexAxis: 'y',
-        data: {
-          labels: barLabels,
-          datasets: [
-            { label: '잔여연차', data: barData1, backgroundColor: 'rgba(16,185,129,0.82)', borderRadius: 4 },
-            { label: '사용연차', data: barData2, backgroundColor: 'rgba(239,68,68,0.65)', borderRadius: 4 }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
-          plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } },
-          scales: { x: { stacked: false, ticks: { stepSize: 1 } } }
-        }
-      });
-    }
-
-    const donutData = [
-      Math.max(0, targetEmployees.reduce((s,e) => { const c = window.LaborCalculator.calculateStatutoryLeave(e.joinDate); return s + c.totalGranted - (e.usedLeave||0); }, 0)),
-      targetEmployees.reduce((s,e) => s + (e.usedLeave||0), 0)
-    ];
-
-    const donutCtx = document.getElementById('leaveDonutCanvas');
-    if (donutCtx) {
-      if (leaveChartInst.donut) {
-        try { leaveChartInst.donut.destroy(); } catch (e) {}
-        leaveChartInst.donut = null;
-      }
-      leaveChartInst.donut = new Chart(donutCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['잔여 연차 (마일)', '사용 연차 (마일)'],
-          datasets: [{
-            data: donutData,
-            backgroundColor: ['#10b981', '#ef4444']
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
-          plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
-        }
-      });
-    }
   }
 
   return {

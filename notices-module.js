@@ -66,20 +66,7 @@ window.NoticesModule = (function () {
         </div>
       </div>
 
-      <!-- 🍩 카테고리별 공지 비율 Donut + 필터바 -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <div class="card shadow-sm" style="border-radius:16px; border:1.5px solid #cbd5e1; overflow:hidden;">
-            <div class="card-header" style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; padding:12px 18px;">
-              <h4 style="font-size:13px; font-weight:800; color:#0f172a; margin:0;"><i class="fas fa-chart-pie text-primary me-2"></i>🍩 지침유형별 비율</h4>
-            </div>
-            <div style="position:relative; height:180px; width:100%; padding:10px;">
-              <canvas id="noticesDonutCanvas"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-8">
-
+      <!-- 📢 실시간 검색 및 카테고리 필터바 (100% 와이드) -->
       <div class="card-section mb-6">
         <div class="filter-bar-header mb-4">
           <div class="notice-search-box w-100 mb-3" style="display:flex; align-items:center; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:14px; padding:4px 14px; box-shadow:0 2px 8px rgba(15,23,42,0.04); transition:all 0.2s;" onfocusin="this.style.borderColor='#059669'; this.style.boxShadow='0 0 0 4px rgba(5,150,105,0.12)';" onfocusout="this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 2px 8px rgba(15,23,42,0.04)';">
@@ -96,16 +83,13 @@ window.NoticesModule = (function () {
           </div>
         </div>
 
-        <!-- 공지사항 카드 리스트 Grid -->
+        <!-- 공지사항 카드 리스트 Grid (100% 풀 와이드) -->
         <div class="notices-grid" id="notices-list-container">
           ${renderNoticesList(notices)}
         </div>
       </div>
-        </div> <!-- end col-md-8 -->
-      </div> <!-- end row -->
 
       <!-- 공지사항 작성/편집 모달 -->
-
       <div class="modal-overlay" id="notice-modal" style="display:none;">
         <div class="modal-card">
           <div class="modal-header">
@@ -153,10 +137,6 @@ window.NoticesModule = (function () {
     `;
 
     container.innerHTML = html;
-
-    setTimeout(() => {
-      initNoticesChart({ totalCount, urgentCount, dispensingCount, hrCount });
-    }, 50);
   }
 
   function renderNoticesList(notices) {
@@ -377,33 +357,6 @@ window.NoticesModule = (function () {
     data.notices = (data.notices || []).filter(n => n.id !== id);
     window.SheetsSync.saveNotices(data.notices);
     render('module-content');
-  }
-
-  let noticeChartInst = {};
-  function initNoticesChart({ totalCount, urgentCount, dispensingCount, hrCount }) {
-    if (typeof Chart === 'undefined') return;
-    const ctx = document.getElementById('noticesDonutCanvas');
-    if (noticeChartInst.donut) {
-      try { noticeChartInst.donut.destroy(); } catch (e) {}
-      noticeChartInst.donut = null;
-    }
-
-    noticeChartInst.donut = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['긴급/근무', '조제/투약', '인사/휴가', '기타'],
-        datasets: [{ 
-          data: [urgentCount, dispensingCount, hrCount, Math.max(0, totalCount - urgentCount - dispensingCount - hrCount)], 
-          backgroundColor: ['#f59e0b','#3b82f6','#8b5cf6','#10b981'] 
-        }]
-      },
-      options: { 
-        responsive: true, 
-        maintainAspectRatio: false, 
-        animation: false,
-        plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } } 
-      }
-    });
   }
 
   return {

@@ -197,9 +197,10 @@ window.WorklogModule = (function () {
                 <div style="font-size: 13.5px; color: #94a3b8;">새로운 전달사항이나 품절약이 있으면 상단의 [새 업무 등록]을 눌러주세요.</div>
               </div>
             ` : `
-              <div class="wl-card-list" style="display: flex !important; flex-direction: column !important; gap: 12px !important; padding: 0 !important; width: 100% !important; box-sizing: border-box !important; text-align: left !important;">
+              <div class="wl-card-list" style="display: flex !important; flex-direction: column !important; gap: 14px !important; padding: 0 !important; width: 100% !important; box-sizing: border-box !important; text-align: left !important;">
                 ${pendingTasks.map((task) => {
-                  const contentText = String(task.content || '내용 없음').split('\n').map(line => line.trim()).join('\n');
+                  const rawContent = String(task.content || '내용 없음');
+                  const cleanContent = rawContent.split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n');
                   const authorStr = String(task.authorName || '문성도');
                   const timeStr = String(formatLogDateTime(task));
                   const rawTag = String(task.tag || '메모');
@@ -224,18 +225,17 @@ window.WorklogModule = (function () {
                         </button>
                       </div>
 
-                      <!-- 2단 (본문): 100% 가로폭 시원한 좌측 0px 완벽 밀착 칼정렬 텍스트 -->
-                      <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-wrap !important; word-break: break-word !important; letter-spacing: -0.2px !important; text-align: left !important; margin: 0 !important; padding: 0 !important; width: 100% !important;">
-                        ${contentText}
+                      <!-- 2단: 전용 박스칸 (100% 좌측 0px 밀착 칼정렬) -->
+                      <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; text-align: left !important; width: 100% !important; box-sizing: border-box !important; margin: 0 !important;">
+                        <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-line !important; word-break: break-word !important; text-align: left !important; margin: 0 !important; padding: 0 !important;">${cleanContent}</div>
+                        ${task.imageUrl ? `
+                          <div style="margin-top: 10px; text-align: left !important;">
+                            <a href="${task.imageUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; color: #1d4ed8; font-size: 12.5px; font-weight: 700; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#ffffff'">
+                              <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
+                            </a>
+                          </div>
+                        ` : ''}
                       </div>
-
-                      ${task.imageUrl ? `
-                        <div style="margin-top: 2px; text-align: left !important;">
-                          <a href="${task.imageUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1d4ed8; font-size: 12.5px; font-weight: 700; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                            <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
-                          </a>
-                        </div>
-                      ` : ''}
 
                     </div>
                   `;
@@ -277,7 +277,8 @@ window.WorklogModule = (function () {
             ${sortedLogs.map(log => {
                const checkedArr = log.checkedBy || [];
                const hasChecked = currUser && checkedArr.includes(currUser.name);
-               const contentText = String(log.content || '<span style="color:#94a3b8; font-style:italic;">내용 없음</span>');
+               const rawContent = String(log.content || '내용 없음');
+               const cleanContent = rawContent.split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n');
                const authorStr = String(log.authorName || '문성도');
                const timeDisplay = String(log.createdAt || log.date || '');
                const isCompleted = log.status === 'COMPLETED';
@@ -306,40 +307,41 @@ window.WorklogModule = (function () {
                      </div>
                    </div>
 
-                   <!-- 본문 내용 -->
-                   <div style="font-family:'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:15.5px; font-weight:700; color:#1e293b; line-height:1.65; white-space:pre-wrap; word-break:break-word; text-align:left !important; margin:0; padding:0;">
-                     ${contentText}
+                   <!-- 본문 전용 박스칸 (100% 좌측 0px 밀착 칼정렬) -->
+                   <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; text-align: left !important; width: 100% !important; box-sizing: border-box !important; margin: 0 !important;">
+                     <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-line !important; word-break: break-word !important; text-align: left !important; margin: 0 !important; padding: 0 !important;">${cleanContent}</div>
+                     ${log.imageUrl ? `
+                       <div style="margin-top: 10px; text-align: left !important;">
+                         <a href="${log.imageUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; color: #1d4ed8; font-size: 12.5px; font-weight: 700; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#ffffff'">
+                           <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
+                         </a>
+                       </div>
+                     ` : ''}
                    </div>
-                   ${log.imageUrl ? `
-                     <div style="margin-top:2px;">
-                       <a href="${log.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; text-decoration:none; color:#1d4ed8; font-size:12.5px; font-weight:700; transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                         <i class="fas fa-camera"></i> 📷 첨부 사진 보기
-                       </a>
+
+                   <!-- 하단 인수인계 확인 바: 1:1 수평 완벽 배치 -->
+                   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid #f1f5f9; margin-top:2px;">
+                     <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                       <span style="font-size:12.5px; color:#64748b; font-weight:700;"><i class="fas fa-user-check me-1" style="color:#059669;"></i>인계 확인:</span>
+                       ${checkedArr.length > 0 
+                         ? checkedArr.map(n => `<span style="font-size:12px; font-weight:700; color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; padding:2px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;"><i class="fas fa-check" style="font-size:9px;"></i> ${n}</span>`).join('') 
+                         : '<span style="font-size:12px; color:#94a3b8; font-style:italic;">미확인</span>'}
                      </div>
-                   ` : ''}
-                    <!-- 하단 인수인계 확인 바: 1:1 수평 완벽 배치 -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid #f1f5f9; margin-top:2px;">
-                      <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
-                        <span style="font-size:12.5px; color:#64748b; font-weight:700;"><i class="fas fa-user-check me-1" style="color:#059669;"></i>인계 확인:</span>
-                        ${checkedArr.length > 0 
-                          ? checkedArr.map(n => `<span style="font-size:12px; font-weight:700; color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; padding:2px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;"><i class="fas fa-check" style="font-size:9px;"></i> ${n}</span>`).join('') 
-                          : '<span style="font-size:12px; color:#94a3b8; font-style:italic;">미확인</span>'}
-                      </div>
-                      
-                      <button type="button" onclick="WorklogModule.checkTask('${log.id}')" 
-                              style="border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:800; height:32px; display:inline-flex; align-items:center; justify-content:center; gap:5px; transition:all 0.2s; 
-                              ${hasChecked 
-                                ? 'background:#f1f5f9; color:#94a3b8; border:1px solid #cbd5e1; cursor:not-allowed;' 
-                                : 'background:#2563eb; color:#ffffff; border:none; box-shadow:0 2px 6px rgba(37,99,235,0.25); cursor:pointer;'}"
-                              ${hasChecked ? 'disabled' : ''}>
-                        ${hasChecked ? '<i class="fas fa-check-double"></i> 내 확인 완료' : '<i class="fas fa-check"></i> 확인 완료'}
-                      </button>
-                    </div>
+                     
+                     <button type="button" onclick="WorklogModule.checkTask('${log.id}')" 
+                             style="border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:800; height:32px; display:inline-flex; align-items:center; justify-content:center; gap:5px; transition:all 0.2s; 
+                             ${hasChecked 
+                               ? 'background:#f1f5f9; color:#94a3b8; border:1px solid #cbd5e1; cursor:not-allowed;' 
+                               : 'background:#2563eb; color:#ffffff; border:none; box-shadow:0 2px 6px rgba(37,99,235,0.25); cursor:pointer;'}"
+                             ${hasChecked ? 'disabled' : ''}>
+                       ${hasChecked ? '<i class="fas fa-check-double"></i> 내 확인 완료' : '<i class="fas fa-check"></i> 확인 완료'}
+                     </button>
+                   </div>
                  </div>
-             `;
-          }).join('')}
-        </div>
-      </div>
+               `;
+            }).join('')}
+         </div>
+       </div>
 
       <!-- 신규 업무 등록 모달 (사진 첨부 포함) -->
       <div class="modal-overlay" id="worklog-create-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.7); backdrop-filter:blur(5px); z-index:99999; justify-content:center; align-items:center;">

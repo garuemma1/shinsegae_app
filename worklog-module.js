@@ -205,43 +205,37 @@ window.WorklogModule = (function () {
                   const rawTag = String(task.tag || '메모');
 
                   return `
-                    <div class="wl-premium-card" style="text-align: left !important; width: 100% !important; background: #ffffff !important; border: 1.5px solid #e2e8f0 !important; border-radius: 16px !important; padding: 16px 20px !important; box-shadow: 0 3px 10px rgba(15,23,42,0.03) !important; box-sizing: border-box !important; display: flex !important; align-items: flex-start !important; gap: 16px !important;">
+                    <div class="wl-premium-card" style="text-align: left !important; width: 100% !important; background: #ffffff !important; border: 1.5px solid #e2e8f0 !important; border-radius: 16px !important; padding: 18px 20px !important; box-shadow: 0 3px 10px rgba(15,23,42,0.03) !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; gap: 12px !important;">
                       
-                      <!-- 1열: 82px 고정 너비 태그 기둥 -->
-                      <div style="flex-shrink: 0; padding-top: 2px;">
-                        ${getFixedTagPill(rawTag)}
-                      </div>
-
-                      <!-- 2열: 본문 + 메타 정보 (100% 가변 폭, 좌측 밀착 칼정렬) -->
-                      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; text-align: left !important;">
-                        
-                        <!-- 본문 내용 (크고 선명한 15.5px 칼정렬 폰트) -->
-                        <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15.5px; font-weight: 700; color: #0f172a; line-height: 1.65; white-space: pre-wrap; word-break: break-word; letter-spacing: -0.2px; text-align: left !important; margin: 0; padding: 0;">
-                          ${contentText}
-                        </div>
-
-                        <!-- 메타 정보 바 (작성시간 + 작성자 + 사진 링크) -->
-                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: #64748b; font-weight: 600;">
-                          <span style="display: inline-flex; align-items: center; gap: 4px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 6px; font-weight: 700;">
+                      <!-- 1단 (상단 메타 바): [태그(82px)] + [🕒 작성시간] + [👤 작성자] + [✔ 완료 버튼] -->
+                      <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 8px !important; padding-bottom: 10px !important; border-bottom: 1px solid #f1f5f9 !important;">
+                        <div style="display: flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important;">
+                          ${getFixedTagPill(rawTag)}
+                          <span style="font-size: 12.5px; font-weight: 700; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 9px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
                             <i class="far fa-clock"></i> ${timeStr}
                           </span>
-                          <span style="display: inline-flex; align-items: center; gap: 4px; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 6px; font-weight: 800;">
-                            <i class="fas fa-user-circle" style="color:#64748b;"></i> ${authorStr}
+                          <span style="font-size: 13px; font-weight: 800; color: #1e293b; display: inline-flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 9px; border-radius: 6px;">
+                            <i class="fas fa-user-circle" style="color: #64748b;"></i> ${authorStr}
                           </span>
-                          ${task.imageUrl ? `
-                            <a href="${task.imageUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:2px 10px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; color:#1d4ed8; font-size:12px; font-weight:700; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.03);" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                              <i class="fas fa-camera"></i> 📷 첨부 사진 보기
-                            </a>
-                          ` : ''}
                         </div>
-                      </div>
 
-                      <!-- 3열: 오른쪽 완료 버튼 -->
-                      <div style="flex-shrink: 0; padding-top: 2px;">
-                        <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background:#10b981; color:#ffffff; border:none; border-radius:10px; font-size:13px; font-weight:800; padding:8px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(16,185,129,0.25); white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                        <button type="button" onclick="WorklogModule.completeTask('${task.id}')" style="background: #10b981; color: #ffffff; border: none; border-radius: 10px; font-size: 13px; font-weight: 800; padding: 7px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(16,185,129,0.25); white-space: nowrap; transition: all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
                           <i class="fas fa-check"></i> 완료
                         </button>
                       </div>
+
+                      <!-- 2단 (본문): 100% 가로폭 시원한 좌측 0px 완벽 밀착 칼정렬 텍스트 -->
+                      <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-wrap !important; word-break: break-word !important; letter-spacing: -0.2px !important; text-align: left !important; margin: 0 !important; padding: 0 !important; width: 100% !important;">
+                        ${contentText}
+                      </div>
+
+                      ${task.imageUrl ? `
+                        <div style="margin-top: 2px; text-align: left !important;">
+                          <a href="${task.imageUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1d4ed8; font-size: 12.5px; font-weight: 700; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                            <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
+                          </a>
+                        </div>
+                      ` : ''}
 
                     </div>
                   `;

@@ -1907,11 +1907,21 @@ window.SheetsSync = (function () {
     importFullBackupJSON
   };
 
-  // 🚀 초기 로드 시 Firebase 실시간 연결 즉시 개시
+  // 🚀 초기 로드 시 Firebase 실시간 연결 즉시 개시 & 스마트 화면 복귀 동기화
   try {
     if (typeof window !== 'undefined') {
       window.addEventListener('DOMContentLoaded', initFirebase);
       initFirebase();
+
+      // 📱 스마트폰 화면을 켜거나 카톡 등 다른 앱에서 복귀 시 0.05초 만에 즉각 1회 최신화 (0바이트 대기 유지)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          pullFromCloud();
+        }
+      });
+      window.addEventListener('focus', () => {
+        pullFromCloud();
+      });
     }
   } catch(e) {}
 

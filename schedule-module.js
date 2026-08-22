@@ -1085,6 +1085,19 @@ window.ScheduleModule = (function () {
     const monthAdj = (window.SheetsSync.getOvertimeAdjustments ? window.SheetsSync.getOvertimeAdjustments() : {})[monthKey] || {};
     const pRatesMap = window.SheetsSync.getPharmacistRates ? window.SheetsSync.getPharmacistRates() : {};
 
+    // 🔗 권명주 약사님 총 시수 산출액 실시간 계산 (간영자 님 급여 자동 연동용)
+    const kwonEmpObj = employees.find(e => e.name === '권명주');
+    let kwonTotalPayroll = 0;
+    if (kwonEmpObj) {
+      const kwonShifts = allSchedules.filter(r => r.empId === kwonEmpObj.id && r.date && r.date.startsWith(monthKey));
+      const kwonRateObj = pRatesMap[kwonEmpObj.id] || {};
+      const kwonWkRate = Number(kwonEmpObj.weekdayRate) || Number(kwonEmpObj.hourlyRate) || Number(kwonRateObj.weekdayRate) || 40000;
+      const kwonHolRate = Number(kwonEmpObj.holidayRate) || Number(kwonRateObj.holidayRate) || 40000;
+      const kwonBreak = Number(kwonRateObj.breakHours) || 1.0;
+      const kwonCalc = window.LaborCalculator.calculatePharmacistPayroll(kwonShifts, kwonWkRate, kwonHolRate, kwonBreak);
+      kwonTotalPayroll = kwonCalc.totalPayroll;
+    }
+
     let html = `
       <!-- 1. 근무약사 급여 정산표 -->
       <div class="card-section mb-6">
@@ -1096,7 +1109,7 @@ window.ScheduleModule = (function () {
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; background:#eff6ff; border:1px solid #bfdbfe; border-bottom:none; color:#1e40af; padding:8px 14px; border-radius:12px 12px 0 0; font-size:12px; font-weight:bold;">
           <span><i class="fas fa-calculator"></i> 근무약사 월간 세전 급여 정산 (약국장 직접 수정 가능)</span>
-          <span style="color:#2563eb;"><i class="fas fa-arrows-alt-h"></i> 화면이 좁을 경우 좌우로 스크롤 가능</span>
+          <span style="color:#2563eb;"><i class="fas fa-arrows-alt-h"></i> 화면이좁을 경우 좌우로 스크롤 가능</span>
         </div>
         <div class="table-responsive" style="overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:0 0 14px 14px; border:1px solid #cbd5e1; width:100%; background:#fff; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
           <table class="data-table align-middle" style="width:100%; font-size:13px;">
@@ -1133,9 +1146,14 @@ window.ScheduleModule = (function () {
                 const isPublished = ps && ps.published;
                 const activeUnsettledPretax = isPublished ? 0 : pharmacistPretaxTotal;
 
+                const isKwon = p.name === '권명주';
+
                 return `
                   <tr>
-                    <td style="text-align:center; padding:10px 8px;"><strong>${p.name}</strong></td>
+                    <td style="text-align:center; padding:10px 8px;">
+                      <strong>${p.name}</strong>
+                      ${isKwon ? `<div style="font-size:9.5px; color:#7c3aed; background:#f5f3ff; border:1px solid #ddd6fe; padding:2px 4px; border-radius:4px; margin-top:3px; font-weight:700; white-space:nowrap;">🔗 세무 165만 / 잔여 간영자 연동</div>` : ''}
+                    </td>
                     <td style="text-align:center; padding:10px 8px;"><span class="badge badge-pharmacist" style="padding:4px 8px; font-size:12px;">${p.role}</span></td>
                     <td style="text-align:center; padding:10px 8px;">
                       <div style="font-size:13px; font-weight:700; color:#0f172a;">
@@ -1246,28 +1264,40 @@ window.ScheduleModule = (function () {
                 const hourlyRate = Number(s.hourlyRate) || 13000;
                 
                 const empAdj = monthAdj[s.id] || {};
-                const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
+                let mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
                 const overtimePay = Number(empAdj.overtimePay || 0);
                 const deductionPay = Number(empAdj.deductionPay || 0);
 
-                const baseSal = Number(s.baseMonthlySalary) || 2717000;
+                const isKan = s.name.includes('간영자') || s.name.includes('간명자');
+                let baseSal = Number(s.baseMonthlySalary) || 2717000;
+
+                // 🔗 간영자 님: 권명주 약사님 총시수 산출액 - 165만원 연동
+                if (isKan && kwonTotalPayroll > 0) {
+                  const kanTotalWithMeal = Math.max(0, kwonTotalPayroll - 1650000);
+                  baseSal = Math.max(0, kanTotalWithMeal - 100000);
+                  mealAlw = 100000;
+                }
+
                 const adjustedPretaxTotal = baseSal + mealAlw + overtimePay - deductionPay;
 
                 const ps = monthPaystubs[s.id];
                 const isPublished = ps && ps.published;
                 const activeUnsettledPretaxStaff = isPublished ? 0 : adjustedPretaxTotal;
 
-                const posDisplay = (s.position && s.position !== 'undefined' && s.position !== '') ? s.position : (
+                const posDisplay = isKan ? '매장관리' : ((s.position && s.position !== 'undefined' && s.position !== '') ? s.position : (
                   s.name === '이승학' ? '조제실 및 전산' :
                   s.name === '김제희' ? '조제실 일반전산' :
                   s.name === '윤세라' ? '조제실 서포트' :
                   s.name === '김배영' ? '매장관리 및 서포트' :
                   (s.role || '일반직원')
-                );
+                ));
 
                 return `
                   <tr>
-                    <td style="text-align:center; padding:10px 8px;"><strong>${s.name}</strong></td>
+                    <td style="text-align:center; padding:10px 8px;">
+                      <strong>${s.name}</strong>
+                      ${isKan ? `<div style="font-size:9.5px; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:2px 4px; border-radius:4px; margin-top:3px; font-weight:700; white-space:nowrap;">🔗 권명주 연동 (${(kwonTotalPayroll/10000).toFixed(0)}만 - 165만)</div>` : ''}
+                    </td>
                     <td style="text-align:center; padding:10px 8px;"><span class="badge badge-staff" style="padding:4px 8px; font-size:12px;">${posDisplay}</span></td>
                     <td style="text-align:right; padding:10px 12px; white-space:nowrap;">
                       <strong style="color:#15803d; font-size:14px; font-family:'Outfit', sans-serif;">${baseSal.toLocaleString()}</strong>
@@ -1702,6 +1732,19 @@ window.ScheduleModule = (function () {
     const monthAdj = allAdjustments[monthKey] || {};
     const pRatesMap = window.SheetsSync.getPharmacistRates ? window.SheetsSync.getPharmacistRates() : {};
 
+    // 🔗 권명주 약사님 총 시수 산출액 계산 (간영자 님 급여 자동 연동용)
+    const kwonEmp = (data.employees || []).find(e => e.name === '권명주');
+    let kwonTotalPayroll = 0;
+    if (kwonEmp) {
+      const kwonShifts = scheduleRecords.filter(r => r.empId === kwonEmp.id && r.date && r.date.startsWith(monthKey));
+      const kwonRateObj = pRatesMap[kwonEmp.id] || {};
+      const kwonWkRate = Number(kwonEmp.weekdayRate) || Number(kwonEmp.hourlyRate) || Number(kwonRateObj.weekdayRate) || 40000;
+      const kwonHolRate = Number(kwonEmp.holidayRate) || Number(kwonRateObj.holidayRate) || 40000;
+      const kwonBreak = Number(kwonRateObj.breakHours) || 1.0;
+      const kwonCalc = window.LaborCalculator.calculatePharmacistPayroll(kwonShifts, kwonWkRate, kwonHolRate, kwonBreak);
+      kwonTotalPayroll = kwonCalc.totalPayroll;
+    }
+
     let report = `<${currentMonth}월 급여>\n\n정규직\n\n`;
 
     employees.forEach(emp => {
@@ -1710,21 +1753,27 @@ window.ScheduleModule = (function () {
       const overtimePay = Number(empAdj.overtimePay || 0);
       const deductionPay = Number(empAdj.deductionPay || 0);
 
-      let mealText = '';
-      if (mealAlw > 0) {
-        if (mealAlw % 10000 === 0) {
-          mealText = ` +식대 ${mealAlw / 10000}만`;
-        } else {
-          mealText = ` +식대 ${mealAlw.toLocaleString()}원`;
-        }
-      }
-
       if (emp.name === '이승학') {
         const mealPart = mealAlw > 0 ? (mealAlw % 10000 === 0 ? `${mealAlw / 10000}만` : `${mealAlw.toLocaleString()}원`) : '15만';
         report += `${emp.name} 세후249만 (식대포함${mealPart})\n\n`;
+      } else if (emp.name === '권명주') {
+        report += `권명주 세전 155만 +식대 10만\n\n`;
+      } else if (emp.name.includes('간영자') || emp.name.includes('간명자')) {
+        const kanTotalWithMeal = Math.max(0, kwonTotalPayroll - 1650000);
+        const kanPreTaxBase = Math.max(0, kanTotalWithMeal - 100000);
+        report += `간영자 세전 ${kanPreTaxBase.toLocaleString()}원 +식대 10만\n\n`;
       } else {
         const isPharmacist = emp.role && emp.role.includes('약사');
         let pretaxTotal = 0;
+
+        let mealText = '';
+        if (mealAlw > 0) {
+          if (mealAlw % 10000 === 0) {
+            mealText = ` +식대 ${mealAlw / 10000}만`;
+          } else {
+            mealText = ` +식대 ${mealAlw.toLocaleString()}원`;
+          }
+        }
 
         if (isPharmacist) {
           const empShifts = scheduleRecords.filter(r => r.empId === emp.id && r.date && r.date.startsWith(monthKey));

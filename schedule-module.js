@@ -267,8 +267,10 @@ window.ScheduleModule = (function () {
           </div>
         </div>
       ` : ''}
-      <!-- 📋 약국장 전용: 전 직원 신청 근무 스케줄 상세 내역 (날짜·요일·신청시간·실근무시수) -->
-      ${(currUser && currUser.role === '약국장') ? renderDirectorSubmittedDetailsCard(currentYear, currentMonth, employees, scheduleRecords) : ''}
+      <!-- 📋 약국장: 전 직원 신청 상세 내역 / 일반 직원: 본인 신청 상세 내역 (날짜·요일·신청시간·실근무시수) -->
+      ${(currUser && currUser.role === '약국장') 
+        ? renderDirectorSubmittedDetailsCard(currentYear, currentMonth, employees, scheduleRecords) 
+        : renderStaffPersonalSubmittedDetailsCard(currentYear, currentMonth, currUser, scheduleRecords)}
 
       <!-- 📦 2번 통합 박스: 약국장 전용 세무사 제출용 집계표 & 세후 통합명세서 교부 센터 -->
       ${(currUser && currUser.role === '약국장') ? `
@@ -674,6 +676,111 @@ window.ScheduleModule = (function () {
               `;
             }).join('')}
           </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderStaffPersonalSubmittedDetailsCard(year, month, currUser, scheduleRecords) {
+    if (!currUser) return '';
+
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+    const empRecords = (scheduleRecords || []).filter(r => r.empId === currUser.id && r.date && r.date.startsWith(monthKey) && r.shift !== 'OFF');
+    empRecords.sort((a, b) => a.date.localeCompare(b.date));
+
+    let totalNetHours = 0;
+    let weekdayHours = 0;
+    let holidayHours = 0;
+
+    const list = empRecords.map(rec => {
+      const d = new Date(rec.date);
+      const dayOfWeek = dayNames[d.getDay()];
+      const multInfo = window.LaborCalculator ? window.LaborCalculator.getDateMultiplierInfo(rec.date) : { isHoliday: false };
+      const isSun = d.getDay() === 0;
+      const isSat = d.getDay() === 6;
+      const isWeekendOrHoliday = isSun || isSat || multInfo.isHoliday;
+
+      const recBreak = (rec.breakHours !== undefined && rec.breakHours !== null && !isNaN(rec.breakHours)) ? Number(rec.breakHours) : 1.0;
+      const netH = window.LaborCalculator.calculateShiftNetHours(rec.startTime, rec.endTime, rec.shift, recBreak);
+      totalNetHours += netH;
+      if (isWeekendOrHoliday) {
+        holidayHours += netH;
+      } else {
+        weekdayHours += netH;
+      }
+
+      return {
+        date: rec.date,
+        dayOfWeek,
+        shift: rec.shift,
+        startTime: rec.startTime || '09:00',
+        endTime: rec.endTime || '18:00',
+        breakHours: recBreak,
+        netHours: netH
+      };
+    });
+
+    totalNetHours = Math.round(totalNetHours * 10) / 10;
+    weekdayHours = Math.round(weekdayHours * 10) / 10;
+    holidayHours = Math.round(holidayHours * 10) / 10;
+
+    return `
+      <div class="card mb-4 shadow-sm" style="border-radius:18px; border:1.5px solid #bfdbfe; background:#ffffff; overflow:hidden;">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); color:#ffffff; padding:16px 22px;">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-primary font-bold" style="padding:6px 12px; font-size:12.5px; border-radius:8px;">👤 ${currUser.name} 님 전용</span>
+            <h3 style="font-size:16.5px; font-weight:800; margin:0; color:#ffffff;">
+              📋 ${month}월 본인 신청 근무 스케줄 상세 내역 (날짜·요일·시간·실근무시수)
+            </h3>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+            <span style="font-size:13px; color:#e0e7ff; white-space:nowrap;">신청 근무일수: <strong style="color:#ffffff;">${list.length}일</strong></span>
+            <span style="font-size:13px; color:#1e40af; font-weight:800; background:#ffffff; padding:4px 12px; border-radius:8px; white-space:nowrap; display:inline-block;">
+              ⏱️ 당월 총시수: <strong>${totalNetHours}h</strong> <span style="font-size:12px; color:#475569; font-weight:600; margin-left:4px;">(평일: <strong style="color:#2563eb;">${weekdayHours}h</strong> / 주말·공휴: <strong style="color:#dc2626;">${holidayHours}h</strong>)</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          ${list.length === 0 ? `
+            <div class="p-4 text-center text-muted" style="font-size:13.5px;">
+              <i class="fas fa-calendar-times mb-2" style="font-size:24px; color:#94a3b8; display:block;"></i>
+              등록된 본인의 근무 신청 내역이 없습니다. (상단 달력에서 <strong>[+ 스케줄 기입]</strong>을 눌러 근무 일정을 등록해주세요.)
+            </div>
+          ` : `
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0" style="font-size:13px;">
+                <thead style="background:#f1f5f9; color:#334155;">
+                  <tr>
+                    <th style="text-align:center; padding:10px 12px; width:130px; white-space:nowrap;">근무 일자</th>
+                    <th style="text-align:center; padding:10px 8px; width:80px; white-space:nowrap;">요일</th>
+                    <th style="text-align:center; padding:10px 12px; width:180px; white-space:nowrap;">신청 출퇴근 시간</th>
+                    <th style="text-align:center; padding:10px 10px; width:150px; white-space:nowrap;">휴게시간 차감</th>
+                    <th style="text-align:right; padding:10px 18px; width:130px; white-space:nowrap;">실근무 시수</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${list.map(r => `
+                    <tr>
+                      <td style="text-align:center; font-weight:700; color:#1e293b; white-space:nowrap;">${r.date}</td>
+                      <td style="text-align:center; white-space:nowrap;">
+                        <span class="${r.dayOfWeek === '일' ? 'text-danger font-bold' : (r.dayOfWeek === '토' ? 'text-primary font-bold' : 'text-dark')}">
+                          ${r.dayOfWeek}요일
+                        </span>
+                      </td>
+                      <td style="text-align:center; font-weight:700; color:#2563eb; white-space:nowrap;">${r.startTime} ~ ${r.endTime}</td>
+                      <td style="text-align:center; color:#475569; white-space:nowrap;">
+                        ${r.breakHours === 0.5 ? '<span class="badge bg-warning text-dark" style="font-size:11.5px; padding:4px 8px;">⏱️ 30분</span>' : (r.breakHours === 0 ? '<span class="badge bg-success" style="font-size:11.5px; padding:4px 8px;">⚡ 0시간 (차감없음)</span>' : '<span class="badge bg-light text-dark" style="border:1px solid #cbd5e1; font-size:11.5px; padding:4px 8px;">☕ 1시간</span>')}
+                      </td>
+                      <td style="text-align:right; font-weight:800; color:#15803d; padding-right:18px; white-space:nowrap;">${r.netHours}시간</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
         </div>
       </div>
     `;

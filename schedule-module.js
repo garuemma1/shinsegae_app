@@ -1063,7 +1063,14 @@ window.ScheduleModule = (function () {
     const isDirector = currUser && currUser.role === '약국장';
 
     const pharmacists = employees.filter(e => (e.role === '근무약사' || (e.role.includes('약사') && e.role !== '약국장')) && e.role !== '예비인력' && e.name !== '이정은' && e.name !== '주찬양');
-    const staffMembers = employees.filter(e => !e.role.includes('약사') && e.role !== '약국장' && e.role !== '예비인력' && e.name !== '이정은');
+    const staffMembers = employees.filter(e => {
+      if (!e || !e.name) return false;
+      if (e.role.includes('약사') || e.role === '약국장') return false;
+      if (e.name.includes('이정은') || e.name.includes('테스트')) return false;
+      // 예비인력 중 '간영자' / '간명자' 님은 일반직원 급여 정산표에 기본 등재!
+      if (e.name.includes('간영자') || e.name.includes('간명자')) return true;
+      return e.role !== '예비인력';
+    });
 
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     let allSchedules = scheduleRecords || [];
@@ -1688,7 +1695,7 @@ window.ScheduleModule = (function () {
 
   function exportTaxAccountantReport() {
     const data = window.SheetsSync.getData();
-    const employees = (data.employees || []).filter(e => e.role !== '약국장' && e.role !== '예비인력' && e.name !== '이정은');
+    const employees = (data.employees || []).filter(e => e.role !== '약국장' && e.name !== '이정은' && e.name !== '주찬양' && (e.role !== '예비인력' || e.name.includes('간영자') || e.name.includes('간명자')));
     const scheduleRecords = data.schedule || [];
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
     const allAdjustments = window.SheetsSync.getOvertimeAdjustments ? window.SheetsSync.getOvertimeAdjustments() : {};

@@ -452,9 +452,17 @@ window.ScheduleModule = (function () {
             }
           }
         });
-        // 일요일이 아닌데 약사가 1명 이하면 경고
-        if (!isSun && workingPharmacistCount <= 1) {
-          isWarning = true;
+        // 공휴일 및 일요일은 약사 1명 이상이면 정상 (0명일 때만 경고)
+        // 평일/토요일은 약사 1명 이하(0~1명)일 때 경고
+        const isHolidayOrSun = isSun || multInfo.isHoliday;
+        if (isHolidayOrSun) {
+          if (workingPharmacistCount < 1) {
+            isWarning = true;
+          }
+        } else {
+          if (workingPharmacistCount <= 1) {
+            isWarning = true;
+          }
         }
       }
 
@@ -540,12 +548,26 @@ window.ScheduleModule = (function () {
       empRecords.sort((a, b) => a.date.localeCompare(b.date));
 
       let totalNetHours = 0;
+      let weekdayHours = 0;
+      let holidayHours = 0;
+
       const list = empRecords.map(rec => {
         const d = new Date(rec.date);
         const dayOfWeek = dayNames[d.getDay()];
+        const multInfo = window.LaborCalculator ? window.LaborCalculator.getDateMultiplierInfo(rec.date) : { isHoliday: false };
+        const isSun = d.getDay() === 0;
+        const isSat = d.getDay() === 6;
+        const isWeekendOrHoliday = isSun || isSat || multInfo.isHoliday;
+
         const recBreak = (rec.breakHours !== undefined && rec.breakHours !== null && !isNaN(rec.breakHours)) ? Number(rec.breakHours) : 1.0;
         const netH = window.LaborCalculator.calculateShiftNetHours(rec.startTime, rec.endTime, rec.shift, recBreak);
         totalNetHours += netH;
+        if (isWeekendOrHoliday) {
+          holidayHours += netH;
+        } else {
+          weekdayHours += netH;
+        }
+
         return {
           date: rec.date,
           dayOfWeek,
@@ -560,7 +582,9 @@ window.ScheduleModule = (function () {
       return {
         emp,
         records: list,
-        totalNetHours: Math.round(totalNetHours * 10) / 10
+        totalNetHours: Math.round(totalNetHours * 10) / 10,
+        weekdayHours: Math.round(weekdayHours * 10) / 10,
+        holidayHours: Math.round(holidayHours * 10) / 10
       };
     });
 
@@ -602,7 +626,7 @@ window.ScheduleModule = (function () {
                         <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
                           <span style="font-size:13px; color:#475569; white-space:nowrap;">신청 근무일수: <strong style="color:#0f172a;">${item.records.length}일</strong></span>
                           <span style="font-size:13px; color:#1d4ed8; font-weight:800; background:#eff6ff; padding:4px 12px; border-radius:8px; border:1px solid #bfdbfe; white-space:nowrap; display:inline-block;">
-                            ⏱️ 당월 신청 총시수: ${item.totalNetHours}h
+                            ⏱️ 당월 신청 총시수: <strong>${item.totalNetHours}h</strong> <span style="font-size:12px; color:#475569; font-weight:600; margin-left:4px;">(평일: <strong style="color:#2563eb;">${item.weekdayHours}h</strong> / 주말·공휴: <strong style="color:#dc2626;">${item.holidayHours}h</strong>)</span>
                           </span>
                         </div>
                       </div>
@@ -617,12 +641,11 @@ window.ScheduleModule = (function () {
                           <table class="table table-sm table-striped align-middle mb-0" style="font-size:13px;">
                             <thead style="background:#f1f5f9; color:#334155;">
                               <tr>
-                                <th style="text-align:center; padding:10px 12px; width:120px; white-space:nowrap;">근무 일자</th>
-                                <th style="text-align:center; padding:10px 8px; width:70px; white-space:nowrap;">요일</th>
-                                <th style="text-align:center; padding:10px 10px; width:90px; white-space:nowrap;">근무 조</th>
-                                <th style="text-align:center; padding:10px 12px; width:160px; white-space:nowrap;">신청 출퇴근 시간</th>
-                                <th style="text-align:center; padding:10px 10px; width:140px; white-space:nowrap;">휴게시간 차감</th>
-                                <th style="text-align:right; padding:10px 16px; width:120px; white-space:nowrap;">실근무 시수</th>
+                                <th style="text-align:center; padding:10px 12px; width:130px; white-space:nowrap;">근무 일자</th>
+                                <th style="text-align:center; padding:10px 8px; width:80px; white-space:nowrap;">요일</th>
+                                <th style="text-align:center; padding:10px 12px; width:180px; white-space:nowrap;">신청 출퇴근 시간</th>
+                                <th style="text-align:center; padding:10px 10px; width:150px; white-space:nowrap;">휴게시간 차감</th>
+                                <th style="text-align:right; padding:10px 18px; width:130px; white-space:nowrap;">실근무 시수</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -634,12 +657,11 @@ window.ScheduleModule = (function () {
                                       ${r.dayOfWeek}요일
                                     </span>
                                   </td>
-                                  <td style="text-align:center; white-space:nowrap;"><span class="badge bg-secondary" style="font-size:11px; padding:4px 8px;">${r.shift}조</span></td>
                                   <td style="text-align:center; font-weight:700; color:#2563eb; white-space:nowrap;">${r.startTime} ~ ${r.endTime}</td>
                                   <td style="text-align:center; color:#475569; white-space:nowrap;">
                                     ${r.breakHours === 0.5 ? '<span class="badge bg-warning text-dark" style="font-size:11.5px; padding:4px 8px;">⏱️ 30분</span>' : (r.breakHours === 0 ? '<span class="badge bg-success" style="font-size:11.5px; padding:4px 8px;">⚡ 0시간 (차감없음)</span>' : '<span class="badge bg-light text-dark" style="border:1px solid #cbd5e1; font-size:11.5px; padding:4px 8px;">☕ 1시간</span>')}
                                   </td>
-                                  <td style="text-align:right; font-weight:800; color:#15803d; padding-right:16px; white-space:nowrap;">${r.netHours}시간</td>
+                                  <td style="text-align:right; font-weight:800; color:#15803d; padding-right:18px; white-space:nowrap;">${r.netHours}시간</td>
                                 </tr>
                               `).join('')}
                             </tbody>
@@ -933,7 +955,7 @@ window.ScheduleModule = (function () {
     const currUser = window.SheetsSync.getCurrentUser();
     const isDirector = currUser && currUser.role === '약국장';
 
-    const pharmacists = employees.filter(e => (e.role === '근무약사' || (e.role.includes('약사') && e.role !== '약국장')) && e.role !== '예비인력' && e.name !== '이정은');
+    const pharmacists = employees.filter(e => (e.role === '근무약사' || (e.role.includes('약사') && e.role !== '약국장')) && e.role !== '예비인력' && e.name !== '이정은' && e.name !== '주찬양');
     const staffMembers = employees.filter(e => !e.role.includes('약사') && e.role !== '약국장' && e.role !== '예비인력' && e.name !== '이정은');
 
     const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;

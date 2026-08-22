@@ -36,7 +36,7 @@ window.PharmacySettlementModule = (function () {
     // 1. 인건비 실시간 자동 계산 (9인 직원 정산 연동)
     let totalPayrollExpense = 0;
     const pRatesMap = window.SheetsSync.getPharmacistRates ? window.SheetsSync.getPharmacistRates() : {};
-    const payrollDetails = emps.map(emp => {
+    const payrollDetails = emps.filter(e => e && e.name !== '주찬양').map(emp => {
       const empShifts = schedule.filter(s => s.empId === emp.id);
       let payAmount = 0;
       if (emp.role === '근무약사' || (emp.role || '').includes('약사')) {

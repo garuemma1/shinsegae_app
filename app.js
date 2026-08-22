@@ -36,17 +36,6 @@ window.App = (function () {
   };
 
   function init() {
-    // 🛡️ 11인 전원 상시 보존 자동 정화 (11인 미만 캐시 즉시 복원)
-    try {
-      const raw = localStorage.getItem('ssg_employees_v1');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length < 11) {
-          localStorage.removeItem('ssg_employees_v1');
-        }
-      }
-    } catch(e) {}
-
     loadSavedTheme();
     setupEventListeners();
     updateSheetSyncBadge();

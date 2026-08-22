@@ -205,9 +205,13 @@ window.ScheduleModule = (function () {
             // ==========================================
             // 👑 1-2. 약국장 접속 시 화면 (Master Board)
             // ==========================================
-            const submitCount = employees.filter(e => statusObj[e.id] === 'SUBMITTED' || statusObj[e.id] === 'APPROVED').length;
-            const totalCount = employees.length;
-            const progressPercent = Math.round((submitCount / totalCount) * 100) || 0;
+            const targetEmployees = employees.filter(e => e.role !== '약국장' && e.name !== '이정은' && e.name !== '주찬양');
+            const submittedList = targetEmployees.filter(e => statusObj[e.id] === 'SUBMITTED' || statusObj[e.id] === 'APPROVED');
+            const unsubmittedList = targetEmployees.filter(e => statusObj[e.id] !== 'SUBMITTED' && statusObj[e.id] !== 'APPROVED');
+
+            const submitCount = submittedList.length;
+            const totalCount = targetEmployees.length;
+            const progressPercent = Math.round((submitCount / (totalCount || 1)) * 100) || 0;
             
             return `
               <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
@@ -227,8 +231,47 @@ window.ScheduleModule = (function () {
                   <span>전체 직원 제출 진행률</span>
                   <span class="text-primary">${submitCount}명 / ${totalCount}명 제출 (${progressPercent}%)</span>
                 </div>
-                <div class="progress" style="height: 12px; border-radius: 6px; background:#f1f5f9;">
+                <div class="progress" style="height: 12px; border-radius: 6px; background:#f1f5f9; margin-bottom:14px;">
                   <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: ${progressPercent}%"></div>
+                </div>
+
+                <!-- 👥 제출 상태별 직원 명단 카드 -->
+                <div class="p-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px;">
+                  <div class="row g-3">
+                    <!-- 1. 제출 완료 명단 -->
+                    <div class="col-md-6">
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-success font-bold" style="font-size:11.5px; padding:4px 9px; border-radius:6px;">
+                          <i class="fas fa-check-circle me-1"></i> 🟢 제출 완료 (${submittedList.length}명)
+                        </span>
+                      </div>
+                      <div class="d-flex flex-wrap gap-1">
+                        ${submittedList.length === 0 ? '<span class="text-muted" style="font-size:12px;">아직 제출한 직원이 없습니다.</span>' : submittedList.map(e => `
+                          <span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:6px 10px; font-size:12px; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+                            <strong>${e.name}</strong> <span style="font-size:11px; opacity:0.85;">(${e.role})</span>
+                            <i class="fas fa-check-circle text-success" style="font-size:10px;"></i>
+                          </span>
+                        `).join('')}
+                      </div>
+                    </div>
+
+                    <!-- 2. 미제출 / 작성중 명단 -->
+                    <div class="col-md-6">
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-warning text-dark font-bold" style="font-size:11.5px; padding:4px 9px; border-radius:6px;">
+                          <i class="fas fa-clock me-1"></i> ⏳ 미제출 · 작성중 (${unsubmittedList.length}명)
+                        </span>
+                      </div>
+                      <div class="d-flex flex-wrap gap-1">
+                        ${unsubmittedList.length === 0 ? '<span class="text-success font-bold" style="font-size:12px;">🎉 모든 직원이 제출을 완료했습니다!</span>' : unsubmittedList.map(e => `
+                          <span class="badge" style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:6px 10px; font-size:12px; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+                            <strong>${e.name}</strong> <span style="font-size:11px; opacity:0.85;">(${e.role})</span>
+                            <i class="fas fa-pencil-alt text-warning" style="font-size:10px;"></i>
+                          </span>
+                        `).join('')}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               

@@ -624,10 +624,18 @@ class PharmacyStore {
   getDaily(yymm, day) {
     const key = this.getDailyKey(yymm, day);
     if (!this.dailyRecords[key]) {
+      let defaultPrevCash = 600000;
+      if (Number(day) > 1) {
+        const prevDayKey = this.getDailyKey(yymm, Number(day) - 1);
+        if (this.dailyRecords[prevDayKey] && this.dailyRecords[prevDayKey].prevCash) {
+          defaultPrevCash = this.dailyRecords[prevDayKey].prevCash;
+        }
+      }
+
       const initial = {
         yymm: yymm,
-        day: day,
-        prevCash: 600000,
+        day: Number(day),
+        prevCash: defaultPrevCash,
         cashSales: 0,
         cardSales: 0,
         rxSales: 0,
@@ -648,7 +656,21 @@ class PharmacyStore {
       this.dailyRecords[key] = initial;
     }
 
-    return this.calculateDaily(this.dailyRecords[key]);
+    const calculated = this.calculateDaily(this.dailyRecords[key]);
+    this.dailyRecords[key] = calculated;
+    return this.dailyRecords[key];
+  }
+
+  updateDailyField(yymm, day, field, value) {
+    const key = this.getDailyKey(yymm, day);
+    if (!this.dailyRecords[key]) {
+      this.getDaily(yymm, day);
+    }
+    this.dailyRecords[key][field] = value;
+    const calculated = this.calculateDaily(this.dailyRecords[key]);
+    this.dailyRecords[key] = calculated;
+    this.saveToLocal();
+    return calculated;
   }
 
   calculateDaily(record) {
@@ -1429,7 +1451,7 @@ const UI = {
             </div>
             <div class="text-right">
               <span class="text-[10px] text-slate-400 block mb-0.5">현금(D5)+카드(D9)+이체(I5)+잡비(L5)</span>
-              <span class="text-2xl font-black text-blue-400 tracking-tight">₩${window.store.formatMoney(rec.totalSales)}</span>
+              <span id="disp-daily-total-sales" class="text-2xl font-black text-blue-400 tracking-tight">₩${window.store.formatMoney(rec.totalSales)}</span>
             </div>
           </div>
 
@@ -1460,21 +1482,19 @@ const UI = {
           <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80 space-y-3">
             <div class="flex justify-between items-center text-xs">
               <span class="text-slate-300 font-bold">1. 장부 계산 매약매출 (G5 = E5 - F5):</span>
-              <span class="text-base font-black text-amber-400">₩${window.store.formatMoney(rec.otcSales)}</span>
+              <span id="disp-daily-otc-sales" class="text-base font-black text-amber-400">₩${window.store.formatMoney(rec.otcSales)}</span>
             </div>
             <div class="flex justify-between items-center text-xs gap-3">
               <label class="text-slate-400">2. 포스기 일반약 마감 금액:</label>
               <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.posOtcSales)}" oninput="UI.handleDailyChange('posOtcSales', this)" class="w-40 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-right font-bold text-white outline-none focus:border-amber-400" placeholder="0"/>
             </div>
-            ${rec.posOtcSales > 0 ? `
-              <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
-                <span class="text-slate-400 font-medium">매약 대조 차액 (장부 - 포스):</span>
-                <span class="font-extrabold ${rec.otcDifference === 0 ? 'text-emerald-400' : rec.otcDifference > 0 ? 'text-amber-400' : 'text-rose-400'}">
-                  ${rec.otcDifference > 0 ? '+' : ''}₩${window.store.formatMoney(rec.otcDifference)}
-                  ${rec.otcDifference === 0 ? ' (완벽 일치)' : ' (차액 발생)'}
-                </span>
-              </div>
-            ` : ''}
+            <div id="disp-daily-otc-diff-wrapper" class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs" style="${rec.posOtcSales > 0 ? 'display:flex;' : 'display:none;'}">
+              <span class="text-slate-400 font-medium">매약 대조 차액 (장부 - 포스):</span>
+              <span id="disp-daily-otc-diff" class="font-extrabold ${rec.otcDifference === 0 ? 'text-emerald-400' : (rec.otcDifference > 0 ? 'text-amber-400' : 'text-rose-400')}">
+                ${rec.otcDifference > 0 ? '+' : ''}₩${window.store.formatMoney(rec.otcDifference)}
+                ${rec.otcDifference === 0 ? ' (완벽 일치)' : ' (차액 발생)'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -1540,48 +1560,51 @@ const UI = {
 
             <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
               <span class="text-slate-400 font-bold">당일 온라인몰 카드즉시결제 소계:</span>
-              <span class="text-sm font-black text-purple-400">₩${window.store.formatMoney(rec.dailyOnlineMallTotal)}</span>
+              <span id="disp-daily-online-total" class="text-sm font-black text-purple-400">₩${window.store.formatMoney(rec.dailyOnlineMallTotal)}</span>
             </div>
           </div>
         </div>
 
-        <!-- 3. 마감 시재 & 통장 입금방식 정산 -->
+        <!-- 3. 내일 남겨둘 잔돈 시재 & 결산 저장 -->
         <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-3">
-            <i data-lucide="vault" class="w-4 h-4 text-emerald-400"></i>
-            <span>마감 시재 & 통장 입금방식 정산</span>
-          </h2>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <i data-lucide="vault" class="w-4 h-4 text-emerald-400"></i>
+              <span>내일 남겨둘 잔돈 시재 (이월시재 B열)</span>
+            </h2>
+            <span class="text-[11px] text-slate-400 font-normal">자율 지정</span>
+          </div>
 
           <div class="space-y-3 text-xs">
-            <div class="space-y-1">
-              <label class="text-emerald-400 block font-bold">1. 금고 실제 총 보유 현금 (직접 세어 입력):</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.actualCash)}" oninput="UI.handleDailyChange('actualCash', this)" class="w-full bg-slate-950 border border-emerald-500/60 rounded-xl p-3 text-right text-lg font-black text-emerald-400 outline-none focus:border-emerald-400" placeholder="0"/>
+            <!-- 빠른 금액 선택 버튼 -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px] text-slate-400 font-bold mr-1">빠른 선택:</span>
+              <button type="button" onclick="UI.setPrevCashPreset(600000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
+                60만
+              </button>
+              <button type="button" onclick="UI.setPrevCashPreset(700000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
+                70만
+              </button>
+              <button type="button" onclick="UI.setPrevCashPreset(800000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
+                80만
+              </button>
+              <button type="button" onclick="UI.setPrevCashPreset(1000000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
+                100만
+              </button>
             </div>
 
-            <div class="flex justify-between items-center py-2 bg-slate-950/60 px-3 rounded-xl border border-slate-800/80">
-              <span class="text-slate-400">내일 남겨둘 잔돈 시재:</span>
-              <span class="font-bold text-white">₩${window.store.formatMoney(rec.prevCash)}</span>
+            <div class="space-y-1.5">
+              <label class="text-slate-300 block font-medium">내일 남겨둘 금고 잔돈 시재 (직접 입력 가능):</label>
+              <input type="text" id="input-daily-prev-cash" inputmode="numeric" value="${window.store.formatMoney(rec.prevCash)}" oninput="UI.handleDailyChange('prevCash', this)" class="w-full bg-slate-950 border border-emerald-500/60 rounded-xl p-3 text-right text-lg font-black text-emerald-400 outline-none focus:border-emerald-400" placeholder="600,000"/>
             </div>
-
-            <div class="p-3 bg-amber-950/20 border border-amber-500/30 rounded-xl flex justify-between items-center">
-              <div>
-                <span class="text-xs text-amber-300 font-bold block">오늘 통장에 입금할 현금:</span>
-                <span class="text-[10px] text-slate-400">금고 총액 - 내일 시재 60만 원</span>
-              </div>
-              <span class="text-lg font-black text-amber-400">₩${window.store.formatMoney(rec.cashWithdrawal)}</span>
-            </div>
-
-            <div class="flex justify-between items-center pt-2 text-xs border-t border-slate-800">
-              <span class="text-slate-400">시재 과부족 오차 (실제 - 장부장산):</span>
-              <span class="font-extrabold ${rec.cashDifference === 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                ${rec.cashDifference === 0 ? '✓ 시재 잔액 일치 (오차 0원)' : `오차 발생: ₩${window.store.formatMoney(rec.cashDifference)}`}
-              </span>
-            </div>
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+              💡 오늘 마감 시 지정한 시재 금액이 구글 시트 B열에 저장되며, 다음날 영업 개시 시재로 연동됩니다.
+            </p>
           </div>
 
           <!-- 일일 정산 저장 버튼 -->
-          <div class="pt-3">
-            <button onclick="UI.saveCurrentDaily()" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm shadow-lg flex items-center justify-center gap-2 transition">
+          <div class="pt-2">
+            <button onclick="UI.saveCurrentDaily()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-xl text-sm shadow-lg flex items-center justify-center gap-2 transition active:scale-[0.99]">
               <i data-lucide="save" class="w-4 h-4"></i>
               <span>${day}일 결산 저장 (구글 시트 동기화)</span>
             </button>
@@ -1607,15 +1630,76 @@ const UI = {
     `;
   },
 
+  setPrevCashPreset(amount) {
+    const yymm = window.store.currentYYMM;
+    const day = this.selectedDay;
+    const rec = window.store.updateDailyField(yymm, day, 'prevCash', amount);
+    const inputEl = document.getElementById('input-daily-prev-cash');
+    if (inputEl) inputEl.value = window.store.formatMoney(amount);
+    this.updateDailyRealtimeDisplays(rec);
+  },
+
   handleDailyChange(field, inputOrVal) {
     const isEl = typeof inputOrVal === 'object' && inputOrVal !== null;
     const num = isEl ? this.formatCurrencyInput(inputOrVal) : window.store.parseMoney(inputOrVal);
     const yymm = window.store.currentYYMM;
     const day = this.selectedDay;
-    const rec = window.store.getDaily(yymm, day);
-    rec[field] = num;
-    window.store.calculateDaily(rec);
-    window.store.saveToLocal();
+    const rec = window.store.updateDailyField(yymm, day, field, num);
+    this.updateDailyRealtimeDisplays(rec);
+  },
+
+  updateDailyRealtimeDisplays(rec) {
+    if (!rec) return;
+
+    // 1. 당일 총매출
+    const totalSalesEl = document.getElementById('disp-daily-total-sales');
+    if (totalSalesEl) totalSalesEl.textContent = `₩${window.store.formatMoney(rec.totalSales)}`;
+
+    // 2. 매약매출
+    const otcSalesEl = document.getElementById('disp-daily-otc-sales');
+    if (otcSalesEl) otcSalesEl.textContent = `₩${window.store.formatMoney(rec.otcSales)}`;
+
+    // 3. 매약 대조 차액
+    const otcDiffWrapper = document.getElementById('disp-daily-otc-diff-wrapper');
+    const otcDiffEl = document.getElementById('disp-daily-otc-diff');
+    if (otcDiffWrapper && otcDiffEl) {
+      if (rec.posOtcSales > 0) {
+        otcDiffWrapper.style.display = 'flex';
+        otcDiffEl.className = `font-extrabold ${rec.otcDifference === 0 ? 'text-emerald-400' : (rec.otcDifference > 0 ? 'text-amber-400' : 'text-rose-400')}`;
+        otcDiffEl.textContent = `${rec.otcDifference > 0 ? '+' : ''}₩${window.store.formatMoney(rec.otcDifference)}${rec.otcDifference === 0 ? ' (완벽 일치)' : ' (차액 발생)'}`;
+      } else {
+        otcDiffWrapper.style.display = 'none';
+      }
+    }
+
+    // 4. 온라인몰 소계
+    const onlineTotalEl = document.getElementById('disp-daily-online-total');
+    if (onlineTotalEl) onlineTotalEl.textContent = `₩${window.store.formatMoney(rec.dailyOnlineMallTotal)}`;
+
+    // 5. 내일 남겨둘 잔돈 시재
+    const prevCashEl = document.getElementById('disp-daily-prev-cash');
+    if (prevCashEl) prevCashEl.textContent = `₩${window.store.formatMoney(rec.prevCash)}`;
+
+    // 6. 오늘 통장에 입금할 현금
+    const cashWithdrawalEl = document.getElementById('disp-daily-cash-withdrawal');
+    if (cashWithdrawalEl) cashWithdrawalEl.textContent = `₩${window.store.formatMoney(rec.cashWithdrawal)}`;
+
+    // 7. 시재 과부족 오차
+    const cashDiffEl = document.getElementById('disp-daily-cash-diff');
+    if (cashDiffEl) {
+      if (rec.actualCash === 0) {
+        cashDiffEl.innerHTML = '<span class="text-slate-400 font-bold">금고 현금 입력 대기 중</span>';
+      } else if (rec.cashDifference === 0) {
+        cashDiffEl.className = 'font-extrabold text-emerald-400';
+        cashDiffEl.textContent = '✓ 시재 잔액 일치 (오차 0원)';
+      } else if (rec.cashDifference > 0) {
+        cashDiffEl.className = 'font-extrabold text-amber-400';
+        cashDiffEl.textContent = `+₩${window.store.formatMoney(rec.cashDifference)} (시재 남음 / 과다)`;
+      } else {
+        cashDiffEl.className = 'font-extrabold text-rose-400';
+        cashDiffEl.textContent = `-₩${window.store.formatMoney(Math.abs(rec.cashDifference))} (시재 부족 / 오차 발생)`;
+      }
+    }
   },
 
   async saveCurrentDaily() {

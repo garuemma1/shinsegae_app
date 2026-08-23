@@ -566,6 +566,22 @@ window.ScheduleModule = (function () {
     
     return gridHtml;
   }
+  function toggleEmployeeAccordion(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isShown = el.classList.contains('show') && el.style.display !== 'none';
+    const chevron = document.getElementById('chev-' + id);
+    if (isShown) {
+      el.classList.remove('show');
+      el.style.display = 'none';
+      if (chevron) chevron.className = 'fas fa-chevron-down';
+    } else {
+      el.classList.add('show');
+      el.style.display = 'block';
+      if (chevron) chevron.className = 'fas fa-chevron-up';
+    }
+  }
+
   function renderDirectorSubmittedDetailsCard(year, month, employees, scheduleRecords) {
     if (!showSubmittedDetails) {
       return `
@@ -658,12 +674,13 @@ window.ScheduleModule = (function () {
               const roleBadge = isPharmacist ? '💊 근무약사' : '💻 일반직원';
               const roleBg = isPharmacist ? '#dbeafe' : '#dcfce7';
               const roleColor = isPharmacist ? '#1e40af' : '#15803d';
+              const hasRecords = item.records.length > 0;
 
               return `
                 <div class="accordion-item mb-3" style="border:1.5px solid #e2e8f0; border-radius:14px; overflow:hidden; background:#ffffff;">
-                  <h2 class="accordion-header" id="heading-${emp.id}">
-                    <button class="accordion-button ${idx === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${emp.id}" style="background:#f8fafc; font-size:14px; font-weight:700; padding:14px 18px; box-shadow:none;">
-                      <div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2 me-3">
+                  <h2 class="accordion-header" id="heading-${emp.id}" style="margin:0;">
+                    <button class="accordion-button ${hasRecords ? '' : 'collapsed'}" type="button" onclick="ScheduleModule.toggleEmployeeAccordion('collapse-${emp.id}')" style="background:#f8fafc; font-size:14px; font-weight:700; padding:14px 18px; box-shadow:none; cursor:pointer; width:100%; border:none; text-align:left; display:block;">
+                      <div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                           <span style="font-size:15px; font-weight:800; color:#0f172a; white-space:nowrap;">👤 ${emp.name} (${emp.position || emp.role})</span>
                           <span style="background:${roleBg}; color:${roleColor}; font-size:11.5px; padding:3px 8px; border-radius:6px; font-weight:700; white-space:nowrap;">${roleBadge}</span>
@@ -673,11 +690,12 @@ window.ScheduleModule = (function () {
                           <span style="font-size:13px; color:#1d4ed8; font-weight:800; background:#eff6ff; padding:4px 12px; border-radius:8px; border:1px solid #bfdbfe; white-space:nowrap; display:inline-block;">
                             ⏱️ 당월 신청 총시수: <strong>${item.totalNetHours}h</strong> <span style="font-size:12px; color:#475569; font-weight:600; margin-left:4px;">(평일: <strong style="color:#2563eb;">${item.weekdayHours}h</strong> / 주말·공휴: <strong style="color:#dc2626;">${item.holidayHours}h</strong>)</span>
                           </span>
+                          <i id="chev-collapse-${emp.id}" class="fas ${hasRecords ? 'fa-chevron-up' : 'fa-chevron-down'}" style="color:#64748b; margin-left:8px;"></i>
                         </div>
                       </div>
                     </button>
                   </h2>
-                  <div id="collapse-${emp.id}" class="accordion-collapse collapse ${idx === 0 ? 'show' : ''}" data-bs-parent="#directorSubmittedScheduleAccordion">
+                  <div id="collapse-${emp.id}" class="accordion-collapse ${hasRecords ? 'show' : ''}" style="${hasRecords ? 'display:block;' : 'display:none;'}">
                     <div class="accordion-body p-0">
                       ${item.records.length === 0 ? `
                         <div class="p-3 text-center text-muted" style="font-size:13px;">등록된 근무 신청 내역이 없습니다. (ALL OFF)</div>
@@ -2853,6 +2871,7 @@ window.ScheduleModule = (function () {
   window.updatePharmacistRateSettings = updatePharmacistRateSettings;
   window.openMatchInspectionModal = openMatchInspectionModal;
   window.confirmMatchInspection = confirmMatchInspection;
+  window.toggleEmployeeAccordion = toggleEmployeeAccordion;
 
   const exportedModule = {
     render,
@@ -2861,6 +2880,7 @@ window.ScheduleModule = (function () {
     toggleSettlement,
     toggleCalendar,
     toggleSubmittedDetails,
+    toggleEmployeeAccordion,
     closeInlinePanel,
     showMyPaystubModal,
     showPaystubByEmpId,

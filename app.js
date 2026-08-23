@@ -566,36 +566,28 @@ window.App = (function () {
 
   function checkPendingRejectionNotice(isLoginEvent = false, targetUser = null) {
     const currUser = targetUser || window.SheetsSync.getCurrentUser();
-    if (!currUser || currUser.role === '약국장') {
-      if (isLoginEvent) {
-        alert(`🎉 반가워요, ${currUser ? currUser.name : ''} ${currUser ? currUser.role : ''}님! 성공적으로 로그인되었습니다.`);
+    if (!currUser) return;
+
+    if (isLoginEvent) {
+      if (currUser.role === '약국장') {
         switchModule('notices', true);
+      } else {
+        const data = window.SheetsSync.getData();
+        const scheduleStatus = data.scheduleStatus || {};
+        let hasMyPendingNotice = false;
+        Object.keys(scheduleStatus).forEach(mKey => {
+          const st = scheduleStatus[mKey];
+          if (st && st[currUser.id] === 'DRAFT' && (st[currUser.id + '_comment'] || st.directorComment) && !st.directorApproved) {
+            hasMyPendingNotice = true;
+          }
+        });
+
+        if (hasMyPendingNotice) {
+          switchModule('schedule', true);
+        } else {
+          switchModule('notices', true);
+        }
       }
-      return;
-    }
-
-    const data = window.SheetsSync.getData();
-    const scheduleStatus = data.scheduleStatus || {};
-
-    let pendingComment = null;
-    let pendingMonthKey = null;
-
-    Object.keys(scheduleStatus).forEach(mKey => {
-      const st = scheduleStatus[mKey];
-      if (st && st.directorComment && !st.directorApproved) {
-        pendingComment = st.directorComment;
-        pendingMonthKey = mKey;
-      }
-    });
-
-    if (pendingComment) {
-      switchModule('schedule', true);
-      setTimeout(() => {
-        alert(`🚨 [약국장 스케줄 재조율(수정) 요청 알림]\n\n💬 약국장 전달 사유: "${pendingComment}"\n\n팀원들과 위 사유를 확인하신 후, 하단 스케줄표에서 근무 시간 및 OFF를 보정하고 [스케줄 제출하기] 버튼을 다시 눌러주세요.`);
-      }, 300);
-    } else if (isLoginEvent) {
-      alert(`🎉 반가워요, ${currUser.name} ${currUser.role}님! 성공적으로 로그인되었습니다.`);
-      switchModule('notices', true);
     }
   }
 

@@ -129,20 +129,12 @@ window.ScheduleModule = (function () {
         </div>
       </div>
 
-      <!-- 🚨 약국장 스케줄 수정 요청(반려) 전달 알림 배너 (직원 계정 접속 시 상시 최상단 노출) -->
+      <!-- 🚨 약국장 스케줄 수정 요청(반려) 전달 알림 배너 (해당 직원 계정 접속 시만 노출) -->
       ${(() => {
-        let comment = statusObj.directorComment;
-        let show = statusObj.directorComment && !statusObj.directorApproved;
-        if (!show) {
-          const allSt = data.scheduleStatus || {};
-          Object.keys(allSt).forEach(k => {
-            if (allSt[k] && allSt[k].directorComment && !allSt[k].directorApproved) {
-              show = true;
-              comment = allSt[k].directorComment;
-            }
-          });
-        }
-        if (!show || !comment) return '';
+        if (!currUser || currUser.role === '약국장') return '';
+        const userComment = statusObj[currUser.id + '_comment'] || (statusObj[currUser.id] === 'DRAFT' ? statusObj.directorComment : null);
+        const isDismissed = statusObj[currUser.id + '_dismissed'];
+        if (!userComment || isDismissed || statusObj[currUser.id] === 'APPROVED') return '';
         return `
           <div class="alert mb-4" style="background:#fffbeb; border:2px solid #f59e0b; border-radius:18px; padding:18px 22px; box-shadow:0 8px 20px rgba(245,158,11,0.15);">
             <div class="d-flex align-items-center gap-3">
@@ -150,15 +142,18 @@ window.ScheduleModule = (function () {
                 <i class="fas fa-undo-alt"></i>
               </div>
               <div style="flex:1;">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                  <span class="badge bg-warning text-dark font-bold" style="font-size:12px; padding:4px 10px; border-radius:10px;">🚨 약국장 스케줄 재조율(수정) 요청 알림</span>
-                  <span style="font-size:12px; color:#b45309; font-weight:700;">(${currentMonth}월 근무 스케줄)</span>
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-warning text-dark font-bold" style="font-size:12px; padding:4px 10px; border-radius:10px;">🚨 약국장 스케줄 재조율(수정) 요청 알림</span>
+                    <span style="font-size:12px; color:#b45309; font-weight:700;">(${currentMonth}월 근무 스케줄)</span>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-warning" onclick="ScheduleModule.dismissNotice()" style="font-size:11px; padding:2px 8px; border-radius:6px; font-weight:bold;">✕ 닫기</button>
                 </div>
-                <h4 style="font-size:16px; font-weight:800; color:#92400e; margin:0 0 4px 0;">
-                  💬 약국장 전달 사유: <span style="color:#b45309; text-decoration:underline;">"${comment}"</span>
+                <h4 style="font-size:15px; font-weight:800; color:#92400e; margin:0 0 4px 0;">
+                  💬 약국장 전달 사유: <span style="color:#b45309; text-decoration:underline;">"${userComment}"</span>
                 </h4>
                 <p class="mb-0 text-muted" style="font-size:13px; font-weight:600;">
-                  팀원들과 위 조율 사유를 확인하신 후, 하단 스케줄표에서 근무 시간 및 OFF를 보정하시고 <strong>[스케줄 제출하기]</strong> 버튼을 다시 눌러주세요.
+                  위 조율 사유를 확인하신 후, 하단 스케줄표에서 근무 시간 및 OFF를 보정하시고 <strong>[내 스케줄 최종 제출하기]</strong> 버튼을 다시 눌러주세요.
                 </p>
               </div>
             </div>
@@ -247,9 +242,12 @@ window.ScheduleModule = (function () {
                       </div>
                       <div class="d-flex flex-wrap gap-1">
                         ${submittedList.length === 0 ? '<span class="text-muted" style="font-size:12px;">아직 제출한 직원이 없습니다.</span>' : submittedList.map(e => `
-                          <span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:6px 10px; font-size:12px; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+                          <span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:5px 8px 5px 10px; font-size:12px; border-radius:8px; display:inline-flex; align-items:center; gap:5px;">
                             <strong>${e.name}</strong> <span style="font-size:11px; opacity:0.85;">(${e.role})</span>
                             <i class="fas fa-check-circle text-success" style="font-size:10px;"></i>
+                            <button type="button" class="btn btn-sm" onclick="ScheduleModule.rejectMasterSchedule('${e.id}')" title="${e.name} 스케줄 재수정 요청(반려)" style="font-size:10px; padding:1px 5px; border-radius:4px; line-height:1.2; font-weight:bold; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; margin-left:2px;">
+                              반려
+                            </button>
                           </span>
                         `).join('')}
                       </div>
@@ -1925,8 +1923,22 @@ window.ScheduleModule = (function () {
     alert('🏆 ' + currentYear + '년 ' + currentMonth + '월 전체 직원 근무 스케줄이 최종 확정되었습니다!\n(모든 직원의 스케줄이 일괄 제출 및 확정 완료 처리되었습니다.)');
   }
 
+  // 2-2. 직원 알림 닫기 함수
+  function dismissNotice() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const data = window.SheetsSync.getData();
+    let scheduleStatus = data.scheduleStatus || {};
+    const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
+    let statusObj = scheduleStatus[monthKey] || {};
+    statusObj[currUser.id + '_dismissed'] = true;
+    scheduleStatus[monthKey] = statusObj;
+    window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
+    render('module-content');
+  }
+
   // 3. 약국장 개별 스케줄 반려(재수정 요청) 함수
-  function rejectMasterSchedule() {
+  function rejectMasterSchedule(specificEmpId = null) {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser || (currUser.role !== '약국장' && currUser.id !== 'emp_1')) {
       alert("🔒 [보안 권한 통제] 스케줄 반려 및 재조율 요청은 대표 약국장(문성도) 권한으로만 가능합니다.");
@@ -1934,28 +1946,43 @@ window.ScheduleModule = (function () {
     }
 
     const data = window.SheetsSync.getData();
-    const employees = data.employees || [];
+    const targetEmployees = (data.employees || []).filter(e => e.role !== '약국장' && e.name !== '이정은' && e.name !== '주찬양');
     
-    // 직원 리스트 텍스트 생성
-    const empListText = employees.map((e, idx) => `[${idx + 1}] ${e.name}`).join(', ');
-    const targetIdx = prompt(`↩️ 누구의 스케줄을 재조율하시겠습니까? 번호를 입력하세요.\n${empListText}`);
-    
-    if (!targetIdx) return;
-    const targetEmp = employees[parseInt(targetIdx) - 1];
+    let targetEmp = null;
+    if (specificEmpId && typeof specificEmpId === 'string') {
+      targetEmp = targetEmployees.find(e => e.id === specificEmpId || e.name === specificEmpId);
+    }
+
     if (!targetEmp) {
-      alert("올바른 번호를 입력해 주세요.");
+      const empListText = targetEmployees.map((e, idx) => `[${idx + 1}] ${e.name} (${e.role})`).join('\n');
+      const input = prompt(`↩️ 누구의 스케줄을 재조율(반려)하시겠습니까?\n직원 번호 또는 이름을 입력하세요:\n\n${empListText}`);
+      if (!input) return;
+
+      const trimmed = input.trim();
+      const num = parseInt(trimmed);
+      if (!isNaN(num) && num >= 1 && num <= targetEmployees.length) {
+        targetEmp = targetEmployees[num - 1];
+      } else {
+        targetEmp = targetEmployees.find(e => e.name === trimmed || e.id === trimmed);
+      }
+    }
+
+    if (!targetEmp) {
+      alert("⚠️ 해당 직원을 찾을 수 없습니다. 번호 또는 정확한 이름을 입력해 주세요.");
       return;
     }
 
-    const note = prompt(`'${targetEmp.name}' 님에게 전달할 수정 요청 사유를 기재해 주세요 (예: 15일 인원 부족으로 근무 변경 요망)`);
+    const note = prompt(`'${targetEmp.name}' 님에게 전달할 수정 요청 사유를 입력하세요:`, '근무 시간 및 인원 조율 필요');
     if (note === null) return;
 
     let scheduleStatus = data.scheduleStatus || {};
     const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
     let statusObj = scheduleStatus[monthKey] || {};
 
-    // 해당 직원만 DRAFT로 돌리고 코멘트 남김
+    // 해당 직원을 DRAFT로 전환하고 개별 피드백 저장
     statusObj[targetEmp.id] = 'DRAFT';
+    statusObj[targetEmp.id + '_comment'] = note;
+    statusObj[targetEmp.id + '_dismissed'] = false;
     statusObj.directorComment = `[${targetEmp.name}님 지정 피드백] ${note}`;
     statusObj.directorApproved = false;
 
@@ -2909,6 +2936,7 @@ window.ScheduleModule = (function () {
     submitMySchedule,
     approveMasterSchedule,
     rejectMasterSchedule,
+    dismissNotice,
     exportTaxAccountantReport
   };
 

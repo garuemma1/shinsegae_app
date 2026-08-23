@@ -1,6 +1,6 @@
 {
-  "version": "2026.08.24.036",
-  "name": "worklog-module.js 문법 구문 오류(Unexpected token) 완벽 조치",
-  "buildTime": 1724415700000,
-  "updatedAt": "2026-08-24 01:01"
+  "version": "2026.08.24.038",
+  "name": "월말결산 서브탭 마우스 호버 시 글자 투명화 오류 및 파란색 하이라이트 배경 완벽 고정",
+  "buildTime": 1724416200000,
+  "updatedAt": "2026-08-24 01:11"
 }

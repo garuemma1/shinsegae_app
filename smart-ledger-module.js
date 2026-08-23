@@ -1768,27 +1768,27 @@ const UI = {
         <div style="background:#ffffff; border-radius:18px; border:1.5px solid #e2e8f0; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
           <!-- 탭 헤더 버튼 (모바일/PC 반응형 그리드) -->
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" style="border-bottom:1.5px solid #e2e8f0; background:#f8fafc; padding:6px; gap:6px;" id="monthly-tabs">
-            <button onclick="UI.switchMonthlyTab(0)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 0 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 0}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 0}) this.style.background='transparent';">
+            <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(0)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 0 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
               <span class="hidden md:inline">1. 거래처 결제 대장</span>
               <span class="md:hidden">1. 거래처 결제</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(1)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 1 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 1}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 1}) this.style.background='transparent';">
+            <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(1)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 1 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
               <span class="hidden md:inline">2. 직원 급여 & 퇴직금</span>
               <span class="md:hidden">2. 급여 · 퇴직금</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(2)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 2 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 2}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 2}) this.style.background='transparent';">
+            <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(2)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 2 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
               <span class="hidden md:inline">3. 공과금 세부 내역</span>
               <span class="md:hidden">3. 공과금 내역</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(3)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 3 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 3}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 3}) this.style.background='transparent';">
+            <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(3)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 3 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
               <span class="hidden md:inline">4. 에누리 & 약국간거래</span>
               <span class="md:hidden">4. 에누리·약국거래</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(4)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 4 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 4}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 4}) this.style.background='transparent';">
+            <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(4)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 4 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
               <span class="hidden md:inline">5. 카드결제 & 계좌출금</span>
               <span class="md:hidden">5. 카드·계좌출금</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(5)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 5 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 5}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 5}) this.style.background='transparent';">
+            <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(5)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 5 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
               <span class="hidden md:inline">6. 손익 종합 분석표</span>
               <span class="md:hidden">6. 손익 종합 분석</span>
             </button>
@@ -2350,16 +2350,25 @@ const UI = {
 
   switchMonthlyTab(tabIdx) {
     this.activeMonthlyTab = tabIdx;
-    const tabs = document.querySelectorAll('.monthly-tab-btn');
+    const container = document.getElementById('monthly-tabs');
+    const tabs = container ? container.querySelectorAll('button') : document.querySelectorAll('.monthly-tab-btn');
     const panes = document.querySelectorAll('.monthly-tab-pane');
 
     tabs.forEach((btn, i) => {
       if (i === tabIdx) {
-        btn.classList.remove('text-slate-400', 'hover:text-white', 'hover:bg-slate-800');
-        btn.classList.add('bg-amber-500', 'text-slate-950', 'shadow-md', 'font-black');
+        btn.style.setProperty('background', '#2563eb', 'important');
+        btn.style.setProperty('color', '#ffffff', 'important');
+        btn.style.boxShadow = '0 2px 6px rgba(37,99,235,0.3)';
+        btn.style.fontWeight = '800';
+        btn.onmouseover = null;
+        btn.onmouseout = null;
       } else {
-        btn.classList.remove('bg-amber-500', 'text-slate-950', 'shadow-md', 'font-black');
-        btn.classList.add('text-slate-400', 'hover:text-white', 'hover:bg-slate-800');
+        btn.style.setProperty('background', 'transparent', 'important');
+        btn.style.setProperty('color', '#64748b', 'important');
+        btn.style.boxShadow = 'none';
+        btn.style.fontWeight = '700';
+        btn.onmouseover = function() { this.style.setProperty('background', '#e2e8f0', 'important'); };
+        btn.onmouseout = function() { this.style.setProperty('background', 'transparent', 'important'); };
       }
     });
 

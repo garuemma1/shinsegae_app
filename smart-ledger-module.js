@@ -1988,11 +1988,11 @@ const UI = {
                     <span class="font-bold text-white">₩${window.store.formatMoney(m.incomeOtcRaw)}</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span class="text-slate-400">조제본인부담 (P7 직접입력):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeCopay)}" oninput="UI.handleMonthlyChange('incomeCopay', this)" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                    <span class="text-slate-400">조제본인부담금합 (P7 = F247):</span>
+                    <span class="font-bold text-white">₩${window.store.formatMoney(m.incomeCopay)}</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span class="text-slate-400">공단청구액 (P8 직접입력):</span>
+                    <span class="text-slate-400">전월공단청구금입금액 (P8 직접입력):</span>
                     <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeNhisClaim)}" oninput="UI.handleMonthlyChange('incomeNhisClaim', this)" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-amber-400"/>
                   </div>
                   <div class="flex justify-between items-center">

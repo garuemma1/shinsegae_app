@@ -1393,243 +1393,228 @@ const UI = {
     const currentDayName = dayNames[targetDateObj.getDay()];
 
     return `
-      <div class="space-y-6 animate-fadeIn text-slate-100">
+      <div class="space-y-4 animate-fadeIn" style="color:#0f172a;">
         <!-- 7열 미니 캘린더 달력 그리드 -->
-        <div class="bg-slate-900/90 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-xl space-y-3">
-          <div class="flex items-center justify-between flex-wrap gap-2 px-1">
-            <div class="flex items-center gap-2">
-              <span class="text-xs sm:text-sm font-bold text-amber-400 flex items-center gap-1.5">
-                <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
+        <div style="background:#ffffff; border-radius:18px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:14px; font-weight:800; color:#1e40af; display:flex; align-items:center; gap:6px;">
+                <i data-lucide="calendar" style="width:16px; height:16px; color:#2563eb;"></i>
                 <span>20${yymm.substring(0, 2)}년 ${yymm.substring(2, 4)}월 일일장부</span>
               </span>
-              <span class="text-xs text-slate-400 font-medium">| 선택일: <strong class="text-white font-bold">${day}일 (${currentDayName})</strong></span>
+              <span style="font-size:12px; color:#64748b; font-weight:500;">| 선택일: <strong style="color:#0f172a;">${day}일 (${currentDayName})</strong></span>
             </div>
-            <div class="flex items-center gap-2">
-              <div class="flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-xs">
-                <button onclick="UI.selectDay(Math.max(1, ${day} - 1))" class="p-0.5 text-slate-400 hover:text-white" title="이전 날짜">◀</button>
-                <span class="font-black text-amber-400 px-1.5">${day}일 (${currentDayName})</span>
-                <button onclick="UI.selectDay(Math.min(${daysInMonth}, ${day} + 1))" class="p-0.5 text-slate-400 hover:text-white" title="다음 날짜">▶</button>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="display:flex; align-items:center; gap:4px; background:#f8fafc; padding:5px 10px; border-radius:10px; border:1px solid #e2e8f0; font-size:12px;">
+                <button onclick="UI.selectDay(Math.max(1, ${day} - 1))" style="color:#64748b; background:none; border:none; cursor:pointer; padding:2px;" title="이전 날짜">◀</button>
+                <span style="font-weight:800; color:#1e40af; padding:0 6px;">${day}일 (${currentDayName})</span>
+                <button onclick="UI.selectDay(Math.min(${daysInMonth}, ${day} + 1))" style="color:#64748b; background:none; border:none; cursor:pointer; padding:2px;" title="다음 날짜">▶</button>
               </div>
-              <span class="text-[11px] text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
-                입력 완료: <b class="text-emerald-400">${summary.daysWithData}</b>일 / ${daysInMonth}일
+              <span style="font-size:11px; color:#64748b; background:#f8fafc; padding:5px 10px; border-radius:10px; border:1px solid #e2e8f0;">
+                입력완료: <b style="color:#16a34a;">${summary.daysWithData}</b>일 / ${daysInMonth}일
               </span>
             </div>
           </div>
 
           <!-- 7열 요일 헤더 -->
-          <div class="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-xs font-bold py-1 border-b border-slate-800/80">
-            <span class="text-rose-400">일</span>
-            <span class="text-slate-400">월</span>
-            <span class="text-slate-400">화</span>
-            <span class="text-slate-400">수</span>
-            <span class="text-slate-400">목</span>
-            <span class="text-slate-400">금</span>
-            <span class="text-sky-400">토</span>
+          <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center; font-size:11.5px; font-weight:700; padding-bottom:8px; border-bottom:1.5px solid #e2e8f0; margin-bottom:8px;">
+            <span style="color:#ef4444;">일</span>
+            <span style="color:#475569;">월</span>
+            <span style="color:#475569;">화</span>
+            <span style="color:#475569;">수</span>
+            <span style="color:#475569;">목</span>
+            <span style="color:#475569;">금</span>
+            <span style="color:#2563eb;">토</span>
           </div>
 
           <!-- 7열 날짜 타일 그리드 -->
-          <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
+          <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px;">
             ${emptySlots}
             ${dayCells}
           </div>
         </div>
 
-        <!-- 1. 당일 매출 실적 블루 배너 -->
-        <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4">
-          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-            <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-              <i data-lucide="calculator" class="w-4 h-4 text-amber-400"></i>
+        <!-- 1. 당일 매출 실적 -->
+        <div style="background:#ffffff; border-radius:18px; padding:20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+            <h2 style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:7px; margin:0;">
+              <i data-lucide="calculator" style="width:16px; height:16px; color:#2563eb;"></i>
               <span>당일 매출 실적 (${yymm} 시트)</span>
             </h2>
-            <span class="text-xs text-amber-400 font-bold">${day}일</span>
+            <span style="font-size:12px; color:#2563eb; font-weight:700; background:#eff6ff; padding:3px 10px; border-radius:20px; border:1px solid #bfdbfe;">${day}일</span>
           </div>
 
-          <!-- 총매출 블루 배너 -->
-          <div class="bg-gradient-to-r from-blue-950/80 to-slate-900 p-4 rounded-xl border border-blue-900/40 flex justify-between items-center">
+          <!-- 총매출 배너 -->
+          <div style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%); border:1.5px solid #93c5fd; border-radius:14px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
             <div>
-              <span class="text-xs text-blue-300 font-medium">당일 총매출 (E열 자동계산)</span>
+              <span style="font-size:12px; color:#1e40af; font-weight:600;">당일 총매출 (E열 자동계산)</span>
+              <div style="font-size:11px; color:#6b7280; margin-top:3px;">현금(D5)+카드(D9)+이체(I5)+잡비(L5)</div>
             </div>
-            <div class="text-right">
-              <span class="text-[10px] text-slate-400 block mb-0.5">현금(D5)+카드(D9)+이체(I5)+잡비(L5)</span>
-              <span id="disp-daily-total-sales" class="text-2xl font-black text-blue-400 tracking-tight">₩${window.store.formatMoney(rec.totalSales)}</span>
-            </div>
+            <span id="disp-daily-total-sales" style="font-size:26px; font-weight:900; color:#1d4ed8; letter-spacing:-0.5px;">₩${window.store.formatMoney(rec.totalSales)}</span>
           </div>
 
           <!-- 4대 매출 입력란 -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">현금매출 (D5)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.cashSales)}" oninput="UI.handleDailyChange('cashSales', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-amber-400" placeholder="0"/>
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; font-size:12.5px;">
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">현금매출 (D5)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.cashSales)}" oninput="UI.handleDailyChange('cashSales', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
-
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">카드매출 (D9)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.cardSales)}" oninput="UI.handleDailyChange('cardSales', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-amber-400" placeholder="0"/>
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">카드매출 (D9)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.cardSales)}" oninput="UI.handleDailyChange('cardSales', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
-
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">전산본부금합 (F5)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.rxSales)}" oninput="UI.handleDailyChange('rxSales', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-amber-400" placeholder="0"/>
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">전산본부금합 (F5)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.rxSales)}" oninput="UI.handleDailyChange('rxSales', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
-
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">손님계좌이체 (I1)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.transferSales)}" oninput="UI.handleDailyChange('transferSales', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-amber-400" placeholder="0"/>
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">손님계좌이체 (I1)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.transferSales)}" oninput="UI.handleDailyChange('transferSales', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
           </div>
 
           <!-- POS 일반약 대조 박스 -->
-          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80 space-y-3">
-            <div class="flex justify-between items-center text-xs">
-              <span class="text-slate-300 font-bold">1. 장부 계산 매약매출 (G5 = E5 - F5):</span>
-              <span id="disp-daily-otc-sales" class="text-base font-black text-amber-400">₩${window.store.formatMoney(rec.otcSales)}</span>
+          <div style="background:#fafafa; border:1.5px solid #e2e8f0; border-radius:12px; padding:14px; margin-top:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; margin-bottom:10px;">
+              <span style="color:#374151; font-weight:700;">1. 장부 계산 매약매출 (G5 = E5 - F5):</span>
+              <span id="disp-daily-otc-sales" style="font-size:16px; font-weight:900; color:#d97706;">₩${window.store.formatMoney(rec.otcSales)}</span>
             </div>
-            <div class="flex justify-between items-center text-xs gap-3">
-              <label class="text-slate-400">2. 포스기 일반약 마감 금액:</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.posOtcSales)}" oninput="UI.handleDailyChange('posOtcSales', this)" class="w-40 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-right font-bold text-white outline-none focus:border-amber-400" placeholder="0"/>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; gap:10px;">
+              <label style="color:#64748b; white-space:nowrap;">2. 포스기 일반약 마감 금액:</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.posOtcSales)}" oninput="UI.handleDailyChange('posOtcSales', this)" style="width:160px; background:#ffffff; border:1.5px solid #e2e8f0; border-radius:8px; padding:6px 10px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px;" placeholder="0" onfocus="this.style.borderColor='#d97706'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
-            <div id="disp-daily-otc-diff-wrapper" class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs" style="${rec.posOtcSales > 0 ? 'display:flex;' : 'display:none;'}">
-              <span class="text-slate-400 font-medium">매약 대조 차액 (장부 - 포스):</span>
-              <span id="disp-daily-otc-diff" class="font-extrabold ${rec.otcDifference === 0 ? 'text-emerald-400' : (rec.otcDifference > 0 ? 'text-amber-400' : 'text-rose-400')}">
+            <div id="disp-daily-otc-diff-wrapper" style="padding-top:10px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; margin-top:10px; ${rec.posOtcSales > 0 ? '' : 'display:none;'}">
+              <span style="color:#64748b; font-weight:500;">매약 대조 차액 (장부 - 포스):</span>
+              <span id="disp-daily-otc-diff" style="font-weight:800; ${rec.otcDifference === 0 ? 'color:#16a34a;' : (rec.otcDifference > 0 ? 'color:#d97706;' : 'color:#dc2626;')}">
                 ${rec.otcDifference > 0 ? '+' : ''}₩${window.store.formatMoney(rec.otcDifference)}
-                ${rec.otcDifference === 0 ? ' (완벽 일치)' : ' (차액 발생)'}
+                ${rec.otcDifference === 0 ? ' (완벽 일치 ✓)' : ' (차액 발생)'}
               </span>
             </div>
           </div>
         </div>
 
         <!-- 2. 당일 지출 & 온라인몰 카드 즉시결제 -->
-        <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4">
-          <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2 border-b border-slate-800 pb-3">
-            <i data-lucide="shopping-bag" class="w-4 h-4 text-purple-400"></i>
-            <span>당일 지출 & 카드 즉시결제</span>
+        <div style="background:#ffffff; border-radius:18px; padding:20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+          <h2 style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:7px; border-bottom:1.5px solid #e2e8f0; padding-bottom:12px; margin:0 0 16px 0;">
+            <i data-lucide="shopping-bag" style="width:16px; height:16px; color:#7c3aed;"></i>
+            <span>당일 지출 &amp; 카드 즉시결제</span>
           </h2>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">현매사입 (J5 통장)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expCashBuy)}" oninput="UI.handleDailyChange('expCashBuy', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-purple-400" placeholder="0"/>
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; font-size:12.5px;">
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">현매사입 (J5 통장)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expCashBuy)}" oninput="UI.handleDailyChange('expCashBuy', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
-
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">직원할인구매 (K5)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expDiscount)}" oninput="UI.handleDailyChange('expDiscount', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-purple-400" placeholder="0"/>
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">직원할인구매 (K5)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expDiscount)}" oninput="UI.handleDailyChange('expDiscount', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
-
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">잡비1 현금 (L5 금고)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expMiscCash)}" oninput="UI.handleDailyChange('expMiscCash', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-purple-400" placeholder="0"/>
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">잡비1 현금 (L5 금고)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expMiscCash)}" oninput="UI.handleDailyChange('expMiscCash', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
-
-            <div class="space-y-1">
-              <label class="text-slate-400 block font-medium">식대 (M5 통장)</label>
-              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expMeal)}" oninput="UI.handleDailyChange('expMeal', this)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-right font-bold text-white outline-none focus:border-purple-400" placeholder="0"/>
+            <div>
+              <label style="color:#374151; display:block; font-weight:600; margin-bottom:5px;">식대 (M5 통장)</label>
+              <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expMeal)}" oninput="UI.handleDailyChange('expMeal', this)" style="width:100%; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 12px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'"/>
             </div>
           </div>
 
-          <!-- 온라인몰 카드 즉시결제 (P~Z열 + 박카스) -->
-          <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-              <span class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-                <i data-lucide="credit-card" class="w-3.5 h-3.5 text-purple-400"></i>
+          <!-- 온라인몰 카드 즉시결제 -->
+          <div style="background:#faf5ff; border:1.5px solid #ddd6fe; border-radius:12px; padding:14px; margin-top:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ede9fe; padding-bottom:10px; margin-bottom:12px;">
+              <span style="font-size:12.5px; font-weight:700; color:#6d28d9; display:flex; align-items:center; gap:6px;">
+                <i data-lucide="credit-card" style="width:14px; height:14px; color:#7c3aed;"></i>
                 <span>온라인몰 카드 즉시결제 (P~Z열 + 박카스)</span>
               </span>
-              <button onclick="UI.showAddOnlineMallModal()" class="px-2 py-1 bg-purple-950/80 hover:bg-purple-900 text-purple-300 rounded-lg text-xs font-bold border border-purple-500/40 transition">
-                + 몰 추가
-              </button>
+              <button onclick="UI.showAddOnlineMallModal()" style="padding:4px 10px; background:#ede9fe; color:#6d28d9; border:1px solid #c4b5fd; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer;">+ 몰 추가</button>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-              <div class="space-y-1">
-                <label class="text-slate-400 block truncate">박카스 (O5)</label>
-                <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expBacchus)}" oninput="UI.handleDailyChange('expBacchus', this)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-right font-bold text-white outline-none focus:border-purple-400" placeholder="0"/>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; font-size:12px;">
+              <div>
+                <label style="color:#374151; display:block; font-weight:600; margin-bottom:4px;">박카스 (O5)</label>
+                <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec.expBacchus)}" oninput="UI.handleDailyChange('expBacchus', this)" style="width:100%; background:#ffffff; border:1.5px solid #ddd6fe; border-radius:8px; padding:7px 10px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:12.5px; box-sizing:border-box;" placeholder="0"/>
               </div>
-
               ${window.store.onlineMalls.map(m => `
-                <div class="space-y-1 relative group">
-                  <div class="flex justify-between items-center">
-                    <label class="text-slate-400 block truncate">${m.name} (${m.colLetter}5)</label>
-                    ${m.isCustom ? `
-                      <button onclick="UI.removeOnlineMall('${m.id}')" class="text-rose-400 hover:text-rose-300 text-[10px] opacity-0 group-hover:opacity-100 transition">삭제</button>
-                    ` : ''}
+                <div style="position:relative;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <label style="color:#374151; font-weight:600; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${m.name} (${m.colLetter}5)</label>
+                    ${m.isCustom ? `<button onclick="UI.removeOnlineMall('${m.id}')" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:11px;">삭제</button>` : ''}
                   </div>
-                  <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec[m.id])}" oninput="UI.handleDailyChange('${m.id}', this)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-right font-bold text-white outline-none focus:border-purple-400" placeholder="0"/>
+                  <input type="text" inputmode="numeric" value="${window.store.formatMoney(rec[m.id])}" oninput="UI.handleDailyChange('${m.id}', this)" style="width:100%; background:#ffffff; border:1.5px solid #ddd6fe; border-radius:8px; padding:7px 10px; text-align:right; font-weight:700; color:#0f172a; outline:none; font-size:12.5px; box-sizing:border-box;" placeholder="0"/>
                 </div>
               `).join('')}
             </div>
 
-            <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
-              <span class="text-slate-400 font-bold">당일 온라인몰 카드즉시결제 소계:</span>
-              <span id="disp-daily-online-total" class="text-sm font-black text-purple-400">₩${window.store.formatMoney(rec.dailyOnlineMallTotal)}</span>
+            <div style="padding-top:10px; border-top:1px solid #ede9fe; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; margin-top:10px;">
+              <span style="color:#6d28d9; font-weight:700;">당일 온라인몰 카드즉시결제 소계:</span>
+              <span id="disp-daily-online-total" style="font-size:15px; font-weight:900; color:#6d28d9;">₩${window.store.formatMoney(rec.dailyOnlineMallTotal)}</span>
             </div>
           </div>
         </div>
 
-        <!-- 3. 내일 남겨둘 잔돈 시재 & 결산 저장 -->
-        <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-              <i data-lucide="vault" class="w-4 h-4 text-emerald-400"></i>
+        <!-- 3. 내일 남겨둘 잔돈 시재 (컴팩트) -->
+        <div style="background:#ffffff; border-radius:14px; padding:14px 18px; border:1.5px solid #d1fae5; box-shadow:0 2px 8px rgba(16,185,129,0.07);">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <h2 style="font-size:13px; font-weight:800; color:#065f46; display:flex; align-items:center; gap:6px; margin:0;">
+              <i data-lucide="vault" style="width:14px; height:14px; color:#10b981;"></i>
               <span>내일 남겨둘 잔돈 시재 (이월시재 B열)</span>
             </h2>
-            <span class="text-[11px] text-slate-400 font-normal">자율 지정</span>
+            <span style="font-size:11px; color:#6b7280;">자율 지정</span>
           </div>
-
-          <div class="space-y-3 text-xs">
-            <!-- 빠른 금액 선택 버튼 -->
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-[11px] text-slate-400 font-bold mr-1">빠른 선택:</span>
-              <button type="button" onclick="UI.setPrevCashPreset(600000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
-                60만
-              </button>
-              <button type="button" onclick="UI.setPrevCashPreset(700000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
-                70만
-              </button>
-              <button type="button" onclick="UI.setPrevCashPreset(800000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
-                80만
-              </button>
-              <button type="button" onclick="UI.setPrevCashPreset(1000000)" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition">
-                100만
-              </button>
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="text-slate-300 block font-medium">내일 남겨둘 금고 잔돈 시재 (직접 입력 가능):</label>
-              <input type="text" id="input-daily-prev-cash" inputmode="numeric" value="${window.store.formatMoney(rec.prevCash)}" oninput="UI.handleDailyChange('prevCash', this)" class="w-full bg-slate-950 border border-emerald-500/60 rounded-xl p-3 text-right text-lg font-black text-emerald-400 outline-none focus:border-emerald-400" placeholder="600,000"/>
-            </div>
-            <p class="text-[11px] text-slate-500 leading-relaxed">
-              💡 오늘 마감 시 지정한 시재 금액이 구글 시트 B열에 저장되며, 다음날 영업 개시 시재로 연동됩니다.
-            </p>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+            <span style="font-size:11px; color:#6b7280; font-weight:600;">빠른 선택:</span>
+            <button type="button" onclick="UI.setPrevCashPreset(600000)" style="padding:4px 10px; border-radius:8px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:12px; font-weight:700; cursor:pointer;">60만</button>
+            <button type="button" onclick="UI.setPrevCashPreset(700000)" style="padding:4px 10px; border-radius:8px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:12px; font-weight:700; cursor:pointer;">70만</button>
+            <button type="button" onclick="UI.setPrevCashPreset(800000)" style="padding:4px 10px; border-radius:8px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:12px; font-weight:700; cursor:pointer;">80만</button>
+            <button type="button" onclick="UI.setPrevCashPreset(1000000)" style="padding:4px 10px; border-radius:8px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:12px; font-weight:700; cursor:pointer;">100만</button>
+            <input type="text" id="input-daily-prev-cash" inputmode="numeric" value="${window.store.formatMoney(rec.prevCash)}" oninput="UI.handleDailyChange('prevCash', this)" style="flex:1; min-width:120px; background:#f0fdf4; border:1.5px solid #6ee7b7; border-radius:10px; padding:6px 12px; text-align:right; font-size:15px; font-weight:900; color:#065f46; outline:none;" placeholder="600,000" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#6ee7b7'"/>
           </div>
+          <p style="font-size:11px; color:#6b7280; margin:0;">💡 오늘 마감 시 지정한 시재가 구글 시트 B열에 저장되며, 다음날 시재로 연동됩니다.</p>
 
           <!-- 일일 정산 저장 버튼 -->
-          <div class="pt-2">
-            <button onclick="UI.saveCurrentDaily()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-xl text-sm shadow-lg flex items-center justify-center gap-2 transition active:scale-[0.99]">
-              <i data-lucide="save" class="w-4 h-4"></i>
+          <div style="margin-top:12px;">
+            <button onclick="UI.saveCurrentDaily()" style="width:100%; padding:13px; background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color:#1c1917; font-weight:900; border-radius:12px; font-size:14px; border:none; cursor:pointer; box-shadow:0 4px 12px rgba(245,158,11,0.35); display:flex; align-items:center; justify-content:center; gap:7px;">
+              <i data-lucide="save" style="width:16px; height:16px;"></i>
               <span>${day}일 결산 저장 (구글 시트 동기화)</span>
             </button>
           </div>
         </div>
 
-        <!-- 당월 누적 집계 푸터 바 (247~250행 1:1 연동) -->
-        <div class="bg-slate-900/95 p-4 rounded-2xl border border-slate-800 shadow-xl text-xs space-y-2">
-          <div class="text-slate-400 font-bold flex items-center gap-1.5">
-            <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i>
+        <!-- 당월 누적 집계 푸터 바 (가독성 향상) -->
+        <div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); border-radius:14px; padding:16px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <div style="font-size:12px; color:#64748b; font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+            <i data-lucide="layers" style="width:14px; height:14px; color:#f59e0b;"></i>
             <span>20${yymm.substring(0, 2)}년 ${yymm.substring(2, 4)}월 당월 누적 집계 (현재 247~250행 1:1 연동)</span>
           </div>
-          <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
-            <span class="text-slate-400">당월총매출(E247): <b class="text-white">₩${window.store.formatMoney(summary.totalSalesSum)}</b></span>
-            <span class="text-slate-400">일반매출(G247): <b class="text-amber-400">₩${window.store.formatMoney(summary.otcSalesSum)}</b></span>
-            <span class="text-slate-400">본부금(F247): <b class="text-white">₩${window.store.formatMoney(summary.rxSalesSum)}</b></span>
-            <span class="text-slate-400">월현금매출총액(D249): <b class="text-emerald-400">₩${window.store.formatMoney(summary.cashSalesSum)}</b></span>
-            <span class="text-slate-400">월카드매출총액(D250): <b class="text-sky-400">₩${window.store.formatMoney(summary.cardSalesSum)}</b></span>
-            <span class="text-slate-400">온라인몰카드총합(Y250): <b class="text-purple-400">₩${window.store.formatMoney(summary.onlineMallCardTotal)}</b></span>
+          <div style="display:flex; flex-wrap:wrap; gap:12px 24px;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:11px; color:#64748b; font-weight:500;">당월총매출 (E247)</span>
+              <span style="font-size:15px; font-weight:800; color:#0f172a;">₩${window.store.formatMoney(summary.totalSalesSum)}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:11px; color:#64748b; font-weight:500;">일반매출 (G247)</span>
+              <span style="font-size:15px; font-weight:800; color:#d97706;">₩${window.store.formatMoney(summary.otcSalesSum)}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:11px; color:#64748b; font-weight:500;">본부금 (F247)</span>
+              <span style="font-size:15px; font-weight:800; color:#1e40af;">₩${window.store.formatMoney(summary.rxSalesSum)}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:11px; color:#64748b; font-weight:500;">월현금매출 (D249)</span>
+              <span style="font-size:15px; font-weight:800; color:#16a34a;">₩${window.store.formatMoney(summary.cashSalesSum)}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:11px; color:#64748b; font-weight:500;">월카드매출 (D250)</span>
+              <span style="font-size:15px; font-weight:800; color:#0369a1;">₩${window.store.formatMoney(summary.cardSalesSum)}</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:11px; color:#64748b; font-weight:500;">온라인몰카드 (Y250)</span>
+              <span style="font-size:15px; font-weight:800; color:#6d28d9;">₩${window.store.formatMoney(summary.onlineMallCardTotal)}</span>
+            </div>
           </div>
         </div>
       </div>
     `;
-  },
-
   setPrevCashPreset(amount) {
     const yymm = window.store.currentYYMM;
     const day = this.selectedDay;

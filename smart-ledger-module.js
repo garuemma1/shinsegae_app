@@ -928,25 +928,55 @@ class PharmacyStore {
   async loadMonthFromSheets(yymm) {
     if (!window.sheetsClient || !window.sheetsClient.isConfigured) return;
     try {
-      const result = await window.sheetsClient.getMonthly(`${yymm}결산`);
+      const result = await window.sheetsClient.getFullMonthData(yymm);
       if (result && result.success && result.data) {
-        const d = result.data;
-        const current = this.getMonthly(yymm);
+        // 1. 1일~31일 일일 장부 전체 동기화
+        if (result.data.dailyList && Array.isArray(result.data.dailyList)) {
+          result.data.dailyList.forEach(daily => {
+            if (daily && daily.day) {
+              const key = this.getDailyKey(yymm, daily.day);
+              this.dailyRecords[key] = this.calculateDaily({
+                yymm: yymm,
+                day: daily.day,
+                prevCash: daily.prevCash || 600000,
+                cashSales: daily.cashSales || 0,
+                cardSales: daily.cardSales || 0,
+                rxSales: daily.rxSales || 0,
+                posOtcSales: daily.posOtcSales || 0,
+                transferSales: daily.transferSales || 0,
+                expCashBuy: daily.expCashBuy || 0,
+                expDiscount: daily.expDiscount || 0,
+                expMiscCash: daily.expMiscCash || 0,
+                expMeal: daily.expMeal || 0,
+                expMiscCard: daily.expMiscCard || 0,
+                expBacchus: daily.expBacchus || 0,
+                actualCash: daily.actualCash || 0,
+                ...daily
+              });
+            }
+          });
+        }
 
-        if (d.incomeRxFee) current.incomeRxFee = d.incomeRxFee;
-        if (d.incomeCopay) current.incomeCopay = d.incomeCopay;
-        if (d.incomeNhisClaim) current.incomeNhisClaim = d.incomeNhisClaim;
-        if (d.otcTotalSales) current.otcTotalSales = d.otcTotalSales;
-        if (d.cashVendors && Array.isArray(d.cashVendors)) current.cashVendors = d.cashVendors;
-        if (d.cardVendors && Array.isArray(d.cardVendors)) current.cardVendors = d.cardVendors;
-        if (d.employees && Array.isArray(d.employees)) current.employees = d.employees;
-        if (d.severances && Array.isArray(d.severances)) current.severances = d.severances;
-        if (d.utilities && Array.isArray(d.utilities)) current.utilities = d.utilities;
-        if (d.discounts && Array.isArray(d.discounts)) current.discounts = d.discounts;
-        if (d.pharmTrades && Array.isArray(d.pharmTrades)) current.pharmTrades = d.pharmTrades;
-        if (d.cardCashbacks && Array.isArray(d.cardCashbacks)) current.cardCashbacks = d.cardCashbacks;
+        // 2. 월말 결산 전체 동기화
+        if (result.data.monthly) {
+          const d = result.data.monthly;
+          const current = this.getMonthly(yymm);
 
-        this.monthlyRecords[yymm] = this.calculateMonthly(current);
+          if (d.incomeRxFee !== undefined) current.incomeRxFee = d.incomeRxFee;
+          if (d.incomeCopay !== undefined) current.incomeCopay = d.incomeCopay;
+          if (d.incomeNhisClaim !== undefined) current.incomeNhisClaim = d.incomeNhisClaim;
+          if (d.otcTotalSales !== undefined) current.otcTotalSales = d.otcTotalSales;
+          if (d.cashVendors && Array.isArray(d.cashVendors)) current.cashVendors = d.cashVendors;
+          if (d.cardVendors && Array.isArray(d.cardVendors)) current.cardVendors = d.cardVendors;
+          if (d.employees && Array.isArray(d.employees)) current.employees = d.employees;
+          if (d.severances && Array.isArray(d.severances)) current.severances = d.severances;
+          if (d.utilities && Array.isArray(d.utilities)) current.utilities = d.utilities;
+          if (d.discounts && Array.isArray(d.discounts)) current.discounts = d.discounts;
+          if (d.pharmTrades && Array.isArray(d.pharmTrades)) current.pharmTrades = d.pharmTrades;
+          if (d.cardCashbacks && Array.isArray(d.cardCashbacks)) current.cardCashbacks = d.cardCashbacks;
+
+          this.monthlyRecords[yymm] = this.calculateMonthly(current);
+        }
         this.saveToLocal();
       }
     } catch (e) {

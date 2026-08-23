@@ -131,6 +131,37 @@ class GoogleSheetsClient {
 
 window.sheetsClient = new GoogleSheetsClient();
 
+// 🔥 PC에서 저장한 구글 스크립트 URL을 핸드폰으로 자동 전달!
+// SheetsSync가 Firebase에서 클라우드 데이터를 받아온 뒤 URL을 재확인하는 방어 코드
+(function () {
+  // 1. DOMContentLoaded 후 SheetsSync 준비 시 즉시 URL 동기화
+  function trySyncUrlFromCloud() {
+    if (window.sheetsClient && typeof window.sheetsClient.syncUrlFromCloud === 'function') {
+      window.sheetsClient.syncUrlFromCloud();
+    }
+  }
+
+  // 2. Firebase pullFromCloud 완료 이벤트에 반응 (clouds_updated 이벤트)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('ssg_cloud_updated', function () {
+      trySyncUrlFromCloud();
+      // 현재 약국 sheetsClient 자동 재로드
+      if (window.sheetsClient) {
+        window.sheetsClient.syncUrlFromCloud();
+      }
+    });
+
+    // 3. 화면 최초 로드 후 1.5초 뒤 재시도 (Firebase 초기화 지연 방어)
+    setTimeout(trySyncUrlFromCloud, 1500);
+    // 4. 앱 복귀(화면 켜기) 시 재확인
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        trySyncUrlFromCloud();
+      }
+    });
+  }
+})();
+
 
 // ==========================================
 // 2. Charts Controller Module

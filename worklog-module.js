@@ -116,24 +116,25 @@ window.WorklogModule = (function () {
     if (!container) return;
 
     try {
-      const currUser = window.SheetsSync.getCurrentUser();
-      const rawLogs = window.SheetsSync.getWorklogs() || [];
-      const logs = rawLogs.map(normalizeLog).filter(Boolean);
+      const currUser = window.SheetsSync ? window.SheetsSync.getCurrentUser() : null;
+      const rawLogs = (window.SheetsSync && window.SheetsSync.getWorklogs) ? window.SheetsSync.getWorklogs() : [];
+      const logs = (Array.isArray(rawLogs) ? rawLogs : []).map(normalizeLog).filter(Boolean);
 
       // 1. 진행 중인 업무 (PENDING 상태)
       const pendingTasks = logs
-        .filter(l => l.status === 'PENDING' || !l.status)
+        .filter(l => l && (l.status === 'PENDING' || !l.status))
         .sort((a, b) => getLogMs(b) - getLogMs(a));
       
       // 2. 당월 달력용 데이터
       const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-      const monthLogs = logs.filter(l => (l.date || '').startsWith(monthPrefix));
+      const monthLogs = logs.filter(l => l && (l.date || '').startsWith(monthPrefix));
 
       // 3. 최근 15일 업무 피드 데이터
       const todayMs = new Date().getTime();
       const fifteenDaysMs = 20 * 24 * 60 * 60 * 1000;
       const sortedLogs = [...logs]
         .filter(log => {
+          if (!log) return false;
           const logDateMs = getLogMs(log);
           if (logDateMs === 0) return true;
           return (todayMs - logDateMs) <= fifteenDaysMs;
@@ -199,8 +200,9 @@ window.WorklogModule = (function () {
             ` : `
               <div class="wl-card-list" style="display: flex !important; flex-direction: column !important; gap: 14px !important; padding: 0 !important; width: 100% !important; box-sizing: border-box !important; text-align: left !important;">
                 ${pendingTasks.map((task) => {
+                  if (!task) return '';
                   const rawContent = String(task.content || '내용 없음');
-                  const cleanContent = rawContent.split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n');
+                  const cleanContent = rawContent.replace(/</g, '&lt;').replace(/>/g, '&gt;').split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n');
                   const authorStr = String(task.authorName || '문성도');
                   const timeStr = String(formatLogDateTime(task));
                   const rawTag = String(task.tag || '메모');
@@ -275,10 +277,11 @@ window.WorklogModule = (function () {
           <div class="card-body" style="padding:24px; background:#f1f5f9; display:flex; flex-direction:column; gap:16px; max-height:800px; overflow-y:auto;">
             ${sortedLogs.length === 0 ? '<div class="text-center text-muted py-4">최근 15일 내에 등록된 업무 내역이 없습니다.</div>' : ''}
             ${sortedLogs.map(log => {
+               if (!log) return '';
                const checkedArr = log.checkedBy || [];
                const hasChecked = currUser && checkedArr.includes(currUser.name);
                const rawContent = String(log.content || '내용 없음');
-               const cleanContent = rawContent.split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n');
+               const cleanContent = rawContent.replace(/</g, '&lt;').replace(/>/g, '&gt;').split('\n').map(l => l.trim()).filter(l => l.length > 0).join('\n');
                const authorStr = String(log.authorName || '문성도');
                const timeDisplay = String(log.createdAt || log.date || '');
                const isCompleted = log.status === 'COMPLETED';
@@ -609,6 +612,7 @@ window.WorklogModule = (function () {
           window.App.renderSidebarNavigation();
         }
       }
+    }
   }
 
   function deleteTask(id) {

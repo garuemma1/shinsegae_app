@@ -50,6 +50,10 @@ window.App = (function () {
     // 핸드폰/스마트폰 및 PC 접속 시 드로어 메뉴 가동
     openDrawer();
 
+    if (activeModule === 'notices') markNoticesRead();
+    else if (activeModule === 'worklog') markWorklogRead();
+    else if (activeModule === 'approval') markApprovalRead();
+
     renderActiveModule();
 
     // ⚡ 앱 기동 즉시 클라우드 최신 데이터 동기화 (아이폰/카톡/PC 첫 접속 즉각 반영)
@@ -217,6 +221,7 @@ window.App = (function () {
   // ─── 업무일지 읽음 상태 관리 헬퍼 ─────────────────────────────────────────
   // 지문: id + 상태(PENDING/COMPLETED 등) + checkedBy(확인자목록) + 내용변경
   function _worklogFingerprint(w) {
+    if (!w) return '';
     const checked = Array.isArray(w.checkedBy) ? w.checkedBy.join(',') : String(w.checkedBy || '');
     return [w.id || '', w.status || '', checked, (w.content || w.text || '').slice(0, 30), w.updatedAt || w.createdAt || ''].join('|');
   }
@@ -224,7 +229,8 @@ window.App = (function () {
   function markWorklogRead() {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) return;
-    const worklogs = (window.SheetsSync.getWorklogs ? window.SheetsSync.getWorklogs() : (window.SheetsSync.getData().worklogs || [])) || [];
+    const rawWorklogs = (window.SheetsSync.getWorklogs ? window.SheetsSync.getWorklogs() : (window.SheetsSync.getData().worklogs || [])) || [];
+    const worklogs = Array.isArray(rawWorklogs) ? rawWorklogs.filter(Boolean) : [];
     const fingerprints = worklogs.map(_worklogFingerprint);
     try {
       localStorage.setItem('ssg_read_worklog_' + currUser.id, JSON.stringify(fingerprints));
@@ -235,7 +241,7 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_worklog_' + currUser.id);
-      if (!raw) return worklogs.length > 0;
+      if (!raw) return false; // 방문 기록이 있으면 항목 비교, 없어도 초기엔 N 안 띄움 (탭 진입 시 자동저장)
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
       return worklogs.some(w => !savedSet.has(_worklogFingerprint(w)));
@@ -265,8 +271,8 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const saved = localStorage.getItem('ssg_read_approval_' + currUser.id);
+      if (saved === null) return false; // 최초 접속 시 N 안 띄움
       const current = _approvalFingerprint(data);
-      if (saved === null) return current.length > 0;
       return saved !== current;
     } catch(e) { return false; }
   }
@@ -318,6 +324,32 @@ window.App = (function () {
     } catch(e) {
       return {};
     }
+  }
+
+  function updateSidebarBadgesOnly() {
+    try {
+      const badges = computeNotificationBadges();
+      document.querySelectorAll('.menu-item').forEach(btn => {
+        const mod = btn.getAttribute('data-module');
+        const badgeEl = btn.querySelector('.menu-item-badge');
+        const val = badges[mod];
+        if (val) {
+          if (badgeEl) {
+            badgeEl.textContent = val;
+          } else {
+            const iconWrapper = btn.querySelector('.menu-icon-wrapper');
+            if (iconWrapper) {
+              const span = document.createElement('span');
+              span.className = 'menu-item-badge' + (val === '!' ? ' badge-amber' : '');
+              span.textContent = val;
+              iconWrapper.appendChild(span);
+            }
+          }
+        } else {
+          if (badgeEl) badgeEl.remove();
+        }
+      });
+    } catch(e) {}
   }
 
   function renderSidebarNavigation() {
@@ -761,6 +793,11 @@ window.App = (function () {
       if (contentEl) savedContainerScrollTop = contentEl.scrollTop || 0;
     }
 
+    const contentTarget = document.getElementById('module-content');
+    if (contentTarget) {
+      contentTarget.innerHTML = '';
+    }
+
     switch (activeModule) {
       case 'notices':
         if (window.NoticesModule) window.NoticesModule.render('module-content');
@@ -800,12 +837,15 @@ window.App = (function () {
         break;
     }
 
-    // 🎯 0.001초 만에 읽던 스크롤 위치로 즉각 복원
+    // 🎯 모듈 이동 시에는 최상단으로, 동일 모듈 새로고침 시 스크롤 위치 복원
     if (preserveScroll && (savedWindowScrollY > 0 || savedContainerScrollTop > 0)) {
       requestAnimationFrame(() => {
         if (savedWindowScrollY > 0) window.scrollTo({ top: savedWindowScrollY, behavior: 'instant' });
         if (contentEl && savedContainerScrollTop > 0) contentEl.scrollTop = savedContainerScrollTop;
       });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      if (contentEl) contentEl.scrollTop = 0;
     }
   }
 
@@ -1019,18 +1059,22 @@ window.App = (function () {
     }
 
     // 📌 탭 진입 시 스마트 읽음 처리 후 사이드바 뱃지 즉시 갱신
-    if (moduleName === 'notices') {
-      markNoticesRead();
-      renderSidebarNavigation();
-    } else if (moduleName === 'worklog') {
-      markWorklogRead();
-      renderSidebarNavigation();
-    } else if (moduleName === 'approval') {
-      markApprovalRead();
-      renderSidebarNavigation();
+    try {
+      if (moduleName === 'notices') {
+        markNoticesRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'worklog') {
+        markWorklogRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'approval') {
+        markApprovalRead();
+        updateSidebarBadgesOnly();
+      }
+    } catch(err) {
+      console.warn("Read tracking error:", err);
     }
 
-    renderActiveModule();
+    renderActiveModule(false);
 
     if (isUserAction && window.innerWidth <= 900) {
       closeDrawer();

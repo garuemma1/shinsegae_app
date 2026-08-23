@@ -601,9 +601,14 @@ window.WorklogModule = (function () {
       if (!target.checkedBy.includes(curr.name)) {
         target.checkedBy.push(curr.name);
         window.SheetsSync.saveWorklogs(logs);
-        render('module-content'); // 화면 즉시 새로고침하여 체크 표시
+        if (window.App && typeof window.App.markWorklogRead === 'function') {
+          window.App.markWorklogRead();
+        }
+        render('module-content');
+        if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
+          window.App.renderSidebarNavigation();
+        }
       }
-    }
   }
 
   function deleteTask(id) {

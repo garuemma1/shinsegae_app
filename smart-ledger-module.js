@@ -203,8 +203,8 @@ const ChartsController = {
               type: 'line',
               label: '12개월 이동평균선 (12M MA)',
               data: ma12,
-              borderColor: '#38bdf8',
-              backgroundColor: '#38bdf8',
+              borderColor: '#0284c7',
+              backgroundColor: '#0284c7',
               borderWidth: 3,
               pointRadius: 4,
               pointHoverRadius: 6,
@@ -215,7 +215,7 @@ const ChartsController = {
               type: 'bar',
               label: '일반매출 (매약)',
               data: otcSales,
-              backgroundColor: 'rgba(245, 158, 11, 0.8)',
+              backgroundColor: 'rgba(245, 158, 11, 0.85)',
               borderRadius: 6,
               yAxisID: 'y'
             }
@@ -226,7 +226,7 @@ const ChartsController = {
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              labels: { color: '#94a3b8', font: { family: 'sans-serif', size: 12 } }
+              labels: { color: '#334155', font: { family: 'sans-serif', size: 12, weight: 'bold' } }
             },
             tooltip: {
               callbacks: {
@@ -238,13 +238,14 @@ const ChartsController = {
           },
           scales: {
             x: {
-              grid: { color: '#1e293b' },
-              ticks: { color: '#64748b' }
+              grid: { color: '#f1f5f9' },
+              ticks: { color: '#64748b', font: { weight: '600' } }
             },
             y: {
-              grid: { color: '#1e293b' },
+              grid: { color: '#f1f5f9' },
               ticks: {
                 color: '#64748b',
+                font: { weight: '600' },
                 callback: function(value) {
                   return '₩' + (value / 10000).toLocaleString() + '만';
                 }
@@ -267,13 +268,13 @@ const ChartsController = {
             {
               label: '월 실질 순잉여금 (M2)',
               data: netProfits,
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              borderColor: '#059669',
+              backgroundColor: 'rgba(5, 150, 105, 0.1)',
               borderWidth: 3,
               pointRadius: 5,
               pointHoverRadius: 7,
-              pointBackgroundColor: netProfits.map(v => v >= 0 ? '#10b981' : '#f43f5e'),
-              pointBorderColor: '#0f172a',
+              pointBackgroundColor: netProfits.map(v => v >= 0 ? '#059669' : '#dc2626'),
+              pointBorderColor: '#ffffff',
               pointBorderWidth: 2,
               fill: true,
               tension: 0.3
@@ -285,26 +286,26 @@ const ChartsController = {
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              labels: { color: '#94a3b8', font: { family: 'sans-serif', size: 12 } }
+              labels: { color: '#334155', font: { family: 'sans-serif', size: 12, weight: 'bold' } }
             },
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  const val = context.raw;
-                  return `순잉여금(M2): ${val >= 0 ? '+' : ''}₩${Number(val).toLocaleString()}원`;
+                  return `월 순잉여금: ₩${Number(context.raw).toLocaleString()}원`;
                 }
               }
             }
           },
           scales: {
             x: {
-              grid: { color: '#1e293b' },
-              ticks: { color: '#64748b' }
+              grid: { color: '#f1f5f9' },
+              ticks: { color: '#64748b', font: { weight: '600' } }
             },
             y: {
-              grid: { color: '#1e293b' },
+              grid: { color: '#f1f5f9' },
               ticks: {
                 color: '#64748b',
+                font: { weight: '600' },
                 callback: function(value) {
                   return '₩' + (value / 10000).toLocaleString() + '만';
                 }
@@ -1177,76 +1178,87 @@ const UI = {
     const pSubtitle = window.store.pharmacySubtitle || '일일정산 & 월말결제 스마트 시스템';
 
     headerEl.innerHTML = `
-      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-        <!-- Pharmacy Logo & Title -->
-        <div class="flex items-center gap-3 cursor-pointer" onclick="UI.navigateTo('daily-settlement')">
-          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-black shadow-md text-sm">
-            ${pBadge}
+      <div class="max-w-7xl mx-auto space-y-3">
+        <!-- 상단 라인: 로고, 타이틀, 시트 관리 버튼 -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- Pharmacy Logo & Title -->
+          <div class="flex items-center gap-3 cursor-pointer" onclick="UI.navigateTo('daily-settlement')">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-black shadow-md text-sm">
+              ${pBadge}
+            </div>
+            <div>
+              <h1 class="font-extrabold text-white text-base tracking-tight flex items-center gap-2">
+                ${pName} 스마트 장부
+                <span class="text-[10px] px-2 py-0.5 rounded-full ${isConfigured ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 text-slate-300'} font-bold">
+                  ${isConfigured ? '⚡ Google Sheets 연동' : '💾 로컬 모드'}
+                </span>
+              </h1>
+              <p class="text-xs text-slate-400 font-medium">${pSubtitle}</p>
+            </div>
           </div>
-          <div>
-            <h1 class="font-extrabold text-white text-base tracking-tight flex items-center gap-2">
-              ${pName} 스마트 장부
-              <span class="text-[10px] px-2 py-0.5 rounded-full ${isConfigured ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 text-slate-300'} font-bold">
-                ${isConfigured ? '⚡ Google Sheets 연동' : '💾 로컬 모드'}
-              </span>
-            </h1>
-            <p class="text-xs text-slate-400 font-medium">${pSubtitle}</p>
+
+          <!-- 우측 설정 & 새월 생성 버튼 -->
+          <div class="flex items-center gap-2">
+            <!-- Sync Button -->
+            <button 
+              onclick="UI.syncWithGoogleSheets()" 
+              id="sync-btn"
+              class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
+              title="구글 스프레드시트 최신 데이터 실시간 동기화"
+            >
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">시트 동기화</span>
+            </button>
+
+            <!-- Settings Button -->
+            <button 
+              onclick="UI.showSettingsModal()"
+              class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+              title="구글 시트 연동 설정"
+            >
+              <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i>
+            </button>
+
+            <!-- Create Next Month Button -->
+            <button 
+              onclick="UI.showNewMonthModal()"
+              class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1 shadow-lg transition"
+            >
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>새 월 장부 생성</span>
+            </button>
           </div>
         </div>
 
-        <!-- Year/Month Picker, Surplus Badge & Tools -->
-        <div class="flex items-center gap-2 flex-wrap">
-          <!-- Quick Year/Month Selector -->
-          <div class="flex items-center bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-bold">
-            <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-400 mr-2"></i>
+        <!-- 하단 라인: [달력 월 선택] + [실질 순잉여금 지표] 전용 와이드 컨트롤 바 -->
+        <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:14px; padding:8px 14px; box-shadow:0 2px 8px rgba(0,0,0,0.06);" class="flex flex-wrap items-center justify-between gap-3">
+          <!-- 달력 월 선택 박스 (고급 라이트 서식) -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; color:#475569; font-weight:800; display:flex; align-items:center; gap:4px;">
+              <i data-lucide="calendar" style="width:16px; height:16px; color:#2563eb;"></i>
+              <span>기준 월 선택:</span>
+            </span>
             <select 
               id="header-month-selector"
               onchange="UI.handleMonthChange(this.value)"
-              class="bg-transparent text-white font-bold outline-none cursor-pointer"
+              style="background:#f8fafc; color:#0f172a; border:1.5px solid #94a3b8; border-radius:10px; padding:6px 12px; font-size:13px; font-weight:800; outline:none; cursor:pointer;"
             >
               ${window.store.availableMonths.map(m => `
-                <option value="${m}" ${m === currentYYMM ? 'selected' : ''} class="bg-slate-900 text-white">
-                  20${m.substring(0,2)}년 ${m.substring(2,4)}월 (${m})
+                <option value="${m}" ${m === currentYYMM ? 'selected' : ''}>
+                  📅 20${m.substring(0,2)}년 ${m.substring(2,4)}월 (${m})
                 </option>
               `).join('')}
             </select>
           </div>
 
-          <!-- M2 Surplus Badge -->
-          <div class="bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700 text-xs flex items-center gap-1.5 shadow-sm">
-            <i data-lucide="wallet" class="w-3.5 h-3.5 text-amber-400"></i>
-            <span class="text-slate-400">실질 순잉여금(M2):</span>
-            <span class="font-black text-amber-400">₩${window.store.formatMoney(monthlyData.netSurplus)}</span>
+          <!-- M2 실질 순잉여금 강조 지표 -->
+          <div style="display:flex; align-items:center; gap:8px; background:#f0fdf4; border:1.5px solid #86efac; padding:5px 14px; border-radius:10px;">
+            <i data-lucide="wallet" style="width:16px; height:16px; color:#059669;"></i>
+            <span style="font-size:12px; color:#166534; font-weight:700;">실질 순잉여금 (M2):</span>
+            <span style="font-size:16px; font-weight:900; color:${monthlyData.netSurplus >= 0 ? '#059669' : '#dc2626'}; letter-spacing:-0.3px;">
+              ₩${window.store.formatMoney(monthlyData.netSurplus)}
+            </span>
           </div>
-
-          <!-- Sync Button -->
-          <button 
-            onclick="UI.syncWithGoogleSheets()" 
-            id="sync-btn"
-            class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
-            title="구글 스프레드시트 최신 데이터 실시간 동기화"
-          >
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            <span class="hidden sm:inline">시트 동기화</span>
-          </button>
-
-          <!-- Settings Button -->
-          <button 
-            onclick="UI.showSettingsModal()"
-            class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
-            title="구글 시트 연동 설정"
-          >
-            <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i>
-          </button>
-
-          <!-- Create Next Month Button -->
-          <button 
-            onclick="UI.showNewMonthModal()"
-            class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1 shadow-lg transition"
-          >
-            <i data-lucide="plus-circle" class="w-4 h-4"></i>
-            <span>새 월 장부 생성</span>
-          </button>
         </div>
       </div>
     `;
@@ -1614,7 +1626,9 @@ const UI = {
           </div>
         </div>
       </div>
-    `;
+     `;
+  },
+
   setPrevCashPreset(amount) {
     const yymm = window.store.currentYYMM;
     const day = this.selectedDay;
@@ -1720,61 +1734,61 @@ const UI = {
     const activeTab = this.activeMonthlyTab || 0;
 
     return `
-      <div class="space-y-6 animate-fadeIn text-slate-100">
-        <!-- 상단 4대 총괄 지표 카드 -->
+      <div class="space-y-6 animate-fadeIn" style="color:#0f172a;">
+        <!-- 상단 4대 총괄 지표 카드 (순백 카드 + 가독성 극대화) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
-            <span class="text-xs text-slate-400 font-bold block mb-1">월 실질 통장 순잉여금 (M2)</span>
-            <div class="text-2xl font-black ${m.netSurplus >= 0 ? 'text-amber-400' : 'text-rose-400'}">
+          <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">월 실질 통장 순잉여금 (M2)</span>
+            <div style="font-size:24px; font-weight:900; color:${m.netSurplus >= 0 ? '#059669' : '#dc2626'}; letter-spacing:-0.5px;">
               ₩${window.store.formatMoney(m.netSurplus)}
             </div>
-            <span class="text-[10px] text-slate-500">P4(총수입) - S4(총지출)</span>
+            <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">P4(총수입) - S4(총지출)</span>
           </div>
 
-          <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
-            <span class="text-xs text-slate-400 font-bold block mb-1">이론적 총수익 분석 (C4)</span>
-            <div class="text-2xl font-black text-emerald-400">₩${window.store.formatMoney(m.theoreticalProfit)}</div>
-            <span class="text-[10px] text-slate-500">조제료 + 매약순익40% + 에누리 + 비급여 + 캐시백</span>
+          <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">이론적 총수익 분석 (C4)</span>
+            <div style="font-size:24px; font-weight:900; color:#059669; letter-spacing:-0.5px;">₩${window.store.formatMoney(m.theoreticalProfit)}</div>
+            <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">조제료 + 매약순익40% + 에누리 + 비급여 + 캐시백</span>
           </div>
 
-          <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
-            <span class="text-xs text-slate-400 font-bold block mb-1">통장 총수입 (P4)</span>
-            <div class="text-2xl font-black text-blue-400">₩${window.store.formatMoney(m.grossIncome)}</div>
-            <span class="text-[10px] text-slate-500">일반매출 + 본부금 + 공단청구 + 에누리 + 약국거래</span>
+          <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">통장 총수입 (P4)</span>
+            <div style="font-size:24px; font-weight:900; color:#1d4ed8; letter-spacing:-0.5px;">₩${window.store.formatMoney(m.grossIncome)}</div>
+            <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">일반매출 + 본부금 + 공단청구 + 에누리 + 약국거래</span>
           </div>
 
-          <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800 shadow-xl">
-            <span class="text-xs text-slate-400 font-bold block mb-1">통장 총지출 (S4)</span>
-            <div class="text-2xl font-black text-rose-400">₩${window.store.formatMoney(m.grossExpenses)}</div>
-            <span class="text-[10px] text-slate-500">거래처 + 급여 + 공과금 + 월세 + 금융비용</span>
+          <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">통장 총지출 (S4)</span>
+            <div style="font-size:24px; font-weight:900; color:#dc2626; letter-spacing:-0.5px;">₩${window.store.formatMoney(m.grossExpenses)}</div>
+            <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">거래처 + 급여 + 공과금 + 월세 + 금융비용</span>
           </div>
         </div>
 
-        <!-- 5개 탭 컨테이너 -->
-        <div class="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-          <!-- 탭 헤더 버튼 (모바일/PC 완벽 반응형 6개 탭 그리드) -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-b border-slate-800 bg-slate-950/80 p-1.5 gap-1.5" id="monthly-tabs">
-            <button onclick="UI.switchMonthlyTab(0)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 0 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+        <!-- 6개 탭 컨테이너 (라이트 테마 리디자인) -->
+        <div style="background:#ffffff; border-radius:18px; border:1.5px solid #e2e8f0; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
+          <!-- 탭 헤더 버튼 (모바일/PC 반응형 그리드) -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" style="border-bottom:1.5px solid #e2e8f0; background:#f8fafc; padding:6px; gap:6px;" id="monthly-tabs">
+            <button onclick="UI.switchMonthlyTab(0)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 0 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 0}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 0}) this.style.background='transparent';">
               <span class="hidden md:inline">1. 거래처 결제 대장</span>
               <span class="md:hidden">1. 거래처 결제</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(1)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 1 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+            <button onclick="UI.switchMonthlyTab(1)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 1 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 1}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 1}) this.style.background='transparent';">
               <span class="hidden md:inline">2. 직원 급여 & 퇴직금</span>
               <span class="md:hidden">2. 급여 · 퇴직금</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(2)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 2 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+            <button onclick="UI.switchMonthlyTab(2)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 2 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 2}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 2}) this.style.background='transparent';">
               <span class="hidden md:inline">3. 공과금 세부 내역</span>
               <span class="md:hidden">3. 공과금 내역</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(3)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 3 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+            <button onclick="UI.switchMonthlyTab(3)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 3 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 3}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 3}) this.style.background='transparent';">
               <span class="hidden md:inline">4. 에누리 & 약국간거래</span>
               <span class="md:hidden">4. 에누리·약국거래</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(4)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 4 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+            <button onclick="UI.switchMonthlyTab(4)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 4 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 4}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 4}) this.style.background='transparent';">
               <span class="hidden md:inline">5. 카드결제 & 계좌출금</span>
               <span class="md:hidden">5. 카드·계좌출금</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(5)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 5 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+            <button onclick="UI.switchMonthlyTab(5)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 5 ? 'background:#2563eb; color:#ffffff; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}" onmouseover="if(${activeTab !== 5}) this.style.background='#e2e8f0';" onmouseout="if(${activeTab !== 5}) this.style.background='transparent';">
               <span class="hidden md:inline">6. 손익 종합 분석표</span>
               <span class="md:hidden">6. 손익 종합 분석</span>
             </button>
@@ -1783,45 +1797,45 @@ const UI = {
           <!-- 탭 1: 거래처 결제 대장 (현금 V열 + 카드 Y/AA열) -->
           <div id="tab-content-0" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 0 ? '' : 'hidden'}">
             <div class="flex justify-between items-center flex-wrap gap-2">
-              <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
-                <i data-lucide="truck" class="w-4 h-4"></i>
+              <h3 style="font-size:14px; font-weight:800; color:#1d4ed8; display:flex; align-items:center; gap:8px; margin:0;">
+                <i data-lucide="truck" style="width:16px; height:16px; color:#2563eb;"></i>
                 <span>거래처 결제 대장 (S6 현금: ₩${window.store.formatMoney(m.vendorCashTotal)} / S7 카드: ₩${window.store.formatMoney(m.vendorCardTotal)})</span>
               </h3>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- 현금결제 대장 (V4:V30) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-xs text-amber-400 font-bold">현금결제 거래처 (V열)</span>
-                  <button onclick="UI.showAddItemModal('cashVendors', '현금 거래처 추가')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-amber-500/30 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 추가
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:12.5px; font-weight:800; color:#d97706;">현금결제 거래처 (V열)</span>
+                  <button onclick="UI.showAddItemModal('cashVendors', '현금 거래처 추가')" style="padding:4px 10px; background:#ffffff; color:#d97706; border:1px solid #fcd34d; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
                 </div>
                 <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cashVendors.map((v, idx) => `
-                    <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-slate-900 transition">
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-slate-300 font-bold truncate">${v.name}</span>
-                        ${v.cell ? `<span class="text-[9px] text-slate-500 bg-slate-900 px-1 rounded border border-slate-800">${v.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.borderColor='#f59e0b';" onmouseout="this.style.borderColor='#e2e8f0';">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
                       </div>
-                      <div class="flex items-center gap-1">
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(v.amount)}" 
                           ${v.readOnly ? 'readonly' : ''} 
                           oninput="UI.handleVendorChange('cashVendors', ${idx}, this)" 
-                          class="w-28 bg-slate-900 border ${v.readOnly ? 'border-amber-500/30 text-amber-300' : 'border-slate-700 text-white'} rounded px-2 py-1 text-right font-bold outline-none focus:border-amber-400"
+                          style="width:110px; background:${v.readOnly ? '#fffbeb' : '#ffffff'}; border:1.5px solid ${v.readOnly ? '#fcd34d' : '#cbd5e1'}; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:${v.readOnly ? '#b45309' : '#0f172a'}; outline:none; font-size:12.5px;"
                         />
                         ${!v.readOnly ? `
-                          <button onclick="UI.showEditItemModal('cashVendors', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                          <button onclick="UI.showEditItemModal('cashVendors', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                           </button>
-                          <button onclick="UI.removeVendor('cashVendors', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                          <button onclick="UI.removeVendor('cashVendors', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                           </button>
-                        ` : '<div class="w-12"></div>'}
+                        ` : '<div style="width:40px;"></div>'}
                       </div>
                     </div>
                   `).join('')}
@@ -1829,37 +1843,37 @@ const UI = {
               </div>
 
               <!-- 카드결제 대장 (Y4:Y40 & AA4:AA40) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-xs text-purple-400 font-bold">카드결제 거래처 (Y/AA열)</span>
-                  <button onclick="UI.showAddItemModal('cardVendors', '카드 거래처 추가')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-purple-400 rounded-lg text-xs font-bold border border-purple-500/30 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 추가
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:12.5px; font-weight:800; color:#6d28d9;">카드결제 거래처 (Y/AA열)</span>
+                  <button onclick="UI.showAddItemModal('cardVendors', '카드 거래처 추가')" style="padding:4px 10px; background:#ffffff; color:#6d28d9; border:1px solid #c4b5fd; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
                 </div>
                 <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cardVendors.map((v, idx) => `
-                    <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-slate-900 transition">
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-slate-300 font-bold truncate">${v.name}</span>
-                        ${v.cell ? `<span class="text-[9px] text-slate-500 bg-slate-900 px-1 rounded border border-slate-800">${v.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.borderColor='#7c3aed';" onmouseout="this.style.borderColor='#e2e8f0';">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
                       </div>
-                      <div class="flex items-center gap-1">
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(v.amount)}" 
                           ${v.readOnly ? 'readonly' : ''} 
                           oninput="UI.handleVendorChange('cardVendors', ${idx}, this)" 
-                          class="w-28 bg-slate-900 border ${v.readOnly ? 'border-purple-500/30 text-purple-300' : 'border-slate-700 text-white'} rounded px-2 py-1 text-right font-bold outline-none focus:border-purple-400"
+                          style="width:110px; background:${v.readOnly ? '#faf5ff' : '#ffffff'}; border:1.5px solid ${v.readOnly ? '#c4b5fd' : '#cbd5e1'}; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:${v.readOnly ? '#6d28d9' : '#0f172a'}; outline:none; font-size:12.5px;"
                         />
                         ${!v.readOnly ? `
-                          <button onclick="UI.showEditItemModal('cardVendors', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                          <button onclick="UI.showEditItemModal('cardVendors', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                           </button>
-                          <button onclick="UI.removeVendor('cardVendors', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                          <button onclick="UI.removeVendor('cardVendors', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                           </button>
-                        ` : '<div class="w-12"></div>'}
+                        ` : '<div style="width:40px;"></div>'}
                       </div>
                     </div>
                   `).join('')}
@@ -1872,33 +1886,33 @@ const UI = {
           <div id="tab-content-1" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 1 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- 급여대장 (S8) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-xs text-amber-400 font-bold">인건비 급여대장 (S8: ₩${window.store.formatMoney(m.expPayroll)})</span>
-                  <button onclick="UI.showAddItemModal('employees', '직원 급여 항목 추가')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-amber-500/30 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 추가
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:12.5px; font-weight:800; color:#d97706;">인건비 급여대장 (S8: ₩${window.store.formatMoney(m.expPayroll)})</span>
+                  <button onclick="UI.showAddItemModal('employees', '직원 급여 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#d97706; border:1px solid #fcd34d; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.employees.map((e, idx) => `
-                    <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-slate-900 transition">
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-slate-300 font-bold truncate">${e.name}</span>
-                        ${e.cell ? `<span class="text-[9px] text-slate-500 bg-slate-900 px-1 rounded border border-slate-800">${e.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${e.name}</span>
+                        ${e.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${e.cell}</span>` : ''}
                       </div>
-                      <div class="flex items-center gap-1">
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(e.amount)}" 
                           oninput="UI.handleVendorChange('employees', ${idx}, this)" 
-                          class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-amber-400"
+                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
                         />
-                        <button onclick="UI.showEditItemModal('employees', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.showEditItemModal('employees', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('employees', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.removeVendor('employees', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                         </button>
                       </div>
                     </div>
@@ -1907,33 +1921,33 @@ const UI = {
               </div>
 
               <!-- 퇴직금 적립 (S17 = AA29) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-xs text-blue-400 font-bold">퇴직금 적립대장 (S17: ₩${window.store.formatMoney(m.expSeverance)})</span>
-                  <button onclick="UI.showAddItemModal('severances', '퇴직금 적립 항목 추가')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-xs font-bold border border-blue-500/30 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 추가
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:12.5px; font-weight:800; color:#1d4ed8;">퇴직금 적립대장 (S17: ₩${window.store.formatMoney(m.expSeverance)})</span>
+                  <button onclick="UI.showAddItemModal('severances', '퇴직금 적립 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#1d4ed8; border:1px solid #93c5fd; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.severances.map((s, idx) => `
-                    <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-slate-900 transition">
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-slate-300 font-bold truncate">${s.name}</span>
-                        ${s.cell ? `<span class="text-[9px] text-slate-500 bg-slate-900 px-1 rounded border border-slate-800">${s.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${s.name}</span>
+                        ${s.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${s.cell}</span>` : ''}
                       </div>
-                      <div class="flex items-center gap-1">
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(s.amount)}" 
                           oninput="UI.handleVendorChange('severances', ${idx}, this)" 
-                          class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-blue-400"
+                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
                         />
-                        <button onclick="UI.showEditItemModal('severances', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.showEditItemModal('severances', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('severances', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.removeVendor('severances', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                         </button>
                       </div>
                     </div>
@@ -1945,33 +1959,33 @@ const UI = {
 
           <!-- 탭 3: 공과금 세부 내역 -->
           <div id="tab-content-2" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 2 ? '' : 'hidden'}">
-            <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-              <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                <span class="text-xs text-amber-400 font-bold">공과금 세부 내역 (S9: ₩${window.store.formatMoney(m.expUtility)})</span>
-                <button onclick="UI.showAddItemModal('utilities', '공과금 항목 추가')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg text-xs font-bold border border-amber-500/30 transition flex items-center gap-1">
-                  <i data-lucide="plus" class="w-3 h-3"></i>+ 추가
+            <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                <span style="font-size:12.5px; font-weight:800; color:#d97706;">공과금 세부 내역 (S9: ₩${window.store.formatMoney(m.expUtility)})</span>
+                <button onclick="UI.showAddItemModal('utilities', '공과금 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#d97706; border:1px solid #fcd34d; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                  <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                 </button>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs max-h-[500px] overflow-y-auto pr-1">
                 ${m.utilities.map((u, idx) => `
-                  <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:bg-slate-900 transition">
-                    <div class="flex items-center gap-1.5 min-w-0">
-                      <span class="text-slate-300 font-bold truncate">${u.name}</span>
-                      ${u.cell ? `<span class="text-[9px] text-slate-500 bg-slate-900 px-1 rounded border border-slate-800">${u.cell}</span>` : ''}
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                    <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                      <span style="font-weight:700; color:#0f172a;" class="truncate">${u.name}</span>
+                      ${u.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${u.cell}</span>` : ''}
                     </div>
-                    <div class="flex items-center gap-1">
+                    <div style="display:flex; align-items:center; gap:4px;">
                       <input 
                         type="text" 
                         inputmode="numeric"
                         value="${window.store.formatMoney(u.amount)}" 
                         oninput="UI.handleVendorChange('utilities', ${idx}, this)" 
-                        class="w-28 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-amber-400"
+                        style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
                       />
-                      <button onclick="UI.showEditItemModal('utilities', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                      <button onclick="UI.showEditItemModal('utilities', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                        <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                       </button>
-                      <button onclick="UI.removeVendor('utilities', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      <button onclick="UI.removeVendor('utilities', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                        <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                       </button>
                     </div>
                   </div>
@@ -1984,33 +1998,33 @@ const UI = {
           <div id="tab-content-3" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 3 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- 에누리/금융할인 (P9) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-xs text-emerald-400 font-bold">에누리/금융할인 (P9: ₩${window.store.formatMoney(m.totalDiscounts)})</span>
-                  <button onclick="UI.showAddItemModal('discounts', '에누리 항목 추가')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-lg text-xs font-bold border border-emerald-500/30 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 추가
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:12.5px; font-weight:800; color:#059669;">에누리/금융할인 (P9: ₩${window.store.formatMoney(m.totalDiscounts)})</span>
+                  <button onclick="UI.showAddItemModal('discounts', '에누리 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#059669; border:1px solid #6ee7b7; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.discounts.map((d, idx) => `
-                    <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-slate-900 transition">
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-slate-300 font-bold truncate">${d.name}</span>
-                        ${d.cell ? `<span class="text-[9px] text-slate-500 bg-slate-900 px-1 rounded border border-slate-800">${d.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${d.name}</span>
+                        ${d.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${d.cell}</span>` : ''}
                       </div>
-                      <div class="flex items-center gap-1">
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(d.amount)}" 
                           oninput="UI.handleVendorChange('discounts', ${idx}, this)" 
-                          class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-emerald-400"
+                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
                         />
-                        <button onclick="UI.showEditItemModal('discounts', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.showEditItemModal('discounts', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('discounts', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.removeVendor('discounts', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                         </button>
                       </div>
                     </div>
@@ -2019,33 +2033,33 @@ const UI = {
               </div>
 
               <!-- 약국간거래 (P10) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-xs text-blue-400 font-bold">약국간거래 (P10: ₩${window.store.formatMoney(m.totalPharmTrades)})</span>
-                  <button onclick="UI.showAddItemModal('pharmTrades', '약국간거래 항목 추가')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-xs font-bold border border-blue-500/30 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 추가
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:12.5px; font-weight:800; color:#1d4ed8;">약국간거래 (P10: ₩${window.store.formatMoney(m.totalPharmTrades)})</span>
+                  <button onclick="UI.showAddItemModal('pharmTrades', '약국간거래 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#1d4ed8; border:1px solid #93c5fd; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.pharmTrades.map((v, idx) => `
-                    <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-slate-900 transition">
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-slate-300 font-bold truncate">${v.name}</span>
-                        ${v.cell ? `<span class="text-[9px] text-slate-500 bg-slate-900 px-1 rounded border border-slate-800">${v.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
                       </div>
-                      <div class="flex items-center gap-1">
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(v.amount)}" 
                           oninput="UI.handleVendorChange('pharmTrades', ${idx}, this)" 
-                          class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-blue-400"
+                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
                         />
-                        <button onclick="UI.showEditItemModal('pharmTrades', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.showEditItemModal('pharmTrades', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('pharmTrades', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.removeVendor('pharmTrades', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                         </button>
                       </div>
                     </div>
@@ -2059,47 +2073,47 @@ const UI = {
           <div id="tab-content-4" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 4 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- 좌측: 이번달 카드별 결제금액 (Z69:AA75) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-purple-500/40">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+              <div style="background:#faf5ff; border:1.5px solid #ddd6fe; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #ede9fe; padding-bottom:10px;">
                   <div>
-                    <span class="text-xs text-purple-400 font-bold block">1. 이번달 카드별 결제금액 (Z69:AA75)</span>
-                    <span class="text-[10px] text-purple-300 font-bold">C9/P13 캐시백 혜택 합산: ₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span></span>
+                    <span style="font-size:12.5px; font-weight:800; color:#6d28d9; display:block;">1. 이번달 카드별 결제금액 (Z69:AA75)</span>
+                    <span style="font-size:11px; color:#6d28d9; font-weight:700;">C9/P13 캐시백 혜택 합산: ₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span></span>
                   </div>
-                  <button onclick="UI.showAddItemModal('cardCashbacks', '카드사 추가')" class="px-2 py-1 bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 rounded-lg text-xs font-bold border border-purple-500/40 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 카드사 추가
+                  <button onclick="UI.showAddItemModal('cardCashbacks', '카드사 추가')" style="padding:4px 10px; background:#ffffff; color:#6d28d9; border:1px solid #c4b5fd; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 카드사 추가
                   </button>
                 </div>
                 <div class="space-y-3 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cardCashbacks.map((c, idx) => `
-                    <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-                      <div class="flex items-center justify-between">
-                        <span class="text-slate-200 font-bold text-xs">${c.name}</span>
-                        <div class="flex items-center gap-1">
-                          <span class="text-[10px] text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60">
+                    <div style="padding:10px; border-radius:10px; background:#ffffff; border:1px solid #e2e8f0;" class="space-y-2">
+                      <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12.5px;">${c.name}</span>
+                        <div style="display:flex; align-items:center; gap:4px;">
+                          <span style="font-size:10px; color:#6d28d9; background:#f3e8ff; padding:2px 6px; border-radius:4px; font-weight:700;">
                             요율: ${c.rate || 1.5}%
                           </span>
-                          <button onclick="UI.showEditItemModal('cardCashbacks', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                            <i data-lucide="pencil" class="w-3 h-3"></i>
+                          <button onclick="UI.showEditItemModal('cardCashbacks', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                           </button>
-                          <button onclick="UI.removeVendor('cardCashbacks', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                          <button onclick="UI.removeVendor('cardCashbacks', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                           </button>
                         </div>
                       </div>
                       <div class="space-y-1">
-                        <label class="text-[10px] text-slate-400 block font-medium">이번달 카드 결제원금 입력:</label>
+                        <label style="font-size:11px; color:#64748b; font-weight:600;" class="block">이번달 카드 결제원금 입력:</label>
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(c.spend || c.amount)}" 
                           oninput="UI.handleCardSpendChange(${idx}, this)" 
-                          class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-right font-bold text-white outline-none focus:border-purple-400 text-xs" 
+                          style="width:100%; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:6px 10px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" 
                           placeholder="결제금액 입력"
                         />
                       </div>
-                      <div class="flex justify-between items-center text-[10px] bg-slate-950/60 px-2 py-1 rounded border border-slate-900">
-                        <span class="text-slate-400">🎁 계산된 캐시백 혜택:</span>
-                        <span class="font-bold text-purple-400" id="disp-cashback-item-${idx}">₩${window.store.formatMoney(c.cashback)}</span>
+                      <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; background:#f8fafc; padding:4px 8px; border-radius:6px; border:1px solid #f1f5f9;">
+                        <span style="color:#64748b;">🎁 계산된 캐시백 혜택:</span>
+                        <span style="font-weight:800; color:#6d28d9;" id="disp-cashback-item-${idx}">₩${window.store.formatMoney(c.cashback)}</span>
                       </div>
                     </div>
                   `).join('')}
@@ -2107,43 +2121,43 @@ const UI = {
               </div>
 
               <!-- 우측: 계좌별 카드출금금액 (R49:S53) -->
-              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-sky-500/40">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+              <div style="background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e0f2fe; padding-bottom:10px;">
                   <div>
-                    <span class="text-xs text-sky-400 font-bold block">2. 계좌별 카드출금금액 (R49:S53)</span>
-                    <span class="text-[10px] text-sky-300 font-bold">S7/S49 통장출금 합산 연동: ₩<span id="disp-total-card-withdraw">${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}</span></span>
+                    <span style="font-size:12.5px; font-weight:800; color:#0369a1; display:block;">2. 계좌별 카드출금금액 (R49:S53)</span>
+                    <span style="font-size:11px; color:#0369a1; font-weight:700;">S7/S49 통장출금 합산 연동: ₩<span id="disp-total-card-withdraw">${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}</span></span>
                   </div>
-                  <button onclick="UI.showAddItemModal('cardWithdrawals', '출금계좌 추가')" class="px-2 py-1 bg-sky-950/60 hover:bg-sky-900/60 text-sky-300 rounded-lg text-xs font-bold border border-sky-500/40 transition flex items-center gap-1">
-                    <i data-lucide="plus" class="w-3 h-3"></i>+ 계좌 추가
+                  <button onclick="UI.showAddItemModal('cardWithdrawals', '출금계좌 추가')" style="padding:4px 10px; background:#ffffff; color:#0369a1; border:1px solid #7dd3fc; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 계좌 추가
                   </button>
                 </div>
                 <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cardWithdrawals.map((w, idx) => `
-                    <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/90 border border-slate-800/80 hover:border-slate-700 transition">
-                      <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-slate-200 font-bold truncate">${w.name}</span>
-                        ${w.cell ? `<span class="text-[9px] text-slate-500 bg-slate-950 px-1 rounded border border-slate-800">${w.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:800; color:#0f172a;" class="truncate">${w.name}</span>
+                        ${w.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${w.cell}</span>` : ''}
                       </div>
-                      <div class="flex items-center gap-1">
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(w.amount)}" 
                           oninput="UI.handleVendorChange('cardWithdrawals', ${idx}, this)" 
-                          class="w-32 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-right font-bold text-sky-300 outline-none focus:border-sky-400"
+                          style="width:120px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
                           placeholder="출금액 입력"
                         />
-                        <button onclick="UI.showEditItemModal('cardWithdrawals', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
-                          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.showEditItemModal('cardWithdrawals', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('cardWithdrawals', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
-                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <button onclick="UI.removeVendor('cardWithdrawals', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                         </button>
                       </div>
                     </div>
                   `).join('')}
                 </div>
-                <div class="p-2.5 rounded-lg bg-sky-950/30 border border-sky-800/30 text-[11px] text-slate-400 flex justify-between items-center">
+                <div style="padding:8px 12px; border-radius:8px; background:#e0f2fe; border:1px solid #bae6fd; font-size:11px; color:#0369a1;" class="flex justify-between items-center">
                   <span>💡 위 각 계좌별 출금 합계가 <b>6번 탭 '통장 총지출(S7)'</b>에 자동 반영됩니다.</span>
                 </div>
               </div>
@@ -2154,24 +2168,24 @@ const UI = {
           <div id="tab-content-5" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 5 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
               <!-- C열: 이론적 총수익 분석표 -->
-              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-sm font-bold text-emerald-400">
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:13px; font-weight:800; color:#059669;">
                     1. 이론적 총수익 분석 (C4)
                   </span>
-                  <span class="text-base font-black text-emerald-400" id="disp-c4-theoretical">
+                  <span style="font-size:16px; font-weight:900; color:#059669;" id="disp-c4-theoretical">
                     ₩${window.store.formatMoney(m.theoreticalProfit)}
                   </span>
                 </div>
-                <div class="space-y-2">
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">월조제료 (C5 직접입력):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeRxFee)}" oninput="UI.handleMonthlyChange('incomeRxFee', this)" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                <div class="space-y-2.5">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">월조제료 (C5 직접입력):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeRxFee)}" oninput="UI.handleMonthlyChange('incomeRxFee', this)" style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" placeholder="0"/>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-slate-400">일반매출순익 (C6):</span>
-                      <div class="flex items-center bg-slate-900 border border-amber-500/50 rounded px-1.5 py-0.5">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span style="color:#475569; font-weight:600;">일반매출순익 (C6):</span>
+                      <div style="display:flex; align-items:center; background:#ffffff; border:1px solid #d97706; border-radius:6px; padding:2px 6px;">
                         <input 
                           type="number" 
                           step="0.5"
@@ -2179,140 +2193,140 @@ const UI = {
                           max="100"
                           value="${m.otcMarginRate !== undefined ? m.otcMarginRate : 40}" 
                           oninput="UI.handleMarginRateChange(this.value)"
-                          class="w-9 bg-transparent text-right font-black text-amber-400 outline-none text-xs"
+                          style="width:36px; background:transparent; text-align:right; font-weight:800; color:#d97706; outline:none; font-size:12px; border:none;"
                         />
-                        <span class="text-[10px] text-amber-400 font-bold ml-0.5">%</span>
+                        <span style="font-size:11px; color:#d97706; font-weight:700;">%</span>
                       </div>
                     </div>
-                    <span class="font-bold text-emerald-400" id="display-otc-profit">₩${window.store.formatMoney(m.otcProfit)}</span>
+                    <span style="font-weight:800; color:#059669;" id="display-otc-profit">₩${window.store.formatMoney(m.otcProfit)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">에누리 (C7 = P29):</span>
-                    <span class="font-bold text-emerald-400">₩${window.store.formatMoney(m.totalDiscounts)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">에누리 (C7 = P29):</span>
+                    <span style="font-weight:800; color:#059669;">₩${window.store.formatMoney(m.totalDiscounts)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">처방비급여마진 (C8 직접입력):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeNonCovered)}" oninput="UI.handleMonthlyChange('incomeNonCovered', this)" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">처방비급여마진 (C8 직접입력):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeNonCovered)}" oninput="UI.handleMonthlyChange('incomeNonCovered', this)" style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" placeholder="0"/>
                   </div>
-                  <div class="flex justify-between items-center py-1 bg-purple-950/20 px-2 rounded-lg border border-purple-500/20">
-                    <div class="flex items-center gap-1">
-                      <span class="text-slate-300 font-medium">카드별 혜택 (C9 = P13):</span>
-                      <span class="text-[9px] text-purple-400 bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-800/60">5번 탭 연동</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#faf5ff; border:1px solid #ddd6fe; border-radius:8px;">
+                    <div style="display:flex; align-items:center; gap:4px;">
+                      <span style="color:#6d28d9; font-weight:700;">카드별 혜택 (C9 = P13):</span>
+                      <span style="font-size:10px; color:#6d28d9; background:#ede9fe; padding:2px 6px; border-radius:4px; border:1px solid #c4b5fd;">5번 탭 연동</span>
                     </div>
-                    <span class="font-bold text-purple-400" id="disp-c9-cashback">₩${window.store.formatMoney(m.totalCashback)}</span>
+                    <span style="font-weight:800; color:#6d28d9;" id="disp-c9-cashback">₩${window.store.formatMoney(m.totalCashback)}</span>
                   </div>
-                  <div class="pt-2 border-t border-slate-800/80">
-                    <div class="flex justify-between text-[11px] text-slate-500">
+                  <div style="padding-top:8px; border-top:1px solid #e2e8f0;">
+                    <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#64748b;">
                       <span>(월총일반매출액 C12):</span>
-                      <span>₩${window.store.formatMoney(m.otcTotalSales)}</span>
+                      <span style="font-weight:700; color:#0f172a;">₩${window.store.formatMoney(m.otcTotalSales)}</span>
                     </div>
-                    <div class="flex justify-between text-[11px] text-slate-500">
+                    <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#64748b; margin-top:2px;">
                       <span>(일평균 일반매출 C13):</span>
-                      <span>₩${window.store.formatMoney(m.otcDailyAvg)}</span>
+                      <span style="font-weight:700; color:#0f172a;">₩${window.store.formatMoney(m.otcDailyAvg)}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               <!-- P열: 통장 수입 총괄표 -->
-              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-sm font-bold text-blue-400">
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:13px; font-weight:800; color:#1d4ed8;">
                     2. 통장 총수입 (P4)
                   </span>
-                  <span class="text-base font-black text-blue-400">
+                  <span style="font-size:16px; font-weight:900; color:#1d4ed8;">
                     ₩${window.store.formatMoney(m.grossIncome)}
                   </span>
                 </div>
-                <div class="space-y-2">
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">일반매약총액 (P6):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.incomeOtcRaw)}</span>
+                <div class="space-y-2.5">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">일반매약총액 (P6):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeOtcRaw)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">조제본인부담금합 (P7 = F247):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.incomeCopay)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">조제본인부담금합 (P7 = F247):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeCopay)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">전월공단청구금입금액 (P8 직접입력):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeNhisClaim)}" oninput="UI.handleMonthlyChange('incomeNhisClaim', this)" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">전월공단청구금입금액 (P8 직접입력):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeNhisClaim)}" oninput="UI.handleMonthlyChange('incomeNhisClaim', this)" style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" placeholder="0"/>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">에누리합계 (P9 = P29):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.totalDiscounts)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">에누리합계 (P9 = P29):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.totalDiscounts)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">약국간거래합 (P10 = P22):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.totalPharmTrades)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">약국간거래합 (P10 = P22):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.totalPharmTrades)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">직원할인구매이체 (P11):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.incomeDiscount)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">직원할인구매이체 (P11):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeDiscount)}</span>
                   </div>
                 </div>
               </div>
 
               <!-- S열: 통장 지출 총괄표 -->
-              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span class="text-sm font-bold text-rose-400">
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <span style="font-size:13px; font-weight:800; color:#dc2626;">
                     3. 통장 총지출 (S4)
                   </span>
-                  <span class="text-base font-black text-rose-400">
+                  <span style="font-size:16px; font-weight:900; color:#dc2626;">
                     ₩${window.store.formatMoney(m.grossExpenses)}
                   </span>
                 </div>
                 <div class="space-y-2">
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">현금결재 (S6 = V3):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.vendorCashTotal)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">현금결재 (S6 = V3):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.vendorCashTotal)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">카드출금 (S7=S49, 5번 탭 연동):</span>
-                    <span class="font-bold text-sky-300">₩${window.store.formatMoney(m.expCardWithdraw)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">카드출금 (S7=S49, 5번 탭 연동):</span>
+                    <span style="font-weight:800; color:#0284c7;">₩${window.store.formatMoney(m.expCardWithdraw)}</span>
                   </div>
-                  <div class="flex justify-between items-center text-[10px]">
-                    <span class="text-slate-600">※ 이번달 카드결제액(Y3=₩${window.store.formatMoney(m.vendorCardTotal)})은 2달뒤 출금</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#94a3b8;">
+                    <span>※ 이번달 카드결제액(Y3=₩${window.store.formatMoney(m.vendorCardTotal)})은 2달뒤 출금</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">인건비 (S8 = V28):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.expPayroll)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">인건비 (S8 = V28):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expPayroll)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">공과금 (S9 = V37):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.expUtility)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">공과금 (S9 = V37):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expUtility)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">약국임대료 (S10):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expRent)}" oninput="UI.handleMonthlyChange('expRent', this)" class="w-24 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">약국임대료 (S10):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expRent)}" oninput="UI.handleMonthlyChange('expRent', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">기타운영비 (S11 = S37):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.expOtherOperating)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">기타운영비 (S11 = S37):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expOtherOperating)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">카드수수료 (S12 = 1.6%):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.expCardFee)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">카드수수료 (S12 = 1.6%):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expCardFee)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">금융비용 (S13 = S22):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.expFinance)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">금융비용 (S13 = S22):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expFinance)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">연금저축 (S14):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expPension)}" oninput="UI.handleMonthlyChange('expPension', this)" class="w-24 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">연금저축 (S14):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expPension)}" oninput="UI.handleMonthlyChange('expPension', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">적금/소득세 (S15):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expSaving)}" oninput="UI.handleMonthlyChange('expSaving', this)" class="w-24 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">적금/소득세 (S15):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expSaving)}" oninput="UI.handleMonthlyChange('expSaving', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">노란우산 (S16):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expYellowUmbrella)}" oninput="UI.handleMonthlyChange('expYellowUmbrella', this)" class="w-24 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-bold text-white outline-none focus:border-amber-400"/>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">노란우산 (S16):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expYellowUmbrella)}" oninput="UI.handleMonthlyChange('expYellowUmbrella', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">퇴직금적립 (S17 = AA29):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.expSeverance)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">퇴직금적립 (S17 = AA29):</span>
+                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expSeverance)}</span>
                   </div>
                 </div>
               </div>
@@ -2321,12 +2335,12 @@ const UI = {
         </div>
 
         <!-- 월말 결산 저장 버튼 바 -->
-        <div class="flex justify-end gap-3 pt-2">
+        <div style="display:flex; justify-content:flex-end; gap:12px; padding-top:8px;">
           <button 
             onclick="UI.saveCurrentMonthly()"
-            class="px-8 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-xl flex items-center gap-2 transition text-sm shadow-amber-500/20"
+            style="padding:14px 28px; background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color:#1c1917; font-weight:900; border-radius:14px; font-size:14px; border:none; cursor:pointer; box-shadow:0 4px 12px rgba(245,158,11,0.35); display:flex; align-items:center; gap:8px;"
           >
-            <i data-lucide="save" class="w-4 h-4"></i>
+            <i data-lucide="save" style="width:16px; height:16px;"></i>
             <span>20${yymm.substring(0,2)}년 ${yymm.substring(2,4)}월 결산 저장 (구글 시트 ${yymm}결산 동기화)</span>
           </button>
         </div>
@@ -2447,29 +2461,29 @@ const UI = {
     if (!modalContainer) return;
 
     modalContainer.innerHTML = `
-      <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-scaleIn">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <i data-lucide="plus-circle" class="w-4 h-4 text-amber-400"></i>
+      <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:18px; padding:24px; max-width:420px; width:100%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);" class="space-y-4 animate-scaleIn">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:12px;">
+          <h3 style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px; margin:0;">
+            <i data-lucide="plus-circle" style="width:16px; height:16px; color:#2563eb;"></i>
             <span>${title}</span>
           </h3>
-          <button onclick="UI.closeModal()" class="text-slate-500 hover:text-white">✕</button>
+          <button onclick="UI.closeModal()" style="color:#94a3b8; background:none; border:none; cursor:pointer; font-size:16px;">✕</button>
         </div>
 
         <div class="space-y-3 text-xs">
           <div>
-            <label class="text-slate-400 block mb-1">항목명 / 거래처명 / 직원명</label>
-            <input type="text" id="modal-item-name" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-amber-400" placeholder="예: 신규 거래처명"/>
+            <label style="color:#475569; display:block; font-weight:600; margin-bottom:6px;">항목명 / 거래처명 / 직원명</label>
+            <input type="text" id="modal-item-name" style="width:100%; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:8px 12px; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="예: 신규 거래처명"/>
           </div>
           <div>
-            <label class="text-slate-400 block mb-1">금액 (원)</label>
-            <input type="text" inputmode="numeric" id="modal-item-amount" oninput="UI.formatCurrencyInput(this)" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-right font-bold text-white outline-none focus:border-amber-400" placeholder="0"/>
+            <label style="color:#475569; display:block; font-weight:600; margin-bottom:6px;">금액 (원)</label>
+            <input type="text" inputmode="numeric" id="modal-item-amount" oninput="UI.formatCurrencyInput(this)" style="width:100%; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:8px 12px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;" placeholder="0"/>
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button onclick="UI.closeModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800">취소</button>
-          <button onclick="UI.saveNewItem('${listKey}')" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-md">추가하기</button>
+        <div style="display:flex; justify-content:flex-end; gap:8px; padding-top:12px; border-top:1.5px solid #e2e8f0;">
+          <button onclick="UI.closeModal()" style="padding:8px 16px; border-radius:10px; font-size:12px; font-weight:700; color:#64748b; background:#f1f5f9; border:none; cursor:pointer;">취소</button>
+          <button onclick="UI.saveNewItem('${listKey}')" style="padding:8px 18px; background:#2563eb; color:#ffffff; font-weight:800; border-radius:10px; font-size:12px; border:none; cursor:pointer;">추가하기</button>
         </div>
       </div>
     `;
@@ -2488,29 +2502,29 @@ const UI = {
     if (!modalContainer) return;
 
     modalContainer.innerHTML = `
-      <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-scaleIn">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
-            <i data-lucide="edit" class="w-4 h-4 text-amber-400"></i>
+      <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:18px; padding:24px; max-width:420px; width:100%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);" class="space-y-4 animate-scaleIn">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:12px;">
+          <h3 style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px; margin:0;">
+            <i data-lucide="edit" style="width:16px; height:16px; color:#2563eb;"></i>
             <span>항목 이름 및 금액 수정</span>
           </h3>
-          <button onclick="UI.closeModal()" class="text-slate-500 hover:text-white">✕</button>
+          <button onclick="UI.closeModal()" style="color:#94a3b8; background:none; border:none; cursor:pointer; font-size:16px;">✕</button>
         </div>
 
         <div class="space-y-3 text-xs">
           <div>
-            <label class="text-slate-400 block mb-1">항목명 / 거래처명 / 직원명</label>
-            <input type="text" id="modal-edit-name" value="${item.name}" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-amber-400"/>
+            <label style="color:#475569; display:block; font-weight:600; margin-bottom:6px;">항목명 / 거래처명 / 직원명</label>
+            <input type="text" id="modal-edit-name" value="${item.name}" style="width:100%; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:8px 12px; font-weight:700; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;"/>
           </div>
           <div>
-            <label class="text-slate-400 block mb-1">금액 (원)</label>
-            <input type="text" inputmode="numeric" id="modal-edit-amount" value="${window.store.formatMoney(item.amount || item.spend)}" oninput="UI.formatCurrencyInput(this)" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-right font-bold text-white outline-none focus:border-amber-400"/>
+            <label style="color:#475569; display:block; font-weight:600; margin-bottom:6px;">금액 (원)</label>
+            <input type="text" inputmode="numeric" id="modal-edit-amount" value="${window.store.formatMoney(item.amount || item.spend)}" oninput="UI.formatCurrencyInput(this)" style="width:100%; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:8px 12px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:13px; box-sizing:border-box;"/>
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button onclick="UI.closeModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800">취소</button>
-          <button onclick="UI.saveEditItem('${listKey}', ${idx})" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-md">수정 완료</button>
+        <div style="display:flex; justify-content:flex-end; gap:8px; padding-top:12px; border-top:1.5px solid #e2e8f0;">
+          <button onclick="UI.closeModal()" style="padding:8px 16px; border-radius:10px; font-size:12px; font-weight:700; color:#64748b; background:#f1f5f9; border:none; cursor:pointer;">취소</button>
+          <button onclick="UI.saveEditItem('${listKey}', ${idx})" style="padding:8px 18px; background:#2563eb; color:#ffffff; font-weight:800; border-radius:10px; font-size:12px; border:none; cursor:pointer;">수정 완료</button>
         </div>
       </div>
     `;
@@ -2587,75 +2601,77 @@ const UI = {
     const trendData = window.store.getTrendData();
 
     return `
-      <div class="space-y-6 animate-fadeIn text-slate-100">
+      <div class="space-y-6 animate-fadeIn" style="color:#0f172a;">
+        <!-- 상단 2대 분석 차트 카드 -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
-                <i data-lucide="trending-up" class="w-4 h-4"></i>
-                <span>일반매출(매약) & 12개월 이동평균선 (12M MA)</span>
+          <div style="background:#ffffff; border-radius:18px; padding:20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);" class="space-y-3">
+            <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #e2e8f0; padding-bottom:12px;">
+              <h3 style="font-size:14px; font-weight:800; color:#1e40af; display:flex; align-items:center; gap:8px; margin:0;">
+                <i data-lucide="trending-up" style="width:16px; height:16px; color:#2563eb;"></i>
+                <span>일반매출(매약) &amp; 12개월 이동평균선 (12M MA)</span>
               </h3>
-              <span class="text-[10px] text-slate-500">장기 성장 추세선 분석</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">장기 성장 추세선 분석</span>
             </div>
-            <div class="h-72 w-full relative">
+            <div style="height:280px; width:100%; position:relative;">
               <canvas id="analytics-sales-chart"></canvas>
             </div>
           </div>
 
-          <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                <i data-lucide="line-chart" class="w-4 h-4"></i>
+          <div style="background:#ffffff; border-radius:18px; padding:20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);" class="space-y-3">
+            <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #e2e8f0; padding-bottom:12px;">
+              <h3 style="font-size:14px; font-weight:800; color:#059669; display:flex; align-items:center; gap:8px; margin:0;">
+                <i data-lucide="line-chart" style="width:16px; height:16px; color:#059669;"></i>
                 <span>월간 실질 통장 순잉여금 (M2) 흑자 추이</span>
               </h3>
-              <span class="text-[10px] text-slate-500">P4(총수입) - S4(총지출)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">P4(총수입) - S4(총지출)</span>
             </div>
-            <div class="h-72 w-full relative">
+            <div style="height:280px; width:100%; position:relative;">
               <canvas id="analytics-profit-chart"></canvas>
             </div>
           </div>
         </div>
 
-        <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-              <i data-lucide="table-2" class="w-4 h-4 text-amber-400"></i>
+        <!-- 월별 경영 실적 상세 테이블 (가독성 향상 모바일 스크롤 지원) -->
+        <div style="background:#ffffff; border-radius:18px; padding:20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);" class="space-y-4">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <h3 style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px; margin:0;">
+              <i data-lucide="table-2" style="width:16px; height:16px; color:#2563eb;"></i>
               <span>월별 경영 실적 및 순이익 지표 상세</span>
             </h3>
-            <span class="text-xs text-slate-500">실시간 장부 데이터 1:1 연동</span>
+            <span style="font-size:11.5px; color:#64748b; font-weight:500;">실시간 장부 데이터 1:1 연동</span>
           </div>
 
-          <div class="overflow-x-auto rounded-xl border border-slate-800">
-            <table class="w-full text-xs text-left border-collapse">
+          <div style="overflow-x:auto; border-radius:12px; border:1.5px solid #e2e8f0;">
+            <table style="width:100%; font-size:12.5px; text-align:left; border-collapse:collapse;">
               <thead>
-                <tr class="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-bold">
-                  <th class="p-3">기준 월</th>
-                  <th class="p-3 text-right">일반약 매출 (매약)</th>
-                  <th class="p-3 text-right">12M 이동평균선</th>
-                  <th class="p-3 text-right">실질 순잉여금 (M2)</th>
-                  <th class="p-3 text-right">전월 대비 증감</th>
-                  <th class="p-3 text-center">장부 바로가기</th>
+                <tr style="background:#f8fafc; color:#475569; border-bottom:1.5px solid #e2e8f0; font-weight:700;">
+                  <th style="padding:12px;">기준 월</th>
+                  <th style="padding:12px; text-align:right;">일반약 매출 (매약)</th>
+                  <th style="padding:12px; text-align:right;">12M 이동평균선</th>
+                  <th style="padding:12px; text-align:right;">실질 순잉여금 (M2)</th>
+                  <th style="padding:12px; text-align:right;">전월 대비 증감</th>
+                  <th style="padding:12px; text-align:center;">장부 바로가기</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-800/60">
+              <tbody style="border-top:1px solid #e2e8f0;">
                 ${trendData.map((d, i) => {
                   const prev = trendData[i - 1];
                   const diff = prev ? d.otcSales - prev.otcSales : 0;
                   return `
-                    <tr class="hover:bg-slate-800/40 transition">
-                      <td class="p-3 font-bold text-amber-400">${d.month}</td>
-                      <td class="p-3 text-right font-mono font-bold text-white">₩${window.store.formatMoney(d.otcSales)}</td>
-                      <td class="p-3 text-right font-mono text-sky-300">₩${window.store.formatMoney(d.ma12)}</td>
-                      <td class="p-3 text-right font-mono font-bold text-emerald-400">₩${window.store.formatMoney(d.netProfit)}</td>
-                      <td class="p-3 text-right font-mono">
-                        ${!prev ? '<span class="text-slate-500">-</span>' : 
-                          diff >= 0 ? `<span class="text-emerald-400 font-bold">+₩${window.store.formatMoney(diff)}</span>` : 
-                          `<span class="text-rose-400 font-bold">-₩${window.store.formatMoney(Math.abs(diff))}</span>`}
+                    <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.2s;" onmouseover="this.style.background='#f8fafc';" onmouseout="this.style.background='transparent';">
+                      <td style="padding:12px; font-weight:800; color:#2563eb;">${d.month}</td>
+                      <td style="padding:12px; text-align:right; font-weight:800; color:#0f172a;">₩${window.store.formatMoney(d.otcSales)}</td>
+                      <td style="padding:12px; text-align:right; font-weight:700; color:#0284c7;">₩${window.store.formatMoney(d.ma12)}</td>
+                      <td style="padding:12px; text-align:right; font-weight:800; color:#059669;">₩${window.store.formatMoney(d.netProfit)}</td>
+                      <td style="padding:12px; text-align:right; font-weight:700;">
+                        ${!prev ? '<span style="color:#94a3b8;">-</span>' : 
+                          diff >= 0 ? `<span style="color:#059669; font-weight:800;">+₩${window.store.formatMoney(diff)}</span>` : 
+                          `<span style="color:#dc2626; font-weight:800;">-₩${window.store.formatMoney(Math.abs(diff))}</span>`}
                       </td>
-                      <td class="p-3 text-center">
+                      <td style="padding:12px; text-align:center;">
                         <button 
                           onclick="UI.handleMonthChange('${d.yymm}'); UI.navigate('monthly-settlement');" 
-                          class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-bold border border-slate-700 transition"
+                          style="padding:5px 12px; background:#eff6ff; color:#1d4ed8; rounded:8px; font-size:11.5px; font-weight:700; border:1px solid #bfdbfe; cursor:pointer;"
                         >
                           결산 보기 →
                         </button>

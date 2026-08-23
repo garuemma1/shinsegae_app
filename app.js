@@ -187,12 +187,11 @@ window.App = (function () {
   }
 
   // ─── 공지 읽음 상태 관리 헬퍼 ───────────────────────────────────────────
-  // 각 글의 "지문": id + 마지막수정시각 + 제목앞30자 조합
+  // 각 글의 "지문": id + 마지막수정시각 + 제목/내용 스냅샷
   function _noticeFingerprint(n) {
     return [n.id || '', n.updatedAt || n.date || '', (n.title || n.text || n.content || '').slice(0, 30)].join('|');
   }
 
-  // 현재 공지 목록의 지문 집합을 localStorage에 저장 (탭 입장 시 호출)
   function markNoticesRead() {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) return;
@@ -204,16 +203,71 @@ window.App = (function () {
     } catch(e) {}
   }
 
-  // 현재 공지 목록과 마지막 저장된 지문을 비교해서 새 글·변경 글 여부 반환
   function _hasUnreadNotices(currUser, notices) {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_notices_' + currUser.id);
-      if (!raw) return notices.length > 0; // 한 번도 방문 안 한 경우 → N
+      if (!raw) return notices.length > 0;
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
-      // 현재 목록 중 지문이 저장목록에 없는 항목이 하나라도 있으면 N
       return notices.some(n => !savedSet.has(_noticeFingerprint(n)));
+    } catch(e) { return false; }
+  }
+
+  // ─── 업무일지 읽음 상태 관리 헬퍼 ─────────────────────────────────────────
+  // 지문: id + 상태(PENDING/COMPLETED 등) + checkedBy(확인자목록) + 내용변경
+  function _worklogFingerprint(w) {
+    const checked = Array.isArray(w.checkedBy) ? w.checkedBy.join(',') : String(w.checkedBy || '');
+    return [w.id || '', w.status || '', checked, (w.content || w.text || '').slice(0, 30), w.updatedAt || w.createdAt || ''].join('|');
+  }
+
+  function markWorklogRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const worklogs = (window.SheetsSync.getWorklogs ? window.SheetsSync.getWorklogs() : (window.SheetsSync.getData().worklogs || [])) || [];
+    const fingerprints = worklogs.map(_worklogFingerprint);
+    try {
+      localStorage.setItem('ssg_read_worklog_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadWorklog(currUser, worklogs) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_worklog_' + currUser.id);
+      if (!raw) return worklogs.length > 0;
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return worklogs.some(w => !savedSet.has(_worklogFingerprint(w)));
+    } catch(e) { return false; }
+  }
+
+  // ─── 약국장 결재 읽음 상태 관리 헬퍼 ─────────────────────────────────────
+  // 결재 대상 전체(연차, 할인구매, 미확인업무일지, 미승인스케줄)의 지문 합산
+  function _approvalFingerprint(data) {
+    const leaves = (data.leaveRequests || []).filter(l => l.status === 'PENDING').map(l => l.id + '|' + l.status);
+    const discounts = (data.discountPurchases || []).filter(p => !p.isPaid).map(p => p.id + '|' + p.isPaid);
+    const worklogs = (data.worklogs || []).filter(w => w.status === 'PENDING').map(w => w.id + '|' + w.status);
+    return [...leaves, ...discounts, ...worklogs].join(';;');
+  }
+
+  function markApprovalRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const data = window.SheetsSync.getData();
+    const fp = _approvalFingerprint(data);
+    try {
+      localStorage.setItem('ssg_read_approval_' + currUser.id, fp);
+    } catch(e) {}
+  }
+
+  function _hasUnreadApproval(currUser, data) {
+    if (!currUser) return false;
+    try {
+      const saved = localStorage.getItem('ssg_read_approval_' + currUser.id);
+      const current = _approvalFingerprint(data);
+      if (saved === null) return current.length > 0;
+      return saved !== current;
     } catch(e) { return false; }
   }
   // ─────────────────────────────────────────────────────────────────────────
@@ -224,15 +278,15 @@ window.App = (function () {
       const currUser = window.SheetsSync.getCurrentUser();
       const isDirector = currUser && currUser.role === '약국장';
 
-      // 1. 공지사항 (notices): 마지막 방문 이후 새 글·변경 글이 있을 때만 N
+      // 1. 공지사항 (notices): 새 글, 수정글이 있을 때만 N
       const notices = data.notices || [];
       const hasNewNotice = _hasUnreadNotices(currUser, notices);
 
-      // 2. 업무일지 (worklogs): PENDING 상태이거나 약국장 미확인 건
+      // 2. 업무일지 (worklogs): 새 작성, 인계 확인, 상태 변경(수정)이 발생했을 때만 N / 수량
       const worklogs = (window.SheetsSync.getWorklogs ? window.SheetsSync.getWorklogs() : data.worklogs) || [];
-      const pendingWorklogs = worklogs.filter(w => w.status === 'PENDING' || (w.checkedBy && !w.checkedBy.includes('문성도 약국장')));
+      const hasUnreadLog = _hasUnreadWorklog(currUser, worklogs);
 
-      // 3. 월간 근무 스케줄 (schedule): 스케줄 수정 요청 코멘트(반려)가 있거나 당월 미승인 상태
+      // 3. 월간 근무 스케줄 (schedule)
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1;
@@ -242,24 +296,24 @@ window.App = (function () {
       const hasDirectorComment = !!(stObj.directorComment && !stObj.directorApproved);
       const isSchedulePending = !stObj.directorApproved && (stObj.pharmacistStatus !== 'APPROVED');
 
-      // 4. 연차대장 (annual-leave): PENDING 상태의 연차 신청 건수
+      // 4. 연차대장 (annual-leave)
       const leaveRequests = data.leaveRequests || [];
       const pendingLeaves = leaveRequests.filter(l => l.status === 'PENDING');
 
-      // 5. 직원할인구매 (discount-purchase): 미정산(!isPaid) 건수
+      // 5. 직원할인구매 (discount-purchase)
       const discountPurchases = data.discountPurchases || [];
       const unpaidPurchases = discountPurchases.filter(p => !p.isPaid);
 
-      // 6. 약국장 결재 (approval): 4대 결재 대기 합계
-      const totalApprovalCount = pendingLeaves.length + unpaidPurchases.length + (isSchedulePending ? 1 : 0) + pendingWorklogs.length;
+      // 6. 약국장 결재 (approval): 결재 건에 새로운 변경/신청이 발생했을 때만 N
+      const hasUnreadApproval = isDirector && _hasUnreadApproval(currUser, data);
 
       return {
         notices: hasNewNotice ? 'N' : null,
-        worklog: pendingWorklogs.length > 0 ? (isDirector ? pendingWorklogs.length : 'N') : null,
+        worklog: hasUnreadLog ? 'N' : null,
         schedule: hasDirectorComment ? '!' : (isDirector && isSchedulePending ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
         discountPurchase: unpaidPurchases.length > 0 ? (isDirector ? unpaidPurchases.length : 'N') : null,
-        approval: totalApprovalCount > 0 ? totalApprovalCount : null
+        approval: hasUnreadApproval ? 'N' : null
       };
     } catch(e) {
       return {};
@@ -964,9 +1018,15 @@ window.App = (function () {
       titleElem.textContent = MODULE_TITLES[moduleName];
     }
 
-    // 📌 공지사항 탭 진입 시 → 현재 목록 "읽음 처리" 후 즉시 뱃지 갱신
+    // 📌 탭 진입 시 스마트 읽음 처리 후 사이드바 뱃지 즉시 갱신
     if (moduleName === 'notices') {
       markNoticesRead();
+      renderSidebarNavigation();
+    } else if (moduleName === 'worklog') {
+      markWorklogRead();
+      renderSidebarNavigation();
+    } else if (moduleName === 'approval') {
+      markApprovalRead();
       renderSidebarNavigation();
     }
 
@@ -1680,6 +1740,9 @@ function writeSheetData(sheet, dataList) {
     getActiveModule: () => activeModule,
     renderSidebarNavigation,
     renderUserHeader,
+    markNoticesRead,
+    markWorklogRead,
+    markApprovalRead,
     quickSelectLogin,
     showLoginModal,
     closeLoginModal,

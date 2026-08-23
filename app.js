@@ -17,7 +17,8 @@ window.App = (function () {
     'emergency-contacts': '☎️ 약국 운영 지원 연락망 센터',
     'approval': '🔐 약국장 결재 & 인사승인 센터 (약국장 전용)',
     'staff-directory': '👤 약국 직원 명부 (약국장 전용)',
-    'pharmacy-settlement': '📊 스마트약국 정산 대시보드 (약국장 전용)',
+    'ssg-settlement': '💊 신세계약국 스마트장부 (약국장 전용)',
+    'hoecheon-settlement': '💊 회천메디칼약국 스마트장부 (약국장 전용)',
     'building-rental': '🏢 건물 임대업 대시보드 (약국장 전용)'
   };
 
@@ -31,7 +32,8 @@ window.App = (function () {
     'emergency-contacts': 'fa-phone-alt',
     'approval': 'fa-user-check',
     'staff-directory': 'fa-address-book',
-    'pharmacy-settlement': 'fa-coins',
+    'ssg-settlement': 'fa-coins',
+    'hoecheon-settlement': 'fa-file-invoice-dollar',
     'building-rental': 'fa-building'
   };
 
@@ -366,11 +368,17 @@ window.App = (function () {
           </div>
           <span>직원 명부</span>
         </button>
-        <button class="menu-item ${activeModule === 'pharmacy-settlement' ? 'active' : ''}" data-module="pharmacy-settlement" onclick="App.switchModule('pharmacy-settlement', true)">
+        <button class="menu-item ${activeModule === 'ssg-settlement' ? 'active' : ''}" data-module="ssg-settlement" onclick="App.switchModule('ssg-settlement', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-coins text-warning"></i>
           </div>
-          <span>스마트약국 정산</span>
+          <span>신세계약국 스마트장부</span>
+        </button>
+        <button class="menu-item ${activeModule === 'hoecheon-settlement' ? 'active' : ''}" data-module="hoecheon-settlement" onclick="App.switchModule('hoecheon-settlement', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-file-invoice-dollar text-success"></i>
+          </div>
+          <span>회천메디칼 스마트장부</span>
         </button>
         <button class="menu-item ${activeModule === 'building-rental' ? 'active' : ''}" data-module="building-rental" onclick="App.switchModule('building-rental', true)">
           <div class="menu-icon-wrapper">
@@ -701,8 +709,11 @@ window.App = (function () {
       case 'emergency-contacts':
         if (window.EmergencyContactsModule) window.EmergencyContactsModule.render('module-content');
         break;
-      case 'pharmacy-settlement':
-        if (window.PharmacySettlementModule) window.PharmacySettlementModule.render('module-content');
+      case 'ssg-settlement':
+        if (window.SmartLedgerModule) window.SmartLedgerModule.render('module-content', 'ssg');
+        break;
+      case 'hoecheon-settlement':
+        if (window.SmartLedgerModule) window.SmartLedgerModule.render('module-content', 'hoecheon');
         break;
       case 'building-rental':
         if (window.BuildingRentalModule) window.BuildingRentalModule.render('module-content');
@@ -910,7 +921,7 @@ window.App = (function () {
     const curr = window.SheetsSync.getCurrentUser();
     const isDirector = curr && curr.role === '약국장';
 
-    if (['approval', 'staff-directory', 'pharmacy-settlement', 'building-rental'].includes(moduleName) && !isDirector) {
+    if (['approval', 'staff-directory', 'ssg-settlement', 'hoecheon-settlement', 'building-rental'].includes(moduleName) && !isDirector) {
       alert('🔒 보안 안내: 선택하신 메뉴는 약국장 전용 관리 영역입니다.');
       return;
     }

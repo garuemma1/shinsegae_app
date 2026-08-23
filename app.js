@@ -186,23 +186,54 @@ window.App = (function () {
     }
   }
 
+  // ─── 공지 읽음 상태 관리 헬퍼 ───────────────────────────────────────────
+  // 각 글의 "지문": id + 마지막수정시각 + 제목앞30자 조합
+  function _noticeFingerprint(n) {
+    return [n.id || '', n.updatedAt || n.date || '', (n.title || n.text || n.content || '').slice(0, 30)].join('|');
+  }
+
+  // 현재 공지 목록의 지문 집합을 localStorage에 저장 (탭 입장 시 호출)
+  function markNoticesRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const data = window.SheetsSync.getData();
+    const notices = data.notices || [];
+    const fingerprints = notices.map(_noticeFingerprint);
+    try {
+      localStorage.setItem('ssg_read_notices_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  // 현재 공지 목록과 마지막 저장된 지문을 비교해서 새 글·변경 글 여부 반환
+  function _hasUnreadNotices(currUser, notices) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_notices_' + currUser.id);
+      if (!raw) return notices.length > 0; // 한 번도 방문 안 한 경우 → N
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      // 현재 목록 중 지문이 저장목록에 없는 항목이 하나라도 있으면 N
+      return notices.some(n => !savedSet.has(_noticeFingerprint(n)));
+    } catch(e) { return false; }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function computeNotificationBadges() {
     try {
       const data = window.SheetsSync.getData();
       const currUser = window.SheetsSync.getCurrentUser();
       const isDirector = currUser && currUser.role === '약국장';
 
-      // 1. 공지사항 (notices): 최근 3일 이내 공지
+      // 1. 공지사항 (notices): 마지막 방문 이후 새 글·변경 글이 있을 때만 N
       const notices = data.notices || [];
-      const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const hasNewNotice = notices.some(n => (n.date && n.date >= threeDaysAgo) || n.isPinned);
+      const hasNewNotice = _hasUnreadNotices(currUser, notices);
 
       // 2. 업무일지 (worklogs): PENDING 상태이거나 약국장 미확인 건
       const worklogs = (window.SheetsSync.getWorklogs ? window.SheetsSync.getWorklogs() : data.worklogs) || [];
       const pendingWorklogs = worklogs.filter(w => w.status === 'PENDING' || (w.checkedBy && !w.checkedBy.includes('문성도 약국장')));
 
       // 3. 월간 근무 스케줄 (schedule): 스케줄 수정 요청 코멘트(반려)가 있거나 당월 미승인 상태
+      const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1;
       const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
@@ -931,6 +962,12 @@ window.App = (function () {
     const titleElem = document.getElementById('active-module-title');
     if (titleElem) {
       titleElem.textContent = MODULE_TITLES[moduleName];
+    }
+
+    // 📌 공지사항 탭 진입 시 → 현재 목록 "읽음 처리" 후 즉시 뱃지 갱신
+    if (moduleName === 'notices') {
+      markNoticesRead();
+      renderSidebarNavigation();
     }
 
     renderActiveModule();

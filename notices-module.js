@@ -307,7 +307,8 @@ window.NoticesModule = (function () {
       isPinned,
       content,
       date: dateStr,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     };
 
     data.notices.unshift(newNotice);

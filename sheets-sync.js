@@ -1248,10 +1248,54 @@ window.SheetsSync = (function () {
         }
       }
 
-      // 6. 스케줄 상태 및 반려 코멘트 병합
+      // 6. 스케줄 상태 및 반려 코멘트 병합 (APPROVED 상태 절대 보호 - 역행 방지)
       if (cloudData.scheduleStatus) {
         const localStatus = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {};
-        const mergedStatus = { ...localStatus, ...cloudData.scheduleStatus };
+
+        // 상태 우선순위: APPROVED(3) > SUBMITTED(2) > DRAFT(1) > 미제출(0)
+        const STATUS_LEVEL = { 'APPROVED': 3, 'SUBMITTED': 2, 'DRAFT': 1 };
+
+        // monthKey 단위로 스마트 병합 (높은 상태값이 항상 승리)
+        const mergedStatus = {};
+        const allMonthKeys = new Set([...Object.keys(localStatus), ...Object.keys(cloudData.scheduleStatus)]);
+
+        allMonthKeys.forEach(monthKey => {
+          const localMonth = localStatus[monthKey];
+          const cloudMonth = cloudData.scheduleStatus[monthKey];
+
+          if (!localMonth && cloudMonth) { mergedStatus[monthKey] = cloudMonth; return; }
+          if (localMonth && !cloudMonth) { mergedStatus[monthKey] = localMonth; return; }
+          if (!localMonth && !cloudMonth) return;
+
+          // 두 쪽 다 있으면 항목별로 높은 상태 보존
+          const merged = { ...cloudMonth, ...localMonth }; // 기본은 로컬 우선
+
+          // directorApproved가 어느 한쪽이라도 true면 무조건 true 보호
+          if (cloudMonth.directorApproved === true || localMonth.directorApproved === true) {
+            merged.directorApproved = true;
+            merged.pharmacistStatus = 'APPROVED';
+            merged.staffStatus = 'APPROVED';
+          }
+
+          // 각 직원 상태: 더 높은 단계를 항상 보존
+          Object.keys(merged).forEach(k => {
+            if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed')) {
+              const localLevel = STATUS_LEVEL[localMonth[k]] || 0;
+              const cloudLevel = STATUS_LEVEL[cloudMonth ? cloudMonth[k] : null] || 0;
+              // 둘 중 더 높은 상태 채택
+              merged[k] = localLevel >= cloudLevel
+                ? (localMonth[k] || cloudMonth[k])
+                : (cloudMonth[k] || localMonth[k]);
+              // directorApproved=true인 월이면 모든 직원 APPROVED 강제 유지
+              if (merged.directorApproved === true && merged[k] !== 'APPROVED') {
+                merged[k] = 'APPROVED';
+              }
+            }
+          });
+
+          mergedStatus[monthKey] = merged;
+        });
+
         const cur = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS);
         const next = JSON.stringify(mergedStatus);
         if (cur !== next) {
@@ -1483,7 +1527,23 @@ window.SheetsSync = (function () {
           deletedIds: getDeletedIds(),
           employees: cleanEmps,
           empPermissions: safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS) ? JSON.parse(safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS)) : {},
-          scheduleStatus: safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {},
+          scheduleStatus: (() => {
+            const raw = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {};
+            // 🛡️ 업로드 전 APPROVED 상태 무결성 보호: directorApproved=true인 월은 모든 직원 APPROVED 강제 유지
+            Object.keys(raw).forEach(mKey => {
+              const mo = raw[mKey];
+              if (mo && mo.directorApproved === true) {
+                Object.keys(mo).forEach(k => {
+                  if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed')) {
+                    mo[k] = 'APPROVED';
+                  }
+                });
+                mo.pharmacistStatus = 'APPROVED';
+                mo.staffStatus = 'APPROVED';
+              }
+            });
+            return raw;
+          })(),
           pharmacistRates: getPharmacistRates(),
           overtimeAdjustments: getOvertimeAdjustments(),
           discountPurchases: getDiscountPurchases(),

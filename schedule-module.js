@@ -1916,9 +1916,25 @@ window.ScheduleModule = (function () {
     statusObj.pharmacistStatus = 'APPROVED';
     statusObj.staffStatus = 'APPROVED';
     statusObj.approvedAt = new Date().toLocaleString('ko-KR');
+    statusObj.approvedTimestamp = Date.now(); // 🛡️ 타임스탬프로 충돌 우선순위 보장
 
     scheduleStatus[monthKey] = statusObj;
+
+    // 🛡️ 1단계: localStorage에 직접 즉시 기록 (saveData가 getData()에 의존하는 타이밍 이슈 방지)
+    try {
+      localStorage.setItem(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(scheduleStatus));
+    } catch(e) {}
+
+    // 🛡️ 2단계: SheetsSync 공식 저장 + Firebase 업로드
     window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
+
+    // 🛡️ 3단계: 2초 후 Firebase에 한 번 더 강제 업로드 (네트워크 지연 대비)
+    setTimeout(() => {
+      if (window.SheetsSync.pushToCloud) {
+        window.SheetsSync.pushToCloud();
+      }
+    }, 2000);
+
     render('module-content');
     alert('🏆 ' + currentYear + '년 ' + currentMonth + '월 전체 직원 근무 스케줄이 최종 확정되었습니다!\n(모든 직원의 스케줄이 일괄 제출 및 확정 완료 처리되었습니다.)');
   }

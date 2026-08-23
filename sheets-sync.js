@@ -1371,6 +1371,28 @@ window.SheetsSync = (function () {
         }
       }
 
+      // 🔥 스마트장부 구글 스크립트 Web App URL 클라우드 연동
+      if (cloudData.gasUrls && typeof cloudData.gasUrls === 'object') {
+        const localUrls = getGasUrls();
+        let gasChanged = false;
+        if (cloudData.gasUrls.ssg && cloudData.gasUrls.ssg !== localUrls.ssg) {
+          localUrls.ssg = cloudData.gasUrls.ssg;
+          safeSetItem('ssg_gas_webapp_url', cloudData.gasUrls.ssg);
+          gasChanged = true;
+        }
+        if (cloudData.gasUrls.hoecheon && cloudData.gasUrls.hoecheon !== localUrls.hoecheon) {
+          localUrls.hoecheon = cloudData.gasUrls.hoecheon;
+          safeSetItem('hoecheon_gas_webapp_url', cloudData.gasUrls.hoecheon);
+          gasChanged = true;
+        }
+        if (gasChanged) {
+          safeSetItem('ssg_cloud_gas_urls_v1', JSON.stringify(localUrls));
+          if (window.sheetsClient && typeof window.sheetsClient.syncUrlFromCloud === 'function') {
+            window.sheetsClient.syncUrlFromCloud();
+          }
+        }
+      }
+
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
 
@@ -1468,7 +1490,8 @@ window.SheetsSync = (function () {
           schedule: getSchedule(),
           leaveRequests: getLeaveRequests(),
           notices: getNotices(),
-          worklogs: getWorklogs()
+          worklogs: getWorklogs(),
+          gasUrls: getGasUrls()
         }
       };
 
@@ -1914,6 +1937,26 @@ window.SheetsSync = (function () {
     }
   }
 
+  function getGasUrls() {
+    const raw = safeGetItem('ssg_cloud_gas_urls_v1');
+    let urls = { ssg: '', hoecheon: '' };
+    if (raw) {
+      try { urls = { ...urls, ...JSON.parse(raw) }; } catch(e) {}
+    }
+    if (!urls.ssg) urls.ssg = safeGetItem('ssg_gas_webapp_url') || '';
+    if (!urls.hoecheon) urls.hoecheon = safeGetItem('hoecheon_gas_webapp_url') || '';
+    return urls;
+  }
+
+  function saveGasUrl(pharmKey, url) {
+    const current = getGasUrls();
+    current[pharmKey] = (url || '').trim();
+    safeSetItem('ssg_cloud_gas_urls_v1', JSON.stringify(current));
+    if (pharmKey === 'ssg') safeSetItem('ssg_gas_webapp_url', current.ssg);
+    if (pharmKey === 'hoecheon') safeSetItem('hoecheon_gas_webapp_url', current.hoecheon);
+    pushToCloud();
+  }
+
   return {
     STORAGE_KEYS,
     getData,
@@ -1951,6 +1994,8 @@ window.SheetsSync = (function () {
     saveOvertimeAdjustments,
     getPharmacistRates,
     savePharmacistRates,
+    getGasUrls,
+    saveGasUrl,
     initFirebase,
     pushToCloud,
     pullFromCloud,

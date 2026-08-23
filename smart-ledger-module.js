@@ -8,31 +8,44 @@
 // ==========================================
 class GoogleSheetsClient {
   constructor() {
+    this.currentPharmacy = 'hoecheon';
     this.storageKey = 'hoecheon_gas_webapp_url';
-    try {
-      this.webAppUrl = (typeof localStorage !== 'undefined' && localStorage.getItem(this.storageKey)) || '';
-    } catch (e) {
-      this.webAppUrl = '';
-    }
+    this.syncUrlFromCloud();
     this.isConnected = false;
     this.lastSyncTime = null;
   }
 
   setPharmacy(pKey) {
+    this.currentPharmacy = pKey;
     this.storageKey = pKey === 'ssg' ? 'ssg_gas_webapp_url' : 'hoecheon_gas_webapp_url';
+    this.syncUrlFromCloud();
+  }
+
+  syncUrlFromCloud() {
     try {
-      this.webAppUrl = (typeof localStorage !== 'undefined' && localStorage.getItem(this.storageKey)) || '';
+      let url = (typeof localStorage !== 'undefined' && localStorage.getItem(this.storageKey)) || '';
+      if (!url && window.SheetsSync && typeof window.SheetsSync.getGasUrls === 'function') {
+        const cloudUrls = window.SheetsSync.getGasUrls();
+        const pKey = this.storageKey.startsWith('ssg') ? 'ssg' : 'hoecheon';
+        url = cloudUrls[pKey] || '';
+        if (url && typeof localStorage !== 'undefined') {
+          localStorage.setItem(this.storageKey, url);
+        }
+      }
+      this.webAppUrl = (url || '').trim();
     } catch (e) {
       this.webAppUrl = '';
     }
   }
 
   get isConfigured() {
+    if (!this.webAppUrl) this.syncUrlFromCloud();
     return Boolean(this.webAppUrl && this.webAppUrl.startsWith('https://script.google.com/macros/s/'));
   }
 
   setUrl(url) {
     this.webAppUrl = (url || '').trim();
+    const pKey = this.storageKey.startsWith('ssg') ? 'ssg' : 'hoecheon';
     try {
       if (typeof localStorage !== 'undefined') {
         if (this.webAppUrl) {
@@ -40,6 +53,9 @@ class GoogleSheetsClient {
         } else {
           localStorage.removeItem(this.storageKey);
         }
+      }
+      if (window.SheetsSync && typeof window.SheetsSync.saveGasUrl === 'function') {
+        window.SheetsSync.saveGasUrl(pKey, this.webAppUrl);
       }
     } catch (e) {}
   }

@@ -1907,9 +1907,9 @@ window.ScheduleModule = (function () {
     
     let statusObj = scheduleStatus[monthKey] || {};
 
-    // 제출된 모든 직원의 상태를 '확정(APPROVED)'으로 일괄 변경
+    // 💡 약국장 마스터 최종 승인 확정 시: 전체 직원(전원)의 상태를 '확정(APPROVED)'으로 일괄 완료 처리
     employees.forEach(emp => {
-      if (statusObj[emp.id] === 'SUBMITTED') {
+      if (emp.role !== '약국장') {
         statusObj[emp.id] = 'APPROVED';
       }
     });
@@ -1922,7 +1922,7 @@ window.ScheduleModule = (function () {
     scheduleStatus[monthKey] = statusObj;
     window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
     render('module-content');
-    alert('🏆 ' + currentYear + '년 ' + currentMonth + '월 전체 직원 근무 스케줄이 빈틈없이 훌륭하게 최종 확정되었습니다!');
+    alert('🏆 ' + currentYear + '년 ' + currentMonth + '월 전체 직원 근무 스케줄이 최종 확정되었습니다!\n(모든 직원의 스케줄이 일괄 제출 및 확정 완료 처리되었습니다.)');
   }
 
   // 3. 약국장 개별 스케줄 반려(재수정 요청) 함수

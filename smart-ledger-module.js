@@ -457,6 +457,13 @@ const DEFAULT_CARD_CASHBACKS = [
   { id: 'woori', name: '우리10/우리은행', spend: 0, rate: 1.7, cell: 'AA73' }
 ];
 
+const DEFAULT_CARD_WITHDRAWALS = [
+  { id: 'woori_out', name: '우리10/우리은행', amount: 0, cell: 'S50' },
+  { id: 'shinhan_out', name: '신한6/부산은행', amount: 0, cell: 'S51' },
+  { id: 'kb_out', name: '국민KB체크/농협', amount: 0, cell: 'S52' },
+  { id: 'samsung_out', name: '삼성카드', amount: 0, cell: 'S53' }
+];
+
 const DEFAULT_SEVERANCES = [
   { name: '김배영 (251118)', amount: 0, cell: 'AA30' },
   { name: '김제희 (241101)', amount: 0, cell: 'AA31' },
@@ -822,6 +829,9 @@ class PharmacyStore {
     if (!rec.cardCashbacks || !Array.isArray(rec.cardCashbacks) || rec.cardCashbacks.length === 0) {
       rec.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
     }
+    if (!rec.cardWithdrawals || !Array.isArray(rec.cardWithdrawals) || rec.cardWithdrawals.length === 0) {
+      rec.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+    }
 
     return this.calculateMonthly(rec, summary);
   }
@@ -929,9 +939,23 @@ class PharmacyStore {
     m.expFinanceWoori = this.parseMoney(m.expFinanceWoori);
     m.expFinance = m.expFinanceBusan + m.expFinanceWoori;
 
-    // S7 카드출금 = 이번 달 통장에서 실제 빠져나가는 금액 (지난달 결제분, S49 직접입력)
-    // vendorCardTotal(이번달 카드 결제액)은 2달 후 빠져나가므로 통장지출에 포함 안 함
-    m.expCardWithdraw = this.parseMoney(m.expCardWithdraw) || 0;
+    // 9. 계좌별 카드출금금액 (R50:S55) 및 S7 카드출금 연동
+    if (!m.cardWithdrawals || !Array.isArray(m.cardWithdrawals) || m.cardWithdrawals.length === 0) {
+      m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+    }
+    let cardWithdrawalSum = 0;
+    m.cardWithdrawals.forEach(w => {
+      w.amount = this.parseMoney(w.amount);
+      cardWithdrawalSum += w.amount;
+    });
+    m.cardWithdrawalSum = cardWithdrawalSum;
+
+    // S7 카드출금: 계좌별 카드출금 합계가 입력되어 있으면 우선 사용, 아니면 시트 S49 값 사용
+    if (m.cardWithdrawalSum > 0) {
+      m.expCardWithdraw = m.cardWithdrawalSum;
+    } else {
+      m.expCardWithdraw = this.parseMoney(m.expCardWithdraw) || 0;
+    }
 
     m.grossExpenses = m.vendorCashTotal + m.expCardWithdraw + m.expPayroll + m.expUtility + m.expRent + 
                       m.expOtherOperating + m.expCardFee + m.expFinance + m.expPension + m.expSaving + 
@@ -1025,6 +1049,7 @@ class PharmacyStore {
           if (d.incomeCopay !== undefined) current.incomeCopay = d.incomeCopay;
           if (d.incomeNhisClaim !== undefined) current.incomeNhisClaim = d.incomeNhisClaim;
           if (d.otcTotalSales !== undefined) current.otcTotalSales = d.otcTotalSales;
+          if (d.expCardWithdraw !== undefined) current.expCardWithdraw = d.expCardWithdraw; // S49 이번달 실제 카드출금액
           if (d.cashVendors && Array.isArray(d.cashVendors)) current.cashVendors = d.cashVendors;
           if (d.cardVendors && Array.isArray(d.cardVendors)) current.cardVendors = d.cardVendors;
           if (d.employees && Array.isArray(d.employees)) current.employees = d.employees;
@@ -1033,6 +1058,7 @@ class PharmacyStore {
           if (d.discounts && Array.isArray(d.discounts)) current.discounts = d.discounts;
           if (d.pharmTrades && Array.isArray(d.pharmTrades)) current.pharmTrades = d.pharmTrades;
           if (d.cardCashbacks && Array.isArray(d.cardCashbacks)) current.cardCashbacks = d.cardCashbacks;
+          if (d.cardWithdrawals && Array.isArray(d.cardWithdrawals)) current.cardWithdrawals = d.cardWithdrawals;
 
           this.monthlyRecords[yymm] = this.calculateMonthly(current);
         }
@@ -1657,8 +1683,8 @@ const UI = {
 
         <!-- 5개 탭 컨테이너 -->
         <div class="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-          <!-- 탭 헤더 버튼 (모바일/PC 완벽 반응형 그리드) -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border-b border-slate-800 bg-slate-950/80 p-1.5 gap-1.5" id="monthly-tabs">
+          <!-- 탭 헤더 버튼 (모바일/PC 완벽 반응형 6개 탭 그리드) -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-b border-slate-800 bg-slate-950/80 p-1.5 gap-1.5" id="monthly-tabs">
             <button onclick="UI.switchMonthlyTab(0)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 0 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
               <span class="hidden md:inline">1. 거래처 결제 대장</span>
               <span class="md:hidden">1. 거래처 결제</span>
@@ -1672,12 +1698,16 @@ const UI = {
               <span class="md:hidden">3. 공과금 내역</span>
             </button>
             <button onclick="UI.switchMonthlyTab(3)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 3 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
-              <span class="hidden md:inline">4. 에누리 · 카드결제액</span>
-              <span class="md:hidden">4. 에누리 · 카드결제</span>
+              <span class="hidden md:inline">4. 에누리 & 약국간거래</span>
+              <span class="md:hidden">4. 에누리·약국거래</span>
             </button>
-            <button onclick="UI.switchMonthlyTab(4)" class="monthly-tab-btn col-span-2 sm:col-span-1 lg:col-span-1 px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 4 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
-              <span class="hidden md:inline">5. 손익 종합 분석표</span>
-              <span class="md:hidden">5. 손익 종합 분석</span>
+            <button onclick="UI.switchMonthlyTab(4)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 4 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+              <span class="hidden md:inline">5. 카드결제 & 계좌출금</span>
+              <span class="md:hidden">5. 카드·계좌출금</span>
+            </button>
+            <button onclick="UI.switchMonthlyTab(5)" class="monthly-tab-btn px-2.5 sm:px-3 py-2.5 rounded-xl text-xs font-bold transition text-center flex items-center justify-center ${activeTab === 5 ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">
+              <span class="hidden md:inline">6. 손익 종합 분석표</span>
+              <span class="md:hidden">6. 손익 종합 분석</span>
             </button>
           </div>
 
@@ -1881,9 +1911,9 @@ const UI = {
             </div>
           </div>
 
-          <!-- 탭 4: 에누리 · 약국거래 · 카드결제액 -->
+          <!-- 탭 4: 에누리 & 약국간거래 -->
           <div id="tab-content-3" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 3 ? '' : 'hidden'}">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- 에누리/금융할인 (P9) -->
               <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-2">
@@ -1953,13 +1983,18 @@ const UI = {
                   `).join('')}
                 </div>
               </div>
+            </div>
+          </div>
 
-              <!-- 이번달 카드별 결제금액 (Z69:AA75 연동) -->
+          <!-- 탭 5: 이번달 카드별 결제금액 & 계좌별 카드출금금액 -->
+          <div id="tab-content-4" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 4 ? '' : 'hidden'}">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- 좌측: 이번달 카드별 결제금액 (Z69:AA75) -->
               <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-purple-500/40">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                   <div>
-                    <span class="text-xs text-purple-400 font-bold block">이번달 카드별 결제금액 (Z69:AA75)</span>
-                    <span class="text-[10px] text-purple-300 font-bold">C9/P13 혜택 합산: ₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span></span>
+                    <span class="text-xs text-purple-400 font-bold block">1. 이번달 카드별 결제금액 (Z69:AA75)</span>
+                    <span class="text-[10px] text-purple-300 font-bold">C9/P13 캐시백 혜택 합산: ₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span></span>
                   </div>
                   <button onclick="UI.showAddItemModal('cardCashbacks', '카드사 추가')" class="px-2 py-1 bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 rounded-lg text-xs font-bold border border-purple-500/40 transition flex items-center gap-1">
                     <i data-lucide="plus" class="w-3 h-3"></i>+ 카드사 추가
@@ -2001,11 +2036,53 @@ const UI = {
                   `).join('')}
                 </div>
               </div>
+
+              <!-- 우측: 계좌별 카드출금금액 (R49:S53) -->
+              <div class="space-y-3 bg-slate-950 p-4 rounded-xl border border-sky-500/40">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <div>
+                    <span class="text-xs text-sky-400 font-bold block">2. 계좌별 카드출금금액 (R49:S53)</span>
+                    <span class="text-[10px] text-sky-300 font-bold">S7/S49 통장출금 합산 연동: ₩<span id="disp-total-card-withdraw">${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}</span></span>
+                  </div>
+                  <button onclick="UI.showAddItemModal('cardWithdrawals', '출금계좌 추가')" class="px-2 py-1 bg-sky-950/60 hover:bg-sky-900/60 text-sky-300 rounded-lg text-xs font-bold border border-sky-500/40 transition flex items-center gap-1">
+                    <i data-lucide="plus" class="w-3 h-3"></i>+ 계좌 추가
+                  </button>
+                </div>
+                <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
+                  ${m.cardWithdrawals.map((w, idx) => `
+                    <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900/90 border border-slate-800/80 hover:border-slate-700 transition">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-slate-200 font-bold truncate">${w.name}</span>
+                        ${w.cell ? `<span class="text-[9px] text-slate-500 bg-slate-950 px-1 rounded border border-slate-800">${w.cell}</span>` : ''}
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <input 
+                          type="text" 
+                          inputmode="numeric"
+                          value="${window.store.formatMoney(w.amount)}" 
+                          oninput="UI.handleVendorChange('cardWithdrawals', ${idx}, this)" 
+                          class="w-32 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-right font-bold text-sky-300 outline-none focus:border-sky-400"
+                          placeholder="출금액 입력"
+                        />
+                        <button onclick="UI.showEditItemModal('cardWithdrawals', ${idx})" class="p-1 text-slate-400 hover:text-amber-400 transition" title="수정">
+                          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="UI.removeVendor('cardWithdrawals', ${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="삭제">
+                          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+                <div class="p-2.5 rounded-lg bg-sky-950/30 border border-sky-800/30 text-[11px] text-slate-400 flex justify-between items-center">
+                  <span>💡 위 각 계좌별 출금 합계가 <b>6번 탭 '통장 총지출(S7)'</b>에 자동 반영됩니다.</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- 탭 5: 손익 종합 분석표 (C열/P열/S열) -->
-          <div id="tab-content-4" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 4 ? '' : 'hidden'}">
+          <!-- 탭 6: 손익 종합 분석표 (C열/P열/S열) -->
+          <div id="tab-content-5" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 5 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
               <!-- C열: 이론적 총수익 분석표 -->
               <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
@@ -2051,7 +2128,7 @@ const UI = {
                   <div class="flex justify-between items-center py-1 bg-purple-950/20 px-2 rounded-lg border border-purple-500/20">
                     <div class="flex items-center gap-1">
                       <span class="text-slate-300 font-medium">카드별 혜택 (C9 = P13):</span>
-                      <span class="text-[9px] text-purple-400 bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-800/60">4번 탭 연동</span>
+                      <span class="text-[9px] text-purple-400 bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-800/60">5번 탭 연동</span>
                     </div>
                     <span class="font-bold text-purple-400" id="disp-c9-cashback">₩${window.store.formatMoney(m.totalCashback)}</span>
                   </div>
@@ -2122,8 +2199,8 @@ const UI = {
                     <span class="font-bold text-white">₩${window.store.formatMoney(m.vendorCashTotal)}</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span class="text-slate-400">카드출금 (S7=S49, 지난달결제분 직접입력):</span>
-                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expCardWithdraw)}" oninput="UI.handleMonthlyChange('expCardWithdraw', this)" class="w-28 bg-slate-900 border border-amber-700 rounded px-2 py-1 text-right font-bold text-amber-300 outline-none focus:border-amber-400" placeholder="직접입력"/>
+                    <span class="text-slate-400">카드출금 (S7=S49, 5번 탭 연동):</span>
+                    <span class="font-bold text-sky-300">₩${window.store.formatMoney(m.expCardWithdraw)}</span>
                   </div>
                   <div class="flex justify-between items-center text-[10px]">
                     <span class="text-slate-600">※ 이번달 카드결제액(Y3=₩${window.store.formatMoney(m.vendorCardTotal)})은 2달뒤 출금</span>
@@ -2234,6 +2311,12 @@ const UI = {
     const yymm = window.store.currentYYMM;
     window.store.updateCustomItem(yymm, listKey, idx, 'amount', num);
     this.renderHeader();
+
+    if (listKey === 'cardWithdrawals') {
+      const m = window.store.getMonthly(yymm);
+      const totalEl = document.getElementById('disp-total-card-withdraw');
+      if (totalEl) totalEl.textContent = `₩${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}`;
+    }
   },
 
   handleCardSpendChange(idx, inputOrVal) {

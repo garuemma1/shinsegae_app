@@ -747,6 +747,14 @@ class PharmacyStore {
       onlineMallCardTotal += (rec.dailyOnlineMallTotal || 0);
     }
 
+    // 구글 시트에서 동기화된 D249/D250/Y250 실제값이 있으면 우선 사용 (가장 정확!)
+    const cached = this.cumulativeCache && this.cumulativeCache[yymm];
+    if (cached) {
+      if (cached.cashSalesTotal > 0) cashSalesSum = cached.cashSalesTotal;
+      if (cached.cardSalesTotal > 0) cardSalesSum = cached.cardSalesTotal;
+      if (cached.onlineMallTotal > 0) onlineMallCardTotal = cached.onlineMallTotal; // Y250
+    }
+
     return {
       yymm,
       daysWithData,
@@ -921,7 +929,11 @@ class PharmacyStore {
     m.expFinanceWoori = this.parseMoney(m.expFinanceWoori);
     m.expFinance = m.expFinanceBusan + m.expFinanceWoori;
 
-    m.grossExpenses = m.vendorCashTotal + m.vendorCardTotal + m.expPayroll + m.expUtility + m.expRent + 
+    // S7 카드출금 = 이번 달 통장에서 실제 빠져나가는 금액 (지난달 결제분, S49 직접입력)
+    // vendorCardTotal(이번달 카드 결제액)은 2달 후 빠져나가므로 통장지출에 포함 안 함
+    m.expCardWithdraw = this.parseMoney(m.expCardWithdraw) || 0;
+
+    m.grossExpenses = m.vendorCashTotal + m.expCardWithdraw + m.expPayroll + m.expUtility + m.expRent + 
                       m.expOtherOperating + m.expCardFee + m.expFinance + m.expPension + m.expSaving + 
                       m.expYellowUmbrella + m.expSeverance;
 
@@ -1024,6 +1036,13 @@ class PharmacyStore {
 
           this.monthlyRecords[yymm] = this.calculateMonthly(current);
         }
+
+        // 3. 당월 누적 집계 직접 반영 (D249: 월현금매출총액, D250: 월카드매출총액)
+        if (result.data.cumulative) {
+          if (!this.cumulativeCache) this.cumulativeCache = {};
+          this.cumulativeCache[yymm] = result.data.cumulative;
+        }
+
         this.saveToLocal();
       }
     } catch (e) {
@@ -1553,8 +1572,8 @@ const UI = {
             <span class="text-slate-400">당월총매출(E247): <b class="text-white">₩${window.store.formatMoney(summary.totalSalesSum)}</b></span>
             <span class="text-slate-400">일반매출(G247): <b class="text-amber-400">₩${window.store.formatMoney(summary.otcSalesSum)}</b></span>
             <span class="text-slate-400">본부금(F247): <b class="text-white">₩${window.store.formatMoney(summary.rxSalesSum)}</b></span>
-            <span class="text-slate-400">월원금통장총액(D249): <b class="text-white">₩${window.store.formatMoney(summary.cashSalesSum)}</b></span>
-            <span class="text-slate-400">월카드지출총액(D250): <b class="text-white">₩${window.store.formatMoney(summary.cardSalesSum)}</b></span>
+            <span class="text-slate-400">월현금매출총액(D249): <b class="text-emerald-400">₩${window.store.formatMoney(summary.cashSalesSum)}</b></span>
+            <span class="text-slate-400">월카드매출총액(D250): <b class="text-sky-400">₩${window.store.formatMoney(summary.cardSalesSum)}</b></span>
             <span class="text-slate-400">온라인몰카드총합(Y250): <b class="text-purple-400">₩${window.store.formatMoney(summary.onlineMallCardTotal)}</b></span>
           </div>
         </div>
@@ -2084,10 +2103,6 @@ const UI = {
                     <span class="text-slate-400">직원할인구매이체 (P11):</span>
                     <span class="font-bold text-white">₩${window.store.formatMoney(m.incomeDiscount)}</span>
                   </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-slate-400">카드사 캐시백 (P13):</span>
-                    <span class="font-bold text-purple-400">₩${window.store.formatMoney(m.totalCashback)}</span>
-                  </div>
                 </div>
               </div>
 
@@ -2107,8 +2122,11 @@ const UI = {
                     <span class="font-bold text-white">₩${window.store.formatMoney(m.vendorCashTotal)}</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span class="text-slate-400">카드출금 (S7 = Y3):</span>
-                    <span class="font-bold text-white">₩${window.store.formatMoney(m.vendorCardTotal)}</span>
+                    <span class="text-slate-400">카드출금 (S7=S49, 지난달결제분 직접입력):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expCardWithdraw)}" oninput="UI.handleMonthlyChange('expCardWithdraw', this)" class="w-28 bg-slate-900 border border-amber-700 rounded px-2 py-1 text-right font-bold text-amber-300 outline-none focus:border-amber-400" placeholder="직접입력"/>
+                  </div>
+                  <div class="flex justify-between items-center text-[10px]">
+                    <span class="text-slate-600">※ 이번달 카드결제액(Y3=₩${window.store.formatMoney(m.vendorCardTotal)})은 2달뒤 출금</span>
                   </div>
                   <div class="flex justify-between items-center">
                     <span class="text-slate-400">인건비 (S8 = V28):</span>

@@ -332,7 +332,7 @@ const DEFAULT_CASH_VENDORS = [
   { name: '훼밀리팜일반', amount: 0, cell: 'V10' },
   { name: '훼밀리팜전문', amount: 0, cell: 'V11' },
   { name: '맥스포스', amount: 0, cell: 'V12' },
-  { name: '현매 (일일시트 J247 자동 연동)', amount: 0, cell: 'V14', readOnly: true }
+  { name: '현매 (일일시트 J249 자동 연동)', amount: 0, cell: 'V14', readOnly: true }
 ];
 
 const DEFAULT_CARD_VENDORS = [
@@ -353,7 +353,7 @@ const DEFAULT_CARD_VENDORS = [
   { name: '신신제약', amount: 0, cell: 'Y19' },
   { name: '아워팜', amount: 0, cell: 'Y20' },
   { name: '에코테라팜2', amount: 0, cell: 'Y21' },
-  { name: '온라인몰결제총합 (Y250 자동 연동)', amount: 0, cell: 'Y22', readOnly: true },
+  { name: '온라인몰결제총합 (Y252 자동 연동)', amount: 0, cell: 'Y22', readOnly: true },
   { name: '웅진렌탈', amount: 0, cell: 'Y23' },
   { name: '위생', amount: 0, cell: 'Y24' },
   { name: '전화비', amount: 0, cell: 'Y25' },
@@ -781,12 +781,12 @@ class PharmacyStore {
       onlineMallCardTotal += (rec.dailyOnlineMallTotal || 0);
     }
 
-    // 구글 시트에서 동기화된 D249/D250/Y250 실제값이 있으면 우선 사용 (가장 정확!)
+    // 구글 시트에서 동기화된 D251/D252/Y252 실제값이 있으면 우선 사용 (가장 정확!)
     const cached = this.cumulativeCache && this.cumulativeCache[yymm];
     if (cached) {
       if (cached.cashSalesTotal > 0) cashSalesSum = cached.cashSalesTotal;
       if (cached.cardSalesTotal > 0) cardSalesSum = cached.cardSalesTotal;
-      if (cached.onlineMallTotal > 0) onlineMallCardTotal = cached.onlineMallTotal; // Y250
+      if (cached.onlineMallTotal > 0) onlineMallCardTotal = cached.onlineMallTotal; // Y252
     }
 
     return {
@@ -1605,31 +1605,31 @@ const UI = {
         <div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%); border-radius:14px; padding:16px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
           <div style="font-size:12px; color:#64748b; font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
             <i data-lucide="layers" style="width:14px; height:14px; color:#f59e0b;"></i>
-            <span>20${yymm.substring(0, 2)}년 ${yymm.substring(2, 4)}월 당월 누적 집계 (현재 247~250행 1:1 연동)</span>
+            <span>20${yymm.substring(0, 2)}년 ${yymm.substring(2, 4)}월 당월 누적 집계 (구글시트 249~252행 연동)</span>
           </div>
           <div style="display:flex; flex-wrap:wrap; gap:12px 24px;">
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:11px; color:#64748b; font-weight:500;">당월총매출 (E247)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">당월총매출 (E249)</span>
               <span style="font-size:15px; font-weight:800; color:#0f172a;">₩${window.store.formatMoney(summary.totalSalesSum)}</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:11px; color:#64748b; font-weight:500;">일반매출 (G247)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">일반매출 (G249)</span>
               <span style="font-size:15px; font-weight:800; color:#d97706;">₩${window.store.formatMoney(summary.otcSalesSum)}</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:11px; color:#64748b; font-weight:500;">본부금 (F247)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">본부금 (F249)</span>
               <span style="font-size:15px; font-weight:800; color:#1e40af;">₩${window.store.formatMoney(summary.rxSalesSum)}</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:11px; color:#64748b; font-weight:500;">월현금매출 (D249)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">월현금매출 (D251)</span>
               <span style="font-size:15px; font-weight:800; color:#16a34a;">₩${window.store.formatMoney(summary.cashSalesSum)}</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:11px; color:#64748b; font-weight:500;">월카드매출 (D250)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">월카드매출 (D252)</span>
               <span style="font-size:15px; font-weight:800; color:#0369a1;">₩${window.store.formatMoney(summary.cardSalesSum)}</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:11px; color:#64748b; font-weight:500;">온라인몰카드 (Y250)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">온라인몰카드 (Y252)</span>
               <span style="font-size:15px; font-weight:800; color:#6d28d9;">₩${window.store.formatMoney(summary.onlineMallCardTotal)}</span>
             </div>
           </div>

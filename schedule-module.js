@@ -1658,6 +1658,21 @@ window.ScheduleModule = (function () {
     }
 
     window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE, schedule);
+
+    // 🚀 직원이 본인 스케줄 변경 시 statusObj도 'SUBMITTED'로 자동 등록하여 약국장 화면에 🔔알림 및 N뱃지 즉시 전송
+    if (!isDirector) {
+      let scheduleStatus = data.scheduleStatus || {};
+      const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
+      let statusObj = scheduleStatus[monthKey] || {};
+      statusObj[currUser.id] = 'SUBMITTED';
+      statusObj[currUser.id + '_lastSubmittedAt'] = Date.now();
+      statusObj.lastSubmittedEmpName = currUser.name;
+      statusObj.lastSubmittedAt = Date.now();
+      statusObj.hasNewSubmission = true;
+      scheduleStatus[monthKey] = statusObj;
+      window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
+    }
+
     closeShiftModal();
     render('module-content');
   }

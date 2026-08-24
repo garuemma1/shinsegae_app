@@ -301,26 +301,14 @@ window.App = (function () {
       const stObj = scheduleStatus[monthKey] || {};
       const hasDirectorComment = !!(stObj.directorComment && !stObj.directorApproved);
       
-      // 약국장 접속 시: 미결재 제출 건(SUBMITTED)이 존재하면 사이드바에 즉시 'N' 뱃지 표시
+      // 약국장 접속 시: 직원이 스케줄을 변경하여 제출(SUBMITTED)한 미승인 건이 있으면 N 뱃지 표시
       const employees = data.employees || [];
-      const hasUnapprovedSubmissions = isDirector && employees.some(e => e.role !== '약국장' && stObj[e.id] === 'SUBMITTED');
-      const isSchedulePending = !stObj.directorApproved && (hasUnapprovedSubmissions || stObj.pharmacistStatus !== 'APPROVED');
-
-      // 4. 연차대장 (annual-leave)
-      const leaveRequests = data.leaveRequests || [];
-      const pendingLeaves = leaveRequests.filter(l => l.status === 'PENDING');
-
-      // 5. 직원할인구매 (discount-purchase)
-      const discountPurchases = data.discountPurchases || [];
-      const unpaidPurchases = discountPurchases.filter(p => !p.isPaid);
-
-      // 6. 약국장 결재 (approval): 결재 건에 새로운 변경/신청이 발생했을 때만 N
-      const hasUnreadApproval = isDirector && _hasUnreadApproval(currUser, data);
+      const hasSubmittedSchedules = isDirector && employees.some(e => e.role !== '약국장' && stObj[e.id] === 'SUBMITTED');
 
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
-        schedule: hasDirectorComment ? '!' : (isDirector && isSchedulePending ? 'N' : null),
+        schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
         discountPurchase: unpaidPurchases.length > 0 ? (isDirector ? unpaidPurchases.length : 'N') : null,
         approval: hasUnreadApproval ? 'N' : null

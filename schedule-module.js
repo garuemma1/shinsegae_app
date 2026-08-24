@@ -1521,6 +1521,20 @@ window.ScheduleModule = (function () {
     const isDirector = currUser.role === '약국장';
     const targetEmpId = empId || currUser.id;
 
+    // 🔒 약국장 최종 승인 확정 후 일반 직원 계정 수정 완전 차단 (약국장이 반려해줘야만 재수정 가능)
+    if (!isDirector) {
+      const data = window.SheetsSync.getData();
+      const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
+      const statusObj = ((data.scheduleStatus || {})[monthKey]) || {};
+      const myStatus = statusObj[currUser.id] || 'DRAFT';
+      const isDirectorApproved = statusObj.directorApproved === true || myStatus === 'APPROVED';
+
+      if (isDirectorApproved) {
+        alert("🔒 [약국장 최종 승인 완료 픽스 상태]\n\n" + currentMonth + "월 근무 스케줄이 약국장님에 의해 최종 승인 확정되었습니다.\n확정된 이후에는 임의로 스케줄을 변경할 수 없으며, 수정이 필요하신 경우 약국장님께 [개별 스케줄 재수정 요청(반려)]을 요청해 주세요.");
+        return;
+      }
+    }
+
     // 본인 확인 및 약국장 권한 통제
     if (!isDirector && targetEmpId !== currUser.id) {
       const emps = window.SheetsSync.getEmployees() || [];
@@ -1658,21 +1672,6 @@ window.ScheduleModule = (function () {
     }
 
     window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE, schedule);
-
-    // 🚀 직원이 본인 스케줄 변경 시 statusObj도 'SUBMITTED'로 자동 등록하여 약국장 화면에 🔔알림 및 N뱃지 즉시 전송
-    if (!isDirector) {
-      let scheduleStatus = data.scheduleStatus || {};
-      const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
-      let statusObj = scheduleStatus[monthKey] || {};
-      statusObj[currUser.id] = 'SUBMITTED';
-      statusObj[currUser.id + '_lastSubmittedAt'] = Date.now();
-      statusObj.lastSubmittedEmpName = currUser.name;
-      statusObj.lastSubmittedAt = Date.now();
-      statusObj.hasNewSubmission = true;
-      scheduleStatus[monthKey] = statusObj;
-      window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
-    }
-
     closeShiftModal();
     render('module-content');
   }

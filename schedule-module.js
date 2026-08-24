@@ -221,6 +221,36 @@ window.ScheduleModule = (function () {
                 </div>
               </div>
               
+              <!-- 🚨 직원이 새롭게 스케줄을 제출했을 때 약국장 전용 강조 알림 배너 -->
+              ${(() => {
+                const newlySubmittedEmps = targetEmployees.filter(e => statusObj[e.id] === 'SUBMITTED');
+                if (newlySubmittedEmps.length === 0) return '';
+                const namesText = newlySubmittedEmps.map(e => e.name).join(', ');
+                return `
+                  <div class="alert mb-4 animate-scaleIn" style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border:2px solid #3b82f6; border-radius:16px; padding:16px 20px; box-shadow:0 6px 18px rgba(37,99,235,0.15);">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                      <div class="d-flex align-items-center gap-3">
+                        <div style="width:40px; height:40px; border-radius:50%; background:#2563eb; color:#ffffff; display:flex; justify-content:center; align-items:center; font-size:18px; flex-shrink:0;">
+                          <i class="fas fa-bell animate-bounce"></i>
+                        </div>
+                        <div>
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary font-bold" style="font-size:11.5px; padding:4px 10px; border-radius:8px;">🔔 신규 스케줄 제출 알림</span>
+                            <span style="font-size:12px; color:#1e40af; font-weight:700;">총 ${newlySubmittedEmps.length}명 미결재 제출</span>
+                          </div>
+                          <h4 style="font-size:15px; font-weight:800; color:#1e3a8a; margin:4px 0 0 0;">
+                            직원 <span style="color:#2563eb; text-decoration:underline;">[${namesText}]</span> 님이 근무 스케줄을 작성하여 새로 제출했습니다!
+                          </h4>
+                        </div>
+                      </div>
+                      <span style="font-size:12.5px; color:#1d4ed8; font-weight:700; background:#ffffff; padding:6px 14px; border-radius:10px; border:1px solid #bfdbfe;">
+                        👉 하단 달력에서 시간을 대조하신 후 최종 승인해 주세요.
+                      </span>
+                    </div>
+                  </div>
+                `;
+              })()}
+
               <div class="mb-4">
                 <div class="d-flex justify-content-between mb-1" style="font-size:14px; font-weight:700;">
                   <span>전체 직원 제출 진행률</span>
@@ -1610,13 +1640,15 @@ window.ScheduleModule = (function () {
 
     const existingIdx = schedule.findIndex(s => s.date === dateStr && s.empId === empId);
     const newRecord = {
+      id: `sch_${dateStr}_${empId}`,
       date: dateStr,
       empId,
       shift,
       startTime: currentModalWorkMode ? startTime : '',
       endTime: currentModalWorkMode ? endTime : '',
       breakHours: currentModalWorkMode ? breakHours : 1.0,
-      manuallySetOff: !currentModalWorkMode
+      manuallySetOff: !currentModalWorkMode,
+      updatedAt: Date.now()
     };
 
     if (existingIdx >= 0) {
@@ -1880,14 +1912,18 @@ window.ScheduleModule = (function () {
     
     let statusObj = scheduleStatus[monthKey] || {};
     
-    // 내 상태를 '제출 완료(SUBMITTED)'로 변경
+    // 내 상태를 '제출 완료(SUBMITTED)'로 변경 및 제출 시각/직원 기록
     statusObj[currUser.id] = 'SUBMITTED';
+    statusObj[currUser.id + '_lastSubmittedAt'] = Date.now();
+    statusObj.lastSubmittedEmpName = currUser.name;
+    statusObj.lastSubmittedAt = Date.now();
+    statusObj.hasNewSubmission = true; // 약국장 알림 뱃지 트리가용
 
     scheduleStatus[monthKey] = statusObj;
     window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
 
     render('module-content');
-    alert("📤 " + currentMonth + "월 스케줄이 약국장님께 제출되었습니다.\n약국장 최종 조율 및 승인 후 확정됩니다.");
+    alert("📤 " + currentMonth + "월 스케줄이 약국장님께 성공적으로 제출되었습니다!\n(약국장님 화면에 실시간 알림 뱃지와 제출자 알림 카드가 즉시 생성됩니다)");
   }
 
   // 2. 약국장 통합 마스터 승인 함수

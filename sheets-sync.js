@@ -1204,7 +1204,7 @@ window.SheetsSync = (function () {
         }
       }
 
-      // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키 & 실제 근무시간 절대 보호)
+      // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키 & 타임스탬프 기반 최신 수정 우선)
       if (cloudData.schedule && Array.isArray(cloudData.schedule)) {
         const localSched = getSchedule() || [];
         const map = {};
@@ -1222,16 +1222,28 @@ window.SheetsSync = (function () {
             if (!ls) {
               map[key] = cs;
             } else {
-              // 🛡️ 스마트 우선순위: 실제 근무(A,B,C,D,FULL,CUSTOM)가 입력되어 있으면 빈 OFF가 덮어쓰지 못하도록 보호
-              const cIsWork = cs.shift && cs.shift !== 'OFF';
-              const lIsWork = ls.shift && ls.shift !== 'OFF';
-              if (cIsWork && !lIsWork) {
-                map[key] = cs;
-              } else if (!cIsWork && lIsWork) {
-                map[key] = ls;
-                localHasUniqueShift = true;
+              const cTime = Number(cs.updatedAt) || 0;
+              const lTime = Number(ls.updatedAt) || 0;
+
+              if (cTime > 0 || lTime > 0) {
+                if (cTime >= lTime) {
+                  map[key] = cs;
+                } else {
+                  map[key] = ls;
+                  localHasUniqueShift = true;
+                }
               } else {
-                map[key] = cs;
+                // 🛡️ 타임스탬프가 없는 레거시 데이터 간 우선순위: 실제 근무(A,B,C,D,FULL,CUSTOM)가 입력되어 있으면 빈 OFF가 덮어쓰지 못하도록 보호
+                const cIsWork = cs.shift && cs.shift !== 'OFF';
+                const lIsWork = ls.shift && ls.shift !== 'OFF';
+                if (cIsWork && !lIsWork) {
+                  map[key] = cs;
+                } else if (!cIsWork && lIsWork) {
+                  map[key] = ls;
+                  localHasUniqueShift = true;
+                } else {
+                  map[key] = cs;
+                }
               }
             }
           }

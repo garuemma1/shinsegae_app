@@ -759,7 +759,11 @@ class PharmacyStore {
     let onlineMallCardTotal = 0;
     let daysWithData = 0;
 
-    for (let day = 1; day <= 31; day++) {
+    const year = 2000 + parseInt(yymm.substring(0, 2), 10);
+    const month = parseInt(yymm.substring(2, 4), 10);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
       const rec = this.getDaily(yymm, day);
       if (rec.totalSales > 0 || rec.actualCash > 0) daysWithData++;
       totalSalesSum += rec.totalSales;
@@ -1333,13 +1337,18 @@ const UI = {
   // ================= 1. 일일 정산 HTML 뷰 =================
   renderDailySettlementHTML() {
     const yymm = window.store.currentYYMM;
+    const year = 2000 + parseInt(yymm.substring(0, 2), 10);
+    const month = parseInt(yymm.substring(2, 4), 10);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    // 🛡️ 해당 월의 마지막 날짜 초과 방지 캡핑 (예: 11월은 30일, 2월은 28/29일)
+    if (this.selectedDay > daysInMonth) {
+      this.selectedDay = daysInMonth;
+    }
     const day = this.selectedDay;
     const rec = window.store.getDaily(yymm, day);
     const summary = window.store.getMonthSummary(yymm);
 
-    const year = 2000 + parseInt(yymm.substring(0, 2), 10);
-    const month = parseInt(yymm.substring(2, 4), 10);
-    const daysInMonth = new Date(year, month, 0).getDate();
     const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
 
     const today = new Date();

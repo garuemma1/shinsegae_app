@@ -300,7 +300,11 @@ window.App = (function () {
       const scheduleStatus = data.scheduleStatus || {};
       const stObj = scheduleStatus[monthKey] || {};
       const hasDirectorComment = !!(stObj.directorComment && !stObj.directorApproved);
-      const isSchedulePending = !stObj.directorApproved && (stObj.pharmacistStatus !== 'APPROVED');
+      
+      // 약국장 접속 시: 미결재 제출 건(SUBMITTED)이 존재하면 사이드바에 즉시 'N' 뱃지 표시
+      const employees = data.employees || [];
+      const hasUnapprovedSubmissions = isDirector && employees.some(e => e.role !== '약국장' && stObj[e.id] === 'SUBMITTED');
+      const isSchedulePending = !stObj.directorApproved && (hasUnapprovedSubmissions || stObj.pharmacistStatus !== 'APPROVED');
 
       // 4. 연차대장 (annual-leave)
       const leaveRequests = data.leaveRequests || [];

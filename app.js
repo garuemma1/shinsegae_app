@@ -37,7 +37,46 @@ window.App = (function () {
     'building-rental': 'fa-building'
   };
 
+  // 🛡️ 저작권 위변조 무단 도용 즉시 감지 및 앱 즉시 차단 락(Lock) 검증기
+  function verifyCopyrightIntegrity() {
+    try {
+      const guard = document.getElementById('msd-copyright-guard');
+      const author = document.getElementById('msd-author');
+      const brandText = document.getElementById('msd-brand-text');
+      const rightsText = document.getElementById('msd-rights-text');
+
+      const isGuardValid = guard && guard.getAttribute('data-signature') === 'MSD_2026_LEGAL_COPYRIGHT_LOCK_KEY';
+      const isAuthorValid = author && author.textContent.trim() === 'MSD';
+      const isBrandValid = brandText && brandText.textContent.includes('MSD');
+      const isRightsValid = rightsText && rightsText.textContent.includes('MSD');
+
+      if (!isGuardValid || !isAuthorValid || !isBrandValid || !isRightsValid) {
+        triggerTamperLockdown();
+      }
+    } catch (e) {
+      triggerTamperLockdown();
+    }
+  }
+
+  function triggerTamperLockdown() {
+    document.body.innerHTML = `
+      <div style="position:fixed; inset:0; background:#090d16; color:#ef4444; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; font-family:sans-serif;">
+        <div style="width:80px; height:80px; border-radius:24px; background:rgba(239,68,68,0.15); border:2px solid #ef4444; display:flex; align-items:center; justify-content:center; font-size:36px; margin-bottom:20px; box-shadow:0 0 30px rgba(239,68,68,0.4);">🔒</div>
+        <h1 style="font-size:24px; font-weight:900; color:#ffffff; margin-bottom:12px; letter-spacing:-0.5px;">SYSTEM SECURITY TAMPER LOCKDOWN</h1>
+        <p style="font-size:14px; color:#94a3b8; max-width:500px; line-height:1.6; margin-bottom:24px;">
+          본 약국 시스템의 <b>개발자 저작권 서명(Crafted with MSD)</b>이 훼손되거나 무단 변경되었습니다.<br>
+          시스템 보안 정책에 의해 애플리케이션 가동이 <b>즉시 전면 중단</b>되었습니다.
+        </p>
+        <div style="background:#1e1b4b; border:1px solid #6366f1; color:#c7d2fe; padding:12px 20px; border-radius:12px; font-size:12px; font-weight:bold;">
+          🛡️ License Violation Detected: MSD System Integrity Check Failed (ERR_MSD_SIGNATURE_TAMPERED)
+        </div>
+      </div>
+    `;
+    throw new Error("System Security Lockdown: Copyright signature tampered!");
+  }
+
   function init() {
+    verifyCopyrightIntegrity();
     loadSavedTheme();
     setupEventListeners();
     updateSheetSyncBadge();
@@ -46,6 +85,15 @@ window.App = (function () {
     renderSidebarNavigation();
     renderUserHeader();
     renderQuickLoginButtons();
+
+    // 저작권 요소 실시간 동적 훼손 감지 관찰기 (MutationObserver)
+    try {
+      const guard = document.getElementById('msd-copyright-guard');
+      if (guard && window.MutationObserver) {
+        const observer = new MutationObserver(verifyCopyrightIntegrity);
+        observer.observe(guard, { childList: true, characterData: true, subtree: true, attributes: true });
+      }
+    } catch(e) {}
 
     // 핸드폰/스마트폰 및 PC 접속 시 드로어 메뉴 가동
     openDrawer();

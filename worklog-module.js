@@ -379,15 +379,31 @@ window.WorklogModule = (function () {
            <div class="mb-4">
               <label class="form-label font-bold" style="font-size:14px; color:#334155; margin-bottom:8px;">사진 첨부 (선택)</label>
               
-              <div style="position: relative; width: 100%;">
-                <label for="wl-image" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; border-radius:12px; border:2px dashed #94a3b8; padding:24px 16px; background:#f8fafc; color:#475569; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.2s; text-align:center;" onmouseover="this.style.borderColor='#3b82f6'; this.style.color='#3b82f6'; this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#94a3b8'; this.style.color='#475569'; this.style.background='#f8fafc'">
-                  <i class="fas fa-camera" style="font-size:24px; color:#94a3b8; transition:color 0.2s;" id="wl-camera-icon"></i>
-                  <span id="wl-file-name">여기를 눌러 사진을 선택하세요 (모바일은 카메라 작동)</span>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%;">
+                <!-- 📸 1. 바로 카메라 촬영 버튼 (모바일 필수 연동: capture="environment") -->
+                <label for="wl-image-camera" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border-radius:14px; border:2px dashed #2563eb; padding:18px 12px; background:#eff6ff; color:#1d4ed8; font-size:13.5px; font-weight:800; cursor:pointer; transition:all 0.2s; text-align:center;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                  <i class="fas fa-camera" style="font-size:22px; color:#2563eb;"></i>
+                  <span>📸 바로 카메라 촬영</span>
+                  <span style="font-size:10.5px; color:#3b82f6; font-weight:600;">(스마트폰 전용)</span>
                 </label>
-                <input type="file" id="wl-image" accept="image/*" style="display:none;" onchange="document.getElementById('wl-file-name').innerText = this.files[0] ? this.files[0].name : '여기를 눌러 사진을 선택하세요 (모바일은 카메라 작동)'; document.getElementById('wl-camera-icon').style.color = '#3b82f6'; WorklogModule.previewImage(event)">
+                <input type="file" id="wl-image-camera" accept="image/*" capture="environment" style="display:none;" onchange="WorklogModule.handleFileSelect(this)">
+
+                <!-- 📁 2. 갤러리/파일 선택 버튼 -->
+                <label for="wl-image-gallery" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border-radius:14px; border:2px dashed #94a3b8; padding:18px 12px; background:#f8fafc; color:#475569; font-size:13.5px; font-weight:800; cursor:pointer; transition:all 0.2s; text-align:center;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+                  <i class="fas fa-images" style="font-size:22px; color:#64748b;"></i>
+                  <span>📁 앨범/사진 선택</span>
+                  <span style="font-size:10.5px; color:#94a3b8; font-weight:600;">(갤러리/PC)</span>
+                </label>
+                <input type="file" id="wl-image-gallery" accept="image/*" style="display:none;" onchange="WorklogModule.handleFileSelect(this)">
               </div>
-              
-              <div id="wl-preview-container" style="display:none; margin-top:16px; text-align:center; background:#f1f5f9; padding:16px; border-radius:12px;">
+
+              <!-- 선택된 사진 파일명 표시 바 -->
+              <div id="wl-file-name-bar" style="display:none; margin-top:10px; background:#f0fdf4; border:1px solid #86efac; color:#166534; font-size:12px; font-weight:700; padding:8px 12px; border-radius:8px; align-items:center; justify-content:space-between;">
+                <span id="wl-file-name-text">📷 선택된 사진</span>
+                <button type="button" onclick="WorklogModule.resetImageSelection()" style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer; font-weight:bold;">취소 ✖</button>
+              </div>
+
+              <div id="wl-preview-container" style="display:none; margin-top:12px; text-align:center; background:#f1f5f9; padding:14px; border-radius:12px;">
                 <img id="wl-preview-img" style="max-height:180px; border-radius:8px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);" />
                 <input type="hidden" id="wl-compressed-base64" />
               </div>
@@ -487,9 +503,17 @@ window.WorklogModule = (function () {
     return gridHtml;
   }
 
-  function previewImage(event) {
-    const file = event.target.files[0];
+  function handleFileSelect(inputEl) {
+    const file = inputEl.files[0];
     if (!file) return;
+
+    const barEl = document.getElementById('wl-file-name-bar');
+    const textEl = document.getElementById('wl-file-name-text');
+    if (barEl && textEl) {
+      textEl.innerText = '📷 선택됨: ' + file.name;
+      barEl.style.display = 'flex';
+    }
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (e) => {
@@ -509,6 +533,26 @@ window.WorklogModule = (function () {
         document.getElementById('wl-preview-container').style.display = 'block';
       }
     };
+  }
+
+  function resetImageSelection() {
+    const camInput = document.getElementById('wl-image-camera');
+    const galInput = document.getElementById('wl-image-gallery');
+    if (camInput) camInput.value = '';
+    if (galInput) galInput.value = '';
+
+    const barEl = document.getElementById('wl-file-name-bar');
+    if (barEl) barEl.style.display = 'none';
+
+    const base64Input = document.getElementById('wl-compressed-base64');
+    if (base64Input) base64Input.value = '';
+
+    const prevContainer = document.getElementById('wl-preview-container');
+    if (prevContainer) prevContainer.style.display = 'none';
+  }
+
+  function previewImage(event) {
+    handleFileSelect(event.target);
   }
 
   async function submitTask(e) {
@@ -791,7 +835,7 @@ window.WorklogModule = (function () {
 
   // 외부에서 호출할 수 있도록 함수들을 내보냅니다 (checkTask, deleteTask 포함됨)
   return { 
-    render, showCreateModal, closeModal, previewImage, 
+    render, showCreateModal, closeModal, previewImage, handleFileSelect, resetImageSelection,
     submitTask, completeTask, checkTask, deleteTask, changeMonth, 
     openDayModal, closeDayModal, executeSearch 
   };

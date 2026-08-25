@@ -10,6 +10,7 @@ window.App = (function () {
   const MODULE_TITLES = {
     'notices': '📢 공지사항 & 업무 SOP',
     'worklog': '📝 약국 업무일지 & 인수인계',
+    'medicine-location': '📦 일반약 위치 관리 & 위치 검색',
     'schedule': '📅 월간 근무 스케줄',
     'annual-leave': '🌴 연차대장 & 연차 전용 달력',
     'discount-purchase': '🛍️ 직원할인구매대장',
@@ -25,6 +26,7 @@ window.App = (function () {
   const MODULE_ICONS = {
     'notices': 'fa-bullhorn',
     'worklog': 'fa-pen-fancy',
+    'medicine-location': 'fa-boxes-packing',
     'schedule': 'fa-calendar-alt',
     'annual-leave': 'fa-umbrella-beach',
     'discount-purchase': 'fa-shopping-bag',
@@ -418,7 +420,7 @@ window.App = (function () {
 
     // 맞춤 허용 탭 목록 (개인별 권한)
     const allowed = currUser.allowedTabs || [
-      'notices-module', 'worklog-module', 'schedule-module',
+      'notices-module', 'worklog-module', 'medicine-location-module', 'schedule-module',
       'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
 
@@ -444,6 +446,17 @@ window.App = (function () {
             ${badges.worklog ? `<span class="menu-item-badge">${badges.worklog}</span>` : ''}
           </div>
           <span>업무일지 & 인수인계</span>
+        </button>
+      `;
+    }
+
+    if (isDirector || allowed.includes('medicine-location-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'medicine-location' ? 'active' : ''}" data-module="medicine-location" onclick="App.switchModule('medicine-location', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-boxes-packing text-primary"></i>
+          </div>
+          <span>일반약 위치 관리</span>
         </button>
       `;
     }
@@ -844,6 +857,9 @@ window.App = (function () {
         break;
       case 'worklog':
         if (window.WorklogModule) window.WorklogModule.render('module-content');
+        break;
+      case 'medicine-location':
+        if (window.MedicineLocationModule) window.MedicineLocationModule.render('module-content');
         break;
       case 'schedule':
         if (window.ScheduleModule) window.ScheduleModule.render('module-content');

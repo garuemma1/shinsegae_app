@@ -30,6 +30,7 @@ window.SheetsSync = (function () {
   const ALL_COMMON_TABS = [
     'notices-module',
     'worklog-module',
+    'medicine-location-module',
     'schedule-module',
     'annual-leave-module',
     'discount-purchase-module',

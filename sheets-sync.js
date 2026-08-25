@@ -1194,6 +1194,23 @@ window.SheetsSync = (function () {
         }
       }
 
+      // 2-2. 일반약 위치 관리 스마트 비파괴 양방향 융합 (핸드폰 등록약 + PC 등록약 완전 동기화)
+      let medLocationsChanged = false;
+      if (cloudData.medicineLocations && Array.isArray(cloudData.medicineLocations)) {
+        const localMeds = getMedicineLocations() || [];
+        const mergedMeds = mergeById(localMeds, cloudData.medicineLocations, 'updatedAt');
+        if (isListDifferent(localMeds, mergedMeds)) {
+          safeSetItem(STORAGE_KEYS.MEDICINE_LOCATIONS, JSON.stringify(mergedMeds));
+          safeSetItem('ssg_medicine_locations', JSON.stringify(mergedMeds));
+          updated = true;
+          medLocationsChanged = true;
+        }
+        const cloudMedIds = new Set((cloudData.medicineLocations || []).map(m => m.id));
+        if ((localMeds || []).some(m => m && m.id && !cloudMedIds.has(m.id))) {
+          needPushBack = true;
+        }
+      }
+
       // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.leaveRequests && Array.isArray(cloudData.leaveRequests)) {
         const localLeaves = getLeaveRequests() || [];

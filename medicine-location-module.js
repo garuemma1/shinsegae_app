@@ -42,15 +42,30 @@ window.MedicineLocationModule = (function () {
 
     const items = getStorageData();
 
-    // 필터링 적용
+    // 필터링 적용 (공백 무시 및 한글/영문 멀티 키워드 정밀 검색)
     let filtered = items.filter(item => {
       const matchCat = activeCategory === 'ALL' || item.zoneId === activeCategory;
-      const q = searchQuery.toLowerCase().trim();
-      const matchQuery = !q || 
-        (item.name && item.name.toLowerCase().includes(q)) ||
-        (item.zoneName && item.zoneName.toLowerCase().includes(q)) ||
-        (item.locationDetail && item.locationDetail.toLowerCase().includes(q)) ||
-        (item.notes && item.notes.toLowerCase().includes(q));
+      const rawQ = searchQuery.toLowerCase().trim();
+      if (!rawQ) return matchCat;
+
+      // 띄어쓰기로 분리된 다중 키워드 검색 지원 (예: "A구역 타이레놀")
+      const keywords = rawQ.split(/\s+/).filter(Boolean);
+
+      const targetText = [
+        item.name || '',
+        item.zoneName || '',
+        item.locationDetail || '',
+        item.notes || '',
+        item.updatedBy || ''
+      ].join(' ').toLowerCase();
+
+      // 공백 제거 텍스트도 함께 검색 (예: "A 구역" vs "A구역")
+      const targetTextNoSpace = targetText.replace(/\s+/g, '');
+
+      const matchQuery = keywords.every(kw => {
+        const kwNoSpace = kw.replace(/\s+/g, '');
+        return targetText.includes(kw) || targetTextNoSpace.includes(kwNoSpace);
+      });
 
       return matchCat && matchQuery;
     });
@@ -514,6 +529,11 @@ window.MedicineLocationModule = (function () {
   function handleSearch(val) {
     searchQuery = val;
     render('module-content');
+    const inputEl = document.getElementById('med-search-input');
+    if (inputEl) {
+      inputEl.focus();
+      inputEl.setSelectionRange(val.length, val.length);
+    }
   }
 
   function filterCategory(catId) {

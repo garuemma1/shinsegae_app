@@ -171,7 +171,7 @@ window.MedicineLocationModule = (function () {
             </div>
 
             <div class="mb-3">
-              <label class="form-label font-bold" style="font-size:13.5px; color:#334155; margin-bottom:6px;">보관 위치 사진 첨부 <span style="color:#ef4444;">*</span></label>
+              <label class="form-label font-bold" style="font-size:13.5px; color:#334155; margin-bottom:6px;">보관 위치 사진 첨부 <span style="font-weight:normal; color:#64748b; font-size:12px;">(선택)</span></label>
               
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%;">
                 <!-- 📸 1. 바로 카메라 촬영 버튼 (스마트폰 직통: capture="environment") -->
@@ -451,7 +451,7 @@ window.MedicineLocationModule = (function () {
         zoneId,
         zoneName,
         locationDetail,
-        photoUrl,
+        photoUrl: photoUrl || '',
         notes,
         updatedBy: currUser.name,
         updatedAt: nowStr,
@@ -462,6 +462,8 @@ window.MedicineLocationModule = (function () {
 
     saveStorageData(items);
     closeModal();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save me-1"></i> 저장하기';
     alert('✅ 성공적으로 저장되었습니다!');
     render('module-content');
   }

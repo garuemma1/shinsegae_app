@@ -92,7 +92,7 @@ window.MedicineLocationModule = (function () {
           <div style="flex:1; min-width:280px; position:relative;">
             <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:15px;"></i>
             <input type="text" id="med-search-input" value="${searchQuery}" oninput="MedicineLocationModule.handleSearch(this.value)" placeholder="약품명, 효능, 보관 위치(예: 임팩타민, A구역, 냉장고) 실시간 검색..." style="width:100%; padding:11px 14px 11px 40px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; outline:none; font-weight:700; color:#0f172a; box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#cbd5e1'">
-            ${searchQuery ? `<button onclick="MedicineLocationModule.handleSearch('')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer;">✖</button>` : ''}
+            <button id="med-search-clear-btn" onclick="MedicineLocationModule.handleSearch('')" style="display:${searchQuery ? 'block' : 'none'}; position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer;">✖</button>
           </div>
           <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#475569; background:#f8fafc; padding:6px 14px; border-radius:10px; border:1px solid #e2e8f0;">
             <i class="fas fa-layer-group text-primary"></i>
@@ -117,23 +117,10 @@ window.MedicineLocationModule = (function () {
         </div>
       </div>
 
-      <!-- 🖼️ 3. 약품 카드 그리드 (리스트) -->
-      ${filtered.length === 0 ? `
-        <div style="text-align:center; padding:60px 20px; background:#ffffff; border-radius:20px; border:1.5px dashed #cbd5e1; margin-top:10px;">
-          <div style="width:60px; height:60px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 14px auto;">
-            <i class="fas fa-box-open"></i>
-          </div>
-          <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin-bottom:6px;">등록된 일반약 위치 데이터가 없습니다.</h3>
-          <p style="font-size:13.5px; color:#64748b; margin-bottom:16px;">검색어를 확인하시거나 우측 상단의 <b>[새 약품 위치 등록]</b> 버튼을 눌러 사진과 보관 위치를 등록하세요.</p>
-          <button type="button" class="btn btn-primary font-bold" onclick="MedicineLocationModule.openCreateModal()" style="border-radius:10px; padding:9px 18px;">
-            <i class="fas fa-plus"></i> 첫 약품 위치 등록하기
-          </button>
-        </div>
-      ` : `
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:18px;">
-          ${filtered.map(item => renderMedicineCard(item)).join('')}
-        </div>
-      `}
+      <!-- 🖼️ 3. 약품 카드 그리드 컨테이너 -->
+      <div id="med-card-grid-container">
+        ${renderCardGridHTML(filtered, items.length)}
+      </div>
 
       <!-- 📝 4. 신규 등록 / 위치 변경 모달 -->
       <div id="med-location-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); z-index:99999; justify-content:center; align-items:center; padding:16px;">
@@ -551,13 +538,67 @@ window.MedicineLocationModule = (function () {
     document.getElementById('med-detail-modal').style.display = 'none';
   }
 
+  function renderCardGridHTML(filtered, totalCount) {
+    if (!filtered || filtered.length === 0) {
+      return `
+        <div style="text-align:center; padding:60px 20px; background:#ffffff; border-radius:20px; border:1.5px dashed #cbd5e1; margin-top:10px;">
+          <div style="width:60px; height:60px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 14px auto;">
+            <i class="fas fa-box-open"></i>
+          </div>
+          <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin-bottom:6px;">${totalCount === 0 ? '등록된 일반약 위치 데이터가 없습니다.' : '일치하는 약품 위치 검색 결과가 없습니다.'}</h3>
+          <p style="font-size:13.5px; color:#64748b; margin-bottom:16px;">검색어를 확인하시거나 우측 상단의 <b>[새 약품 위치 등록]</b> 버튼을 눌러 사진과 보관 위치를 등록하세요.</p>
+          <button type="button" class="btn btn-primary font-bold" onclick="MedicineLocationModule.openCreateModal()" style="border-radius:10px; padding:9px 18px;">
+            <i class="fas fa-plus"></i> 첫 약품 위치 등록하기
+          </button>
+        </div>
+      `;
+    }
+    return `
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:18px;">
+        ${filtered.map(item => renderMedicineCard(item)).join('')}
+      </div>
+    `;
+  }
+
   function handleSearch(val) {
     searchQuery = val;
-    render('module-content');
-    const inputEl = document.getElementById('med-search-input');
-    if (inputEl) {
-      inputEl.focus();
-      inputEl.setSelectionRange(val.length, val.length);
+
+    // 지우기 버튼 토글
+    const clearBtn = document.getElementById('med-search-clear-btn');
+    if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+
+    // input 요소를 재렌더링하지 않고 하단 그리드만 0.01초 부분 업데이트 (한글 IME 풀림 원천 방지)
+    const gridContainer = document.getElementById('med-card-grid-container');
+    if (gridContainer) {
+      const items = getStorageData();
+      const rawQ = searchQuery.toLowerCase().trim();
+      const keywords = rawQ.split(/\s+/).filter(Boolean);
+
+      const filtered = items.filter(item => {
+        const matchCat = activeCategory === 'ALL' || item.zoneId === activeCategory;
+        if (!rawQ) return matchCat;
+
+        const targetText = [
+          item.name || '',
+          item.zoneName || '',
+          item.locationDetail || '',
+          item.notes || '',
+          item.updatedBy || ''
+        ].join(' ').toLowerCase();
+
+        const targetTextNoSpace = targetText.replace(/\s+/g, '');
+
+        const matchQuery = keywords.every(kw => {
+          const kwNoSpace = kw.replace(/\s+/g, '');
+          return targetText.includes(kw) || targetTextNoSpace.includes(kwNoSpace);
+        });
+
+        return matchCat && matchQuery;
+      });
+
+      gridContainer.innerHTML = renderCardGridHTML(filtered, items.length);
+    } else {
+      render('module-content');
     }
   }
 

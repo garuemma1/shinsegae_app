@@ -697,16 +697,28 @@ window.SheetsSync = (function () {
 
   function getCurrentUser() {
     try {
-      const raw = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      const raw = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER) || localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
       if (raw) {
         const u = JSON.parse(raw);
         if (u && u.id) {
           const emps = getEmployees();
           const liveEmp = emps.find(e => e.id === u.id);
+
+          let permMap = {};
+          try {
+            const pRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
+            if (pRaw) permMap = JSON.parse(pRaw);
+          } catch(e) {}
+
+          const currentAllowed = (permMap && permMap[u.id]) || (liveEmp && liveEmp.allowedTabs) || u.allowedTabs || [
+            'notices-module', 'worklog-module', 'medicine-location-module', 'schedule-module',
+            'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+          ];
+
           if (liveEmp) {
-            return { ...u, ...liveEmp };
+            return { ...u, ...liveEmp, allowedTabs: currentAllowed };
           }
-          return u;
+          return { ...u, allowedTabs: currentAllowed };
         }
       }
     } catch (e) {}

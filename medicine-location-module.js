@@ -282,6 +282,11 @@ window.MedicineLocationModule = (function () {
             <button type="button" onclick="MedicineLocationModule.openDetailModal('${item.id}')" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:4px 9px; font-size:11.5px; font-weight:800; color:#2563eb; cursor:pointer;">
               이력 (${historyCount})
             </button>
+            ${window.SheetsSync && window.SheetsSync.getCurrentUser() && window.SheetsSync.getCurrentUser().role === '약국장' ? `
+              <button type="button" onclick="MedicineLocationModule.deleteMedicine('${item.id}', '${item.name.replace(/'/g, "\\'")}')" style="background:#fef2f2; border:1px solid #fecdd3; border-radius:8px; padding:4px 8px; font-size:11.5px; font-weight:800; color:#ef4444; cursor:pointer;" title="약국장 전용 삭제">
+                <i class="fas fa-trash-can"></i>
+              </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -477,14 +482,21 @@ window.MedicineLocationModule = (function () {
     const zone = DEFAULT_ZONES.find(z => z.id === target.zoneId) || { name: target.zoneName, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' };
 
     const contentHtml = `
-      <div style="display:flex; align-items:center; gap:10px; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px;">
-        <div style="width:40px; height:40px; border-radius:12px; background:${zone.bg}; color:${zone.color}; display:flex; align-items:center; justify-content:center; font-size:20px;">
-          <i class="fas fa-boxes-stacked"></i>
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:${zone.bg}; color:${zone.color}; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="fas fa-boxes-stacked"></i>
+          </div>
+          <div>
+            <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">${target.name}</h3>
+            <span style="font-size:11.5px; font-weight:800; color:${zone.color};">📍 ${zone.name}</span>
+          </div>
         </div>
-        <div>
-          <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">${target.name}</h3>
-          <span style="font-size:11.5px; font-weight:800; color:${zone.color};">📍 ${zone.name}</span>
-        </div>
+        ${window.SheetsSync && window.SheetsSync.getCurrentUser() && window.SheetsSync.getCurrentUser().role === '약국장' ? `
+          <button type="button" onclick="MedicineLocationModule.deleteMedicine('${target.id}', '${target.name.replace(/'/g, "\\'")}')" style="background:#fef2f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#ef4444; cursor:pointer;">
+            <i class="fas fa-trash-can me-1"></i> 약품 위치 삭제
+          </button>
+        ` : ''}
       </div>
 
       <!-- 대표 위치 사진 -->
@@ -554,6 +566,26 @@ window.MedicineLocationModule = (function () {
     render('module-content');
   }
 
+  function deleteMedicine(id, name) {
+    const currUser = window.SheetsSync ? window.SheetsSync.getCurrentUser() : null;
+    if (!currUser || currUser.role !== '약국장') {
+      alert('🔒 약국장 계정만 약품 위치 데이터를 삭제할 수 있습니다.');
+      return;
+    }
+
+    if (!confirm(`🗑️ [${name}] 약품 위치 등록을 정말로 삭제하시겠습니까?\n(삭제 후 파이어베이스 클라우드에서도 함께 지워집니다)`)) {
+      return;
+    }
+
+    const items = getStorageData().filter(i => i.id !== id);
+    if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+      window.SheetsSync.addDeletedId(id);
+    }
+    saveStorageData(items);
+    closeDetailModal();
+    render('module-content');
+  }
+
   if (typeof window !== 'undefined') {
     window.addEventListener('ssg_cloud_updated', () => {
       const active = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
@@ -571,6 +603,6 @@ window.MedicineLocationModule = (function () {
 
   return {
     render, openCreateModal, openEditModal, closeModal, openDetailModal, closeDetailModal,
-    handlePhotoSelect, resetPhoto, handleSubmit, handleSearch, filterCategory
+    handlePhotoSelect, resetPhoto, handleSubmit, handleSearch, filterCategory, deleteMedicine
   };
 })();

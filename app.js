@@ -100,9 +100,7 @@ window.App = (function () {
     // 핸드폰/스마트폰 및 PC 접속 시 드로어 메뉴 가동
     openDrawer();
 
-    if (activeModule === 'notices') markNoticesRead();
-    else if (activeModule === 'worklog') markWorklogRead();
-    else if (activeModule === 'approval') markApprovalRead();
+    // 📌 최초 접속 시 자동 읽음으로 N 뱃지가 씹히던 현상 원천 방지 (실제 탭 클릭 시에만 읽음 처리)
 
     renderActiveModule();
 
@@ -291,10 +289,37 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_worklog_' + currUser.id);
-      if (!raw) return false; // 방문 기록이 있으면 항목 비교, 없어도 초기엔 N 안 띄움 (탭 진입 시 자동저장)
+      if (!raw) return worklogs.length > 0;
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
       return worklogs.some(w => !savedSet.has(_worklogFingerprint(w)));
+    } catch(e) { return false; }
+  }
+
+  // ─── 일반약 보관 위치 읽음 상태 관리 헬퍼 ────────────────────────────────
+  function _medicineLocationFingerprint(item) {
+    if (!item) return '';
+    return [item.id || '', item.updatedAt || '', item.locationDetail || '', (item.history ? item.history.length : 0)].join('|');
+  }
+
+  function markMedicineLocationRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const items = (window.SheetsSync.getMedicineLocations ? window.SheetsSync.getMedicineLocations() : (window.SheetsSync.getData().medicineLocations || [])) || [];
+    const fingerprints = items.map(_medicineLocationFingerprint);
+    try {
+      localStorage.setItem('ssg_read_med_loc_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadMedicineLocations(currUser, items) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_med_loc_' + currUser.id);
+      if (!raw) return items.length > 0;
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return items.some(item => !savedSet.has(_medicineLocationFingerprint(item)));
     } catch(e) { return false; }
   }
 
@@ -342,7 +367,11 @@ window.App = (function () {
       const worklogs = (window.SheetsSync.getWorklogs ? window.SheetsSync.getWorklogs() : data.worklogs) || [];
       const hasUnreadLog = _hasUnreadWorklog(currUser, worklogs);
 
-      // 3. 월간 근무 스케줄 (schedule)
+      // 3. 일반약 위치 관리 (medicine-location): 새 약품 위치 추가, 변경 시 N
+      const medLocations = (window.SheetsSync.getMedicineLocations ? window.SheetsSync.getMedicineLocations() : data.medicineLocations) || [];
+      const hasUnreadMedLoc = _hasUnreadMedicineLocations(currUser, medLocations);
+
+      // 4. 월간 근무 스케줄 (schedule)
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1;
@@ -355,9 +384,14 @@ window.App = (function () {
       const employees = data.employees || [];
       const hasSubmittedSchedules = isDirector && employees.some(e => e.role !== '약국장' && stObj[e.id] === 'SUBMITTED');
 
+      const pendingLeaves = (data.leaveRequests || []).filter(l => l.status === 'PENDING');
+      const unpaidPurchases = (data.discountPurchases || []).filter(p => !p.isPaid);
+      const hasUnreadApproval = _hasUnreadApproval(currUser, data);
+
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
+        'medicine-location': hasUnreadMedLoc ? 'N' : null,
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
         discountPurchase: unpaidPurchases.length > 0 ? (isDirector ? unpaidPurchases.length : 'N') : null,
@@ -1127,6 +1161,9 @@ window.App = (function () {
       } else if (moduleName === 'worklog') {
         markWorklogRead();
         updateSidebarBadgesOnly();
+      } else if (moduleName === 'medicine-location') {
+        markMedicineLocationRead();
+        updateSidebarBadgesOnly();
       } else if (moduleName === 'approval') {
         markApprovalRead();
         updateSidebarBadgesOnly();
@@ -1847,6 +1884,7 @@ function writeSheetData(sheet, dataList) {
     renderUserHeader,
     markNoticesRead,
     markWorklogRead,
+    markMedicineLocationRead,
     markApprovalRead,
     quickSelectLogin,
     showLoginModal,

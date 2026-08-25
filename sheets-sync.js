@@ -17,6 +17,7 @@ window.SheetsSync = (function () {
     BUILDING_RENTAL: 'ssg_building_rental_v1',
     PAYSTUBS: 'ssg_paystubs_v1',
     OVERTIME_ADJUSTMENTS: 'ssg_overtime_adjustments_v1',
+    MEDICINE_LOCATIONS: 'ssg_medicine_locations_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -905,6 +906,25 @@ window.SheetsSync = (function () {
     pushToCloud();
   }
 
+  function getMedicineLocations() {
+    const deletedIds = getDeletedIds();
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.MEDICINE_LOCATIONS) || safeGetItem('ssg_medicine_locations');
+      const list = raw ? JSON.parse(raw) : [];
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveMedicineLocations(data) {
+    const deletedIds = getDeletedIds();
+    const cleanList = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    safeSetItem(STORAGE_KEYS.MEDICINE_LOCATIONS, JSON.stringify(cleanList));
+    safeSetItem('ssg_medicine_locations', JSON.stringify(cleanList));
+    pushToCloud();
+  }
+
   function getPharmacySettlement() {
     try {
       const raw = safeGetItem(STORAGE_KEYS.PHARMACY_SETTLEMENT);
@@ -1479,6 +1499,7 @@ window.SheetsSync = (function () {
           else if (currMod === 'annual-leave' && leavesChanged) activeModChanged = true;
           else if (currMod === 'discount-purchase' && discountsChanged) activeModChanged = true;
           else if (currMod === 'staff-directory' && empsChanged) activeModChanged = true;
+          else if (currMod === 'medicine-location' && medLocationsChanged) activeModChanged = true;
           else if (currMod === 'pharmacy-settlement' && (scheduleChanged || paystubsChanged || ratesChanged)) activeModChanged = true;
 
           if (activeModChanged && window.App && typeof window.App.renderActiveModule === 'function') {
@@ -1563,6 +1584,7 @@ window.SheetsSync = (function () {
           leaveRequests: getLeaveRequests(),
           notices: getNotices(),
           worklogs: getWorklogs(),
+          medicineLocations: getMedicineLocations(),
           gasUrls: getGasUrls()
         }
       };
@@ -1965,6 +1987,7 @@ window.SheetsSync = (function () {
       leaveRequests: getLeaveRequests(),
       discountPurchases: getDiscountPurchases(),
       worklogs: getWorklogs(),
+      medicineLocations: getMedicineLocations(),
       emergencyContacts: getEmergencyContacts(),
       pharmacySettlement: getPharmacySettlement(),
       buildingRental: getBuildingRental(),
@@ -2046,6 +2069,8 @@ window.SheetsSync = (function () {
     saveWorklogs,
     getEmergencyContacts,
     saveEmergencyContacts,
+    getMedicineLocations,
+    saveMedicineLocations,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

@@ -17,19 +17,21 @@ window.MedicineLocationModule = (function () {
 
   function getStorageData() {
     try {
-      const data = window.SheetsSync ? window.SheetsSync.getData() : {};
-      return data.medicineLocations || [];
+      if (window.SheetsSync && typeof window.SheetsSync.getMedicineLocations === 'function') {
+        return window.SheetsSync.getMedicineLocations();
+      }
+      const raw = localStorage.getItem('ssg_medicine_locations_v1') || localStorage.getItem('ssg_medicine_locations');
+      return raw ? JSON.parse(raw) : [];
     } catch (e) {
       return [];
     }
   }
 
   function saveStorageData(list) {
-    if (window.SheetsSync && typeof window.SheetsSync.saveData === 'function') {
-      const data = window.SheetsSync.getData();
-      data.medicineLocations = list;
-      window.SheetsSync.saveData('medicineLocations', list);
+    if (window.SheetsSync && typeof window.SheetsSync.saveMedicineLocations === 'function') {
+      window.SheetsSync.saveMedicineLocations(list);
     } else {
+      localStorage.setItem('ssg_medicine_locations_v1', JSON.stringify(list));
       localStorage.setItem('ssg_medicine_locations', JSON.stringify(list));
     }
   }

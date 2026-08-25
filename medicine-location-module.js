@@ -299,13 +299,21 @@ window.MedicineLocationModule = (function () {
       img.src = e.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const scaleSize = MAX_WIDTH / img.width;
-        canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scaleSize;
+        const MAX_WIDTH = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        ctx.drawImage(img, 0, 0, width, height);
+        // Firebase payload 크기 최적화를 위해 0.5 압축 (100~200KB 수준)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
 
         document.getElementById('med-photo-preview-img').src = compressedBase64;
         document.getElementById('med-photo-base64').value = compressedBase64;
@@ -389,20 +397,19 @@ window.MedicineLocationModule = (function () {
 
     let photoUrl = photoBase64;
 
-    // 만약 새 base64 이미지 데이터면 구글 드라이브/클라우드로 저장 업로드 시도
+    // 만약 base64 이미지 데이터면 구글 드라이브 클라우드로 업로드하여 영구 URL 생성
     if (photoBase64 && photoBase64.startsWith('data:image')) {
+      const gasUrl = window.GAS_WEB_APP_URL || "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
       try {
-        if (window.GAS_WEB_APP_URL) {
-          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 사진 업로드 중...';
-          const response = await fetch(window.GAS_WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'uploadImage', data: photoBase64, filename: `약품위치_${Date.now()}.jpg` })
-          });
-          const result = await response.json();
-          if (result && result.url) photoUrl = result.url;
-        }
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 사진 드라이브 전송 중...';
+        const response = await fetch(gasUrl, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'uploadImage', data: photoBase64, filename: `약품위치_${Date.now()}.jpg` })
+        });
+        const result = await response.json();
+        if (result && result.url) photoUrl = result.url;
       } catch (err) {
-        console.warn("구글 드라이브 이미지 저장 백업:", err);
+        console.warn("구글 드라이브 이미지 전송 백업:", err);
       }
     }
 
@@ -423,6 +430,10 @@ window.MedicineLocationModule = (function () {
         };
         if (!target.history) target.history = [];
         target.history.unshift(historyEntry);
+        // 약품당 과거 사진 히스토리는 최근 5건만 보존하고 오래된 히스토리는 자동 정리 (메모리 절감)
+        if (target.history.length > 5) {
+          target.history = target.history.slice(0, 5);
+        }
 
         target.zoneId = zoneId;
         target.zoneName = zoneName;
@@ -539,6 +550,21 @@ window.MedicineLocationModule = (function () {
   function filterCategory(catId) {
     activeCategory = catId;
     render('module-content');
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('ssg_cloud_updated', () => {
+      const active = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
+      if (active === 'medicine-location') {
+        const anyModalOpen = Array.from(document.querySelectorAll('.modal-overlay')).some(m => {
+          const disp = window.getComputedStyle(m).display;
+          return disp !== 'none' && disp !== '';
+        });
+        if (!anyModalOpen) {
+          render('module-content');
+        }
+      }
+    });
   }
 
   return {

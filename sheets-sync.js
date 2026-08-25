@@ -1418,7 +1418,10 @@ window.SheetsSync = (function () {
           const chosen = (cTime > lTime) ? ce : le;
           
           // 권한은 로컬 permMap[id]가 있으면 최우선 유지
-          const targetAllowed = permMap[id] || chosen.allowedTabs || (cTime > lTime ? ce.allowedTabs : le.allowedTabs);
+          let targetAllowed = permMap[id] || chosen.allowedTabs || (cTime > lTime ? ce.allowedTabs : le.allowedTabs) || [];
+          if (Array.isArray(targetAllowed) && !targetAllowed.includes('medicine-location-module')) {
+            targetAllowed = [...targetAllowed, 'medicine-location-module'];
+          }
           if (targetAllowed) permMap[id] = targetAllowed;
 
           return {

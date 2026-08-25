@@ -419,10 +419,15 @@ window.App = (function () {
     const badges = computeNotificationBadges();
 
     // 맞춤 허용 탭 목록 (개인별 권한)
-    const allowed = currUser.allowedTabs || [
+    let allowed = currUser.allowedTabs || [
       'notices-module', 'worklog-module', 'medicine-location-module', 'schedule-module',
       'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
+
+    // 🛡️ 기존 기기 레거시 권한 데이터 호환성 보장: medicine-location-module 보장
+    if (!allowed.includes('medicine-location-module')) {
+      allowed = [...allowed, 'medicine-location-module'];
+    }
 
     let html = '';
 

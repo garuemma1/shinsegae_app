@@ -727,6 +727,9 @@ window.RxMedicineLocationModule = (function () {
     const targetName = name || (target ? target.name : '');
 
     if (confirm(`'${targetName}' 전문약 위치 정보를 정말 삭제하시겠습니까?\n(이 작업은 복구할 수 없습니다)`)) {
+      if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+        window.SheetsSync.addDeletedId(id);
+      }
       const newList = list.filter(i => i.id !== id);
       saveStorageData(newList);
       closeDetailModal();

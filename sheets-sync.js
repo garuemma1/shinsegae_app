@@ -1245,6 +1245,23 @@ window.SheetsSync = (function () {
         }
       }
 
+      // 2-3. 전문약(조제실) 위치 관리 스마트 비파괴 양방향 융합 (핸드폰 ↔ PC 100% 양방향 실시간 호환)
+      let rxMedLocationsChanged = false;
+      if (cloudData.rxMedicineLocations && Array.isArray(cloudData.rxMedicineLocations)) {
+        const localRxMeds = getRxMedicineLocations() || [];
+        const mergedRxMeds = mergeById(localRxMeds, cloudData.rxMedicineLocations, 'updatedAt');
+        if (isListDifferent(localRxMeds, mergedRxMeds)) {
+          safeSetItem(STORAGE_KEYS.RX_MEDICINE_LOCATIONS, JSON.stringify(mergedRxMeds));
+          safeSetItem('ssg_rx_medicine_locations', JSON.stringify(mergedRxMeds));
+          updated = true;
+          rxMedLocationsChanged = true;
+        }
+        const cloudRxMedIds = new Set((cloudData.rxMedicineLocations || []).map(m => m.id));
+        if ((localRxMeds || []).some(m => m && m.id && !cloudRxMedIds.has(m.id))) {
+          needPushBack = true;
+        }
+      }
+
       // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.leaveRequests && Array.isArray(cloudData.leaveRequests)) {
         const localLeaves = getLeaveRequests() || [];
@@ -1557,6 +1574,7 @@ window.SheetsSync = (function () {
           else if (currMod === 'discount-purchase' && discountsChanged) activeModChanged = true;
           else if (currMod === 'staff-directory' && empsChanged) activeModChanged = true;
           else if (currMod === 'medicine-location' && medLocationsChanged) activeModChanged = true;
+          else if (currMod === 'rx-medicine-location' && rxMedLocationsChanged) activeModChanged = true;
           else if (currMod === 'pharmacy-settlement' && (scheduleChanged || paystubsChanged || ratesChanged)) activeModChanged = true;
 
           if (activeModChanged && window.App && typeof window.App.renderActiveModule === 'function') {
@@ -1642,6 +1660,7 @@ window.SheetsSync = (function () {
           notices: getNotices(),
           worklogs: getWorklogs(),
           medicineLocations: getMedicineLocations(),
+          rxMedicineLocations: getRxMedicineLocations(),
           gasUrls: getGasUrls()
         }
       };

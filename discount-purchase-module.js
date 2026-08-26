@@ -66,31 +66,32 @@ window.DiscountPurchaseModule = (function () {
           </div>
         </div>
 
-        <!-- 🖊️ 4대 통계 카드 바로 아래 독립 액션 바 (왼쪽 이동 & 고급스러운 딥 로얄 블루 톤) -->
-        <div style="display:flex; align-items:center; justify-content:flex-start; margin-top:24px; margin-bottom:16px; flex-wrap:wrap; gap:16px;">
-          <h3 style="font-size: 19px; font-weight: 800; color: #0f172a; margin:0;"><i class="fas fa-receipt text-primary me-2"></i>할인 구매 내역 및 월별 정산 집계</h3>
-          
-          <!-- ✨ 왼쪽으로 이동한 고급스러운 로얄 블루 메인 구매 신청/등록 버튼 -->
-          <button type="button" class="btn shadow-md" onclick="DiscountPurchaseModule.openAddModal()" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color:#ffffff; font-size: 14.5px; font-weight: 800; border-radius: 12px; padding: 9px 22px; border:none; box-shadow:0 4px 14px rgba(37,99,235,0.3); cursor:pointer; transition:all 0.2s;">
-            <i class="fas fa-plus-circle me-1.5"></i> + 구매 신청 / 등록
+        <!-- 🖊️ 4대 통계 카드 아래 [한 칸 위] 독립 행 (좌측 가독성배치 & 모바일 반응형 100% 밀착 보강) -->
+        <div style="margin-top: 24px; margin-bottom: 18px; display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+          <button type="button" class="btn shadow-sm" onclick="DiscountPurchaseModule.openAddModal()" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; font-size: 14.5px; font-weight: 800; border-radius: 12px; padding: 11px 24px; border: none; box-shadow: 0 4px 14px rgba(37,99,235,0.35); cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; max-width: 100%; box-sizing: border-box;">
+            <i class="fas fa-plus-circle" style="font-size: 16px;"></i> + 구매 신청 / 등록
           </button>
         </div>
 
         <!-- 하단 탭 및 데이터 리스트 (100% 와이드) -->
         <div class="card-section" style="border-radius: 20px; padding: 28px; background:#ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 flex-wrap">
-            <!-- 🔀 탭 배치: 개별 기록이 좌측, 월별 합계가 우측 -->
-            <div class="p-1" style="background:#f1f5f9; border-radius:12px; display:inline-flex; border:1px solid #e2e8f0;">
-              <button type="button" class="btn btn-sm ${currentTab === 'individual' ? 'bg-white shadow-sm text-primary font-bold' : 'text-muted border-0'}" 
-                      style="border-radius:10px; padding:8px 18px; transition:all 0.2s; font-size:13.5px;" 
-                      onclick="DiscountPurchaseModule.switchSubTab('individual')">
-                <i class="fas fa-list-ul me-1"></i> 📋 개별 기록
-              </button>
-              <button type="button" class="btn btn-sm ${currentTab === 'monthly' ? 'bg-white shadow-sm text-primary font-bold' : 'text-muted border-0'}" 
-                      style="border-radius:10px; padding:8px 18px; transition:all 0.2s; font-size:13.5px;" 
-                      onclick="DiscountPurchaseModule.switchSubTab('monthly')">
-                <i class="fas fa-calendar-check me-1"></i> 📊 월별 합계
-              </button>
+            <h3 style="font-size: 19px; font-weight: 800; color: #0f172a; margin:0;"><i class="fas fa-receipt text-primary me-2"></i>할인 구매 내역 및 월별 정산 집계</h3>
+            
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <!-- 🔀 탭 배치: 개별 기록이 좌측, 월별 합계가 우측 -->
+              <div class="p-1" style="background:#f1f5f9; border-radius:12px; display:inline-flex; border:1px solid #e2e8f0;">
+                <button type="button" class="btn btn-sm ${currentTab === 'individual' ? 'bg-white shadow-sm text-primary font-bold' : 'text-muted border-0'}" 
+                        style="border-radius:10px; padding:8px 18px; transition:all 0.2s; font-size:13.5px;" 
+                        onclick="DiscountPurchaseModule.switchSubTab('individual')">
+                  <i class="fas fa-list-ul me-1"></i> 📋 개별 기록
+                </button>
+                <button type="button" class="btn btn-sm ${currentTab === 'monthly' ? 'bg-white shadow-sm text-primary font-bold' : 'text-muted border-0'}" 
+                        style="border-radius:10px; padding:8px 18px; transition:all 0.2s; font-size:13.5px;" 
+                        onclick="DiscountPurchaseModule.switchSubTab('monthly')">
+                  <i class="fas fa-calendar-check me-1"></i> 📊 월별 합계
+                </button>
+              </div>
             </div>
           </div>
 

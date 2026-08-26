@@ -18,6 +18,7 @@ window.SheetsSync = (function () {
     PAYSTUBS: 'ssg_paystubs_v1',
     OVERTIME_ADJUSTMENTS: 'ssg_overtime_adjustments_v1',
     MEDICINE_LOCATIONS: 'ssg_medicine_locations_v1',
+    RX_MEDICINE_LOCATIONS: 'ssg_rx_medicine_locations_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -31,6 +32,7 @@ window.SheetsSync = (function () {
     'notices-module',
     'worklog-module',
     'medicine-location-module',
+    'rx-medicine-location-module',
     'schedule-module',
     'annual-leave-module',
     'discount-purchase-module',
@@ -935,6 +937,25 @@ window.SheetsSync = (function () {
     const cleanList = (data || []).filter(item => item && !deletedIds.includes(item.id));
     safeSetItem(STORAGE_KEYS.MEDICINE_LOCATIONS, JSON.stringify(cleanList));
     safeSetItem('ssg_medicine_locations', JSON.stringify(cleanList));
+    pushToCloud();
+  }
+
+  function getRxMedicineLocations() {
+    const deletedIds = getDeletedIds();
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.RX_MEDICINE_LOCATIONS) || safeGetItem('ssg_rx_medicine_locations');
+      const list = raw ? JSON.parse(raw) : [];
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveRxMedicineLocations(data) {
+    const deletedIds = getDeletedIds();
+    const cleanList = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    safeSetItem(STORAGE_KEYS.RX_MEDICINE_LOCATIONS, JSON.stringify(cleanList));
+    safeSetItem('ssg_rx_medicine_locations', JSON.stringify(cleanList));
     pushToCloud();
   }
 
@@ -2104,6 +2125,8 @@ window.SheetsSync = (function () {
     saveEmergencyContacts,
     getMedicineLocations,
     saveMedicineLocations,
+    getRxMedicineLocations,
+    saveRxMedicineLocations,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

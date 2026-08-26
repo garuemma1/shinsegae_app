@@ -11,6 +11,7 @@ window.App = (function () {
     'notices': '📢 공지사항 & 업무 SOP',
     'worklog': '📝 약국 업무일지 & 인수인계',
     'medicine-location': '📦 일반약 위치 관리 & 위치 검색',
+    'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
     'schedule': '📅 월간 근무 스케줄',
     'annual-leave': '🌴 연차대장 & 연차 전용 달력',
     'discount-purchase': '🛍️ 직원할인구매대장',
@@ -27,6 +28,7 @@ window.App = (function () {
     'notices': 'fa-bullhorn',
     'worklog': 'fa-pen-fancy',
     'medicine-location': 'fa-boxes-packing',
+    'rx-medicine-location': 'fa-pills',
     'schedule': 'fa-calendar-alt',
     'annual-leave': 'fa-umbrella-beach',
     'discount-purchase': 'fa-shopping-bag',
@@ -500,6 +502,17 @@ window.App = (function () {
       `;
     }
 
+    if (isDirector || allowed.includes('rx-medicine-location-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'rx-medicine-location' ? 'active' : ''}" data-module="rx-medicine-location" onclick="App.switchModule('rx-medicine-location', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-pills" style="color:#059669;"></i>
+          </div>
+          <span>전문약(조제실) 위치 관리</span>
+        </button>
+      `;
+    }
+
     if (isDirector || allowed.includes('schedule-module')) {
       html += `
         <button class="menu-item ${activeModule === 'schedule' ? 'active' : ''}" data-module="schedule" onclick="App.switchModule('schedule', true)">
@@ -900,6 +913,9 @@ window.App = (function () {
       case 'medicine-location':
         if (window.MedicineLocationModule) window.MedicineLocationModule.render('module-content');
         break;
+      case 'rx-medicine-location':
+        if (window.RxMedicineLocationModule) window.RxMedicineLocationModule.render('module-content');
+        break;
       case 'schedule':
         if (window.ScheduleModule) window.ScheduleModule.render('module-content');
         break;
@@ -1163,6 +1179,8 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'medicine-location') {
         markMedicineLocationRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'rx-medicine-location') {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'approval') {
         markApprovalRead();

@@ -1060,12 +1060,27 @@ window.SheetsSync = (function () {
   function getDiscountPurchases() {
     const deletedIds = getDeletedIds();
     try {
-      const raw = safeGetItem(STORAGE_KEYS.DISCOUNT_PURCHASES);
+      const raw = safeGetItem(STORAGE_KEYS.DISCOUNT_PURCHASES) || safeGetItem('ssg_discount_purchases');
       const list = raw ? JSON.parse(raw) : INITIAL_DISCOUNT_PURCHASES;
       return (list || []).filter(item => item && !deletedIds.includes(item.id));
     } catch(e) { 
       return INITIAL_DISCOUNT_PURCHASES.filter(item => item && !deletedIds.includes(item.id)); 
     }
+  }
+
+  function saveDiscountPurchases(data) {
+    const deletedIds = getDeletedIds();
+    const now = Date.now();
+    const cleanList = (data || [])
+      .filter(item => item && !deletedIds.includes(item.id))
+      .map(item => ({
+        ...item,
+        updatedAt: item.updatedAt || now,
+        createdAt: item.createdAt || now
+      }));
+    safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(cleanList));
+    safeSetItem('ssg_discount_purchases', JSON.stringify(cleanList));
+    pushToCloud();
   }
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
@@ -1285,17 +1300,18 @@ window.SheetsSync = (function () {
         }
       }
 
-      // 4. 직원할인구매 스마트 비파괴 병합 (삭제된 글 제외)
+      // 4. 직원할인구매 스마트 비파괴 양방향 융합 (핸드폰 ↔ PC 100% 양방향 실시간 호환)
       if (cloudData.discountPurchases && Array.isArray(cloudData.discountPurchases)) {
         const localDiscounts = getDiscountPurchases() || [];
-        const mergedDiscounts = mergeById(localDiscounts, cloudData.discountPurchases, 'date');
+        const mergedDiscounts = mergeById(localDiscounts, cloudData.discountPurchases, 'updatedAt');
         if (isListDifferent(localDiscounts, mergedDiscounts)) {
           safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(mergedDiscounts));
+          safeSetItem('ssg_discount_purchases', JSON.stringify(mergedDiscounts));
           updated = true;
           discountsChanged = true;
         }
         const cloudDiscIds = new Set((cloudData.discountPurchases || []).map(d => d.id));
-        if ((localDiscounts || []).some(d => d && d.id && !cloudDiscIds.has(d.id))) {
+        if ((localDiscounts || []).some(d => d && d.id && !cloudDiscIds.has(d.id) && !activeDeletedIds.includes(d.id))) {
           needPushBack = true;
         }
       }

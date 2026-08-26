@@ -325,6 +325,33 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
+  // ─── 전문약(조제실) 보관 위치 읽음 상태 관리 헬퍼 ──────────────────────────
+  function _rxMedicineLocationFingerprint(item) {
+    if (!item) return '';
+    return [item.id || '', item.updatedAt || '', item.locationDetail || '', item.adjustmentReason || '', (item.history ? item.history.length : 0)].join('|');
+  }
+
+  function markRxMedicineLocationRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const items = (window.SheetsSync.getRxMedicineLocations ? window.SheetsSync.getRxMedicineLocations() : (window.SheetsSync.getData().rxMedicineLocations || [])) || [];
+    const fingerprints = items.map(_rxMedicineLocationFingerprint);
+    try {
+      localStorage.setItem('ssg_read_rx_med_loc_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadRxMedicineLocations(currUser, items) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_rx_med_loc_' + currUser.id);
+      if (!raw) return items.length > 0;
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return items.some(item => !savedSet.has(_rxMedicineLocationFingerprint(item)));
+    } catch(e) { return false; }
+  }
+
   // ─── 약국장 결재 읽음 상태 관리 헬퍼 ─────────────────────────────────────
   // 결재 대상 전체(연차, 할인구매, 미확인업무일지, 미승인스케줄)의 지문 합산
   function _approvalFingerprint(data) {
@@ -373,6 +400,10 @@ window.App = (function () {
       const medLocations = (window.SheetsSync.getMedicineLocations ? window.SheetsSync.getMedicineLocations() : data.medicineLocations) || [];
       const hasUnreadMedLoc = _hasUnreadMedicineLocations(currUser, medLocations);
 
+      // 3-2. 전문약(조제실) 위치 관리 (rx-medicine-location): 새 전문약 추가, 변경 시 N
+      const rxMedLocations = (window.SheetsSync.getRxMedicineLocations ? window.SheetsSync.getRxMedicineLocations() : data.rxMedicineLocations) || [];
+      const hasUnreadRxMedLoc = _hasUnreadRxMedicineLocations(currUser, rxMedLocations);
+
       // 4. 월간 근무 스케줄 (schedule)
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -394,6 +425,7 @@ window.App = (function () {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
+        'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
         discountPurchase: unpaidPurchases.length > 0 ? (isDirector ? unpaidPurchases.length : 'N') : null,
@@ -512,6 +544,7 @@ window.App = (function () {
         <button class="menu-item ${activeModule === 'rx-medicine-location' ? 'active' : ''}" data-module="rx-medicine-location" onclick="App.switchModule('rx-medicine-location', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-pills" style="color:#059669;"></i>
+            ${badges['rx-medicine-location'] ? `<span class="menu-item-badge">${badges['rx-medicine-location']}</span>` : ''}
           </div>
           <span>전문약(조제실) 위치 관리</span>
         </button>
@@ -1186,6 +1219,7 @@ window.App = (function () {
         markMedicineLocationRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'rx-medicine-location') {
+        markRxMedicineLocationRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'approval') {
         markApprovalRead();

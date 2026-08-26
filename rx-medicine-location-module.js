@@ -378,30 +378,32 @@ window.RxMedicineLocationModule = (function () {
     const historyCount = item.history ? item.history.length : 1;
     const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || {};
     const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
+    const hasPhoto = !!item.photoUrl;
 
     return `
       <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 2px 8px rgba(0,0,0,0.03); position:relative;">
         <div>
-          <!-- 사진 영역 -->
-          <div style="position:relative; width:100%; height:165px; background:#f8fafc; overflow:hidden; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')">
-            ${item.photoUrl ? `
+          ${hasPhoto ? `
+            <!-- 📸 사진이 있을 때만 165px 썸네일 박스 노출 -->
+            <div style="position:relative; width:100%; height:165px; background:#f8fafc; overflow:hidden; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')">
               <img src="${item.photoUrl}" alt="${escapeHTML(item.name)}" style="width:100%; height:100%; object-fit:cover;" />
-            ` : `
-              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#94a3b8;">
-                <i class="fas fa-pills" style="font-size:32px; margin-bottom:6px; color:#cbd5e1;"></i>
-                <span style="font-size:12px; font-weight:700;">등록된 사진 없음</span>
-              </div>
-            `}
-            <span style="position:absolute; top:10px; left:10px; background:${zoneObj.bg}; color:${zoneObj.color}; border:1px solid ${zoneObj.border}; font-size:11px; font-weight:800; padding:3px 10px; border-radius:14px; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
-              ${zoneObj.name}
-            </span>
-          </div>
+              <span style="position:absolute; top:10px; left:10px; background:${zoneObj.bg}; color:${zoneObj.color}; border:1px solid ${zoneObj.border}; font-size:11px; font-weight:800; padding:3px 10px; border-radius:14px; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+                ${zoneObj.name}
+              </span>
+            </div>
+          ` : ''}
 
           <div style="padding:16px;">
-            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:${hasPhoto ? '8px' : '10px'};">
               <h3 style="font-size:16px; font-weight:800; color:#0f172a; margin:0; word-break:break-all; cursor:pointer;" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')">
                 ${escapeHTML(item.name)}
               </h3>
+              ${!hasPhoto ? `
+                <!-- 🏷️ 사진이 없는 슬림 카드 상단 구역 뱃지 -->
+                <span style="background:${zoneObj.bg}; color:${zoneObj.color}; border:1px solid ${zoneObj.border}; font-size:11px; font-weight:800; padding:3px 10px; border-radius:14px; white-space:nowrap; flex-shrink:0;">
+                  ${zoneObj.name}
+                </span>
+              ` : ''}
             </div>
 
             <!-- 수기 위치 뱃지 -->

@@ -759,6 +759,16 @@ window.RxMedicineLocationModule = (function () {
       .replace(/'/g, '&#039;');
   }
 
+  // ⚡ 파이어베이스 / 백엔드 실시간 구글 동기화 수신 이벤트 링커 (스마트폰 ↔ PC 0.1초 실시간 호환)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('ssg_cloud_updated', function () {
+      const currMod = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
+      if (currMod === 'rx-medicine-location' || document.getElementById('rx-card-grid-container')) {
+        handleSearch(searchQuery || '');
+      }
+    });
+  }
+
   return {
     render: render,
     handleSearch: handleSearch,

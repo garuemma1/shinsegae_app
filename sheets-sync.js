@@ -1440,7 +1440,8 @@ window.SheetsSync = (function () {
       } catch(e) {}
 
       if (cloudData.empPermissions && typeof cloudData.empPermissions === 'object') {
-        permMap = { ...cloudData.empPermissions, ...permMap };
+        // 🔥 클라우드 권한과 로컬 권한을 스마트 병합 (클라우드가 더 새로운 변경사항일 수 있으므로 덮어쓰기 보장)
+        permMap = { ...permMap, ...cloudData.empPermissions };
         safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
       }
 
@@ -1459,30 +1460,39 @@ window.SheetsSync = (function () {
           const ce = cloudMap[id];
           const le = localMap[id];
           if (!ce) return le;
-          if (!le) return { ...ce, allowedTabs: permMap[ce.id] || ce.allowedTabs };
+          if (!le) {
+            const allowed = (cloudData.empPermissions && cloudData.empPermissions[id]) || ce.allowedTabs;
+            if (allowed) permMap[id] = allowed;
+            return { ...ce, allowedTabs: allowed || ce.allowedTabs };
+          }
 
           const cTime = Number(ce.updatedAt) || 0;
           const lTime = Number(le.updatedAt) || 0;
 
-          // 🔥 항상 최신 타임스탬프(더 최근에 수정한 쪽)를 기본 객체로 채택!
+          // 🔥 항상 최신 타임스탬프(더 최근에 약국장님이 수정한 쪽)를 기본 객체로 채택!
           const chosen = (cTime > lTime) ? ce : le;
           
-          // 권한은 로컬 permMap[id]가 있으면 최우선 유지
-          let targetAllowed = permMap[id] || chosen.allowedTabs || (cTime > lTime ? ce.allowedTabs : le.allowedTabs) || [];
-          if (Array.isArray(targetAllowed) && !targetAllowed.includes('medicine-location-module')) {
-            targetAllowed = [...targetAllowed, 'medicine-location-module'];
+          // 🔥 탭 권한: 최근 수정 시각(cTime > lTime)이 클라우드쪽이면 클라우드 권한 채택, 아니면 로컬/permMap 채택
+          let targetAllowed = (cTime > lTime)
+            ? ((cloudData.empPermissions && cloudData.empPermissions[id]) || ce.allowedTabs || permMap[id] || chosen.allowedTabs)
+            : (permMap[id] || (cloudData.empPermissions && cloudData.empPermissions[id]) || chosen.allowedTabs) || [];
+
+          if (!Array.isArray(targetAllowed)) targetAllowed = [];
+
+          if (!targetAllowed.includes('medicine-location-module')) {
+            targetAllowed.push('medicine-location-module');
           }
-          if (Array.isArray(targetAllowed) && !targetAllowed.includes('rx-medicine-location-module')) {
-            targetAllowed = [...targetAllowed, 'rx-medicine-location-module'];
+          if (!targetAllowed.includes('rx-medicine-location-module')) {
+            targetAllowed.push('rx-medicine-location-module');
           }
-          if (targetAllowed) permMap[id] = targetAllowed;
+          permMap[id] = targetAllowed;
 
           return {
             ...chosen,
             position: chosen.position || (le ? le.position : '') || (ce ? ce.position : '') || '',
             role: chosen.role || (le ? le.role : '') || (ce ? ce.role : '') || '',
             memo: (chosen.memo !== undefined && chosen.memo !== '') ? chosen.memo : ((le && le.memo) || (ce && ce.memo) || ''),
-            allowedTabs: targetAllowed || chosen.allowedTabs
+            allowedTabs: targetAllowed
           };
         });
 

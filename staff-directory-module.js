@@ -669,7 +669,7 @@ window.StaffDirectoryModule = (function () {
     } catch(e) {}
 
     const allowed = (permMap && permMap[target.id]) || target.allowedTabs || [
-      'notices-module', 'worklog-module', 'medicine-location-module', 'schedule-module',
+      'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
       'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
 

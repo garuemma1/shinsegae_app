@@ -460,9 +460,12 @@ window.App = (function () {
       'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
 
-    // 🛡️ 기존 기기 레거시 권한 데이터 호환성 보장: medicine-location-module 보장
+    // 🛡️ 기존 기기 및 개별 직원 레거시 권한 호환 보장: medicine-location & rx-medicine-location 전 직원 강제 허용
     if (!allowed.includes('medicine-location-module')) {
-      allowed = [...allowed, 'medicine-location-module'];
+      allowed.push('medicine-location-module');
+    }
+    if (!allowed.includes('rx-medicine-location-module')) {
+      allowed.push('rx-medicine-location-module');
     }
 
     let html = '';
@@ -491,7 +494,8 @@ window.App = (function () {
       `;
     }
 
-    if (isDirector || allowed.includes('medicine-location-module')) {
+    // 약국장 및 모든 직원 공용 열람 탭
+    if (true || isDirector || allowed.includes('medicine-location-module')) {
       html += `
         <button class="menu-item ${activeModule === 'medicine-location' ? 'active' : ''}" data-module="medicine-location" onclick="App.switchModule('medicine-location', true)">
           <div class="menu-icon-wrapper">
@@ -502,7 +506,8 @@ window.App = (function () {
       `;
     }
 
-    if (isDirector || allowed.includes('rx-medicine-location-module')) {
+    // 약국장 및 모든 직원 공용 열람 탭
+    if (true || isDirector || allowed.includes('rx-medicine-location-module')) {
       html += `
         <button class="menu-item ${activeModule === 'rx-medicine-location' ? 'active' : ''}" data-module="rx-medicine-location" onclick="App.switchModule('rx-medicine-location', true)">
           <div class="menu-icon-wrapper">

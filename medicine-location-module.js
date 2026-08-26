@@ -70,6 +70,20 @@ window.MedicineLocationModule = (function () {
       return matchCat && matchQuery;
     });
 
+    // ⚡ 새로 등록/수정된 약품 위치 정보가 무조건 맨 최상단(Top) 첫 번째에 뜨도록 최신순 내림차순 정렬
+    const sortedFiltered = [...filtered].sort((a, b) => {
+      const getNum = (item) => {
+        if (item.updatedAt) return item.updatedAt;
+        if (item.createdAt) return item.createdAt;
+        if (item.id && typeof item.id === 'string' && item.id.startsWith('med_')) {
+          const num = parseInt(item.id.replace('med_', ''), 10);
+          if (!isNaN(num)) return num;
+        }
+        return 0;
+      };
+      return getNum(b) - getNum(a);
+    });
+
     const html = `
       <div class="module-header" style="margin-bottom:20px;">
         <div>
@@ -119,7 +133,7 @@ window.MedicineLocationModule = (function () {
 
       <!-- 🖼️ 3. 약품 카드 그리드 컨테이너 -->
       <div id="med-card-grid-container">
-        ${renderCardGridHTML(filtered, items.length)}
+        ${renderCardGridHTML(sortedFiltered, items.length)}
       </div>
 
       <!-- 📝 4. 신규 등록 / 위치 변경 모달 -->

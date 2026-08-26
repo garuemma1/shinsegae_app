@@ -29,8 +29,21 @@ window.AnnualLeaveModule = (function () {
       return sum + calc.totalGranted;
     }, 0);
     const totalUsedSum = targetEmployees.reduce((sum, e) => sum + (e.usedLeave || 0), 0);
-    const pendingRequests = leaveRequests.filter(r => r.status === 'PENDING');
-    const myLeaveRequests = currUser ? leaveRequests.filter(r => r.empId === currUser.id) : [];
+    const getLeaveMs = (r) => {
+      if (r.createdAt) {
+        if (typeof r.createdAt === 'number') return r.createdAt;
+        const ms = new Date(String(r.createdAt).replace(/-/g, '/')).getTime();
+        if (!isNaN(ms)) return ms;
+      }
+      if (r.id && typeof r.id === 'string' && r.id.startsWith('leave_')) {
+        const num = parseInt(r.id.replace('leave_', ''), 10);
+        if (!isNaN(num)) return num;
+      }
+      return 0;
+    };
+
+    const pendingRequests = leaveRequests.filter(r => r.status === 'PENDING').sort((a, b) => getLeaveMs(b) - getLeaveMs(a));
+    const myLeaveRequests = (currUser ? leaveRequests.filter(r => r.empId === currUser.id) : []).sort((a, b) => getLeaveMs(b) - getLeaveMs(a));
 
     // 👤 일반 직원용 본인 연차 개인 집계
     const myEmp = targetEmployees.find(e => e.id === (currUser ? currUser.id : '')) || currUser || targetEmployees[0];

@@ -209,15 +209,33 @@ window.DiscountPurchaseModule = (function () {
     return renderIndividualList(filtered);
   }
 
-  // 📋 1. 개별 기록 (원터치 검수 및 입금정산 버튼 탑재)
+  // 📋 1. 개별 기록 (원터치 검수 및 입금정산 버튼 탑재 - 가장 최근 등록건 100% 최상단 노출)
   function renderIndividualList(purchases) {
     if (purchases.length === 0) {
       return `<div class="text-center text-muted py-5" style="font-size:14px; background:#f8fafc; border-radius:12px;"><i class="fas fa-inbox mb-2" style="font-size:24px;"></i><br>등록된 구매 내역이 없습니다.</div>`;
     }
 
+    // ⚡ 무조건 가장 최근에 등록/수정된 내역이 최상단(Top)에 뜨도록 최신순 내림차순 강제 정렬
+    const sortedPurchases = [...purchases].sort((a, b) => {
+      const getNum = (p) => {
+        if (p.updatedAt) return p.updatedAt;
+        if (p.createdAt) return p.createdAt;
+        if (p.id && typeof p.id === 'string' && p.id.startsWith('disc_')) {
+          const num = parseInt(p.id.replace('disc_', ''), 10);
+          if (!isNaN(num)) return num;
+        }
+        if (p.dateIso) {
+          const ms = new Date(p.dateIso).getTime();
+          if (!isNaN(ms)) return ms;
+        }
+        return 0;
+      };
+      return getNum(b) - getNum(a);
+    });
+
     const currUser = window.SheetsSync.getCurrentUser();
 
-    return purchases.map(p => {
+    return sortedPurchases.map(p => {
       const isCross = !!p.isCrossChecked;
       const isPaid = !!p.isPaid;
       const checkerLabel = p.crossCheckerName ? `🩺 검수: ${p.crossCheckerName}` : '🩺 검수완료';

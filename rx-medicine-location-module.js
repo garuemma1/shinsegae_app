@@ -203,6 +203,24 @@ window.RxMedicineLocationModule = (function () {
     const items = getStorageData();
     const filtered = filterItems(items);
 
+    // ⚡ 새로 등록/수정된 전문약 위치 정보가 무조건 맨 최상단(Top) 첫 번째에 뜨도록 최신순 내림차순 정렬
+    const sortedFiltered = [...filtered].sort((a, b) => {
+      const getNum = (item) => {
+        if (item.updatedAt) {
+          if (typeof item.updatedAt === 'number') return item.updatedAt;
+          const ms = new Date(String(item.updatedAt).replace(/-/g, '/')).getTime();
+          if (!isNaN(ms)) return ms;
+        }
+        if (item.createdAt) return item.createdAt;
+        if (item.id && typeof item.id === 'string' && item.id.startsWith('rx_')) {
+          const num = parseInt(item.id.replace('rx_', ''), 10);
+          if (!isNaN(num)) return num;
+        }
+        return 0;
+      };
+      return getNum(b) - getNum(a);
+    });
+
     const html = `
       <div class="module-header" style="margin-bottom:20px;">
         <div>
@@ -252,7 +270,7 @@ window.RxMedicineLocationModule = (function () {
 
       <!-- 📦 2. 전문약 카드리스트 Display Grid -->
       <div id="rx-card-grid-container">
-        ${renderCardGridHTML(filtered, items.length)}
+        ${renderCardGridHTML(sortedFiltered, items.length)}
       </div>
 
       <!-- 📝 3. 전문약 등록/수정 전용 모달 -->

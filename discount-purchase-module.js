@@ -9,6 +9,22 @@ window.DiscountPurchaseModule = (function () {
   let discountBarChartInstance = null;
   let discountDonutChartInstance = null;
 
+  // ⚡ 실시간 클라우드 상호 동기화 이벤트 리스너 장착 (PC ↔ 스마트폰 0.1초 실시간 100% 호환)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('ssg_cloud_updated', function () {
+      const activeMod = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
+      if (activeMod === 'discount-purchase' || document.getElementById('discount-tab-content')) {
+        render('module-content');
+      }
+    });
+    window.addEventListener('ssg_data_changed', function () {
+      const activeMod = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
+      if (activeMod === 'discount-purchase' || document.getElementById('discount-tab-content')) {
+        render('module-content');
+      }
+    });
+  }
+
   function render(containerId) {
     const container = document.getElementById(containerId || 'module-content');
     if (!container) return;

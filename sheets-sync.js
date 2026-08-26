@@ -1061,7 +1061,7 @@ window.SheetsSync = (function () {
     const deletedIds = getDeletedIds();
     try {
       const raw = safeGetItem(STORAGE_KEYS.DISCOUNT_PURCHASES) || safeGetItem('ssg_discount_purchases');
-      const list = raw ? JSON.parse(raw) : INITIAL_DISCOUNT_PURCHASES;
+      const list = (raw !== null && raw !== undefined) ? JSON.parse(raw) : INITIAL_DISCOUNT_PURCHASES;
       return (list || []).filter(item => item && !deletedIds.includes(item.id));
     } catch(e) { 
       return INITIAL_DISCOUNT_PURCHASES.filter(item => item && !deletedIds.includes(item.id)); 

@@ -713,7 +713,7 @@ window.SheetsSync = (function () {
           } catch(e) {}
 
           const currentAllowed = (permMap && permMap[u.id]) || (liveEmp && liveEmp.allowedTabs) || u.allowedTabs || [
-            'notices-module', 'worklog-module', 'medicine-location-module', 'schedule-module',
+            'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
             'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
           ];
 
@@ -1454,6 +1454,9 @@ window.SheetsSync = (function () {
           let targetAllowed = permMap[id] || chosen.allowedTabs || (cTime > lTime ? ce.allowedTabs : le.allowedTabs) || [];
           if (Array.isArray(targetAllowed) && !targetAllowed.includes('medicine-location-module')) {
             targetAllowed = [...targetAllowed, 'medicine-location-module'];
+          }
+          if (Array.isArray(targetAllowed) && !targetAllowed.includes('rx-medicine-location-module')) {
+            targetAllowed = [...targetAllowed, 'rx-medicine-location-module'];
           }
           if (targetAllowed) permMap[id] = targetAllowed;
 

@@ -92,16 +92,16 @@ window.RxMedicineLocationModule = (function () {
     try {
       if (window.SheetsSync && typeof window.SheetsSync.getRxMedicineLocations === 'function') {
         const cloudData = window.SheetsSync.getRxMedicineLocations();
-        if (cloudData && cloudData.length > 0) return cloudData;
+        if (cloudData && Array.isArray(cloudData)) return cloudData;
       }
       const raw = localStorage.getItem('ssg_rx_medicine_locations_v1') || localStorage.getItem('ssg_rx_medicine_locations');
-      if (raw) {
+      if (raw !== null) {
         const parsed = JSON.parse(raw);
-        if (parsed && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
-      return DEFAULT_SEED_ITEMS;
+      return [];
     } catch (e) {
-      return DEFAULT_SEED_ITEMS;
+      return [];
     }
   }
 

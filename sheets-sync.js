@@ -1081,6 +1081,9 @@ window.SheetsSync = (function () {
     safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(cleanList));
     safeSetItem('ssg_discount_purchases', JSON.stringify(cleanList));
     pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+    }
   }
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;

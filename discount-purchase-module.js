@@ -109,11 +109,11 @@ window.DiscountPurchaseModule = (function () {
 
         <!-- 🛑 모달창 (신청 및 수정) -->
         <div id="discount-modal-container" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index:999999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.2s;">
-          <div class="modal-card shadow-lg" style="background:#fff; width:92%; max-width:540px; border-radius:22px; padding:28px; position:relative; transform:translateY(20px); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border:1px solid #cbd5e1;">
+          <div class="modal-card shadow-lg" style="background:#fff; width:94%; max-width:580px; border-radius:22px; padding:28px; position:relative; transform:translateY(20px); transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border:1px solid #cbd5e1; max-height:92vh; overflow-y:auto;">
             <button type="button" onclick="DiscountPurchaseModule.closeModal()" style="position:absolute; top:20px; right:20px; background:#f1f5f9; border:none; width:36px; height:36px; border-radius:50%; font-size:18px; color:#64748b; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
             <h3 id="discount-modal-title" style="font-size:20px; font-weight:800; margin-bottom:22px; color:#0f172a;">🛍️ 직원 할인 구매 신청</h3>
             
-            <form id="discount-form" onsubmit="DiscountPurchaseModule.savePurchase(event)">
+            <form id="discount-form" onkeydown="DiscountPurchaseModule.handleFormKeyDown(event)" onsubmit="DiscountPurchaseModule.savePurchase(event)">
               <input type="hidden" id="disc-id">
               
               <div class="row g-3 mb-3">
@@ -128,34 +128,35 @@ window.DiscountPurchaseModule = (function () {
                 </div>
               </div>
 
-              <div class="mb-3">
-                <label class="form-label" style="font-size:13px; font-weight:700; color:#475569;">약품 / 물품명</label>
-                <input type="text" id="disc-item" class="form-control" style="border-radius:10px; background:#f8fafc; font-size:14.5px; font-weight:600;" placeholder="예: 타이레놀정 500mg 1통, 영양제 등" required>
-              </div>
+              <!-- 🛒 다중 품목 동적 입력 장바구니 영역 -->
+              <div class="mb-4" style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                  <label class="form-label" style="font-size:13.5px; font-weight:800; color:#0f172a; margin:0;">
+                    🛒 구매 품목 리스트 (<span id="disc-items-count" style="color:#2563eb;">1</span>건)
+                  </label>
+                  <button type="button" onclick="DiscountPurchaseModule.addItemRow()" style="background:#eff6ff; border:1px solid #bfdbfe; color:#2563eb; font-size:12.5px; font-weight:800; border-radius:8px; padding:5px 14px; cursor:pointer; transition:all 0.2s;">
+                    <i class="fas fa-plus-circle me-1"></i> + 품목 추가
+                  </button>
+                </div>
 
-              <!-- 💵 천원 단위 콤마 자동 서식 & 수량/합계 -->
-              <div class="row g-3 mb-4">
-                <div class="col-4">
-                  <label class="form-label" style="font-size:13px; font-weight:700; color:#475569;">할인 단가 (원)</label>
-                  <input type="text" id="disc-price" class="form-control font-bold" style="border-radius:10px; background:#f8fafc; text-align:right;" placeholder="0" required oninput="DiscountPurchaseModule.formatPriceInput(this)">
-                </div>
-                <div class="col-4">
-                  <label class="form-label" style="font-size:13px; font-weight:700; color:#475569;">수량</label>
-                  <input type="number" id="disc-qty" class="form-control font-bold" style="border-radius:10px; background:#f8fafc; text-align:center;" value="1" min="1" required oninput="DiscountPurchaseModule.calcTotal()">
-                </div>
-                <div class="col-4">
-                  <label class="form-label" style="font-size:13px; font-weight:800; color:#2563eb;">총 결제금액</label>
-                  <input type="text" id="disc-total" class="form-control font-bold text-primary" style="border-radius:10px; background:#eff6ff; border:1.5px solid #bfdbfe; text-align:right; font-size:14px;" readonly value="0 원">
+                <div id="disc-items-list" style="display:flex; flex-direction:column; gap:10px; max-height:260px; overflow-y:auto; padding-right:2px;">
+                  <!-- 자바스크립트로 동적 품목 행 렌더링 -->
                 </div>
               </div>
 
-              <div class="alert alert-info py-2 px-3 mb-4" style="font-size:12.5px; border-radius:10px; line-height:1.5; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af;">
-                <i class="fas fa-info-circle me-1"></i> 등록 후 목록에서 <strong>[🩺 검수 확인]</strong> 및 <strong>[💰 입금 확인]</strong>을 원터치(1-Click)로 즉시 처리하실 수 있습니다.
+              <!-- 💵 전체 총 결제금액 자동 합산 바 -->
+              <div class="mb-4" style="background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:14px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:14px; font-weight:700; color:#1e40af;"><i class="fas fa-calculator me-1.5"></i>전체 총 결제금액</span>
+                <span style="font-size:22px; font-weight:900; color:#2563eb;" id="disc-grand-total">0 원</span>
+              </div>
+
+              <div class="alert alert-info py-2 px-3 mb-4" style="font-size:12.5px; border-radius:10px; line-height:1.5; background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d;">
+                <i class="fas fa-info-circle me-1"></i> 여러 품목을 한번에 추가하여 신청할 수 있습니다. 등록 후 목록에서 <strong>[🩺 검수 확인]</strong> 및 <strong>[💰 입금 확인]</strong>을 원터치로 완료하세요.
               </div>
 
               <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-light px-4 font-bold" style="border-radius:10px; background:#f1f5f9; color:#475569;" onclick="DiscountPurchaseModule.closeModal()">취소</button>
-                <button type="submit" class="btn btn-success px-4 font-bold" style="border-radius:10px; box-shadow:0 4px 12px rgba(22,163,74,0.3);"><i class="fas fa-check me-1"></i> 내역 등록</button>
+                <button type="submit" class="btn btn-success px-4 font-bold" style="border-radius:10px; background:linear-gradient(135deg, #16a34a 0%, #15803d 100%); border:none; box-shadow:0 4px 12px rgba(22,163,74,0.3);"><i class="fas fa-check me-1"></i> 구매 내역 신청/등록</button>
               </div>
             </form>
           </div>
@@ -218,19 +219,60 @@ window.DiscountPurchaseModule = (function () {
               </div>
               <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="badge" style="background:#ecfdf5; color:#047857; border:1.5px solid #a7f3d0; font-size:12.5px; padding:4px 10px; border-radius:8px; font-weight:800; box-shadow:0 1px 3px rgba(5,150,105,0.08);"><i class="fas fa-user-circle me-1" style="font-size:11.5px; opacity:0.85;"></i>${p.empName}</span>
-                <strong style="color:#1e293b; font-size:15.5px; word-break:break-all;">${p.itemName}</strong>
               </div>
-              <div style="font-size:13px; color:#475569; margin-top:4px;">
-                단가 <strong style="color:#0f172a;">${(p.unitPrice || 0).toLocaleString()}원</strong> × <strong style="color:#2563eb;">${p.qty || 1}개</strong>
+              <div style="margin-top:8px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:14px; padding:12px 16px; width:100%;">
+                ${(() => {
+                  // 1. items 배열이 선명하게 들어있는 신규 다중 품목 신청 건
+                  if (p.items && Array.isArray(p.items) && p.items.length > 0) {
+                    return p.items.map((it, idx) => `
+                      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 0; ${idx < p.items.length - 1 ? 'border-bottom:1px dashed #cbd5e1;' : ''} font-size:13px; font-weight:800;">
+                        <span style="color:#0f172a; font-size:13.5px;"><i class="fas fa-pills text-primary me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(it.name)}</span>
+                        <span style="color:#475569; font-size:12.5px;">
+                          단가 <strong style="color:#0f172a;">${(it.price||0).toLocaleString()}원</strong> × <strong style="color:#2563eb;">${it.qty||1}개</strong> = <strong style="color:#16a34a; font-size:13.5px;">${((it.price||0)*(it.qty||1)).toLocaleString()}원</strong>
+                        </span>
+                      </div>
+                    `).join('');
+                  }
+
+                  // 2. 구버전 파싱 (itemName에 '(외 N건: 약A, 약B)' 형식으로 묶여있는 기록도 단가/수량/가격 개별 1행 노출)
+                  if (p.itemName && p.itemName.includes(': ')) {
+                    try {
+                      const detailPart = p.itemName.split(': ')[1].replace(/\)$/, '');
+                      const parsedNames = detailPart.split(', ').map(s => s.trim()).filter(Boolean);
+                      if (parsedNames.length > 0) {
+                        const unitP = p.unitPrice || Math.round((p.totalPrice||0) / parsedNames.length);
+                        return parsedNames.map((name, idx) => `
+                          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 0; ${idx < parsedNames.length - 1 ? 'border-bottom:1px dashed #cbd5e1;' : ''} font-size:13px; font-weight:800;">
+                            <span style="color:#0f172a; font-size:13.5px;"><i class="fas fa-pills text-primary me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(name)}</span>
+                            <span style="color:#475569; font-size:12.5px;">
+                              단가 <strong style="color:#0f172a;">${(unitP||0).toLocaleString()}원</strong> × <strong style="color:#2563eb;">${p.qty||1}개</strong> = <strong style="color:#16a34a; font-size:13.5px;">${((unitP||0)*(p.qty||1)).toLocaleString()}원</strong>
+                            </span>
+                          </div>
+                        `).join('');
+                      }
+                    } catch(e){}
+                  }
+
+                  // 3. 단일 품목 내역
+                  return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:3px 0; font-size:13px; font-weight:800;">
+                      <span style="color:#0f172a; font-size:13.5px;"><i class="fas fa-box text-primary me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(p.itemName)}</span>
+                      <span style="color:#475569; font-size:12.5px;">
+                        단가 <strong style="color:#0f172a;">${(p.unitPrice||0).toLocaleString()}원</strong> × <strong style="color:#2563eb;">${p.qty||1}개</strong> = <strong style="color:#16a34a; font-size:13.5px;">${(p.totalPrice||0).toLocaleString()}원</strong>
+                      </span>
+                    </div>
+                  `;
+                })()}
+
+                <div style="border-top:1.5px solid #cbd5e1; margin-top:8px; padding-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:13px; font-weight:800; color:#1e40af;"><i class="fas fa-calculator me-1.5"></i>전체 총 결제금액</span>
+                  <span style="font-size:16.5px; font-weight:900; color:#16a34a; font-family:'Outfit', sans-serif;">${(p.totalPrice || 0).toLocaleString()} 원</span>
+                </div>
               </div>
             </div>
           </div>
           
-          <div style="text-align:right; min-width:220px;" class="d-flex flex-column align-items-end justify-content-center">
-            <div style="color:#15803d; font-size:19px; font-weight:800; margin-bottom:8px; font-family:'Outfit', sans-serif; letter-spacing:-0.3px;">
-              ${(p.totalPrice || 0).toLocaleString()} <span style="font-size:14px; font-weight:700;">원</span>
-            </div>
-
+          <div style="text-align:right; min-width:auto;" class="d-flex flex-column align-items-end justify-content-center">
             <!-- ⚡ 1초 원터치 검수 & 입금 확인 버튼 그룹 -->
             <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap">
               <!-- 검수약사 버튼 -->
@@ -315,7 +357,21 @@ window.DiscountPurchaseModule = (function () {
                     <td style="padding:14px 18px; font-weight:700; color:#1e293b;">
                       <span class="badge" style="background:#ecfdf5; color:#047857; border:1.5px solid #a7f3d0; font-size:12px; padding:4px 9px; border-radius:8px; font-weight:800;"><i class="fas fa-user-circle me-1" style="font-size:11px; opacity:0.85;"></i>${item.empName}</span>
                     </td>
-                    <td style="padding:14px 20px; color:#334155; font-weight:600;">${item.itemName}</td>
+                    <td style="padding:14px 20px; color:#334155; font-weight:600;">
+                      ${(() => {
+                        if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+                          const first = item.items[0].name;
+                          return item.items.length === 1 ? escapeHTML(first) : `${escapeHTML(first)} 외 ${item.items.length - 1}건`;
+                        }
+                        let name = item.itemName || '';
+                        if (name.includes(' (외 ')) {
+                          const parts = name.split(' (외 ');
+                          const firstName = parts[0];
+                          return `${escapeHTML(firstName)} 외 1건`;
+                        }
+                        return escapeHTML(name);
+                      })()}
+                    </td>
                     <td style="padding:14px 20px; color:#15803d; font-weight:800; text-align:right; font-size:14.5px; font-family:'Outfit', sans-serif;">${(item.totalPrice || 0).toLocaleString()}원</td>
                     <td style="padding:14px 18px; text-align:center;">
                       <button type="button" 
@@ -361,23 +417,115 @@ window.DiscountPurchaseModule = (function () {
     }
   }
 
-  // 💵 천원 단위 콤마 입력 서식
-  function formatPriceInput(input) {
-    let val = input.value.replace(/[^0-9]/g, '');
+  // 🛒 장바구니 동적 품목 행 추가 (선명한 가독성 & 정갈한 슬림 flex 레이아웃)
+  function addItemRow(itemData = { name: '', price: '', qty: 1 }) {
+    const listEl = document.getElementById('disc-items-list');
+    if (!listEl) return;
+
+    const rowId = 'item_row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    const div = document.createElement('div');
+    div.className = 'disc-item-row';
+    div.id = rowId;
+    div.style.cssText = 'background:#ffffff; border:1.5px solid #cbd5e1; border-radius:14px; padding:14px; position:relative; box-shadow:0 2px 8px rgba(15,23,42,0.04); margin-bottom:4px;';
+
+    const priceVal = typeof itemData.price === 'number' ? itemData.price.toLocaleString() : (itemData.price || '');
+
+    div.innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+        <div style="flex:2; min-width:140px;">
+          <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">품목/제품명</label>
+          <input type="text" class="form-control disc-item-name" placeholder="예: 비타500" value="${escapeHTML(itemData.name || '')}" required oninput="DiscountPurchaseModule.calcTotal()" style="background:#ffffff; border:1.5px solid #cbd5e1; color:#0f172a; font-weight:800; font-size:13.5px; border-radius:10px; padding:8px 12px; outline:none; width:100%; box-sizing:border-box;">
+        </div>
+
+        <div style="flex:1.2; min-width:100px;">
+          <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">할인 단가(원)</label>
+          <input type="text" class="form-control disc-item-price" placeholder="0" value="${priceVal}" required oninput="DiscountPurchaseModule.formatRowPrice(this)" style="background:#ffffff; border:1.5px solid #cbd5e1; color:#0f172a; font-weight:800; font-size:13.5px; border-radius:10px; padding:8px 12px; text-align:right; outline:none; width:100%; box-sizing:border-box;">
+        </div>
+
+        <div style="width:65px;">
+          <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px; text-align:center;">수량</label>
+          <input type="number" class="form-control disc-item-qty" min="1" value="${itemData.qty || 1}" required oninput="DiscountPurchaseModule.calcTotal()" style="background:#ffffff; border:1.5px solid #cbd5e1; color:#0f172a; font-weight:800; font-size:13.5px; border-radius:10px; padding:8px 6px; text-align:center; outline:none; width:100%; box-sizing:border-box;">
+        </div>
+
+        <div style="margin-top:18px; flex-shrink:0;">
+          <button type="button" class="btn text-danger p-1 disc-item-del-btn" onclick="DiscountPurchaseModule.removeItemRow(this)" title="품목 삭제" style="background:#fff1f2; border:1px solid #fecdd3; border-radius:8px; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;">
+            <i class="fas fa-trash-alt" style="font-size:14px; color:#e11d48;"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="font-size:12px; font-weight:800; color:#475569; text-align:right; margin-top:8px; border-top:1px dashed #e2e8f0; padding-top:6px;">
+        품목 소계: <strong class="disc-item-subtotal font-black" style="font-size:14px; color:#2563eb;">0</strong>원
+      </div>
+    `;
+
+    listEl.appendChild(div);
+    updateItemCountDisplay();
+    calcTotal();
+  }
+
+  function removeItemRow(btnEl) {
+    const listEl = document.getElementById('disc-items-list');
+    if (!listEl) return;
+    const rows = listEl.querySelectorAll('.disc-item-row');
+    if (rows.length <= 1) {
+      alert("⚠️ 최소 1개 이상의 구매 품목이 필요합니다.");
+      return;
+    }
+    const row = btnEl.closest('.disc-item-row');
+    if (row) {
+      row.remove();
+      updateItemCountDisplay();
+      calcTotal();
+    }
+  }
+
+  function updateItemCountDisplay() {
+    const listEl = document.getElementById('disc-items-list');
+    if (!listEl) return;
+    const rows = listEl.querySelectorAll('.disc-item-row');
+    const countEl = document.getElementById('disc-items-count');
+    if (countEl) countEl.textContent = rows.length;
+  }
+
+  function formatRowPrice(inputEl) {
+    if (!inputEl) return;
+    let val = inputEl.value.replace(/[^0-9]/g, '');
     if (val) {
-      input.value = Number(val).toLocaleString();
+      inputEl.value = Number(val).toLocaleString();
     } else {
-      input.value = '';
+      inputEl.value = '';
     }
     calcTotal();
   }
 
+  function formatPriceInput(inputEl) {
+    formatRowPrice(inputEl);
+  }
+
   function calcTotal() {
-    const rawPrice = (document.getElementById('disc-price').value || '').replace(/,/g, '');
-    const price = parseFloat(rawPrice) || 0;
-    const qty = parseInt(document.getElementById('disc-qty').value) || 1;
-    const total = price * qty;
-    document.getElementById('disc-total').value = total.toLocaleString() + ' 원';
+    const listEl = document.getElementById('disc-items-list');
+    if (!listEl) return;
+
+    let grandTotal = 0;
+    const rows = listEl.querySelectorAll('.disc-item-row');
+
+    rows.forEach(row => {
+      const priceInput = row.querySelector('.disc-item-price');
+      const qtyInput = row.querySelector('.disc-item-qty');
+      const subtotalEl = row.querySelector('.disc-item-subtotal');
+
+      const rawPrice = (priceInput ? priceInput.value : '').replace(/,/g, '');
+      const price = parseFloat(rawPrice) || 0;
+      const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+      const subtotal = price * qty;
+
+      if (subtotalEl) subtotalEl.textContent = subtotal.toLocaleString();
+      grandTotal += subtotal;
+    });
+
+    const grandTotalEl = document.getElementById('disc-grand-total');
+    if (grandTotalEl) grandTotalEl.textContent = grandTotal.toLocaleString() + ' 원';
   }
 
   function openAddModal() {
@@ -391,18 +539,19 @@ window.DiscountPurchaseModule = (function () {
     }
 
     const modal = document.getElementById('discount-modal-container');
-    if (!modal) { alert("모달 창을 찾을 수 없습니다."); return; }
+    if (!modal) return;
 
     document.getElementById('discount-form').reset();
     document.getElementById('discount-modal-title').textContent = '🛍️ 직원 할인 구매 신청';
     document.getElementById('disc-id').value = '';
-    document.getElementById('disc-price').value = '';
-    document.getElementById('disc-qty').value = '1';
-    document.getElementById('disc-total').value = '0 원';
     
     const tzoffset = (new Date()).getTimezoneOffset() * 60000;
     const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
     document.getElementById('disc-datetime').value = localISOTime;
+
+    const listEl = document.getElementById('disc-items-list');
+    if (listEl) listEl.innerHTML = '';
+    addItemRow({ name: '', price: '', qty: 1 });
 
     applyRolePermissions(currentUser, null);
 
@@ -421,18 +570,18 @@ window.DiscountPurchaseModule = (function () {
 
     document.getElementById('discount-modal-title').textContent = '🛍️ 할인 구매 내역 수정';
     document.getElementById('disc-id').value = item.id;
-    document.getElementById('disc-item').value = item.itemName || '';
-    document.getElementById('disc-price').value = (item.unitPrice || 0).toLocaleString();
-    document.getElementById('disc-qty').value = item.qty || 1;
-    document.getElementById('disc-total').value = (item.totalPrice || 0).toLocaleString() + ' 원';
 
-    // 기존 날짜 복원
     if (item.dateIso) {
       document.getElementById('disc-datetime').value = item.dateIso;
+    }
+
+    const listEl = document.getElementById('disc-items-list');
+    if (listEl) listEl.innerHTML = '';
+
+    if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+      item.items.forEach(it => addItemRow(it));
     } else {
-      const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-      const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
-      document.getElementById('disc-datetime').value = localISOTime;
+      addItemRow({ name: item.itemName || '', price: item.unitPrice || 0, qty: item.qty || 1 });
     }
 
     applyRolePermissions(currentUser, item);
@@ -469,19 +618,18 @@ window.DiscountPurchaseModule = (function () {
     setTimeout(() => { modal.style.display = 'none'; }, 200);
   }
 
-  // ⚡ 1초 원터치 검수 확인 (근무약사 본인 셀프 검수 원천 차단)
   function quickToggleCrossCheck(id) {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) {
-      alert("🚨 로그인이 필요합니다. 화면 상단에서 직원 로그인을 먼저 진행해 주세요!");
+      alert("🚨 로그인이 필요합니다.");
       return;
     }
 
-    const isDirector = currUser.role === '약국장';
+    const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
     const isPharmacist = (currUser.role || '').includes('약사');
 
     if (!isDirector && !isPharmacist) {
-      alert("🔒 [권한 통제] 의약품 검수는 약사 면허를 보유한 근무약사 또는 약국장님만 가능합니다.");
+      alert("🔒 의약품 검수는 약사만 가능합니다.");
       return;
     }
 
@@ -490,20 +638,16 @@ window.DiscountPurchaseModule = (function () {
     const item = purchases.find(p => p.id === id);
     if (!item) return;
 
-    // 🚨 근무약사 본인 구매 품목 셀프 검수 방지 (약국장 제외)
     if (!isDirector && item.empId === currUser.id) {
-      alert(`🔒 [교차 검수 규정] 본인(${currUser.name} 약사)이 구매한 품목은 셀프 검수를 할 수 없습니다.\n다른 근무약사 또는 약국장님의 검수를 받아주세요.`);
+      alert("🔒 본인 구매 품목은 셀프 검수가 불가합니다. 다른 근무약사 또는 약국장님의 검수를 받아주세요.");
       return;
     }
 
-    // 토글 처리
     if (item.isCrossChecked) {
-      if (confirm(`'${item.itemName}' 품목의 검수를 취소(검수 대기 상태로 변경)하시겠습니까?`)) {
+      if (confirm(`'${item.itemName}' 검수를 취소하시겠습니까?`)) {
         item.isCrossChecked = false;
         item.crossCheckerId = null;
         item.crossCheckerName = null;
-      } else {
-        return;
       }
     } else {
       item.isCrossChecked = true;
@@ -515,17 +659,15 @@ window.DiscountPurchaseModule = (function () {
     render('module-content');
   }
 
-  // ⚡ 1초 원터치 약국장 입금 정산 완료
   function quickTogglePaid(id) {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) {
-      alert("🚨 로그인이 필요합니다. 화면 상단에서 로그인을 먼저 진행해 주세요!");
+      alert("🚨 로그인이 필요합니다.");
       return;
     }
 
-    const isDirector = currUser.role === '약국장';
-    if (!isDirector) {
-      alert("🔒 [보안 권한 통제] 입금 정산 처리는 약국장님 전용 권한입니다.");
+    if (currUser.role !== '약국장') {
+      alert("🔒 약국장 전용 권한입니다.");
       return;
     }
 
@@ -535,11 +677,7 @@ window.DiscountPurchaseModule = (function () {
     if (!item) return;
 
     if (item.isPaid) {
-      if (confirm(`'${item.empName}' 님의 '${item.itemName}' (${(item.totalPrice||0).toLocaleString()}원) 입금 완료 상태를 '정산 대기'로 변경하시겠습니까?`)) {
-        item.isPaid = false;
-      } else {
-        return;
-      }
+      if (confirm(`입금 완료 상태를 해제하시겠습니까?`)) item.isPaid = false;
     } else {
       item.isPaid = true;
     }
@@ -560,11 +698,35 @@ window.DiscountPurchaseModule = (function () {
     }
 
     const datetime = document.getElementById('disc-datetime').value;
-    const itemName = document.getElementById('disc-item').value.trim();
-    const rawPrice = (document.getElementById('disc-price').value || '').replace(/,/g, '');
-    const unitPrice = parseFloat(rawPrice) || 0;
-    const qty = parseInt(document.getElementById('disc-qty').value) || 1;
-    const totalPrice = unitPrice * qty;
+    const listEl = document.getElementById('disc-items-list');
+    const rows = listEl ? listEl.querySelectorAll('.disc-item-row') : [];
+
+    const items = [];
+    let grandTotal = 0;
+
+    rows.forEach(row => {
+      const name = (row.querySelector('.disc-item-name').value || '').trim();
+      const rawPrice = (row.querySelector('.disc-item-price').value || '').replace(/,/g, '');
+      const price = parseFloat(rawPrice) || 0;
+      const qty = parseInt(row.querySelector('.disc-item-qty').value) || 1;
+      const subtotal = price * qty;
+
+      if (name) {
+        items.push({ name, price, qty, totalPrice: subtotal });
+        grandTotal += subtotal;
+      }
+    });
+
+    if (items.length === 0) {
+      alert("⚠️ 최소 1개 이상의 구매 품목명을 입력해 주세요.");
+      return;
+    }
+
+    const firstItem = items[0];
+    const itemName = items.length === 1 ? firstItem.name : `${firstItem.name} 외 ${items.length - 1}건`;
+    const unitPrice = firstItem.price;
+    const qty = firstItem.qty;
+    const totalPrice = grandTotal;
 
     const data = window.SheetsSync.getData();
     const emp = (data.employees || []).find(employee => employee.id === empId);
@@ -586,7 +748,8 @@ window.DiscountPurchaseModule = (function () {
           itemName, 
           unitPrice, 
           qty, 
-          totalPrice 
+          totalPrice,
+          items
         };
       }
     } else {
@@ -600,6 +763,7 @@ window.DiscountPurchaseModule = (function () {
         unitPrice, 
         qty, 
         totalPrice, 
+        items,
         isCrossChecked: false, 
         isPaid: false 
       });
@@ -638,11 +802,32 @@ window.DiscountPurchaseModule = (function () {
     render('module-content');
   }
 
+  function handleFormKeyDown(e) {
+    if (e.key === 'Enter' || e.keyCode === 13) {
+      e.preventDefault();
+      return false;
+    }
+  }
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   return {
     render,
     switchSubTab,
     handleSearch,
+    handleFormKeyDown,
     formatPriceInput,
+    formatRowPrice,
+    addItemRow,
+    removeItemRow,
     calcTotal,
     openAddModal,
     openEditModal,

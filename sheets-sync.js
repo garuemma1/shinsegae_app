@@ -1155,7 +1155,16 @@ window.SheetsSync = (function () {
         });
         (cloudList || []).forEach(item => {
           if (item && item.id && !activeDeletedIds.includes(item.id)) {
-            map[item.id] = item;
+            const existing = map[item.id];
+            if (!existing) {
+              map[item.id] = item;
+            } else {
+              const timeExisting = getSafeTime(existing, dateField);
+              const timeCloud = getSafeTime(item, dateField);
+              if (timeCloud >= timeExisting) {
+                map[item.id] = item;
+              }
+            }
           }
         });
         return Object.values(map).sort((a, b) => {
@@ -1207,7 +1216,7 @@ window.SheetsSync = (function () {
           noticesChanged = true;
         }
         const cloudNoticeIds = new Set((cloudData.notices || []).map(n => n.id));
-        if ((localNotices || []).some(n => n && n.id && !cloudNoticeIds.has(n.id))) {
+        if ((localNotices || []).some(n => n && n.id && !cloudNoticeIds.has(n.id) && !activeDeletedIds.includes(n.id))) {
           needPushBack = true;
         }
       }
@@ -1221,9 +1230,8 @@ window.SheetsSync = (function () {
           updated = true;
           worklogsChanged = true;
         }
-        // 🔥 핸드폰에만 있거나 PC에만 있는 고유 글을 감지하여 파이어베이스에 즉시 업로드 (양방향 합집합 완성)
         const cloudWorklogIds = new Set((cloudData.worklogs || []).map(w => w.id));
-        if ((localLogs || []).some(l => l && l.id && !cloudWorklogIds.has(l.id))) {
+        if ((localLogs || []).some(l => l && l.id && !cloudWorklogIds.has(l.id) && !activeDeletedIds.includes(l.id))) {
           needPushBack = true;
         }
       }
@@ -1240,7 +1248,7 @@ window.SheetsSync = (function () {
           medLocationsChanged = true;
         }
         const cloudMedIds = new Set((cloudData.medicineLocations || []).map(m => m.id));
-        if ((localMeds || []).some(m => m && m.id && !cloudMedIds.has(m.id))) {
+        if ((localMeds || []).some(m => m && m.id && !cloudMedIds.has(m.id) && !activeDeletedIds.includes(m.id))) {
           needPushBack = true;
         }
       }
@@ -1257,7 +1265,7 @@ window.SheetsSync = (function () {
           rxMedLocationsChanged = true;
         }
         const cloudRxMedIds = new Set((cloudData.rxMedicineLocations || []).map(m => m.id));
-        if ((localRxMeds || []).some(m => m && m.id && !cloudRxMedIds.has(m.id))) {
+        if ((localRxMeds || []).some(m => m && m.id && !cloudRxMedIds.has(m.id) && !activeDeletedIds.includes(m.id))) {
           needPushBack = true;
         }
       }

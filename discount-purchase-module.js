@@ -259,9 +259,9 @@ window.DiscountPurchaseModule = (function () {
                   // 1. items 배열이 선명하게 들어있는 신규 다중 품목 신청 건
                   if (p.items && Array.isArray(p.items) && p.items.length > 0) {
                     return p.items.map((it, idx) => `
-                      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 0; ${idx < p.items.length - 1 ? 'border-bottom:1px dashed #cbd5e1;' : ''} font-size:13px; font-weight:800;">
-                        <span style="color:#0f172a; font-size:13.5px;"><i class="fas fa-pills text-primary me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(it.name)}</span>
-                        <span style="color:#475569; font-size:12.5px;">
+                      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px 12px; padding:6px 0; ${idx < p.items.length - 1 ? 'border-bottom:1px dashed #cbd5e1;' : ''} font-size:13px; font-weight:800;">
+                        <span style="color:#0f172a; font-size:13.5px; word-break:break-all; flex:1; min-width:140px;"><i class="fas fa-pills me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(it.name)}</span>
+                        <span style="color:#475569; font-size:12.5px; white-space:nowrap; margin-left:auto;">
                           단가 <strong style="color:#0f172a;">${(it.price||0).toLocaleString()}원</strong> × <strong style="color:#2563eb;">${it.qty||1}개</strong> = <strong style="color:#16a34a; font-size:13.5px;">${((it.price||0)*(it.qty||1)).toLocaleString()}원</strong>
                         </span>
                       </div>
@@ -276,9 +276,9 @@ window.DiscountPurchaseModule = (function () {
                       if (parsedNames.length > 0) {
                         const unitP = p.unitPrice || Math.round((p.totalPrice||0) / parsedNames.length);
                         return parsedNames.map((name, idx) => `
-                          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 0; ${idx < parsedNames.length - 1 ? 'border-bottom:1px dashed #cbd5e1;' : ''} font-size:13px; font-weight:800;">
-                            <span style="color:#0f172a; font-size:13.5px;"><i class="fas fa-pills text-primary me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(name)}</span>
-                            <span style="color:#475569; font-size:12.5px;">
+                          <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px 12px; padding:6px 0; ${idx < parsedNames.length - 1 ? 'border-bottom:1px dashed #cbd5e1;' : ''} font-size:13px; font-weight:800;">
+                            <span style="color:#0f172a; font-size:13.5px; word-break:break-all; flex:1; min-width:140px;"><i class="fas fa-pills me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(name)}</span>
+                            <span style="color:#475569; font-size:12.5px; white-space:nowrap; margin-left:auto;">
                               단가 <strong style="color:#0f172a;">${(unitP||0).toLocaleString()}원</strong> × <strong style="color:#2563eb;">${p.qty||1}개</strong> = <strong style="color:#16a34a; font-size:13.5px;">${((unitP||0)*(p.qty||1)).toLocaleString()}원</strong>
                             </span>
                           </div>
@@ -289,9 +289,9 @@ window.DiscountPurchaseModule = (function () {
 
                   // 3. 단일 품목 내역
                   return `
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:3px 0; font-size:13px; font-weight:800;">
-                      <span style="color:#0f172a; font-size:13.5px;"><i class="fas fa-box text-primary me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(p.itemName)}</span>
-                      <span style="color:#475569; font-size:12.5px;">
+                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px 12px; padding:4px 0; font-size:13px; font-weight:800;">
+                      <span style="color:#0f172a; font-size:13.5px; word-break:break-all; flex:1; min-width:140px;"><i class="fas fa-box me-1.5" style="font-size:13px; color:#2563eb;"></i>${escapeHTML(p.itemName)}</span>
+                      <span style="color:#475569; font-size:12.5px; white-space:nowrap; margin-left:auto;">
                         단가 <strong style="color:#0f172a;">${(p.unitPrice||0).toLocaleString()}원</strong> × <strong style="color:#2563eb;">${p.qty||1}개</strong> = <strong style="color:#16a34a; font-size:13.5px;">${(p.totalPrice||0).toLocaleString()}원</strong>
                       </span>
                     </div>

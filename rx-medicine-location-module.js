@@ -668,7 +668,7 @@ window.RxMedicineLocationModule = (function () {
     const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
 
     const contentHtml = `
-      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px; padding-right:50px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="width:40px; height:40px; border-radius:12px; background:${zoneObj.bg}; color:${zoneObj.color}; display:flex; align-items:center; justify-content:center; font-size:20px; border:1px solid ${zoneObj.border};">
             <i class="fas fa-pills"></i>
@@ -679,7 +679,7 @@ window.RxMedicineLocationModule = (function () {
           </div>
         </div>
         ${isDirector ? `
-          <button type="button" onclick="RxMedicineLocationModule.deleteItem('${target.id}', '${escapeHTML(target.name).replace(/'/g, "\\'")}')" style="background:#fff1f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#e11d48; cursor:pointer;">
+          <button type="button" onclick="RxMedicineLocationModule.deleteItem('${target.id}', '${escapeHTML(target.name).replace(/'/g, "\\'")}')" style="background:#fff1f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#e11d48; cursor:pointer; flex-shrink:0;">
             <i class="fas fa-trash-alt me-1"></i> 위치 삭제
           </button>
         ` : ''}

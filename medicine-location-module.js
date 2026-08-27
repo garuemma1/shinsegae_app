@@ -483,7 +483,7 @@ window.MedicineLocationModule = (function () {
     const zone = DEFAULT_ZONES.find(z => z.id === target.zoneId) || { name: target.zoneName, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' };
 
     const contentHtml = `
-      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px; padding-right:50px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="width:40px; height:40px; border-radius:12px; background:${zone.bg}; color:${zone.color}; display:flex; align-items:center; justify-content:center; font-size:20px;">
             <i class="fas fa-boxes-stacked"></i>
@@ -494,8 +494,8 @@ window.MedicineLocationModule = (function () {
           </div>
         </div>
         ${window.SheetsSync && window.SheetsSync.getCurrentUser() && window.SheetsSync.getCurrentUser().role === '약국장' ? `
-          <button type="button" onclick="MedicineLocationModule.deleteMedicine('${target.id}', '${target.name.replace(/'/g, "\\'")}')" style="background:#fef2f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#ef4444; cursor:pointer;">
-            <i class="fas fa-trash-can me-1"></i> 약품 위치 삭제
+          <button type="button" onclick="MedicineLocationModule.deleteMedicine('${target.id}', '${target.name.replace(/'/g, "\\'")}')" style="background:#fef2f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#ef4444; cursor:pointer; flex-shrink:0;">
+            <i class="fas fa-trash-can me-1"></i> 위치 삭제
           </button>
         ` : ''}
       </div>

@@ -1852,7 +1852,28 @@ window.ScheduleModule = (function () {
 
     let report = `<${currentMonth}월 급여>\n\n정규직\n\n`;
 
-    employees.forEach(emp => {
+    // 🏆 대표님 지정 정확한 순서 배열: 이승학 -> 양윤지 -> 권명주 -> 간영자 -> 김제희 -> 김배영 -> 김동완 -> 윤세라 (유호종은 맨 마지막 멘트 아래!)
+    const ORDER_MAP = {
+      '이승학': 1,
+      '양윤지': 2,
+      '권명주': 3,
+      '간영자': 4,
+      '간명자': 4,
+      '김제희': 5,
+      '김배영': 6,
+      '김동완': 7,
+      '윤세라': 8
+    };
+
+    const mainEmployees = employees.filter(e => e.name !== '유호종').sort((a, b) => {
+      const orderA = ORDER_MAP[a.name] || 99;
+      const orderB = ORDER_MAP[b.name] || 99;
+      return orderA - orderB;
+    });
+
+    const yoEmp = employees.find(e => e.name === '유호종');
+
+    mainEmployees.forEach(emp => {
       const empAdj = monthAdj[emp.id] || {};
       const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
       const overtimePay = Number(empAdj.overtimePay || 0);
@@ -1897,7 +1918,22 @@ window.ScheduleModule = (function () {
       }
     });
 
-    report += `일용직 x\n\n\n세전이신분들은 세후 금액을 부탁드립니다`;
+    report += `일용직 x\n\n\n세전이신분들은 세후 금액을 부탁드립니다\n\n`;
+
+    if (yoEmp) {
+      const empAdj = monthAdj[yoEmp.id] || {};
+      const overtimePay = Number(empAdj.overtimePay || 0);
+      const deductionPay = Number(empAdj.deductionPay || 0);
+      const empShifts = scheduleRecords.filter(r => r.empId === yoEmp.id && r.date && r.date.startsWith(monthKey));
+      const rateObj = pRatesMap[yoEmp.id] || {};
+      const currentWeekdayRate = Number(yoEmp.weekdayRate) || Number(yoEmp.hourlyRate) || Number(rateObj.weekdayRate) || 25000;
+      const currentHolidayRate = Number(yoEmp.holidayRate) || Number(rateObj.holidayRate) || 27000;
+      const currentBreakHours = Number(rateObj.breakHours) || 1.0;
+      const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, currentWeekdayRate, currentHolidayRate, currentBreakHours);
+      const pretaxTotal = calc.totalPayroll + overtimePay - deductionPay;
+
+      report += `${yoEmp.name} 세전 ${pretaxTotal.toLocaleString()}원`;
+    }
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(report);

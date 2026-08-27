@@ -1112,14 +1112,6 @@ class PharmacyStore {
     return null;
   }
 
-        this.saveToLocal();
-      }
-    } catch (e) {
-      console.warn(`Load monthly from sheets (${yymm}) failed:`, e);
-      throw e;
-    }
-  }
-
   clearLocalCache() {
     try {
       const prefix = this.storagePrefix;

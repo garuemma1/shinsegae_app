@@ -6,130 +6,147 @@
 // ==========================================
 // 1. Google Sheets Web App API Client Module
 // ==========================================
-class GoogleSheetsClient {
-  constructor() {
-    this.currentPharmacy = 'hoecheon';
-    this.storageKey = 'hoecheon_gas_webapp_url';
-    this.syncUrlFromCloud();
-    this.isConnected = false;
-    this.lastSyncTime = null;
-  }
-
-  setPharmacy(pKey) {
-    this.currentPharmacy = pKey;
-    this.storageKey = pKey === 'ssg' ? 'ssg_gas_webapp_url' : 'hoecheon_gas_webapp_url';
-    this.syncUrlFromCloud();
-  }
-
-  syncUrlFromCloud() {
-    try {
-      let url = (typeof localStorage !== 'undefined' && localStorage.getItem(this.storageKey)) || '';
-      if (!url && window.SheetsSync && typeof window.SheetsSync.getGasUrls === 'function') {
-        const cloudUrls = window.SheetsSync.getGasUrls();
-        const pKey = this.storageKey.startsWith('ssg') ? 'ssg' : 'hoecheon';
-        url = cloudUrls[pKey] || '';
-        if (url && typeof localStorage !== 'undefined') {
-          localStorage.setItem(this.storageKey, url);
-        }
-      }
-      this.webAppUrl = (url || '').trim();
-    } catch (e) {
-      this.webAppUrl = '';
-    }
-  }
-
-  get isConfigured() {
-    if (!this.webAppUrl) this.syncUrlFromCloud();
-    return Boolean(this.webAppUrl && this.webAppUrl.startsWith('https://script.google.com/macros/s/'));
-  }
-
-  setUrl(url) {
-    this.webAppUrl = (url || '').trim();
-    const pKey = this.storageKey.startsWith('ssg') ? 'ssg' : 'hoecheon';
-    try {
-      if (typeof localStorage !== 'undefined') {
-        if (this.webAppUrl) {
-          localStorage.setItem(this.storageKey, this.webAppUrl);
-        } else {
-          localStorage.removeItem(this.storageKey);
-        }
-      }
-      if (window.SheetsSync && typeof window.SheetsSync.saveGasUrl === 'function') {
-        window.SheetsSync.saveGasUrl(pKey, this.webAppUrl);
-      }
-    } catch (e) {}
-  }
-
-  async request(method, params = {}, body = null) {
-    if (!this.isConfigured) {
-      throw new Error('Google Sheets Web App URL이 설정되지 않았습니다.');
-    }
-
-    let url = this.webAppUrl;
-    const queryParams = new URLSearchParams(params).toString();
-    if (queryParams) {
-      url += (url.includes('?') ? '&' : '?') + queryParams;
-    }
-
-    const options = {
-      method: method,
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    };
-
-    if (method === 'POST' && body) {
-      options.body = JSON.stringify(body);
-      options.headers['Content-Type'] = 'text/plain;charset=utf-8';
-    }
-
-    try {
-      const response = await fetch(url, options);
-      if (!response.ok) throw new Error(`HTTP 오류 (${response.status})`);
-      const data = await response.json();
-      this.isConnected = true;
-      this.lastSyncTime = new Date();
-      return data;
-    } catch (err) {
-      console.warn('Google Sheets API 통신 오류:', err);
+if (typeof window.GoogleSheetsClient === 'undefined') {
+  window.GoogleSheetsClient = class GoogleSheetsClient {
+    constructor() {
+      this.currentPharmacy = 'hoecheon';
+      this.storageKey = 'hoecheon_gas_webapp_url';
+      this.syncUrlFromCloud();
       this.isConnected = false;
-      throw err;
+      this.lastSyncTime = null;
     }
-  }
 
-  async ping() {
-    try {
-      return await this.request('GET', { action: 'ping' });
-    } catch (e) {
-      return { success: false, error: e.message };
+    setPharmacy(pKey) {
+      this.currentPharmacy = pKey;
+      this.storageKey = pKey === 'ssg' ? 'ssg_gas_webapp_url' : 'hoecheon_gas_webapp_url';
+      this.syncUrlFromCloud();
     }
-  }
 
-  async getDaily(sheetName, day) {
-    return await this.request('GET', { action: 'getDaily', sheetName: sheetName, day: day });
-  }
+    syncUrlFromCloud() {
+      try {
+        let url = (typeof localStorage !== 'undefined' && localStorage.getItem(this.storageKey)) || '';
+        if (!url && window.SheetsSync && typeof window.SheetsSync.getGasUrls === 'function') {
+          const cloudUrls = window.SheetsSync.getGasUrls();
+          const pKey = this.storageKey.startsWith('ssg') ? 'ssg' : 'hoecheon';
+          url = cloudUrls[pKey] || '';
+          if (url && typeof localStorage !== 'undefined') {
+            localStorage.setItem(this.storageKey, url);
+          }
+        }
+        this.webAppUrl = (url || '').trim();
+      } catch (e) {
+        this.webAppUrl = '';
+      }
+    }
 
-  async saveDaily(sheetName, day, data) {
-    return await this.request('POST', {}, { action: 'saveDaily', sheetName: sheetName, day: day, data: data });
-  }
+    get isConfigured() {
+      if (!this.webAppUrl) this.syncUrlFromCloud();
+      return Boolean(this.webAppUrl && this.webAppUrl.startsWith('https://script.google.com/macros/s/'));
+    }
 
-  async getMonthly(sheetName) {
-    return await this.request('GET', { action: 'getMonthly', sheetName: sheetName });
-  }
+    setUrl(url) {
+      this.webAppUrl = (url || '').trim();
+      const pKey = this.storageKey.startsWith('ssg') ? 'ssg' : 'hoecheon';
+      try {
+        if (typeof localStorage !== 'undefined') {
+          if (this.webAppUrl) {
+            localStorage.setItem(this.storageKey, this.webAppUrl);
+          } else {
+            localStorage.removeItem(this.storageKey);
+          }
+        }
+        if (window.SheetsSync && typeof window.SheetsSync.saveGasUrl === 'function') {
+          window.SheetsSync.saveGasUrl(pKey, this.webAppUrl);
+        }
+      } catch (e) {}
+    }
 
-  async getFullMonthData(yymm) {
-    return await this.request('GET', { action: 'getFullMonthData', yymm: yymm });
-  }
+    async request(method, params = {}, body = null) {
+      if (!this.isConfigured) {
+        throw new Error('Google Sheets Web App URL이 설정되지 않았습니다.');
+      }
 
-  async saveMonthly(sheetName, data) {
-    return await this.request('POST', {}, { action: 'saveMonthly', sheetName: sheetName, data: data });
-  }
+      let url = this.webAppUrl;
+      const queryParams = new URLSearchParams(params).toString();
+      if (queryParams && method === 'GET') {
+        url += (url.includes('?') ? '&' : '?') + queryParams;
+      }
 
-  async listSheets() {
-    return await this.request('GET', { action: 'listSheets' });
-  }
+      const options = { method: method };
+
+      if (method === 'POST') {
+        options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+        options.body = JSON.stringify(body || params);
+      }
+
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+          if (method === 'GET' && (response.status === 403 || response.status === 400 || response.status === 302)) {
+            console.warn(`GET 통신 ${response.status} -> POST 자동 전환 시도`);
+            return await this.request('POST', {}, params);
+          }
+          throw new Error(`HTTP 오류 (${response.status})`);
+        }
+        const data = await response.json();
+        this.isConnected = true;
+        this.lastSyncTime = new Date();
+        return data;
+      } catch (err) {
+        if (method === 'GET') {
+          console.warn('GET 통신 실패, POST 재시도 중...', err);
+          try {
+            return await this.request('POST', {}, params);
+          } catch (postErr) {
+            this.isConnected = false;
+            throw postErr;
+          }
+        }
+        console.warn('Google Sheets API 통신 오류:', err);
+        this.isConnected = false;
+        throw err;
+      }
+    }
+
+    async ping() {
+      try {
+        return await this.request('GET', { action: 'ping' });
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    }
+
+    async getDaily(sheetName, day) {
+      return await this.request('GET', { action: 'getDaily', sheetName: sheetName, day: day });
+    }
+
+    async saveDaily(sheetName, day, data) {
+      return await this.request('POST', {}, { action: 'saveDaily', sheetName: sheetName, day: day, data: data });
+    }
+
+    async getMonthly(sheetName) {
+      return await this.request('GET', { action: 'getMonthly', sheetName: sheetName });
+    }
+
+    async getFullMonthData(yymm, bypassCache = false) {
+      const params = { action: 'getFullMonthData', yymm: yymm };
+      if (bypassCache) params.bypassCache = 'true';
+      return await this.request('GET', params);
+    }
+
+    async saveMonthly(sheetName, data) {
+      return await this.request('POST', {}, { action: 'saveMonthly', sheetName: sheetName, data: data });
+    }
+
+    async listSheets() {
+      return await this.request('GET', { action: 'listSheets' });
+    }
+  };
 }
 
-window.sheetsClient = new GoogleSheetsClient();
+if (!window.sheetsClient) {
+  window.sheetsClient = new window.GoogleSheetsClient();
+}
 
 // 🔥 PC에서 저장한 구글 스크립트 URL을 핸드폰으로 자동 전달!
 // SheetsSync가 Firebase에서 클라우드 데이터를 받아온 뒤 URL을 재확인하는 방어 코드
@@ -1035,48 +1052,37 @@ class PharmacyStore {
     }
   }
 
-  async loadMonthFromSheets(yymm) {
-    if (!window.sheetsClient || !window.sheetsClient.isConfigured) return;
+  async loadMonthFromSheets(yymm, force = false) {
+    if (!window.sheetsClient || !window.sheetsClient.isConfigured) return null;
     try {
-      const result = await window.sheetsClient.getFullMonthData(yymm);
+      const result = await window.sheetsClient.getFullMonthData(yymm, force);
       if (result && result.success && result.data) {
-        // 1. 1일~31일 일일 장부 전체 동기화
-        if (result.data.dailyList && Array.isArray(result.data.dailyList)) {
+        // 1. 1일~31일 일일 장부 전체 동기화 (dailyRecords 객체 또는 dailyList 배열 완벽 대응)
+        const dailyObj = result.data.dailyRecords || {};
+        if (dailyObj && typeof dailyObj === 'object' && Object.keys(dailyObj).length > 0) {
+          Object.keys(dailyObj).forEach(dayNum => {
+            const key = this.getDailyKey(yymm, parseInt(dayNum, 10));
+            this.dailyRecords[key] = this.calculateDaily(dailyObj[dayNum]);
+          });
+        } else if (result.data.dailyList && Array.isArray(result.data.dailyList)) {
           result.data.dailyList.forEach(daily => {
             if (daily && daily.day) {
               const key = this.getDailyKey(yymm, daily.day);
-              this.dailyRecords[key] = this.calculateDaily({
-                yymm: yymm,
-                day: daily.day,
-                prevCash: daily.prevCash || 600000,
-                cashSales: daily.cashSales || 0,
-                cardSales: daily.cardSales || 0,
-                rxSales: daily.rxSales || 0,
-                posOtcSales: daily.posOtcSales || 0,
-                transferSales: daily.transferSales || 0,
-                expCashBuy: daily.expCashBuy || 0,
-                expDiscount: daily.expDiscount || 0,
-                expMiscCash: daily.expMiscCash || 0,
-                expMeal: daily.expMeal || 0,
-                expMiscCard: daily.expMiscCard || 0,
-                expBacchus: daily.expBacchus || 0,
-                actualCash: daily.actualCash || 0,
-                ...daily
-              });
+              this.dailyRecords[key] = this.calculateDaily(daily);
             }
           });
         }
 
-        // 2. 월말 결산 전체 동기화
-        if (result.data.monthly) {
-          const d = result.data.monthly;
+        // 2. 월말 결산 전체 동기화 (monthlyRecord 또는 monthly)
+        const d = result.data.monthlyRecord || result.data.monthly;
+        if (d) {
           const current = this.getMonthly(yymm);
 
           if (d.incomeRxFee !== undefined) current.incomeRxFee = d.incomeRxFee;
           if (d.incomeCopay !== undefined) current.incomeCopay = d.incomeCopay;
           if (d.incomeNhisClaim !== undefined) current.incomeNhisClaim = d.incomeNhisClaim;
           if (d.otcTotalSales !== undefined) current.otcTotalSales = d.otcTotalSales;
-          if (d.expCardWithdraw !== undefined) current.expCardWithdraw = d.expCardWithdraw; // S49 이번달 실제 카드출금액
+          if (d.expCardWithdraw !== undefined) current.expCardWithdraw = d.expCardWithdraw;
           if (d.cashVendors && Array.isArray(d.cashVendors)) current.cashVendors = d.cashVendors;
           if (d.cardVendors && Array.isArray(d.cardVendors)) current.cardVendors = d.cardVendors;
           if (d.employees && Array.isArray(d.employees)) current.employees = d.employees;
@@ -1087,14 +1093,24 @@ class PharmacyStore {
           if (d.cardCashbacks && Array.isArray(d.cardCashbacks)) current.cardCashbacks = d.cardCashbacks;
           if (d.cardWithdrawals && Array.isArray(d.cardWithdrawals)) current.cardWithdrawals = d.cardWithdrawals;
 
-          this.monthlyRecords[yymm] = this.calculateMonthly(current);
+          this.monthlyRecords[yymm] = this.calculateMonthly(d);
         }
 
-        // 3. 당월 누적 집계 직접 반영 (D249: 월현금매출총액, D250: 월카드매출총액)
+        // 3. 당월 누적 집계 직접 반영
         if (result.data.cumulative) {
           if (!this.cumulativeCache) this.cumulativeCache = {};
           this.cumulativeCache[yymm] = result.data.cumulative;
         }
+
+        this.saveToLocal();
+        return result.data;
+      }
+    } catch (e) {
+      console.warn("loadMonthFromSheets error:", e);
+      throw e;
+    }
+    return null;
+  }
 
         this.saveToLocal();
       }

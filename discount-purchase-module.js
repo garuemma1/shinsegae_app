@@ -682,11 +682,13 @@ window.DiscountPurchaseModule = (function () {
         item.isCrossChecked = false;
         item.crossCheckerId = null;
         item.crossCheckerName = null;
+        item.updatedAt = Date.now();
       }
     } else {
       item.isCrossChecked = true;
       item.crossCheckerId = currUser.id;
       item.crossCheckerName = currUser.name;
+      item.updatedAt = Date.now();
     }
 
     window.SheetsSync.saveDiscountPurchases(purchases);
@@ -711,9 +713,13 @@ window.DiscountPurchaseModule = (function () {
     if (!item) return;
 
     if (item.isPaid) {
-      if (confirm(`입금 완료 상태를 해제하시겠습니까?`)) item.isPaid = false;
+      if (confirm(`입금 완료 상태를 해제하시겠습니까?`)) {
+        item.isPaid = false;
+        item.updatedAt = Date.now();
+      }
     } else {
       item.isPaid = true;
+      item.updatedAt = Date.now();
     }
 
     window.SheetsSync.saveDiscountPurchases(purchases);

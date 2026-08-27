@@ -183,9 +183,10 @@ if (!window.sheetsClient) {
 // ==========================================
 // 2. Charts Controller Module
 // ==========================================
-const ChartsController = {
-  salesChartInstance: null,
-  profitChartInstance: null,
+if (typeof window.ChartsController === 'undefined') {
+  window.ChartsController = {
+    salesChartInstance: null,
+    profitChartInstance: null,
 
   destroyCharts() {
     if (this.salesChartInstance) {
@@ -334,6 +335,7 @@ const ChartsController = {
     }
   }
 };
+}
 
 
 // ==========================================
@@ -762,6 +764,10 @@ class PharmacyStore {
   }
 
   getMonthSummary(yymm) {
+    if (!yymm || typeof yymm !== 'string' || yymm.length < 4) {
+      yymm = this.currentYYMM || '2608';
+    }
+
     let totalSalesSum = 0;
     let otcSalesSum = 0;
     let rxSalesSum = 0;
@@ -882,6 +888,7 @@ class PharmacyStore {
 
   calculateMonthly(record, summary = null) {
     const m = { ...record };
+    if (!m.yymm) m.yymm = this.currentYYMM || '2608';
     const s = summary || this.getMonthSummary(m.yymm);
 
     // 1. 이론적 총수익 분석 (B4:C13)

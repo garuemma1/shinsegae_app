@@ -43,6 +43,12 @@ self.addEventListener('push', (event) => {
     requireInteraction: false
   };
 
+  // 📱 백그라운드 푸시 수신 시 스마트폰 홈 화면 앱 아이콘 N 배지 세팅
+  if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+    const unreadNum = Number(data.unreadCount) || 1;
+    navigator.setAppBadge(unreadNum).catch(() => {});
+  }
+
   event.waitUntil(
     self.registration.showNotification(data.title, options)
   );

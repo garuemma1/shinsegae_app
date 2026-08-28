@@ -475,11 +475,13 @@ window.App = (function () {
   function updateSidebarBadgesOnly() {
     try {
       const badges = computeNotificationBadges();
+      let unreadCount = 0;
       document.querySelectorAll('.menu-item').forEach(btn => {
         const mod = btn.getAttribute('data-module');
         const badgeEl = btn.querySelector('.menu-item-badge');
         const val = badges[mod];
         if (val) {
+          unreadCount++;
           if (badgeEl) {
             badgeEl.textContent = val;
           } else {
@@ -495,6 +497,23 @@ window.App = (function () {
           if (badgeEl) badgeEl.remove();
         }
       });
+
+      // 📱 카카오톡 스타일 스마트폰 홈 화면 앱 아이콘 N / 숫자 배지 연동 (Web App Badging API)
+      updateAppIconBadge(unreadCount);
+    } catch(e) {}
+  }
+
+  function updateAppIconBadge(count) {
+    try {
+      if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+        if (count > 0) {
+          navigator.setAppBadge(count).catch(() => {});
+        } else {
+          if ('clearAppBadge' in navigator) {
+            navigator.clearAppBadge().catch(() => {});
+          }
+        }
+      }
     } catch(e) {}
   }
 

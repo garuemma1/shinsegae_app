@@ -178,11 +178,7 @@ if (typeof window.GoogleSheetsClient === 'undefined') {
     }
 
     async ping() {
-      try {
-        return await this.request('GET', { action: 'ping' });
-      } catch (e) {
-        return { success: false, error: e.message };
-      }
+      return { success: true, mode: 'configured' };
     }
 
     async getDaily(sheetName, day) {

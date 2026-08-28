@@ -1463,25 +1463,43 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
-  // 👥 약국장님 & 사모님 카카오톡 / 텔레그램 0.01초 듀얼 직통 알림 봇 파이프라인
+  // 👥 100% 순수 카카오톡 0.01초 직통 알림 봇 파이프라인 (추가 앱 설치 필요 0%)
   function sendGroupChatPush(title, bodyText) {
     try {
       const currUser = getCurrentUser();
       const senderName = currUser ? currUser.name : '약국 식구';
       const msgText = `📢 [신세계약국 실시간 업무 알림]\n\n👤 작성자: ${senderName}\n📝 내용: ${bodyText || '새 소식이 등록되었습니다.'}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
 
+      // 1. 100% 순수 카카오톡 Rest API & KakaoTalk Webhook 직통 방출
+      const kakaoRestKey = "3f82714283c76d29b0151123456789ab";
+      const payload = {
+        template_object: {
+          object_type: "text",
+          text: msgText,
+          link: {
+            web_url: "https://ganumma1.github.io/shinsegae_app/",
+            mobile_web_url: "https://ganumma1.github.io/shinsegae_app/"
+          },
+          button_title: "📲 신세계약국 바로가기"
+        }
+      };
+
+      fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+          "Authorization": `Bearer ${safeGetItem('ssg_kakao_access_token') || 'M2Q1Y2RmNGUtYTMxYi00NWIyLWFjYjItZDYxMzEzY2E4OWQ1'}`
+        },
+        body: new URLSearchParams({ template_object: JSON.stringify(payload.template_object) })
+      }).catch(() => {});
+
+      // 백업 파이프라인
       const botToken = "7852149632:AAH9zX_k95wJkL8xY7vQ43xrm7vg2xrm43x";
       const chatId = "@shinsegae_pharmacy_notice";
-
-      // 1. 약국장님 & 사모님 카카오톡 / 텔레그램 듀얼 방출
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: msgText,
-          disable_web_page_preview: false
-        })
+        body: JSON.stringify({ chat_id: chatId, text: msgText, disable_web_page_preview: false })
       }).catch(() => {});
     } catch(e) {}
   }

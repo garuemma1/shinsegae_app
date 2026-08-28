@@ -2049,6 +2049,11 @@ window.SheetsSync = (function () {
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');
 
+      // 🔥 클라우드 데이터 수신 시 로그인 상태와 무관하게 0.01초 사이드바 🔴 N 배지 직통 강제 재계산!
+      if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+        window.App.updateSidebarBadgesOnly();
+      }
+
       // 🔥 로컬에만 있던 고유 데이터가 감지되면 즉시 파이어베이스로 2차 역전송(Push)
       if (needPushBack) {
         pushToCloud();
@@ -2057,7 +2062,7 @@ window.SheetsSync = (function () {
       const isOpsChanged = noticesChanged || worklogsChanged || suppliesChanged || medLocationsChanged || rxMedLocationsChanged;
       if (updated && isOpsChanged) {
         playNotificationChime();
-        sendDesktopNotification('📢 365메가스타약국 신규 알림', '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.');
+        sendDesktopNotification('📢 신세계약국 신규 알림', '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.');
       }
 
       if (updated) {

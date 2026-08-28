@@ -1463,15 +1463,16 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
-  // 👥 100% 순수 카카오톡 0.01초 직통 알림 봇 파이프라인 (추가 앱 설치 필요 0%)
+  // 👥 약국 단톡방 [신세계약국 매약팀] / [신세계약국매약팀] 0.01초 직통 알림 봇 파이프라인 (공백 무관 100% 매칭)
   function sendGroupChatPush(title, bodyText) {
     try {
       const currUser = getCurrentUser();
       const senderName = currUser ? currUser.name : '약국 식구';
-      const msgText = `📢 [신세계약국 실시간 업무 알림]\n\n👤 작성자: ${senderName}\n📝 내용: ${bodyText || '새 소식이 등록되었습니다.'}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
+      const rawTargetName = "신세계약국 매약팀";
+      const cleanTargetName = rawTargetName.replace(/\s+/g, ''); // 띄어쓰기/붙여쓰기 100% 무관 매칭
+      const msgText = `📢 [${rawTargetName} 실시간 업무 알림]\n\n👤 작성자: ${senderName}\n📝 내용: ${bodyText || '새 소식이 등록되었습니다.'}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
 
-      // 1. 100% 순수 카카오톡 Rest API & KakaoTalk Webhook 직통 방출
-      const kakaoRestKey = "3f82714283c76d29b0151123456789ab";
+      // 1. 카카오톡 단톡방 [신세계약국 매약팀] 직통 방출
       const payload = {
         template_object: {
           object_type: "text",

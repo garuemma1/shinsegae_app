@@ -19,6 +19,8 @@ window.SheetsSync = (function () {
     OVERTIME_ADJUSTMENTS: 'ssg_overtime_adjustments_v1',
     MEDICINE_LOCATIONS: 'ssg_medicine_locations_v1',
     RX_MEDICINE_LOCATIONS: 'ssg_rx_medicine_locations_v1',
+    SUPPLIES: 'ssg_supplies_v1',
+    SUPPLY_PRESETS: 'ssg_supply_presets_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -31,6 +33,7 @@ window.SheetsSync = (function () {
   const ALL_COMMON_TABS = [
     'notices-module',
     'worklog-module',
+    'supplies-module',
     'medicine-location-module',
     'rx-medicine-location-module',
     'schedule-module',
@@ -163,6 +166,56 @@ window.SheetsSync = (function () {
   const INITIAL_LEAVE_REQUESTS = [
     { id: 'l1', empId: 'emp_7', empName: '김제희', role: '일반직원', startDate: '2026-08-14', endDate: '2026-08-14', daysCount: 1.0, type: '연차', reason: '여름 개인 휴가', status: 'PENDING', createdAt: '2026-08-05 10:30' },
     { id: 'l2', empId: 'emp_2', empName: '권명주', role: '근무약사', startDate: '2026-08-21', endDate: '2026-08-21', daysCount: 1.0, type: '연차', reason: '학회 참석 및 정기휴가', status: 'APPROVED', createdAt: '2026-08-01 14:00' }
+  ];
+
+  const INITIAL_SUPPLIES = [
+    {
+      id: 'sup_1',
+      itemName: '전산약봉투 (처방전용)',
+      category: '전산/인쇄',
+      qty: 2,
+      unit: '상자',
+      urgency: 'URGENT',
+      applicantName: '이승학',
+      applicantRole: '일반직원',
+      status: 'PENDING',
+      memo: '잔여 수량 1상자 미만입니다. 긴급 주문 부탁드립니다.',
+      createdAt: '2026-08-28 09:30',
+      updatedAt: Date.now(),
+      vendor: '조은봉투 인쇄소',
+      estimatedPrice: 120000,
+      actualPrice: 120000,
+      completedAt: null
+    },
+    {
+      id: 'sup_2',
+      itemName: '영수증 감열지 (79mm*80mm)',
+      category: '전산/인쇄',
+      qty: 1,
+      unit: '박스(50롤)',
+      urgency: 'NORMAL',
+      applicantName: '김제희',
+      applicantRole: '일반직원',
+      status: 'ORDERED',
+      memo: '카운터 영수증 롤 재고 소진 예정',
+      createdAt: '2026-08-27 15:20',
+      updatedAt: Date.now(),
+      vendor: '드림오피스',
+      estimatedPrice: 45000,
+      actualPrice: 45000,
+      completedAt: null
+    }
+  ];
+
+  const INITIAL_SUPPLY_PRESETS = [
+    { id: 'pre_1', itemName: '전산약봉투 (처방전용)', category: '전산/인쇄', defaultUnit: '상자', defaultVendor: '조은봉투', estimatedPrice: 120000, memo: '1상자당 5,000매' },
+    { id: 'pre_2', itemName: '약봉투 (일반 매약 소형)', category: '약봉투/비닐', defaultUnit: '묶음', defaultVendor: '조은봉투', estimatedPrice: 35000, memo: '1묶음 1,000매' },
+    { id: 'pre_3', itemName: '약봉투 (일반 매약 중형)', category: '약봉투/비닐', defaultUnit: '묶음', defaultVendor: '조은봉투', estimatedPrice: 45000, memo: '1묶음 1,000매' },
+    { id: 'pre_4', itemName: '영수증 감열지 (79mm*80mm)', category: '전산/인쇄', defaultUnit: '박스(50롤)', defaultVendor: '드림오피스', estimatedPrice: 45000, memo: 'POS 및 카드단말기 공용' },
+    { id: 'pre_5', itemName: '조제실 라벨지 (주소/용법 스티커)', category: '전산/인쇄', defaultUnit: '롤', defaultVendor: '유비케어몰', estimatedPrice: 28000, memo: '라벨프린터용 규격' },
+    { id: 'pre_6', itemName: '투약병 (100cc / 50cc 세트)', category: '조제용품', defaultUnit: '상자', defaultVendor: '백제약품', estimatedPrice: 65000, memo: '어린이 시럽용 투약병' },
+    { id: 'pre_7', itemName: '약포지 (자동조제기용 열전사지)', category: '조제용품', defaultUnit: '박스', defaultVendor: 'JVM몰', estimatedPrice: 180000, memo: 'ATDPS 자동조제기용 파우치' },
+    { id: 'pre_8', itemName: '크린백 비닐봉투 (손잡이형)', category: '약봉투/비닐', defaultUnit: '박스', defaultVendor: '쿠팡/도매몰', estimatedPrice: 22000, memo: '매장 대형 비닐 봉투' }
   ];
 
   // 신규: 약국 업무일지 & 교대 인수인계 초기 데이터 (10인 전원 실시간 통합 마스터)
@@ -1085,6 +1138,103 @@ window.SheetsSync = (function () {
       window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
     }
   }
+
+  function getSupplies() {
+    const deletedIds = getDeletedIds();
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.SUPPLIES);
+      const list = (raw !== null && raw !== undefined) ? JSON.parse(raw) : INITIAL_SUPPLIES;
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch(e) {
+      return INITIAL_SUPPLIES.filter(item => item && !deletedIds.includes(item.id));
+    }
+  }
+
+  function saveSupplies(data) {
+    const deletedIds = getDeletedIds();
+    const now = Date.now();
+    const cleanList = (data || [])
+      .filter(item => item && !deletedIds.includes(item.id))
+      .map(item => ({
+        ...item,
+        updatedAt: item.updatedAt || now
+      }));
+    safeSetItem(STORAGE_KEYS.SUPPLIES, JSON.stringify(cleanList));
+    pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+    }
+  }
+
+  function addSupplyRequest(item) {
+    const list = getSupplies();
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const newItem = {
+      id: 'sup_' + Date.now(),
+      itemName: item.itemName || '미지정 소모품',
+      category: item.category || '기타소모품',
+      qty: Number(item.qty) || 1,
+      unit: item.unit || '개',
+      urgency: item.urgency || 'NORMAL',
+      applicantName: item.applicantName || '직원',
+      applicantRole: item.applicantRole || '직원',
+      status: 'PENDING',
+      memo: item.memo || '',
+      vendor: item.vendor || '',
+      estimatedPrice: Number(item.estimatedPrice) || 0,
+      actualPrice: 0,
+      createdAt: dateStr,
+      updatedAt: Date.now()
+    };
+    list.unshift(newItem);
+    saveSupplies(list);
+    return newItem;
+  }
+
+  function updateSupplyStatus(id, newStatus, extraData = {}) {
+    const list = getSupplies();
+    const target = list.find(s => s.id === id);
+    if (!target) return false;
+
+    target.status = newStatus;
+    target.updatedAt = Date.now();
+    if (extraData.vendor) target.vendor = extraData.vendor;
+    if (extraData.actualPrice !== undefined) target.actualPrice = Number(extraData.actualPrice);
+    if (extraData.memo !== undefined) target.memo = extraData.memo;
+    if (extraData.payMethod) target.payMethod = extraData.payMethod;
+    if (extraData.ledgerCategory) target.ledgerCategory = extraData.ledgerCategory;
+    if (newStatus === 'COMPLETED') {
+      const now = new Date();
+      target.completedAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    }
+    if (newStatus === 'REJECTED' && extraData.rejectReason) {
+      target.rejectReason = extraData.rejectReason;
+    }
+    saveSupplies(list);
+    return target;
+  }
+
+  function deleteSupplyRequest(id) {
+    addDeletedId(id);
+    const list = getSupplies().filter(s => s.id !== id);
+    saveSupplies(list);
+  }
+
+  function getSupplyPresets() {
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.SUPPLY_PRESETS);
+      return raw ? JSON.parse(raw) : INITIAL_SUPPLY_PRESETS;
+    } catch(e) {
+      return INITIAL_SUPPLY_PRESETS;
+    }
+  }
+
+  function saveSupplyPresets(data) {
+    safeSetItem(STORAGE_KEYS.SUPPLY_PRESETS, JSON.stringify(data || []));
+    pushToCloud();
+  }
+
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
 
@@ -1315,6 +1465,20 @@ window.SheetsSync = (function () {
         }
         const cloudDiscIds = new Set((cloudData.discountPurchases || []).map(d => d.id));
         if ((localDiscounts || []).some(d => d && d.id && !cloudDiscIds.has(d.id) && !activeDeletedIds.includes(d.id))) {
+          needPushBack = true;
+        }
+      }
+
+      // 4-2. 약국 소모품 관리 스마트 비파괴 양방향 융합 (핸드폰 ↔ PC 100% 양방향 실시간 호환)
+      if (cloudData.supplies && Array.isArray(cloudData.supplies)) {
+        const localSupplies = getSupplies() || [];
+        const mergedSupplies = mergeById(localSupplies, cloudData.supplies, 'updatedAt');
+        if (isListDifferent(localSupplies, mergedSupplies)) {
+          safeSetItem(STORAGE_KEYS.SUPPLIES, JSON.stringify(mergedSupplies));
+          updated = true;
+        }
+        const cloudSupIds = new Set((cloudData.supplies || []).map(s => s.id));
+        if ((localSupplies || []).some(s => s && s.id && !cloudSupIds.has(s.id) && !activeDeletedIds.includes(s.id))) {
           needPushBack = true;
         }
       }
@@ -2058,11 +2222,6 @@ window.SheetsSync = (function () {
     });
   }
 
-  function saveDiscountPurchases(data) {
-    safeSetItem(STORAGE_KEYS.DISCOUNT_PURCHASES, JSON.stringify(data));
-    pushToCloud();
-  }
-
   function getSheetUrl() {
     return safeGetItem(STORAGE_KEYS.SHEET_URL) || DEFAULT_SHEET_URL;
   }
@@ -2101,6 +2260,9 @@ window.SheetsSync = (function () {
       discountPurchases: getDiscountPurchases(),
       worklogs: getWorklogs(),
       medicineLocations: getMedicineLocations(),
+      rxMedicineLocations: getRxMedicineLocations(),
+      supplies: getSupplies(),
+      supplyPresets: getSupplyPresets(),
       emergencyContacts: getEmergencyContacts(),
       pharmacySettlement: getPharmacySettlement(),
       buildingRental: getBuildingRental(),
@@ -2186,6 +2348,13 @@ window.SheetsSync = (function () {
     saveMedicineLocations,
     getRxMedicineLocations,
     saveRxMedicineLocations,
+    getSupplies,
+    saveSupplies,
+    addSupplyRequest,
+    updateSupplyStatus,
+    deleteSupplyRequest,
+    getSupplyPresets,
+    saveSupplyPresets,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

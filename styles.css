@@ -2015,4 +2015,14 @@ body[data-theme="dark"] .toggle-drawer-btn:active {
   padding: 0 !important;
 }
 
+/* 📦 약국 소모품 관리 모듈 커스텀 스타일 */
+.supplies-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+body[data-theme="dark"] .supplies-container {
+  color: #f8fafc;
+}
+
+
 

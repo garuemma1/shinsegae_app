@@ -10,7 +10,8 @@ window.App = (function () {
   const MODULE_TITLES = {
     'notices': '📢 공지사항 & 업무 SOP',
     'worklog': '📝 약국 업무일지 & 인수인계',
-    'medicine-location': '📦 일반약 위치 관리 & 위치 검색',
+    'supplies': '📦 약국 소모품 관리 & 주문 시스템',
+    'medicine-location': '💊 일반약 위치 관리 & 위치 검색',
     'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
     'schedule': '📅 월간 근무 스케줄',
     'annual-leave': '🌴 연차대장 & 연차 전용 달력',
@@ -27,6 +28,7 @@ window.App = (function () {
   const MODULE_ICONS = {
     'notices': 'fa-bullhorn',
     'worklog': 'fa-pen-fancy',
+    'supplies': 'fa-boxes-stacked',
     'medicine-location': 'fa-boxes-packing',
     'rx-medicine-location': 'fa-pills',
     'schedule': 'fa-calendar-alt',
@@ -421,9 +423,13 @@ window.App = (function () {
       const unpaidPurchases = (data.discountPurchases || []).filter(p => !p.isPaid);
       const hasUnreadApproval = _hasUnreadApproval(currUser, data);
 
+      const suppliesList = (window.SheetsSync.getSupplies ? window.SheetsSync.getSupplies() : data.supplies) || [];
+      const pendingSupplies = suppliesList.filter(s => s.status === 'PENDING');
+
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
+        supplies: pendingSupplies.length > 0 ? pendingSupplies.length : null,
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
@@ -499,8 +505,20 @@ window.App = (function () {
     if (!allowed.includes('rx-medicine-location-module')) {
       allowed.push('rx-medicine-location-module');
     }
+    if (!allowed.includes('supplies-module')) {
+      allowed.push('supplies-module');
+    }
 
     let html = '';
+
+    // ==========================================
+    // Group 1: 📦 약국 현장 업무
+    // ==========================================
+    html += `
+      <div style="padding:10px 16px 4px 16px; font-size:11px; font-weight:800; color:#059669; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:5px;">
+        <i class="fas fa-cubes"></i> <span>약국 현장 업무</span>
+      </div>
+    `;
 
     if (isDirector || allowed.includes('notices-module')) {
       html += `
@@ -526,7 +544,19 @@ window.App = (function () {
       `;
     }
 
-    // 약국장 및 모든 직원 공용 열람 탭
+    // 📦 약국 소모품 관리 (신규 추가)
+    if (isDirector || allowed.includes('supplies-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'supplies' ? 'active' : ''}" data-module="supplies" onclick="App.switchModule('supplies', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-boxes-stacked" style="color:#10b981;"></i>
+            ${badges.supplies ? `<span class="menu-item-badge">${badges.supplies}</span>` : ''}
+          </div>
+          <span>약국 소모품 관리</span>
+        </button>
+      `;
+    }
+
     if (true || isDirector || allowed.includes('medicine-location-module')) {
       html += `
         <button class="menu-item ${activeModule === 'medicine-location' ? 'active' : ''}" data-module="medicine-location" onclick="App.switchModule('medicine-location', true)">
@@ -538,7 +568,6 @@ window.App = (function () {
       `;
     }
 
-    // 약국장 및 모든 직원 공용 열람 탭
     if (true || isDirector || allowed.includes('rx-medicine-location-module')) {
       html += `
         <button class="menu-item ${activeModule === 'rx-medicine-location' ? 'active' : ''}" data-module="rx-medicine-location" onclick="App.switchModule('rx-medicine-location', true)">
@@ -550,6 +579,15 @@ window.App = (function () {
         </button>
       `;
     }
+
+    // ==========================================
+    // Group 2: 🌴 HR & 근무 관리
+    // ==========================================
+    html += `
+      <div style="padding:14px 16px 4px 16px; font-size:11px; font-weight:800; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:5px; border-top:1px solid #e2e8f0; margin-top:8px;">
+        <i class="fas fa-users-cog"></i> <span>HR & 근무 관리</span>
+      </div>
+    `;
 
     if (isDirector || allowed.includes('schedule-module')) {
       html += `
@@ -609,11 +647,13 @@ window.App = (function () {
       `;
     }
 
-    // 약국장 전용 보안 4대 메뉴
+    // ==========================================
+    // Group 3: 🔒 약국장 전용 관리 메뉴
+    // ==========================================
     if (isDirector) {
       html += `
-        <div style="padding:12px 16px 4px 16px; font-size:11px; font-weight:bold; color:#ef4444; text-transform:uppercase;">
-          🔒 약국장 전용 관리 메뉴
+        <div style="padding:14px 16px 4px 16px; font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:5px; border-top:1px solid #e2e8f0; margin-top:8px;">
+          <i class="fas fa-lock"></i> <span>약국장 전용 관리 메뉴</span>
         </div>
         <button class="menu-item ${activeModule === 'approval' ? 'active' : ''}" data-module="approval" onclick="App.switchModule('approval', true)">
           <div class="menu-icon-wrapper">
@@ -947,6 +987,12 @@ window.App = (function () {
         break;
       case 'worklog':
         if (window.WorklogModule) window.WorklogModule.render('module-content');
+        break;
+      case 'supplies':
+        if (window.SuppliesModule) {
+          const el = document.getElementById('module-content');
+          if (el) el.innerHTML = window.SuppliesModule.renderHTML();
+        }
         break;
       case 'medicine-location':
         if (window.MedicineLocationModule) window.MedicineLocationModule.render('module-content');

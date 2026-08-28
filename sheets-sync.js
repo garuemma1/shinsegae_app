@@ -1780,6 +1780,7 @@ window.SheetsSync = (function () {
           else if (currMod === 'staff-directory' && empsChanged) activeModChanged = true;
           else if (currMod === 'medicine-location' && medLocationsChanged) activeModChanged = true;
           else if (currMod === 'rx-medicine-location' && rxMedLocationsChanged) activeModChanged = true;
+          else if (currMod === 'supplies' && suppliesChanged) activeModChanged = true;
           else if (currMod === 'pharmacy-settlement' && (scheduleChanged || paystubsChanged || ratesChanged)) activeModChanged = true;
 
           if (activeModChanged && window.App && typeof window.App.renderActiveModule === 'function') {
@@ -1866,6 +1867,8 @@ window.SheetsSync = (function () {
           worklogs: getWorklogs(),
           medicineLocations: getMedicineLocations(),
           rxMedicineLocations: getRxMedicineLocations(),
+          supplies: getSupplies(),
+          supplyPresets: getSupplyPresets(),
           gasUrls: getGasUrls()
         }
       };

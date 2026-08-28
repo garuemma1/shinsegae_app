@@ -964,7 +964,7 @@ window.SuppliesModule = (function () {
     if (!confirm(confirmMsg)) return;
 
     window.SheetsSync.updateSupplyStatus(id, 'COMPLETED');
-    alert('✅ [입고 완료] 물품 수령 및 입고 상태 갱신이 완료되었습니다.');
+    alert(`✅ [${target.itemName}] 물품 수령 및 입고 완료 처리되었습니다.`);
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();

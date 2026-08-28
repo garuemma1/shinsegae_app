@@ -903,7 +903,39 @@ window.SuppliesModule = (function () {
             client.setPharmacy('ssg');
             if (client.isConfigured) {
               const yymm = `${String(now.getFullYear()).substring(2)}${String(now.getMonth()+1).padStart(2,'0')}`;
+              
+              // 1. 일일 장부 전체 갱신 호출
               await client.saveDaily(yymm, todayNum, todayLog);
+
+              // 2. 직통 1초 엑셀 셀 수치 기장 (updateDailyCell & addExpense)
+              let colLetter = 'N'; // 기본값: N열 (잡비 카드)
+              if (payMethod === 'CASH') {
+                if (colName === '식대') colLetter = 'M';
+                else if (colName === '박카스') colLetter = 'O';
+                else if (colName === '현매') colLetter = 'J';
+                else if (colName === '손님계좌이체') colLetter = 'I';
+                else colLetter = 'L'; // 잡비 현금
+              } else {
+                if (colName === '조은봉투') colLetter = 'Y';
+                else if (colName === '그외 온라인결제') colLetter = 'X';
+                else if (colName === '보령') colLetter = 'Z';
+                else if (colName === '바로팜') colLetter = 'AA';
+                else colLetter = 'N'; // 잡비 카드
+              }
+
+              try {
+                await client.request('POST', {}, {
+                  action: 'updateDailyCell',
+                  sheetName: yymm,
+                  day: todayNum,
+                  colLetter: colLetter,
+                  amount: price,
+                  categoryName: colName
+                });
+              } catch(cellErr) {
+                console.warn('updateDailyCell fallback warning:', cellErr);
+              }
+
               pushSuccess = true;
             }
           } catch(e) {

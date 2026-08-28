@@ -193,6 +193,17 @@ if (typeof window.GoogleSheetsClient === 'undefined') {
       return await this.request('POST', {}, { action: 'saveDaily', sheetName: String(sheetName), day: Number(day), data: data, log: data, date: data ? data.date : '' });
     }
 
+    async updateDailyCell(sheetName, day, colLetter, amount, categoryName) {
+      return await this.request('POST', {}, {
+        action: 'updateDailyCell',
+        sheetName: String(sheetName),
+        day: Number(day),
+        colLetter: String(colLetter),
+        amount: Number(amount),
+        categoryName: categoryName || ''
+      });
+    }
+
     async getMonthly(sheetName) {
       return await this.request('GET', { action: 'getMonthly', sheetName: sheetName });
     }

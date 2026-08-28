@@ -624,7 +624,8 @@ window.RxMedicineLocationModule = (function () {
           notes: notes || target.notes,
           photoUrl: photoUrl || target.photoUrl,
           adjustmentReason: adjustmentReason,
-          updatedAt: nowStr,
+          updatedAt: Date.now(),
+          displayDate: nowStr,
           updatedBy: currUser.name || '약국'
         };
       } else {
@@ -638,7 +639,8 @@ window.RxMedicineLocationModule = (function () {
           notes,
           adjustmentReason,
           updatedBy: currUser.name || '약국',
-          updatedAt: nowStr,
+          updatedAt: Date.now(),
+          displayDate: nowStr,
           history: []
         };
         items.unshift(newItem);

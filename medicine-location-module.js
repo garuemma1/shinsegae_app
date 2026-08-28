@@ -452,7 +452,8 @@ window.MedicineLocationModule = (function () {
         target.photoUrl = photoUrl || target.photoUrl;
         target.notes = notes;
         target.updatedBy = currUser.name;
-        target.updatedAt = nowStr;
+        target.updatedAt = Date.now();
+        target.displayDate = nowStr;
       }
     } else {
       // 신규 입고 약품 위치 등록
@@ -465,7 +466,8 @@ window.MedicineLocationModule = (function () {
         photoUrl: photoUrl || '',
         notes,
         updatedBy: currUser.name,
-        updatedAt: nowStr,
+        updatedAt: Date.now(),
+        displayDate: nowStr,
         history: []
       };
       items.unshift(newItem);

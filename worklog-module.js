@@ -566,8 +566,16 @@ window.WorklogModule = (function () {
 
     const tag = document.getElementById('wl-tag').value;
     const content = document.getElementById('wl-content').value;
-    const base64Data = document.getElementById('wl-compressed-base64').value;
+    const base64Data = (document.getElementById('wl-compressed-base64') && document.getElementById('wl-compressed-base64').value) || '';
     let imageUrl = base64Data || '';
+    if (base64Data && window.App && typeof window.App.uploadImageToImgBB === 'function') {
+      try {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 이미지 호스팅 업로드 중...';
+        imageUrl = await window.App.uploadImageToImgBB(base64Data);
+      } catch (err) {
+        console.warn("ImgBB upload fail, using base64 fallback:", err);
+      }
+    }
 
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');

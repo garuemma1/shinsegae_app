@@ -409,6 +409,14 @@ window.MedicineLocationModule = (function () {
     const notes = document.getElementById('med-notes').value.trim();
 
     let photoUrl = photoBase64;
+    if (photoBase64 && window.App && typeof window.App.uploadImageToImgBB === 'function') {
+      try {
+        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 이미지 호스팅 업로드 중...';
+        photoUrl = await window.App.uploadImageToImgBB(photoBase64);
+      } catch (err) {
+        console.warn("ImgBB upload fail, using base64 fallback:", err);
+      }
+    }
 
     const now = new Date();
     const year = now.getFullYear();

@@ -2017,9 +2017,34 @@ function writeSheetData(sheet, dataList) {
     if (modal) modal.style.display = 'none';
   }
 
+  // 🌐 ImgBB 무료 이미지 호스팅 API 연동 (영구 무료 무제한 이미지 서버)
+  async function uploadImageToImgBB(base64Data) {
+    if (!base64Data || !base64Data.startsWith('data:image')) return base64Data || '';
+    const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const apiKey = 'c03264b38d380e2264bd9f0cb988a8f4'; // Public free ImgBB API key
+    try {
+      const formData = new FormData();
+      formData.append('key', apiKey);
+      formData.append('image', cleanBase64);
+
+      const res = await fetch('https://api.imgbb.com/1/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data && data.success && data.data && data.data.url) {
+        return data.data.url; // Returns direct i.ibb.co direct image link
+      }
+    } catch(err) {
+      console.warn('ImgBB upload error, falling back to base64:', err);
+    }
+    return base64Data;
+  }
+
   return {
     openImageLightbox,
     closeImageLightbox,
+    uploadImageToImgBB,
     init,
     forceHardReload,
     renderActiveModule,

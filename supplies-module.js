@@ -857,32 +857,77 @@ window.SuppliesModule = (function () {
       try {
         const pData = window.SheetsSync.getPharmacySettlement();
         if (pData) {
-          const today = new Date().toISOString().split('T')[0];
+          const now = new Date();
+          const todayNum = now.getDate();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
           
+          if (!pData.dailyLogs || !Array.isArray(pData.dailyLogs)) {
+            pData.dailyLogs = [];
+          }
+
+          // 28일자 오늘 당일 일일정산 행 찾기
+          let todayLog = pData.dailyLogs.find(l => {
+            if (l.date === todayStr) return true;
+            if (Number(l.day) === todayNum || l.day === String(todayNum)) return true;
+            return false;
+          });
+
+          if (!todayLog) {
+            todayLog = {
+              date: todayStr,
+              day: todayNum,
+              openingCash: 650000,
+              closingCash: 0,
+              cashSales: 0,
+              cardSales: 0,
+              rxSales: 0,
+              otcSales: 0,
+              expFood: 0,
+              expDrink: 0,
+              expBag: 0,
+              expEtc: 0,
+              cardVendors: {}
+            };
+            pData.dailyLogs.push(todayLog);
+          }
+
           if (payMethod === 'CARD') {
-            // 카드 결제 반영
-            if (!pData.cardPharma) pData.cardPharma = {};
+            // 카드 관련 (N열: 잡비 카드 등) - 일일 시트 및 월말 시트 모두에 당일 금액 기장
+            if (!todayLog.cardVendors) todayLog.cardVendors = {};
             const key = colName;
-            pData.cardPharma[key] = (pData.cardPharma[key] || 0) + price;
+            todayLog.cardVendors[key] = (Number(todayLog.cardVendors[key]) || 0) + price;
+
+            if (!pData.cardPharma) pData.cardPharma = {};
+            pData.cardPharma[key] = (Number(pData.cardPharma[key]) || 0) + price;
+
             window.SheetsSync.savePharmacySettlement(pData);
-            alert(`✅ 구글 시트 카드관련 [${key}] 열에 ₩${price.toLocaleString()}원 자동 기장 완료!`);
+            alert(`✅ 구글 시트 ${todayNum}일자 카드관련 [${key}] 열에 ₩${price.toLocaleString()}원 자동 기장 완료!`);
           } else {
-            // 현금 결제 반영 (일일 결산 장부)
-            if (pData.dailyLogs && pData.dailyLogs.length > 0) {
-              const todayLog = pData.dailyLogs.find(l => l.date === today) || pData.dailyLogs[pData.dailyLogs.length - 1];
-              if (todayLog) {
-                const fieldMap = {
-                  '잡비 현금': 'expEtc',
-                  '식대': 'expFood',
-                  '박카스': 'expDrink',
-                  '현매': 'expBag',
-                  '손님계좌이체': 'expEtc'
-                };
-                const field = fieldMap[colName] || 'expEtc';
-                todayLog[field] = (todayLog[field] || 0) + price;
-                window.SheetsSync.savePharmacySettlement(pData);
-                alert(`✅ 구글 시트 현금관련 [${colName}] 열에 ₩${price.toLocaleString()}원 자동 기장 완료!`);
+            // 현금 관련 (L열: 잡비 현금 등)
+            const fieldMap = {
+              '잡비 현금': 'expEtc',
+              '식대': 'expFood',
+              '박카스': 'expDrink',
+              '현매': 'expBag',
+              '손님계좌이체': 'expEtc'
+            };
+            const field = fieldMap[colName] || 'expEtc';
+            todayLog[field] = (Number(todayLog[field]) || 0) + price;
+
+            window.SheetsSync.savePharmacySettlement(pData);
+            alert(`✅ 구글 시트 ${todayNum}일자 현금관련 [${colName}] 열에 ₩${price.toLocaleString()}원 자동 기장 완료!`);
+          }
+
+          // ⚡ 구글 시트 Apps Script Web App 직통 Cell Push API 호출
+          if (window.GoogleSheetsClient) {
+            try {
+              const client = new window.GoogleSheetsClient();
+              client.setPharmacy('ssg');
+              if (client.isConfigured) {
+                client.request('POST', { action: 'updateDaily', date: todayStr, log: todayLog });
               }
+            } catch(e) {
+              console.warn('GoogleSheetsClient direct push warning:', e);
             }
           }
         }

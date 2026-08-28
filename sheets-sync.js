@@ -1021,7 +1021,11 @@ window.SheetsSync = (function () {
 
   function savePharmacySettlement(data) {
     safeSetItem(STORAGE_KEYS.PHARMACY_SETTLEMENT, JSON.stringify(data));
+    safeSetItem('ssg_pharmacy_settlement', JSON.stringify(data));
     pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+    }
   }
 
   function getBuildingRental() {

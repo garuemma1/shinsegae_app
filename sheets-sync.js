@@ -1483,13 +1483,13 @@ window.SheetsSync = (function () {
         listA.forEach(item => {
           if (item) {
             const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
-            if (key) mapA[key] = String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
+            if (key) mapA[key] = String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || item.status || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
           }
         });
         return listB.some(item => {
           if (!item) return false;
           const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
-          return !key || !mapA[key] || mapA[key] !== String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
+          return !key || !mapA[key] || mapA[key] !== String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || item.status || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
         });
       }
 

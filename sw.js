@@ -54,20 +54,28 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: data.icon || 'logo.jpg',
     badge: data.badge || 'logo.jpg',
-    tag: data.tag || 'ssg-notification',
+    tag: 'ssg-notification-tag',
+    renotify: true,
     data: { url: data.url || 'https://ganumma1.github.io/shinsegae_app/' },
     vibrate: [200, 100, 200, 100, 300], // 스마트폰 진동 패턴
     requireInteraction: false
   };
 
-  // 📱 백그라운드 푸시 수신 시 스마트폰 홈 화면 앱 아이콘 N 배지 세팅
-  if (typeof self.navigator !== 'undefined' && 'setAppBadge' in self.navigator) {
-    const unreadNum = Number(data.unreadCount) || 1;
-    self.navigator.setAppBadge(unreadNum).catch(() => {});
-  }
+  // 📱 스마트폰(삼성 갤럭시/안드로이드) OS 홈 화면 PWA 아이콘 N 배지 백그라운드 100% 강제 연동
+  const badgePromise = (async () => {
+    try {
+      if (typeof self.navigator !== 'undefined' && 'setAppBadge' in self.navigator) {
+        const unreadNum = Number(data.unreadCount) || 1;
+        await self.navigator.setAppBadge(unreadNum);
+      }
+    } catch(e) {}
+  })();
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    Promise.all([
+      self.registration.showNotification(data.title, options),
+      badgePromise
+    ])
   );
 });
 

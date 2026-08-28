@@ -567,21 +567,7 @@ window.WorklogModule = (function () {
     const tag = document.getElementById('wl-tag').value;
     const content = document.getElementById('wl-content').value;
     const base64Data = document.getElementById('wl-compressed-base64').value;
-    let imageUrl = '';
-
-    if (base64Data) {
-      try {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 사진 업로드 중...';
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'uploadImage', data: base64Data, filename: `업무사진_${Date.now()}.jpg` })
-        });
-        const result = await response.json();
-        imageUrl = result.url || '';
-      } catch (err) {
-        console.warn("이미지 업로드 실패:", err);
-      }
-    }
+    let imageUrl = base64Data || '';
 
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');

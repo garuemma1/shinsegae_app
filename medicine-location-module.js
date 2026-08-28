@@ -410,22 +410,6 @@ window.MedicineLocationModule = (function () {
 
     let photoUrl = photoBase64;
 
-    // 만약 base64 이미지 데이터면 구글 드라이브 클라우드로 업로드하여 영구 URL 생성
-    if (photoBase64 && photoBase64.startsWith('data:image')) {
-      const gasUrl = window.GAS_WEB_APP_URL || "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
-      try {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 사진 드라이브 전송 중...';
-        const response = await fetch(gasUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'uploadImage', data: photoBase64, filename: `약품위치_${Date.now()}.jpg` })
-        });
-        const result = await response.json();
-        if (result && result.url) photoUrl = result.url;
-      } catch (err) {
-        console.warn("구글 드라이브 이미지 전송 백업:", err);
-      }
-    }
-
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');

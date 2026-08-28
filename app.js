@@ -1986,7 +1986,13 @@ function writeSheetData(sheet, dataList) {
     const titleEl = document.getElementById('global-lightbox-title');
     const downloadBtn = document.getElementById('global-lightbox-download-btn');
 
-    if (img) img.src = url;
+    if (img) {
+      img.onerror = function() {
+        img.onerror = null;
+        img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="360" height="220" viewBox="0 0 360 220"><rect width="360" height="220" rx="16" fill="%231e293b"/><text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" fill="%23f8fafc" font-size="15" font-weight="bold">📷 구형 이미지 로딩 실패 (구글 403 차단)</text><text x="50%" y="62%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="12">새로 사진을 등록해주시면 100% 선명하게 보관됩니다</text></svg>';
+      };
+      img.src = url;
+    }
     if (titleEl) titleEl.innerHTML = `<i class="fas fa-camera text-blue-400 me-1"></i> <span>${title || '사진 원본 크게보기'}</span>`;
     if (downloadBtn) {
       downloadBtn.onclick = function() {

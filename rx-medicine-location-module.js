@@ -558,21 +558,6 @@ window.RxMedicineLocationModule = (function () {
 
     let photoUrl = photoBase64;
 
-    if (photoBase64 && photoBase64.startsWith('data:image')) {
-      const gasUrl = window.GAS_WEB_APP_URL || "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
-      try {
-        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 사진 압축 전송 중...';
-        const response = await fetch(gasUrl, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'uploadImage', data: photoBase64, filename: `전문약위치_${Date.now()}.jpg` })
-        });
-        const result = await response.json();
-        if (result && result.url) photoUrl = result.url;
-      } catch (err) {
-        console.warn("구글 드라이브 사진 업로드 백업:", err);
-      }
-    }
-
     const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || { name: '약국' };
     const nowStr = formatCurrentDateTime();
     const items = getStorageData();

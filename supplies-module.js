@@ -810,147 +810,7 @@ window.SuppliesModule = (function () {
     }
   }
 
-  async function syncSupplyToLedgerSheet(target) {
-    if (!target) return false;
-    const price = Number(target.actualPrice || target.estimatedPrice) || 0;
-    if (price <= 0) return false;
-
-    const payMethod = target.payMethod || (target.ledgerCategory && target.ledgerCategory.includes('현금') ? 'CASH' : 'CARD');
-    const colName = target.ledgerCategory || (payMethod === 'CARD' ? '잡비 카드' : '잡비 현금');
-    const payLabel = payMethod === 'CARD' ? '💳 카드관련' : '💵 현금관련';
-
-    try {
-      const pData = window.SheetsSync.getPharmacySettlement();
-      if (pData) {
-        const now = new Date();
-        const todayNum = now.getDate();
-        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-        
-        if (!pData.dailyLogs || !Array.isArray(pData.dailyLogs)) {
-          pData.dailyLogs = [];
-        }
-
-        let todayLog = pData.dailyLogs.find(l => {
-          if (l.date === todayStr) return true;
-          if (Number(l.day) === todayNum || l.day === String(todayNum)) return true;
-          return false;
-        });
-
-        if (!todayLog) {
-          todayLog = {
-            date: todayStr,
-            day: todayNum,
-            openingCash: 650000,
-            closingCash: 0,
-            cashSales: 0,
-            cardSales: 0,
-            rxSales: 0,
-            otcSales: 0,
-            expFood: 0,
-            expDrink: 0,
-            expBag: 0,
-            expEtc: 0,
-            cardVendors: {}
-          };
-          pData.dailyLogs.push(todayLog);
-        }
-
-        const cardVendorNames = [
-          '동화', '경남', '경방', '고려', '광동제약', '그린스토어', '나이스팜2', '동국일반', 
-          '동성', '디알에스', '박카스', '백제', '삼진', '신신제약', '아워팜', '에코테라팜2', 
-          '온라인몰결제총합', '웅진렌탈', '위생', '전화비', '대원제약', '동원팜', '비타민하우스', 
-          '원탁', '유한내츄럴보호대', '유한양행', '인터넷', '제일약품', '쥴릭', '지오영', 
-          '케어센스', '태극제약', '하나', '한가람약품', '한풍', '현대', '한독', '잡비 카드', '조은봉투', '그외 온라인결제', '보령', '바로팜'
-        ];
-
-        if (payMethod === 'CARD') {
-          const key = colName || '잡비 카드';
-
-          if (!Array.isArray(todayLog.cardVendors)) {
-            todayLog.cardVendors = cardVendorNames.map(n => ({ name: n, amount: 0 }));
-          }
-
-          let targetVendor = todayLog.cardVendors.find(v => v && v.name === key);
-          if (targetVendor) {
-            targetVendor.amount = (Number(targetVendor.amount) || 0) + price;
-          } else {
-            todayLog.cardVendors.push({ name: key, amount: price });
-          }
-
-          if (!pData.cardPharma) pData.cardPharma = {};
-          pData.cardPharma[key] = (Number(pData.cardPharma[key]) || 0) + price;
-
-          window.SheetsSync.savePharmacySettlement(pData);
-        } else {
-          const fieldMap = {
-            '잡비 현금': 'expEtc',
-            '식대': 'expFood',
-            '박카스': 'expDrink',
-            '현매': 'expBag',
-            '손님계좌이체': 'expEtc'
-          };
-          const field = fieldMap[colName] || 'expEtc';
-          todayLog[field] = (Number(todayLog[field]) || 0) + price;
-
-          window.SheetsSync.savePharmacySettlement(pData);
-        }
-
-        // ⚡ 구글 시트 Apps Script Web App 직통 Cell Push API 호출 (await 전송 가동)
-        let pushSuccess = false;
-        if (window.GoogleSheetsClient || window.sheetsClient) {
-          try {
-            const client = window.sheetsClient || new window.GoogleSheetsClient();
-            client.setPharmacy('ssg');
-            if (client.isConfigured) {
-              const yymm = `${String(now.getFullYear()).substring(2)}${String(now.getMonth()+1).padStart(2,'0')}`;
-              
-              // 1. 일일 장부 전체 갱신 호출
-              await client.saveDaily(yymm, todayNum, todayLog);
-
-              // 2. 직통 1초 엑셀 셀 수치 기장 (updateDailyCell & addExpense)
-              let colLetter = 'N'; // 기본값: N열 (잡비 카드)
-              if (payMethod === 'CASH') {
-                if (colName === '식대') colLetter = 'M';
-                else if (colName === '박카스') colLetter = 'O';
-                else if (colName === '현매') colLetter = 'J';
-                else if (colName === '손님계좌이체') colLetter = 'I';
-                else colLetter = 'L'; // 잡비 현금
-              } else {
-                if (colName === '조은봉투') colLetter = 'Y';
-                else if (colName === '그외 온라인결제') colLetter = 'X';
-                else if (colName === '보령') colLetter = 'Z';
-                else if (colName === '바로팜') colLetter = 'AA';
-                else colLetter = 'N'; // 잡비 카드
-              }
-
-              try {
-                await client.request('POST', {}, {
-                  action: 'updateDailyCell',
-                  sheetName: yymm,
-                  day: todayNum,
-                  colLetter: colLetter,
-                  amount: price,
-                  categoryName: colName
-                });
-              } catch(cellErr) {
-                console.warn('updateDailyCell fallback warning:', cellErr);
-              }
-
-              pushSuccess = true;
-            }
-          } catch(e) {
-            console.warn('GoogleSheetsClient direct push warning:', e);
-          }
-        }
-        return pushSuccess;
-      }
-    } catch(err) {
-      console.warn('Order confirmation ledger sync error:', err);
-    }
-    return false;
-  }
-
-  async function handleConfirmSubmit(e) {
+  function handleConfirmSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('sup-confirm-id').value;
     const vendor = document.getElementById('sup-confirm-vendor').value.trim();
@@ -969,18 +829,9 @@ window.SuppliesModule = (function () {
 
     const supplies = window.SheetsSync.getSupplies() || [];
     const target = supplies.find(s => s.id === id);
-    const pushSuccess = await syncSupplyToLedgerSheet(target);
+    const itemName = target ? target.itemName : '소모품';
 
-    const payLabel = payMethod === 'CARD' ? '💳 카드관련' : '💵 현금관련';
-    const colName = ledgerCategory || (payMethod === 'CARD' ? '잡비 카드' : '잡비 현금');
-    const now = new Date();
-    const todayNum = now.getDate();
-
-    if (pushSuccess) {
-      alert(`🚚 소모품 주문 확정 완결!\n\n✅ 구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열에 ₩${price.toLocaleString()}원이 실시간 직통 기장되었습니다.`);
-    } else {
-      alert(`🚚 소모품 주문 확정 완결 (스마트장부 연동 완료)\n\n✅ 구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열로 ₩${price.toLocaleString()}원이 동기화 기록되었습니다.`);
-    }
+    alert(`🚚 [${itemName}] 주문 확정이 완료되었습니다.`);
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();

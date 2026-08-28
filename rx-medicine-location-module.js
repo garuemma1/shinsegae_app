@@ -222,38 +222,39 @@ window.RxMedicineLocationModule = (function () {
     });
 
     const html = `
-      <div class="module-header" style="margin-bottom:20px;">
-        <div>
-          <h2 style="font-size:22px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px; margin:0;">
+      <div class="module-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mb-4 sm:mb-5">
+        <div class="space-y-1">
+          <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 flex-wrap">
             <i class="fas fa-pills text-emerald-600"></i>
             <span>💉 전문약 (조제실) 위치 관리 & 전산 수정 흔적 기록</span>
           </h2>
-          <p class="subtitle" style="margin-top:4px; font-size:13px; color:#64748b;">
+          <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed break-keep">
             조제실 수기 위치 지정, 📸사진 첨부(100KB 압축), ❄️냉장/🔒향정 구역 구분, 전산 수정 이력 타임라인 추적
           </p>
         </div>
-        <button type="button" class="btn btn-emerald font-bold" onclick="RxMedicineLocationModule.openCreateModal()" style="border-radius:12px; padding:10px 20px; font-size:14px; background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; border:none; box-shadow:0 4px 12px rgba(5,150,105,0.3); cursor:pointer;">
-          <i class="fas fa-plus-circle me-1"></i> 새 전문약 위치/수정흔적 등록
+        <button type="button" class="w-full sm:w-auto flex-1 sm:flex-initial btn btn-emerald font-bold text-xs px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap" onclick="RxMedicineLocationModule.openCreateModal()">
+          <i class="fas fa-plus-circle"></i>
+          <span>+ 새 전문약 위치/수정흔적 등록</span>
         </button>
       </div>
 
       <!-- 🔍 1. 실시간 통합 검색 바 & 퀵 필터 -->
-      <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:16px; padding:18px 20px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
-          <div style="flex:1; min-width:280px; position:relative;">
-            <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:15px;"></i>
-            <input type="text" id="rx-search-input" value="${escapeHTML(searchQuery)}" oninput="RxMedicineLocationModule.handleSearch(this.value)" placeholder="약품명, 수기 위치, 수정 흔적 메모, 초성(예: ㅌㅇㄹㄴ, 조제대 1번) 실시간 검색..." style="width:100%; padding:11px 14px 11px 40px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; outline:none; font-weight:700; color:#0f172a; box-sizing:border-box;" onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#cbd5e1'">
-            <button id="rx-search-clear-btn" onclick="RxMedicineLocationModule.handleSearch('')" style="display:${searchQuery ? 'block' : 'none'}; position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer;">✖</button>
+      <div class="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mb-4 sm:mb-5 space-y-3">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div class="relative flex-grow">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="rx-search-input" value="${escapeHTML(searchQuery)}" oninput="RxMedicineLocationModule.handleSearch(this.value)" placeholder="약품명, 수기 위치, 수정 흔적 메모, 초성(예: ㅌㅇㄹㄴ) 검색..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-8 pr-8 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500">
+            <button id="rx-search-clear-btn" onclick="RxMedicineLocationModule.handleSearch('')" style="display:${searchQuery ? 'block' : 'none'};" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✖</button>
           </div>
 
-          <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#475569; background:#f8fafc; padding:6px 14px; border-radius:10px; border:1px solid #e2e8f0;">
-            <i class="fas fa-layer-group" style="color:#059669;"></i>
-            <span>등록 전문약: <strong style="color:#059669; font-size:16px;">${items.length}</strong>개</span>
+          <div class="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl whitespace-nowrap self-start sm:self-auto">
+            <i class="fas fa-layer-group text-emerald-600"></i>
+            <span>등록 전문약: <strong class="text-emerald-600 dark:text-emerald-400 text-sm font-black">${items.length}</strong>개</span>
           </div>
         </div>
 
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; border-top:1px solid #f1f5f9; padding-top:12px;">
-          <button type="button" onclick="RxMedicineLocationModule.setCategory('ALL')" style="padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; border:1.5px solid ${activeCategory === 'ALL' ? '#059669' : '#e2e8f0'}; background:${activeCategory === 'ALL' ? '#059669' : '#ffffff'}; color:${activeCategory === 'ALL' ? '#ffffff' : '#475569'}; cursor:pointer;">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs font-bold whitespace-nowrap pt-2 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" onclick="RxMedicineLocationModule.setCategory('ALL')" class="px-3 py-1.5 rounded-full text-xs font-black transition ${activeCategory === 'ALL' ? 'bg-emerald-600 text-white shadow' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">
             전체 보기 (${items.length})
           </button>
           ${DEFAULT_ZONES.map(z => {
@@ -376,16 +377,16 @@ window.RxMedicineLocationModule = (function () {
   function renderCardGridHTML(filtered, totalCount) {
     if (!filtered || filtered.length === 0) {
       return `
-        <div style="text-align:center; padding:50px 20px; background:#ffffff; border-radius:16px; border:1.5px dashed #cbd5e1;">
-          <i class="fas fa-search-minus" style="font-size:32px; color:#94a3b8; margin-bottom:12px;"></i>
-          <h4 style="font-size:16px; font-weight:800; color:#334155;">${totalCount === 0 ? '등록된 전문약 위치 데이터가 없습니다.' : '검색어와 일치하는 전문약 위치 정보가 없습니다.'}</h4>
-          <p style="font-size:13px; color:#64748b; margin-top:4px;">우측 상단의 <b>[새 전문약 위치/수정흔적 등록]</b> 버튼을 눌러 위치와 수정 흔적을 남기세요.</p>
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-8 sm:p-12 text-center border border-slate-200 dark:border-slate-800 space-y-3">
+          <div class="text-4xl">💊</div>
+          <h4 class="text-base font-bold text-slate-700 dark:text-slate-300">${totalCount === 0 ? '등록된 전문약 위치 데이터가 없습니다.' : '검색어와 일치하는 전문약 위치 정보가 없습니다.'}</h4>
+          <p class="text-xs text-slate-400 max-w-sm mx-auto">상단의 <strong>[+ 새 전문약 위치/수정흔적 등록]</strong> 버튼을 눌러 위치와 수정 흔적을 남기세요.</p>
         </div>
       `;
     }
 
     return `
-      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:18px;">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
         ${filtered.map(item => renderItemCard(item)).join('')}
       </div>
     `;
@@ -399,37 +400,36 @@ window.RxMedicineLocationModule = (function () {
     const hasPhoto = !!item.photoUrl;
 
     return `
-      <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 2px 8px rgba(0,0,0,0.03); position:relative;">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition relative">
         <div>
           ${hasPhoto ? `
-            <!-- 📸 사진이 있을 때만 165px 썸네일 박스 노출 -->
-            <div style="position:relative; width:100%; height:165px; background:#f8fafc; overflow:hidden; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')">
-              <img src="${item.photoUrl}" alt="${escapeHTML(item.name)}" style="width:100%; height:100%; object-fit:cover;" />
-              <span style="position:absolute; top:10px; left:10px; background:${zoneObj.bg}; color:${zoneObj.color}; border:1px solid ${zoneObj.border}; font-size:11px; font-weight:800; padding:3px 10px; border-radius:14px; box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+            <!-- 📸 사진이 있을 때 썸네일 박스 -->
+            <div class="relative w-full h-40 sm:h-44 bg-slate-100 dark:bg-slate-950 overflow-hidden border-b border-slate-100 dark:border-slate-800 cursor-pointer" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')">
+              <img src="${item.photoUrl}" alt="${escapeHTML(item.name)}" class="w-full h-full object-cover" />
+              <span class="absolute top-2.5 left-2.5 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full shadow-sm" style="background:${zoneObj.bg}; color:${zoneObj.color}; border:1px solid ${zoneObj.border};">
                 ${zoneObj.name}
               </span>
             </div>
           ` : ''}
 
-          <div style="padding:16px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:${hasPhoto ? '8px' : '10px'};">
-              <h3 style="font-size:16px; font-weight:800; color:#0f172a; margin:0; word-break:break-all; cursor:pointer;" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')">
+          <div class="p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight cursor-pointer break-all" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')">
                 ${escapeHTML(item.name)}
               </h3>
               ${!hasPhoto ? `
-                <!-- 🏷️ 사진이 없는 슬림 카드 상단 구역 뱃지 -->
-                <span style="background:${zoneObj.bg}; color:${zoneObj.color}; border:1px solid ${zoneObj.border}; font-size:11px; font-weight:800; padding:3px 10px; border-radius:14px; white-space:nowrap; flex-shrink:0;">
+                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0" style="background:${zoneObj.bg}; color:${zoneObj.color}; border:1px solid ${zoneObj.border};">
                   ${zoneObj.name}
                 </span>
               ` : ''}
             </div>
 
             <!-- 수기 위치 뱃지 -->
-            <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:12px; padding:10px 12px; margin-bottom:10px; display:flex; align-items:flex-start; gap:8px;">
-              <i class="fas fa-location-dot" style="color:#059669; margin-top:3px; font-size:14px;"></i>
+            <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-xl p-3 flex items-start gap-2">
+              <i class="fas fa-location-dot text-emerald-600 mt-0.5 text-xs"></i>
               <div>
-                <div style="font-size:10px; font-weight:800; color:#059669; text-transform:uppercase;">조제실 수기 위치</div>
-                <div style="font-size:14px; font-weight:900; color:#065f46; margin-top:1px;">
+                <div class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">조제실 수기 위치</div>
+                <div class="text-sm font-black text-emerald-900 dark:text-emerald-200 mt-0.5">
                   ${escapeHTML(item.locationDetail || '위치 미지정')}
                 </div>
               </div>
@@ -437,36 +437,36 @@ window.RxMedicineLocationModule = (function () {
 
             <!-- 📝 전산 수정 흔적 메모 뱃지 -->
             ${item.adjustmentReason ? `
-              <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:10px 12px; margin-bottom:10px;">
-                <div style="font-size:10.5px; font-weight:800; color:#059669; margin-bottom:2px;">📝 전산 수정 흔적</div>
-                <div style="font-size:12.5px; font-weight:700; color:#334155;">
+              <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+                <div class="text-[10.5px] font-extrabold text-emerald-600 dark:text-emerald-400 mb-0.5">📝 전산 수정 흔적</div>
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 leading-snug">
                   ${escapeHTML(item.adjustmentReason)}
                 </div>
               </div>
             ` : ''}
 
             ${item.notes ? `
-              <div style="font-size:12px; color:#475569; background:#fff1f2; border:1px solid #fecdd3; border-radius:8px; padding:8px 10px; margin-bottom:10px;">
-                <i class="fas fa-sticky-note text-rose-500 me-1"></i> ${escapeHTML(item.notes)}
+              <div class="text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 rounded-lg p-2.5">
+                <i class="fas fa-sticky-note text-rose-500 mr-1"></i> ${escapeHTML(item.notes)}
               </div>
             ` : ''}
           </div>
         </div>
 
         <!-- 하단 관리 메타 바 -->
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#f8fafc; border-top:1px solid #f1f5f9;">
-          <span style="font-size:11px; font-weight:600; color:#94a3b8;">
-            🕒 <b>${escapeHTML(item.updatedBy || '약국')}</b> (${escapeHTML(item.updatedAt ? item.updatedAt.substring(5,16) : '')})
+        <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <span class="text-[11px] font-medium text-slate-400">
+            🕒 <b>${escapeHTML(item.updatedBy || '약국')}</b> (${escapeHTML(item.updatedAt ? String(item.updatedAt).substring(5,16) : '')})
           </span>
-          <div style="display:flex; gap:6px;">
-            <button type="button" onclick="RxMedicineLocationModule.openEditModal('${item.id}')" style="padding:5px 10px; background:#f0fdf4; border:1px solid #86efac; color:#059669; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer;">
-              <i class="fas fa-edit me-1"></i> 위치/수정흔적 작성
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onclick="RxMedicineLocationModule.openEditModal('${item.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-bold text-xs transition">
+              <i class="fas fa-edit me-1"></i> 수정/흔적
             </button>
-            <button type="button" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')" style="padding:5px 9px; background:#eff6ff; border:1px solid #bfdbfe; color:#2563eb; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer;">
+            <button type="button" onclick="RxMedicineLocationModule.openDetailModal('${item.id}')" class="px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 font-bold text-xs transition">
               이력 (${historyCount})
             </button>
             ${isDirector ? `
-              <button type="button" onclick="RxMedicineLocationModule.deleteItem('${item.id}', '${escapeHTML(item.name).replace(/'/g, "\\'")}')" style="padding:5px 8px; background:#fff1f2; border:1px solid #fecdd3; color:#e11d48; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer;" title="약국장 전용 삭제">
+              <button type="button" onclick="RxMedicineLocationModule.deleteItem('${item.id}', '${escapeHTML(item.name).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg bg-rose-100 dark:bg-rose-950 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 font-bold text-xs transition" title="약국장 전용 삭제">
                 <i class="fas fa-trash-alt"></i>
               </button>
             ` : ''}

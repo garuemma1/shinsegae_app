@@ -232,7 +232,7 @@ window.WorklogModule = (function () {
                         <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-line !important; word-break: break-word !important; text-align: left !important; margin: 0 !important; padding: 0 !important;">${cleanContent}</div>
                         ${task.imageUrl ? `
                           <div style="margin-top: 10px; text-align: left !important;">
-                            <button type="button" onclick="App.openImageLightbox('${task.imageUrl}', '${authorStr.replace(/'/g, "\\'")}님의 첨부 사진')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; color: #1d4ed8; font-size: 12.5px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
+                            <button type="button" onclick="WorklogModule.openPhoto('${task.id}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; color: #1d4ed8; font-size: 12.5px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
                               <i class="fas fa-camera text-blue-600 me-1"></i> 📷 첨부 사진 크게보기 (클릭)
                             </button>
                           </div>
@@ -755,7 +755,7 @@ window.WorklogModule = (function () {
             <div>${highlightedText}</div>
             ${l.imageUrl ? `
               <div style="margin-top:10px;">
-                <button type="button" onclick="App.openImageLightbox('${l.imageUrl}', '첨부 사진')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <button type="button" onclick="WorklogModule.openPhoto('${l.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                   <i class="far fa-image me-1" style="font-size:12px;"></i> 첨부 사진 크게보기 (클릭)
                 </button>
               </div>
@@ -817,7 +817,7 @@ window.WorklogModule = (function () {
             <div>${contentText}</div>
             ${l.imageUrl ? `
               <div style="margin-top:10px;">
-                <button type="button" onclick="App.openImageLightbox('${l.imageUrl}', '첨부 사진')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <button type="button" onclick="WorklogModule.openPhoto('${l.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                   <i class="far fa-image me-1" style="font-size:12px;"></i> 첨부 사진 크게보기 (클릭)
                 </button>
               </div>
@@ -833,10 +833,18 @@ window.WorklogModule = (function () {
   }
   function closeDayModal() { document.getElementById('worklog-day-modal').style.display = 'none'; }
 
+  function openPhoto(id) {
+    const logs = window.SheetsSync.getWorklogs() || [];
+    const target = logs.find(l => l.id === id);
+    if (target && target.imageUrl && window.App && typeof window.App.openImageLightbox === 'function') {
+      window.App.openImageLightbox(target.imageUrl, (target.authorName || '약국') + '님의 첨부 사진');
+    }
+  }
+
   // 외부에서 호출할 수 있도록 함수들을 내보냅니다 (checkTask, deleteTask 포함됨)
   return { 
     render, showCreateModal, closeModal, previewImage, handleFileSelect, resetImageSelection,
     submitTask, completeTask, checkTask, deleteTask, changeMonth, 
-    openDayModal, closeDayModal, executeSearch 
+    openDayModal, closeDayModal, executeSearch, openPhoto
   };
 })();

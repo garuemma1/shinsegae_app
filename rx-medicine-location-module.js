@@ -692,9 +692,9 @@ window.RxMedicineLocationModule = (function () {
 
       ${target.photoUrl ? `
         <div style="margin-bottom:18px; text-align:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:12px; position:relative;">
-          <img src="${target.photoUrl}" alt="${escapeHTML(target.name)}" onclick="App.openImageLightbox('${target.photoUrl}', '${escapeHTML(target.name).replace(/'/g, "\\'")}')" style="max-height:260px; width:100%; object-fit:contain; border-radius:10px; cursor:pointer;" />
+          <img src="${target.photoUrl}" alt="${escapeHTML(target.name)}" onclick="RxMedicineLocationModule.openPhoto('${target.id}')" style="max-height:260px; width:100%; object-fit:contain; border-radius:10px; cursor:pointer;" />
           <div style="margin-top:8px;">
-            <button type="button" onclick="App.openImageLightbox('${target.photoUrl}', '${escapeHTML(target.name).replace(/'/g, "\\'")}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-size:12px; font-weight:800; color:#059669; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <button type="button" onclick="RxMedicineLocationModule.openPhoto('${target.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-size:12px; font-weight:800; color:#059669; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
               <i class="fas fa-expand"></i> 사진 원본 크게보기
             </button>
           </div>
@@ -799,6 +799,14 @@ window.RxMedicineLocationModule = (function () {
     });
   }
 
+  function openPhoto(id) {
+    const items = getStorageData();
+    const target = items.find(i => i.id === id);
+    if (target && target.photoUrl && window.App && typeof window.App.openImageLightbox === 'function') {
+      window.App.openImageLightbox(target.photoUrl, target.name);
+    }
+  }
+
   return {
     render: render,
     handleSearch: handleSearch,
@@ -811,6 +819,7 @@ window.RxMedicineLocationModule = (function () {
     closeDetailModal: closeDetailModal,
     closeModal: closeModal,
     handleFormSubmit: handleFormSubmit,
-    deleteItem: deleteItem
+    deleteItem: deleteItem,
+    openPhoto: openPhoto
   };
 })();

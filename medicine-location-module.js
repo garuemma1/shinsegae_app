@@ -516,9 +516,9 @@ window.MedicineLocationModule = (function () {
       <!-- 대표 위치 사진 -->
       ${target.photoUrl ? `
         <div style="margin-bottom:18px; text-align:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:12px; position:relative;">
-          <img src="${target.photoUrl}" alt="${target.name}" onclick="App.openImageLightbox('${target.photoUrl}', '${target.name.replace(/'/g, "\\'")}')" style="max-height:280px; width:100%; object-fit:contain; border-radius:10px; cursor:pointer;" />
+          <img src="${target.photoUrl}" alt="${escapeHTML(target.name)}" onclick="MedicineLocationModule.openPhoto('${target.id}')" style="max-height:280px; width:100%; object-fit:contain; border-radius:10px; cursor:pointer;" />
           <div style="margin-top:8px;">
-            <button type="button" onclick="App.openImageLightbox('${target.photoUrl}', '${target.name.replace(/'/g, "\\'")}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-size:12px; font-weight:800; color:#2563eb; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <button type="button" onclick="MedicineLocationModule.openPhoto('${target.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-size:12px; font-weight:800; color:#2563eb; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
               <i class="fas fa-expand"></i> 사진 원본 크게보기
             </button>
           </div>
@@ -671,8 +671,16 @@ window.MedicineLocationModule = (function () {
     });
   }
 
+  function openPhoto(id) {
+    const items = getStorageData();
+    const target = items.find(i => i.id === id);
+    if (target && target.photoUrl && window.App && typeof window.App.openImageLightbox === 'function') {
+      window.App.openImageLightbox(target.photoUrl, target.name);
+    }
+  }
+
   return {
     render, openCreateModal, openEditModal, closeModal, openDetailModal, closeDetailModal,
-    handlePhotoSelect, resetPhoto, handleSubmit, handleSearch, filterCategory, deleteMedicine
+    handlePhotoSelect, resetPhoto, handleSubmit, handleSearch, filterCategory, deleteMedicine, openPhoto
   };
 })();

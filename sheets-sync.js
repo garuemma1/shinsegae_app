@@ -2127,10 +2127,10 @@ window.SheetsSync = (function () {
         }
         const currUser = getCurrentUser();
         const pushPayload = {
-          timestamp: Date.now(),
+          timestamp: Date.now() + '_' + Math.floor(Math.random() * 10000),
           senderId: currUser ? currUser.id : 'unknown',
           senderName: currUser ? currUser.name : '시스템',
-          body: '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.'
+          body: '새로운 공지, 업무일지, 약품 위치 또는 소모품 변동사항이 도착했습니다.'
         };
         if (fbDb) {
           fbDb.ref('shinsegae_master_db/pushSignal').set(pushPayload);

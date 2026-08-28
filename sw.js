@@ -32,8 +32,8 @@ self.addEventListener('push', (event) => {
   let data = {
     title: '📢 신세계약국 알림',
     body: '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.',
-    icon: 'logo.jpg',
-    badge: 'logo.jpg',
+    icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
+    badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
     url: 'https://ganumma1.github.io/shinsegae_app/',
     tag: 'ssg-notification',
     unreadCount: 1
@@ -52,8 +52,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || 'logo.jpg',
-    badge: data.badge || 'logo.jpg',
+    icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
+    badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
     tag: 'ssg-notification-tag',
     renotify: true,
     data: { url: data.url || 'https://ganumma1.github.io/shinsegae_app/' },

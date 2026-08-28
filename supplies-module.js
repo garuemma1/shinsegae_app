@@ -33,12 +33,12 @@ window.SuppliesModule = (function () {
               <h2 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 <span>📦 약국 소모품 관리 & 주문 시스템</span>
                 <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
-                  신세계약국 실시간 연동
+                  신세계약국 소모품 시스템
                 </span>
               </h2>
             </div>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              전산봉투, 약봉투, 영수증롤, 라벨지 등 소모품 요청 ➔ 약국장 주문 확정 ➔ 입고 완료 & 지출 장부 자동 이월
+              전산봉투, 약봉투, 영수증롤, 라벨지 등 약국 소모품 요청 및 주문/입고 관리 현황
             </p>
           </div>
 
@@ -515,7 +515,7 @@ window.SuppliesModule = (function () {
           <div class="modal-header">
             <h3 class="font-bold text-base text-blue-600 dark:text-blue-400 flex items-center gap-2">
               <i class="fas fa-check-circle"></i>
-              <span>약국장 소모품 주문 확정 & 장부 칸 선택</span>
+              <span>약국장 소모품 주문 확정 & 결제 정보 입력</span>
             </h3>
             <button class="close-btn" onclick="SuppliesModule.closeConfirmModal()">&times;</button>
           </div>
@@ -542,19 +542,19 @@ window.SuppliesModule = (function () {
               <div class="form-group">
                 <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">결제 수단 구분 <span class="text-rose-500">*</span></label>
                 <select id="sup-confirm-paymethod" onchange="SuppliesModule.updateLedgerCategoryOptions(this.value)" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-emerald-600">
-                  <option value="CASH">💵 현금 / 통장 계좌이체 (초록색 칸)</option>
-                  <option value="CARD">💳 카드 결제 (노란색 칸)</option>
+                  <option value="CASH">💵 현금 / 통장 계좌이체</option>
+                  <option value="CARD">💳 카드 결제</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">구글 시트 기장 열(Column) 선택 <span class="text-rose-500">*</span></label>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">지출 분류 항목 선택 <span class="text-rose-500">*</span></label>
                 <select id="sup-confirm-ledgercategory" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-blue-600">
-                  <option value="잡비 현금">🟢 [현금] 잡비 현금 (L열 - 소모품/전산봉투/기타)</option>
-                  <option value="식대">🟢 [현금] 식대 (M열)</option>
-                  <option value="박카스">🟢 [현금] 박카스 (O열)</option>
-                  <option value="현매">🟢 [현금] 현매 (J열)</option>
-                  <option value="손님계좌이체">🟢 [현금] 손님계좌이체 (I열)</option>
+                  <option value="잡비 현금">🟢 [현금] 잡비 현금 (소모품/전산봉투/기타)</option>
+                  <option value="식대">🟢 [현금] 식대</option>
+                  <option value="박카스">🟢 [현금] 박카스</option>
+                  <option value="현매">🟢 [현금] 현매</option>
+                  <option value="손님계좌이체">🟢 [현금] 손님계좌이체</option>
                 </select>
               </div>
             </div>
@@ -785,27 +785,27 @@ window.SuppliesModule = (function () {
 
     if (payMethod === 'CARD') {
       selectEl.innerHTML = `
-        <option value="잡비 카드">🟡 [카드] 잡비 카드 (N열 - 소모품/쿠팡/일반쇼핑몰 카드 결제) [추천]</option>
-        <option value="조은봉투">🟡 [카드] 조은봉투 (Y열 - 약봉투/전산봉투 카드 결제)</option>
-        <option value="그외 온라인결제">🟡 [카드] 그외 온라인결제 (X열 - 제약회사 온라인 결제)</option>
-        <option value="바로팜">🟡 [카드] 바로팜 (AA열)</option>
-        <option value="HMP 대웅 한미">🟡 [카드] HMP 대웅 한미 (Q열)</option>
-        <option value="대웅 다원">🟡 [카드] 대웅 다원 (P열)</option>
-        <option value="동아">🟡 [카드] 동아 (R열)</option>
-        <option value="쥴릭">🟡 [카드] 쥴릭 (S열)</option>
-        <option value="동화약품">🟡 [카드] 동화약품 (T열)</option>
-        <option value="일동">🟡 [카드] 일동 (U열)</option>
-        <option value="종근당">🟡 [카드] 종근당 (V열)</option>
-        <option value="녹십자">🟡 [카드] 녹십자 (W열)</option>
-        <option value="보령">🟡 [카드] 보령 (Z열)</option>
+        <option value="잡비 카드">🟡 [카드] 잡비 카드 (소모품/쿠팡/일반쇼핑몰 카드 결제) [추천]</option>
+        <option value="조은봉투">🟡 [카드] 조은봉투 (약봉투/전산봉투 카드 결제)</option>
+        <option value="그외 온라인결제">🟡 [카드] 그외 온라인결제 (제약회사 온라인 결제)</option>
+        <option value="바로팜">🟡 [카드] 바로팜</option>
+        <option value="HMP 대웅 한미">🟡 [카드] HMP 대웅 한미</option>
+        <option value="대웅 다원">🟡 [카드] 대웅 다원</option>
+        <option value="동아">🟡 [카드] 동아</option>
+        <option value="쥴릭">🟡 [카드] 쥴릭</option>
+        <option value="동화약품">🟡 [카드] 동화약품</option>
+        <option value="일동">🟡 [카드] 일동</option>
+        <option value="종근당">🟡 [카드] 종근당</option>
+        <option value="녹십자">🟡 [카드] 녹십자</option>
+        <option value="보령">🟡 [카드] 보령</option>
       `;
     } else {
       selectEl.innerHTML = `
-        <option value="잡비 현금">🟢 [현금] 잡비 현금 (L열 - 소모품/전산봉투/기타 현금) [추천]</option>
-        <option value="식대">🟢 [현금] 식대 (M열)</option>
-        <option value="박카스">🟢 [현금] 박카스 (O열)</option>
-        <option value="현매">🟢 [현금] 현매 (J열)</option>
-        <option value="손님계좌이체">🟢 [현금] 손님계좌이체 (I열)</option>
+        <option value="잡비 현금">🟢 [현금] 잡비 현금 (소모품/전산봉투/기타 현금) [추천]</option>
+        <option value="식대">🟢 [현금] 식대</option>
+        <option value="박카스">🟢 [현금] 박카스</option>
+        <option value="현매">🟢 [현금] 현매</option>
+        <option value="손님계좌이체">🟢 [현금] 손님계좌이체</option>
       `;
     }
   }

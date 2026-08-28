@@ -1978,7 +1978,42 @@ function writeSheetData(sheet, dataList) {
     });
   }
 
+  // 🖼️ 전역 공통 모달: 원본 사진 대형 라이트박스 (Chrome Data URI 차단 100% 우회)
+  function openImageLightbox(url, title) {
+    if (!url) return;
+    const modal = document.getElementById('global-image-lightbox-modal');
+    const img = document.getElementById('global-lightbox-img');
+    const titleEl = document.getElementById('global-lightbox-title');
+    const downloadBtn = document.getElementById('global-lightbox-download-btn');
+
+    if (img) img.src = url;
+    if (titleEl) titleEl.innerHTML = `<i class="fas fa-camera text-blue-400 me-1"></i> <span>${title || '사진 원본 크게보기'}</span>`;
+    if (downloadBtn) {
+      downloadBtn.onclick = function() {
+        try {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${(title || '약국사진').replace(/[^\w가-힣]/g, '_')}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } catch (e) {
+          console.warn('Download error:', e);
+        }
+      };
+    }
+
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeImageLightbox() {
+    const modal = document.getElementById('global-image-lightbox-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
   return {
+    openImageLightbox,
+    closeImageLightbox,
     init,
     forceHardReload,
     renderActiveModule,

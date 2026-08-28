@@ -516,10 +516,12 @@ window.MedicineLocationModule = (function () {
       <!-- 대표 위치 사진 -->
       ${target.photoUrl ? `
         <div style="margin-bottom:18px; text-align:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:12px; position:relative;">
-          <img src="${target.photoUrl}" alt="${target.name}" style="max-height:280px; width:100%; object-fit:contain; border-radius:10px;" />
-          <a href="${target.photoUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; margin-top:8px; background:#ffffff; border:1px solid #cbd5e1; padding:4px 12px; border-radius:8px; font-size:12px; font-weight:700; color:#2563eb; text-decoration:none;">
-            <i class="fas fa-expand"></i> 사진 원본 크게보기
-          </a>
+          <img src="${target.photoUrl}" alt="${target.name}" onclick="App.openImageLightbox('${target.photoUrl}', '${target.name.replace(/'/g, "\\'")}')" style="max-height:280px; width:100%; object-fit:contain; border-radius:10px; cursor:pointer;" />
+          <div style="margin-top:8px;">
+            <button type="button" onclick="App.openImageLightbox('${target.photoUrl}', '${target.name.replace(/'/g, "\\'")}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-size:12px; font-weight:800; color:#2563eb; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+              <i class="fas fa-expand"></i> 사진 원본 크게보기
+            </button>
+          </div>
         </div>
       ` : ''}
 

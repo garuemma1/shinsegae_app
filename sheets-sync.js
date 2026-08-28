@@ -1306,11 +1306,20 @@ window.SheetsSync = (function () {
 
       function getSafeTime(item, dateField) {
         if (!item) return 0;
-        if (item.id && typeof item.id === 'string' && item.id.startsWith('task_')) {
-          const idNum = parseInt(item.id.replace('task_', ''), 10);
-          if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
+        if (item.id && typeof item.id === 'string') {
+          if (item.id.startsWith('task_') || item.id.startsWith('sup_') || item.id.startsWith('w_') || item.id.startsWith('disc_')) {
+            const numStr = item.id.replace(/^[a-z_]+/, '');
+            const idNum = parseInt(numStr, 10);
+            if (!isNaN(idNum) && idNum > 1000000000000) {
+              // 만약 updatedAt 수치가 더 최신이면 updatedAt 사용
+              const uTime = typeof item.updatedAt === 'number' ? item.updatedAt : (item.updatedAt ? new Date(String(item.updatedAt).replace(/-/g, '/')).getTime() : 0);
+              return (!isNaN(uTime) && uTime > idNum) ? uTime : idNum;
+            }
+          }
         }
-        const str = item.createdAt || item[dateField] || item.date || item.updatedAt || '';
+        const str = (dateField && item[dateField] !== undefined && item[dateField] !== null && item[dateField] !== '')
+          ? item[dateField]
+          : (item.updatedAt || item.createdAt || item.date || '');
         if (!str) return 0;
         if (typeof str === 'number') return str;
         const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/');
@@ -1318,7 +1327,7 @@ window.SheetsSync = (function () {
         return isNaN(ms) ? 0 : ms;
       }
 
-      function mergeById(localList, cloudList, dateField = 'createdAt') {
+      function mergeById(localList, cloudList, dateField = 'updatedAt') {
         const map = {};
         (localList || []).forEach(item => {
           if (item && item.id && !activeDeletedIds.includes(item.id)) {

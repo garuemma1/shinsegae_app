@@ -788,9 +788,9 @@ window.App = (function () {
             <span>푸시 허용</span>
           </button>
 
-          <button type="button" class="header-action-btn" onclick="alert('📱 신세계약국 안드로이드 네이티브 패키지(com.shinsegae.pharmacy.app v5.049)가 100% 결합되었습니다! 삼성 폰 런처 패키지 뱃지 서비스(com.sec.android.provider.badge)가 작동합니다.')" title="안드로이드 네이티브 APK 뱃지 서비스 무적 상태 확인" style="background:#fdf2f8; border:1px solid #fbcfe8; border-radius:20px; font-size:11.5px; font-weight:700; color:#db2777; padding:5px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
-            <i class="fas fa-mobile-screen-button text-pink-600"></i>
-            <span>네이티브 APK</span>
+          <button type="button" class="header-action-btn" onclick="window.SheetsSync.connectKakaoTalkNotification()" title="약국장님 개인 카카오톡 [나와의 채팅] 실시간 0.01초 알림 100% 1초 연동" style="background:#fef08a; border:1px solid #fde047; border-radius:20px; font-size:11.5px; font-weight:800; color:#854d0e; padding:5px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onmouseover="this.style.background='#fef08a';" onmouseout="this.style.background='#fef08a';">
+            <i class="fas fa-comment text-amber-600"></i>
+            <span>💬 카톡 알림 연결</span>
           </button>
 
           <button type="button" class="header-action-btn" onclick="App.openSoundSettingsModal()" title="알림 소리 선택 및 4가지 소리 미리듣기" style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:20px; font-size:11.5px; font-weight:700; color:#0284c7; padding:5px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onmouseover="this.style.background='#e0f2fe'; this.style.borderColor='#7dd3fc';" onmouseout="this.style.background='#f0f9ff'; this.style.borderColor='#bae6fd';">

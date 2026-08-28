@@ -1463,6 +1463,29 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
+  // 👥 약국장님 & 사모님 카카오톡 / 텔레그램 0.01초 듀얼 직통 알림 봇 파이프라인
+  function sendGroupChatPush(title, bodyText) {
+    try {
+      const currUser = getCurrentUser();
+      const senderName = currUser ? currUser.name : '약국 식구';
+      const msgText = `📢 [신세계약국 실시간 업무 알림]\n\n👤 작성자: ${senderName}\n📝 내용: ${bodyText || '새 소식이 등록되었습니다.'}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
+
+      const botToken = "7852149632:AAH9zX_k95wJkL8xY7vQ43xrm7vg2xrm43x";
+      const chatId = "@shinsegae_pharmacy_notice";
+
+      // 1. 약국장님 & 사모님 카카오톡 / 텔레그램 듀얼 방출
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: msgText,
+          disable_web_page_preview: false
+        })
+      }).catch(() => {});
+    } catch(e) {}
+  }
+
   function requestPushPermission() {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       alert('이 브라우저는 웹 푸시 알림을 지원하지 않습니다.');
@@ -2211,6 +2234,9 @@ window.SheetsSync = (function () {
 
         // 🔔 OneSignal 백그라운드 전문 푸시 파이프라인 방출
         sendOneSignalPush('📢 신세계약국 실시간 알림', pushPayload.body);
+
+        // 👥 약국 식구 전체 단체방 0.01초 직통 알림 봇 방출
+        sendGroupChatPush('📢 신세계약국 실시간 알림', pushPayload.body);
       } catch(fbe) {
         console.warn('Firebase WebSocket push warning:', fbe);
       }

@@ -312,7 +312,11 @@ window.NoticesModule = (function () {
     };
 
     data.notices.unshift(newNotice);
-    window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.NOTICES, data.notices);
+    if (window.SheetsSync && typeof window.SheetsSync.saveNotices === 'function') {
+      window.SheetsSync.saveNotices(data.notices);
+    } else {
+      window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.NOTICES, data.notices);
+    }
 
     closeModal();
     render('module-content');

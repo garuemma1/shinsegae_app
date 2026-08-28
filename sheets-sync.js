@@ -1436,10 +1436,10 @@ window.SheetsSync = (function () {
         }
         const str = (dateField && item[dateField] !== undefined && item[dateField] !== null && item[dateField] !== '')
           ? item[dateField]
-          : (item.updatedAt || item.createdAt || item.date || '');
+          : (item.updatedAt || item.createdAt || item.date || item.dateStr || '');
         if (!str) return 0;
         if (typeof str === 'number') return str;
-        const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/');
+        const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/').replace(/\./g, '/');
         const ms = new Date(s).getTime();
         return isNaN(ms) ? 0 : ms;
       }
@@ -1483,13 +1483,13 @@ window.SheetsSync = (function () {
         listA.forEach(item => {
           if (item) {
             const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
-            if (key) mapA[key] = String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || item.shift || '');
+            if (key) mapA[key] = String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
           }
         });
         return listB.some(item => {
           if (!item) return false;
           const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
-          return !key || !mapA[key] || mapA[key] !== String(item.updatedAt || item.date || item.createdAt || item.title || item.content || item.text || item.shift || '');
+          return !key || !mapA[key] || mapA[key] !== String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
         });
       }
 

@@ -354,6 +354,33 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
+  // ─── 직원할인구매대장 읽음 상태 관리 헬퍼 ─────────────────────────────────────
+  function _discountPurchaseFingerprint(item) {
+    if (!item) return '';
+    return [item.id || '', item.updatedAt || item.dateStr || '', item.isPaid ? '1' : '0', item.totalPrice || ''].join('|');
+  }
+
+  function markDiscountPurchaseRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const purchases = (window.SheetsSync.getDiscountPurchases ? window.SheetsSync.getDiscountPurchases() : (window.SheetsSync.getData().discountPurchases || [])) || [];
+    const fingerprints = purchases.map(_discountPurchaseFingerprint);
+    try {
+      localStorage.setItem('ssg_read_discount_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadDiscountPurchase(currUser, purchases) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_discount_' + currUser.id);
+      if (!raw) return purchases.length > 0;
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return purchases.some(item => !savedSet.has(_discountPurchaseFingerprint(item)));
+    } catch(e) { return false; }
+  }
+
   // ─── 약국장 결재 읽음 상태 관리 헬퍼 ─────────────────────────────────────
   // 결재 대상 전체(연차, 할인구매, 미확인업무일지, 미승인스케줄)의 지문 합산
   function _approvalFingerprint(data) {
@@ -420,7 +447,10 @@ window.App = (function () {
       const hasSubmittedSchedules = isDirector && employees.some(e => e.role !== '약국장' && stObj[e.id] === 'SUBMITTED');
 
       const pendingLeaves = (data.leaveRequests || []).filter(l => l.status === 'PENDING');
-      const unpaidPurchases = (data.discountPurchases || []).filter(p => !p.isPaid);
+      const discountPurchases = (window.SheetsSync.getDiscountPurchases ? window.SheetsSync.getDiscountPurchases() : data.discountPurchases) || [];
+      const unpaidPurchases = discountPurchases.filter(p => !p.isPaid);
+      const hasUnreadDiscount = _hasUnreadDiscountPurchase(currUser, discountPurchases);
+
       const hasUnreadApproval = _hasUnreadApproval(currUser, data);
 
       const suppliesList = (window.SheetsSync.getSupplies ? window.SheetsSync.getSupplies() : data.supplies) || [];
@@ -434,7 +464,7 @@ window.App = (function () {
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
-        discountPurchase: unpaidPurchases.length > 0 ? (isDirector ? unpaidPurchases.length : 'N') : null,
+        discountPurchase: (unpaidPurchases.length > 0 && hasUnreadDiscount) ? (isDirector ? unpaidPurchases.length : 'N') : (hasUnreadDiscount ? 'N' : null),
         approval: hasUnreadApproval ? 'N' : null
       };
     } catch(e) {
@@ -1269,6 +1299,9 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'approval') {
         markApprovalRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'discount-purchase') {
+        markDiscountPurchaseRead();
         updateSidebarBadgesOnly();
       }
     } catch(err) {

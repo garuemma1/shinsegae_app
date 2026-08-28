@@ -1412,7 +1412,7 @@ window.SheetsSync = (function () {
     }
     Notification.requestPermission().then((permission) => {
       if (permission === 'granted') {
-        alert('✅ 365메가스타약국 실시간 웹 푸시 알림이 성공적으로 설정되었습니다!');
+        alert('✅ 신세계약국 실시간 웹 푸시 알림이 성공적으로 설정되었습니다!');
         registerServiceWorker();
       } else {
         alert('⚠️ 푸시 알림 권한이 차단되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
@@ -1434,7 +1434,7 @@ window.SheetsSync = (function () {
     try {
       if (isSoundMuted()) return;
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification(title || '📢 365메가스타약국 알림', {
+        new Notification(title || '📢 신세계약국 알림', {
           body: body || '새로운 업무일지 또는 소모품 변동사항이 있습니다.',
           icon: 'logo.jpg',
           tag: 'ssg-notification'
@@ -1486,7 +1486,7 @@ window.SheetsSync = (function () {
                 const currUser = getCurrentUser();
                 if (!currUser || sig.senderId !== currUser.id) {
                   playNotificationChime();
-                  sendDesktopNotification('📢 365메가스타약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
+                  sendDesktopNotification('📢 신세계약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
                   
                   // 🔥 즉시 0.05초 만에 클라우드 최신 데이터 수신 및 사이드바/스마트폰 N 배지 동시에 100% 강제 갱신!
                   pullFromCloud(() => {

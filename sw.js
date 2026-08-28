@@ -1,5 +1,5 @@
 /**
- * 🔔 365메가스타약국 실시간 웹 푸시 & 백그라운드 알림 서비스 워커 (Service Worker)
+ * 🔔 신세계약국 실시간 웹 푸시 & 백그라운드 알림 서비스 워커 (Service Worker)
  * 카카오톡 방식 스마트폰 알림바 배너 & 폰 시스템 알림음 제어 모듈
  */
 
@@ -30,7 +30,7 @@ self.addEventListener('message', (event) => {
 // 📩 백그라운드 푸시 알림 수신 이벤트
 self.addEventListener('push', (event) => {
   let data = {
-    title: '📢 365메가스타약국 알림',
+    title: '📢 신세계약국 알림',
     body: '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.',
     icon: 'logo.jpg',
     badge: 'logo.jpg',

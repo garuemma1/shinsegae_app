@@ -1278,6 +1278,26 @@ window.SheetsSync = (function () {
     };
     window.addEventListener('click', unlockAudio, { once: true });
     window.addEventListener('touchstart', unlockAudio, { once: true });
+
+    // 📱 스마트폰 앱 복귀, 화면 켜짐, 앱 아이콘 터치 진입 시 F5 손 새로고침 필요없이 0.01초 직통 자동 갱신
+    const triggerInstantCloudResync = () => {
+      if (typeof pullFromCloud === 'function') {
+        pullFromCloud(() => {
+          if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+            window.App.updateSidebarBadgesOnly();
+          }
+        });
+      }
+    };
+
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        triggerInstantCloudResync();
+      }
+    });
+
+    window.addEventListener('pageshow', triggerInstantCloudResync);
+    window.addEventListener('focus', triggerInstantCloudResync);
   }
 
   function getSoundPreset() {

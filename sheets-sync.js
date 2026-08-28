@@ -1254,6 +1254,123 @@ window.SheetsSync = (function () {
     measurementId: "G-5THH6NF54S"
   };
 
+  // 🔔 맑고 명쾌한 약국 전용 2음 딩동 알림음 (Web Audio API)
+  let audioCtx = null;
+
+  function initAudioContext() {
+    try {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    } catch(e) {}
+  }
+
+  if (typeof window !== 'undefined') {
+    const unlockAudio = () => {
+      initAudioContext();
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('click', unlockAudio, { once: true });
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+  }
+
+  function playNotificationChime() {
+    try {
+      const isMuted = safeGetItem('ssg_sound_muted') === 'true';
+      if (isMuted) return;
+
+      initAudioContext();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      // 1st note: C5 (523.25 Hz)
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, now);
+      gain1.gain.setValueAtTime(0, now);
+      gain1.gain.linearRampToValueAtTime(0.18, now + 0.02);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // 2nd note: E5 (659.25 Hz)
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(659.25, now + 0.12);
+      gain2.gain.setValueAtTime(0, now + 0.12);
+      gain2.gain.linearRampToValueAtTime(0.22, now + 0.14);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.55);
+    } catch (e) {
+      console.warn('Chime play error:', e);
+    }
+  }
+
+  function toggleSoundMute() {
+    const curr = safeGetItem('ssg_sound_muted') === 'true';
+    const next = !curr;
+    safeSetItem('ssg_sound_muted', String(next));
+    if (!next) {
+      playNotificationChime();
+    }
+    return !next;
+  }
+
+  function isSoundMuted() {
+    return safeGetItem('ssg_sound_muted') === 'true';
+  }
+
+  function requestPushPermission() {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert('이 브라우저는 웹 푸시 알림을 지원하지 않습니다.');
+      return;
+    }
+    Notification.requestPermission().then((permission) => {
+      if (permission === 'granted') {
+        alert('✅ 365메가스타약국 실시간 웹 푸시 알림이 성공적으로 설정되었습니다!');
+        registerServiceWorker();
+      } else {
+        alert('⚠️ 푸시 알림 권한이 차단되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
+      }
+    });
+  }
+
+  function registerServiceWorker() {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        console.log('Service Worker registered:', reg);
+      }).catch((err) => {
+        console.warn('Service Worker registration failed:', err);
+      });
+    }
+  }
+
+  function sendDesktopNotification(title, body) {
+    try {
+      if (isSoundMuted()) return;
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(title || '📢 365메가스타약국 알림', {
+          body: body || '새로운 업무일지 또는 소모품 변동사항이 있습니다.',
+          icon: 'logo.jpg',
+          tag: 'ssg-notification'
+        });
+      }
+    } catch (e) {}
+  }
+
   const FIREBASE_REST_URL = "https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/data.json";
 
   let fbApp = null;
@@ -2411,14 +2528,24 @@ window.SheetsSync = (function () {
     getSheetUrl,
     setSheetUrl,
     exportFullBackupJSON,
-    importFullBackupJSON
+    importFullBackupJSON,
+    playNotificationChime,
+    toggleSoundMute,
+    isSoundMuted,
+    requestPushPermission,
+    registerServiceWorker,
+    sendDesktopNotification
   };
 
   // 🚀 초기 로드 시 Firebase 실시간 연결 즉시 개시 & 스마트 화면 복귀 동기화
   try {
     if (typeof window !== 'undefined') {
-      window.addEventListener('DOMContentLoaded', initFirebase);
+      window.addEventListener('DOMContentLoaded', () => {
+        initFirebase();
+        registerServiceWorker();
+      });
       initFirebase();
+      registerServiceWorker();
 
       // 📱 스마트폰 화면을 켜거나 카톡 등 다른 앱에서 복귀 시 0.05초 만에 즉각 1회 최신화 (0바이트 대기 유지)
       document.addEventListener('visibilitychange', () => {

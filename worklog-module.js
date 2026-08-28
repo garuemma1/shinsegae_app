@@ -315,9 +315,9 @@ window.WorklogModule = (function () {
                      <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-line !important; word-break: break-word !important; text-align: left !important; margin: 0 !important; padding: 0 !important;">${cleanContent}</div>
                      ${log.imageUrl ? `
                        <div style="margin-top: 10px; text-align: left !important;">
-                         <a href="${log.imageUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; color: #1d4ed8; font-size: 12.5px; font-weight: 700; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.2s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#ffffff'">
-                           <i class="fas fa-camera"></i> 📷 첨부 사진 보기 (클릭 시 확대)
-                         </a>
+                         <button type="button" onclick="App.openImageLightbox('${log.imageUrl}', '${authorStr.replace(/'/g, "\\'")}님의 첨부 사진')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; color: #1d4ed8; font-size: 12.5px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
+                           <i class="fas fa-camera text-blue-600 me-1"></i> 📷 첨부 사진 크게보기 (클릭)
+                         </button>
                        </div>
                      ` : ''}
                    </div>

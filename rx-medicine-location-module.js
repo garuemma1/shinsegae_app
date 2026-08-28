@@ -800,10 +800,14 @@ window.RxMedicineLocationModule = (function () {
   }
 
   function openPhoto(id) {
-    const items = getStorageData();
-    const target = items.find(i => i.id === id);
-    if (target && target.photoUrl && window.App && typeof window.App.openImageLightbox === 'function') {
-      window.App.openImageLightbox(target.photoUrl, target.name);
+    try {
+      const items = getStorageData() || [];
+      const target = items.find(i => String(i.id) === String(id));
+      if (target && target.photoUrl && window.App && typeof window.App.openImageLightbox === 'function') {
+        window.App.openImageLightbox(target.photoUrl, target.name || '전문약 위치 사진');
+      }
+    } catch(e) {
+      console.warn('openPhoto error:', e);
     }
   }
 

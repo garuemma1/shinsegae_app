@@ -834,10 +834,14 @@ window.WorklogModule = (function () {
   function closeDayModal() { document.getElementById('worklog-day-modal').style.display = 'none'; }
 
   function openPhoto(id) {
-    const logs = window.SheetsSync.getWorklogs() || [];
-    const target = logs.find(l => l.id === id);
-    if (target && target.imageUrl && window.App && typeof window.App.openImageLightbox === 'function') {
-      window.App.openImageLightbox(target.imageUrl, (target.authorName || '약국') + '님의 첨부 사진');
+    try {
+      const logs = (window.SheetsSync && typeof window.SheetsSync.getWorklogs === 'function' ? window.SheetsSync.getWorklogs() : null) || [];
+      const target = logs.find(l => String(l.id) === String(id));
+      if (target && target.imageUrl && window.App && typeof window.App.openImageLightbox === 'function') {
+        window.App.openImageLightbox(target.imageUrl, (target.authorName || '약국') + '님의 첨부 사진');
+      }
+    } catch(e) {
+      console.warn('openPhoto error:', e);
     }
   }
 

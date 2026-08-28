@@ -54,8 +54,10 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
     badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
-    tag: 'ssg-notification-tag',
+    tag: 'ssg-notification-channel-v1',
+    channelId: 'ssg_push_channel',
     renotify: true,
+    silent: false,
     data: { url: data.url || 'https://ganumma1.github.io/shinsegae_app/' },
     vibrate: [200, 100, 200, 100, 300], // 스마트폰 진동 패턴
     requireInteraction: true // 📱 삼성 갤럭시 알림바 지속 보존 (홈 화면 배지 100% 노출유지)

@@ -911,3 +911,18 @@ window.SuppliesModule = (function () {
   };
 
 })();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('ssg_cloud_updated', function () {
+    const currMod = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
+    if (currMod === 'supplies-module' || currMod === 'supplies') {
+      const activeEl = document.activeElement;
+      const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+      if (!isTyping) {
+        if (window.App && typeof window.App.renderActiveModule === 'function') {
+          window.App.renderActiveModule(true);
+        }
+      }
+    }
+  });
+}

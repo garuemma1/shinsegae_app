@@ -357,7 +357,9 @@ window.App = (function () {
   // ─── 직원할인구매대장 읽음 상태 관리 헬퍼 ─────────────────────────────────────
   function _discountPurchaseFingerprint(item) {
     if (!item) return '';
-    return [item.id || '', item.updatedAt || item.dateStr || '', item.isPaid ? '1' : '0', item.totalPrice || ''].join('|');
+    const isPaidClean = (item.isPaid === true || item.isPaid === 'TRUE' || item.isPaid === 1 || item.isPaid === '1') ? '1' : '0';
+    const dateClean = String(item.updatedAt || item.dateStr || item.createdAt || '').trim();
+    return [item.id || '', dateClean, isPaidClean, Number(item.totalPrice) || 0].join('|');
   }
 
   function markDiscountPurchaseRead() {
@@ -374,7 +376,7 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_discount_' + currUser.id);
-      if (!raw) return purchases.length > 0;
+      if (raw === null) return false; // 📌 앱 재실행/최초 세션 시 억지로 N 띄우는 현구조 완전 차단
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
       return purchases.some(item => !savedSet.has(_discountPurchaseFingerprint(item)));

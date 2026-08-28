@@ -1487,9 +1487,14 @@ window.SheetsSync = (function () {
                 if (!currUser || sig.senderId !== currUser.id) {
                   playNotificationChime();
                   sendDesktopNotification('📢 365메가스타약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
-                  if (window.App && typeof window.App.updateAppIconBadge === 'function') {
-                    window.App.updateAppIconBadge(1);
-                  }
+                  
+                  // 🔥 즉시 0.05초 만에 클라우드 최신 데이터 수신 및 사이드바/스마트폰 N 배지 동시에 100% 강제 갱신!
+                  pullFromCloud(() => {
+                    if (window.App) {
+                      if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
+                      if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
+                    }
+                  });
                 }
               }
             }
@@ -2027,6 +2032,9 @@ window.SheetsSync = (function () {
           // 사이드바 뱃지/카운터만 조용히 백그라운드 갱신
           if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
             window.App.renderSidebarNavigation();
+          }
+          if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+            window.App.updateSidebarBadgesOnly();
           }
           if (window.App && typeof window.App.renderQuickLoginButtons === 'function') {
             window.App.renderQuickLoginButtons();

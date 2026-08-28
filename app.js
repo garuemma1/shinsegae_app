@@ -108,7 +108,8 @@ window.App = (function () {
 
     renderActiveModule();
 
-    // ⚡ 앱 기동 즉시 클라우드 최신 데이터 동기화 (아이폰/카톡/PC 첫 접속 즉각 반영)
+    // ⚡ 앱 기동 즉시 클라우드 최신 데이터 동기화 & 스마트폰 홈 화면 배지 0.01초 최신화
+    updateSidebarBadgesOnly();
     if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
       window.SheetsSync.pullFromCloud();
     }
@@ -507,14 +508,20 @@ window.App = (function () {
 
   function updateAppIconBadge(count) {
     try {
+      const cnt = Number(count) || 0;
       if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
-        if (count > 0) {
-          navigator.setAppBadge(count).catch(() => {});
+        if (cnt > 0) {
+          navigator.setAppBadge(cnt).catch(() => {});
         } else {
           if ('clearAppBadge' in navigator) {
             navigator.clearAppBadge().catch(() => {});
           }
         }
+      }
+
+      // 📱 서비스 워커(Service Worker) 백그라운드 엔진에도 배지 세팅 신호 전파
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SET_BADGE', count: cnt });
       }
     } catch(e) {}
   }

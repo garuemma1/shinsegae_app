@@ -11,15 +11,32 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// 📩 메인 화면 앱에서 보낸 실시간 배지 세팅 메시지 수신 (백그라운드 동기화 지원)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SET_BADGE') {
+    const count = Number(event.data.count) || 0;
+    if (typeof self.navigator !== 'undefined' && 'setAppBadge' in self.navigator) {
+      if (count > 0) {
+        self.navigator.setAppBadge(count).catch(() => {});
+      } else {
+        if ('clearAppBadge' in self.navigator) {
+          self.navigator.clearAppBadge().catch(() => {});
+        }
+      }
+    }
+  }
+});
+
 // 📩 백그라운드 푸시 알림 수신 이벤트
 self.addEventListener('push', (event) => {
   let data = {
     title: '📢 365메가스타약국 알림',
-    body: '새로운 업무일지 또는 소모품 요청 변동사항이 있습니다.',
+    body: '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.',
     icon: 'logo.jpg',
     badge: 'logo.jpg',
     url: 'https://ganumma1.github.io/shinsegae_app/',
-    tag: 'ssg-notification'
+    tag: 'ssg-notification',
+    unreadCount: 1
   };
 
   try {
@@ -39,14 +56,14 @@ self.addEventListener('push', (event) => {
     badge: data.badge || 'logo.jpg',
     tag: data.tag || 'ssg-notification',
     data: { url: data.url || 'https://ganumma1.github.io/shinsegae_app/' },
-    vibrate: [100, 50, 100, 50, 200], // 스마트폰 진동 패턴
+    vibrate: [200, 100, 200, 100, 300], // 스마트폰 진동 패턴
     requireInteraction: false
   };
 
   // 📱 백그라운드 푸시 수신 시 스마트폰 홈 화면 앱 아이콘 N 배지 세팅
-  if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator) {
+  if (typeof self.navigator !== 'undefined' && 'setAppBadge' in self.navigator) {
     const unreadNum = Number(data.unreadCount) || 1;
-    navigator.setAppBadge(unreadNum).catch(() => {});
+    self.navigator.setAppBadge(unreadNum).catch(() => {});
   }
 
   event.waitUntil(

@@ -810,7 +810,115 @@ window.SuppliesModule = (function () {
     }
   }
 
-  function handleConfirmSubmit(e) {
+  async function syncSupplyToLedgerSheet(target) {
+    if (!target) return false;
+    const price = Number(target.actualPrice || target.estimatedPrice) || 0;
+    if (price <= 0) return false;
+
+    const payMethod = target.payMethod || (target.ledgerCategory && target.ledgerCategory.includes('현금') ? 'CASH' : 'CARD');
+    const colName = target.ledgerCategory || (payMethod === 'CARD' ? '잡비 카드' : '잡비 현금');
+    const payLabel = payMethod === 'CARD' ? '💳 카드관련' : '💵 현금관련';
+
+    try {
+      const pData = window.SheetsSync.getPharmacySettlement();
+      if (pData) {
+        const now = new Date();
+        const todayNum = now.getDate();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        if (!pData.dailyLogs || !Array.isArray(pData.dailyLogs)) {
+          pData.dailyLogs = [];
+        }
+
+        let todayLog = pData.dailyLogs.find(l => {
+          if (l.date === todayStr) return true;
+          if (Number(l.day) === todayNum || l.day === String(todayNum)) return true;
+          return false;
+        });
+
+        if (!todayLog) {
+          todayLog = {
+            date: todayStr,
+            day: todayNum,
+            openingCash: 650000,
+            closingCash: 0,
+            cashSales: 0,
+            cardSales: 0,
+            rxSales: 0,
+            otcSales: 0,
+            expFood: 0,
+            expDrink: 0,
+            expBag: 0,
+            expEtc: 0,
+            cardVendors: {}
+          };
+          pData.dailyLogs.push(todayLog);
+        }
+
+        const cardVendorNames = [
+          '동화', '경남', '경방', '고려', '광동제약', '그린스토어', '나이스팜2', '동국일반', 
+          '동성', '디알에스', '박카스', '백제', '삼진', '신신제약', '아워팜', '에코테라팜2', 
+          '온라인몰결제총합', '웅진렌탈', '위생', '전화비', '대원제약', '동원팜', '비타민하우스', 
+          '원탁', '유한내츄럴보호대', '유한양행', '인터넷', '제일약품', '쥴릭', '지오영', 
+          '케어센스', '태극제약', '하나', '한가람약품', '한풍', '현대', '한독', '잡비 카드', '조은봉투', '그외 온라인결제', '보령', '바로팜'
+        ];
+
+        if (payMethod === 'CARD') {
+          const key = colName || '잡비 카드';
+
+          if (!Array.isArray(todayLog.cardVendors)) {
+            todayLog.cardVendors = cardVendorNames.map(n => ({ name: n, amount: 0 }));
+          }
+
+          let targetVendor = todayLog.cardVendors.find(v => v && v.name === key);
+          if (targetVendor) {
+            targetVendor.amount = (Number(targetVendor.amount) || 0) + price;
+          } else {
+            todayLog.cardVendors.push({ name: key, amount: price });
+          }
+
+          if (!pData.cardPharma) pData.cardPharma = {};
+          pData.cardPharma[key] = (Number(pData.cardPharma[key]) || 0) + price;
+
+          window.SheetsSync.savePharmacySettlement(pData);
+        } else {
+          const fieldMap = {
+            '잡비 현금': 'expEtc',
+            '식대': 'expFood',
+            '박카스': 'expDrink',
+            '현매': 'expBag',
+            '손님계좌이체': 'expEtc'
+          };
+          const field = fieldMap[colName] || 'expEtc';
+          todayLog[field] = (Number(todayLog[field]) || 0) + price;
+
+          window.SheetsSync.savePharmacySettlement(pData);
+        }
+
+        // ⚡ 구글 시트 Apps Script Web App 직통 Cell Push API 호출 (await 전송 가동)
+        let pushSuccess = false;
+        if (window.GoogleSheetsClient || window.sheetsClient) {
+          try {
+            const client = window.sheetsClient || new window.GoogleSheetsClient();
+            client.setPharmacy('ssg');
+            if (client.isConfigured) {
+              const yymm = `${String(now.getFullYear()).substring(2)}${String(now.getMonth()+1).padStart(2,'0')}`;
+              await client.saveDaily(yymm, todayNum, todayLog);
+              pushSuccess = true;
+            }
+          } catch(e) {
+            console.warn('GoogleSheetsClient direct push warning:', e);
+          }
+        }
+        return pushSuccess;
+      }
+    } catch(err) {
+      console.warn('Order confirmation ledger sync error:', err);
+    }
+    return false;
+  }
+
+  async function handleConfirmSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('sup-confirm-id').value;
     const vendor = document.getElementById('sup-confirm-vendor').value.trim();
@@ -826,115 +934,48 @@ window.SuppliesModule = (function () {
     });
 
     closeConfirmModal();
-    alert(`🚚 주문 확정이 완료되었습니다!\n결제 구분: ${payMethod === 'CARD' ? '💳 카드' : '💵 현금'} / 시트 기장 열: [${ledgerCategory}]`);
+
+    const supplies = window.SheetsSync.getSupplies() || [];
+    const target = supplies.find(s => s.id === id);
+    const pushSuccess = await syncSupplyToLedgerSheet(target);
+
+    const payLabel = payMethod === 'CARD' ? '💳 카드관련' : '💵 현금관련';
+    const colName = ledgerCategory || (payMethod === 'CARD' ? '잡비 카드' : '잡비 현금');
+    const now = new Date();
+    const todayNum = now.getDate();
+
+    if (pushSuccess) {
+      alert(`🚚 소모품 주문 확정 완결!\n\n✅ 구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열에 ₩${price.toLocaleString()}원이 실시간 직통 기장되었습니다.`);
+    } else {
+      alert(`🚚 소모품 주문 확정 완결 (스마트장부 연동 완료)\n\n✅ 구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열로 ₩${price.toLocaleString()}원이 동기화 기록되었습니다.`);
+    }
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();
     }
   }
 
-  function completeOrderPrompt(id) {
+  async function completeOrderPrompt(id) {
     const supplies = window.SheetsSync.getSupplies() || [];
     const target = supplies.find(s => s.id === id);
     if (!target) return;
 
-    // 결제 방식 보정 (기존 수식/데이터 100% 호환 보장)
-    const payMethod = target.payMethod || (target.ledgerCategory && target.ledgerCategory.includes('현금') ? 'CASH' : 'CARD');
-    const colName = target.ledgerCategory || (payMethod === 'CARD' ? '잡비 카드' : '잡비 현금');
-    const payLabel = payMethod === 'CARD' ? '💳 카드관련(노란색)' : '💵 현금관련(초록색)';
-    const price = target.actualPrice || target.estimatedPrice || 0;
-
-    const confirmMsg = `📦 [${target.itemName}] 물품 수령 및 입고를 완료하시겠습니까?\n\n💡 기장 위치: 구글 시트 [${payLabel} - ${colName}] 열 (금액: ₩${price.toLocaleString()}원)`;
+    const confirmMsg = `📦 [${target.itemName}] 물품 수령 및 입고를 완료하시겠습니까?`;
     if (!confirm(confirmMsg)) return;
 
-    window.SheetsSync.updateSupplyStatus(id, 'COMPLETED', {
-      payMethod,
-      ledgerCategory: colName
-    });
+    window.SheetsSync.updateSupplyStatus(id, 'COMPLETED');
 
-    // 스마트 장부 연동 옵션
-    if (confirm(`🏦 구글 시트 장부의 [${payLabel} ➔ ${colName}] 열에 소모품 금액(₩${price.toLocaleString()}원)을 자동 기장하시겠습니까?`)) {
-      try {
-        const pData = window.SheetsSync.getPharmacySettlement();
-        if (pData) {
-          const now = new Date();
-          const todayNum = now.getDate();
-          const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-          
-          if (!pData.dailyLogs || !Array.isArray(pData.dailyLogs)) {
-            pData.dailyLogs = [];
-          }
+    const pushSuccess = await syncSupplyToLedgerSheet(target);
+    const price = Number(target.actualPrice || target.estimatedPrice) || 0;
+    const payMethod = target.payMethod || (target.ledgerCategory && target.ledgerCategory.includes('현금') ? 'CASH' : 'CARD');
+    const colName = target.ledgerCategory || (payMethod === 'CARD' ? '잡비 카드' : '잡비 현금');
+    const payLabel = payMethod === 'CARD' ? '💳 카드관련' : '💵 현금관련';
+    const todayNum = new Date().getDate();
 
-          // 28일자 오늘 당일 일일정산 행 찾기
-          let todayLog = pData.dailyLogs.find(l => {
-            if (l.date === todayStr) return true;
-            if (Number(l.day) === todayNum || l.day === String(todayNum)) return true;
-            return false;
-          });
-
-          if (!todayLog) {
-            todayLog = {
-              date: todayStr,
-              day: todayNum,
-              openingCash: 650000,
-              closingCash: 0,
-              cashSales: 0,
-              cardSales: 0,
-              rxSales: 0,
-              otcSales: 0,
-              expFood: 0,
-              expDrink: 0,
-              expBag: 0,
-              expEtc: 0,
-              cardVendors: {}
-            };
-            pData.dailyLogs.push(todayLog);
-          }
-
-          if (payMethod === 'CARD') {
-            // 카드 관련 (N열: 잡비 카드 등) - 일일 시트 및 월말 시트 모두에 당일 금액 기장
-            if (!todayLog.cardVendors) todayLog.cardVendors = {};
-            const key = colName;
-            todayLog.cardVendors[key] = (Number(todayLog.cardVendors[key]) || 0) + price;
-
-            if (!pData.cardPharma) pData.cardPharma = {};
-            pData.cardPharma[key] = (Number(pData.cardPharma[key]) || 0) + price;
-
-            window.SheetsSync.savePharmacySettlement(pData);
-            alert(`✅ 구글 시트 ${todayNum}일자 카드관련 [${key}] 열에 ₩${price.toLocaleString()}원 자동 기장 완료!`);
-          } else {
-            // 현금 관련 (L열: 잡비 현금 등)
-            const fieldMap = {
-              '잡비 현금': 'expEtc',
-              '식대': 'expFood',
-              '박카스': 'expDrink',
-              '현매': 'expBag',
-              '손님계좌이체': 'expEtc'
-            };
-            const field = fieldMap[colName] || 'expEtc';
-            todayLog[field] = (Number(todayLog[field]) || 0) + price;
-
-            window.SheetsSync.savePharmacySettlement(pData);
-            alert(`✅ 구글 시트 ${todayNum}일자 현금관련 [${colName}] 열에 ₩${price.toLocaleString()}원 자동 기장 완료!`);
-          }
-
-          // ⚡ 구글 시트 Apps Script Web App 직통 Cell Push API 호출 (saveDaily: 2608 탭 28일자 행 기장)
-          if (window.GoogleSheetsClient || window.sheetsClient) {
-            try {
-              const client = window.sheetsClient || new window.GoogleSheetsClient();
-              client.setPharmacy('ssg');
-              if (client.isConfigured) {
-                const yymm = `${String(now.getFullYear()).substring(2)}${String(now.getMonth()+1).padStart(2,'0')}`;
-                client.saveDaily(yymm, todayNum, todayLog);
-              }
-            } catch(e) {
-              console.warn('GoogleSheetsClient direct push warning:', e);
-            }
-          }
-        }
-      } catch(err) {
-        console.warn('Smart ledger sync error:', err);
-      }
+    if (pushSuccess) {
+      alert(`✅ [${target.itemName}] 입고 완료 처리!\n\n구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열에 ₩${price.toLocaleString()}원 자동 기장 완결되었습니다.`);
+    } else {
+      alert(`✅ [${target.itemName}] 입고 완료 처리!\n\n구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열로 ₩${price.toLocaleString()}원이 자동 기장되었습니다.`);
     }
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {

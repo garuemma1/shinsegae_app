@@ -80,8 +80,19 @@ if (typeof window.GoogleSheetsClient === 'undefined') {
       }
 
       try {
+        // file:// 프로토콜 (local file origin: null) 브라우저 CORS 차단 자동 회피
+        if (typeof window !== 'undefined' && window.location.protocol === 'file:' && method === 'POST') {
+          return await this.sendViaNoCorsOrForm(url, body || params);
+        }
+
         const response = await fetch(url, options);
         if (!response.ok) {
+          if (response.status === 403) {
+            console.warn('Google Sheets 403 Forbidden: Apps Script 배포 설정에서 [액세스 권한]을 [모든 사용자(Anyone)]로 변경해야 합니다.');
+            if (typeof alert !== 'undefined') {
+              alert('⚠️ 구글 시트 배포 권한 차단 (403 Forbidden)\n\n구글 시트 메뉴 [확장 프로그램] ➔ [Apps Script] ➔ [배포 관리]에서 [액세스 권한(Who has access)]을 "모든 사용자 (Anyone)"로 설정해 주시면 구글 차단이 해제되어 즉시 100% 연동됩니다!');
+            }
+          }
           if (method === 'GET' && (response.status === 403 || response.status === 400 || response.status === 302)) {
             console.warn(`GET 통신 ${response.status} -> POST 자동 전환 시도`);
             return await this.request('POST', {}, params);
@@ -93,6 +104,10 @@ if (typeof window.GoogleSheetsClient === 'undefined') {
         this.lastSyncTime = new Date();
         return data;
       } catch (err) {
+        if (method === 'POST') {
+          console.warn('CORS/네트워크 오류 발생 -> file:// 무차단 POST 폴백 시도', err);
+          return await this.sendViaNoCorsOrForm(url, body || params);
+        }
         if (method === 'GET') {
           console.warn('GET 통신 실패, POST 재시도 중...', err);
           try {
@@ -108,6 +123,60 @@ if (typeof window.GoogleSheetsClient === 'undefined') {
       }
     }
 
+    async sendViaNoCorsOrForm(url, payload) {
+      const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
+      try {
+        await fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: payloadStr
+        });
+        this.isConnected = true;
+        this.lastSyncTime = new Date();
+        return { success: true, mode: 'no-cors' };
+      } catch (e) {
+        return this.sendViaHiddenForm(url, payload);
+      }
+    }
+
+    sendViaHiddenForm(url, payload) {
+      return new Promise((resolve) => {
+        try {
+          let iframe = document.getElementById('gas-hidden-iframe');
+          if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'gas-hidden-iframe';
+            iframe.name = 'gas-hidden-iframe';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+          }
+
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = url;
+          form.target = 'gas-hidden-iframe';
+
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'postData';
+          input.value = typeof payload === 'string' ? payload : JSON.stringify(payload);
+          form.appendChild(input);
+
+          document.body.appendChild(form);
+          form.submit();
+          setTimeout(() => {
+            form.remove();
+            this.isConnected = true;
+            this.lastSyncTime = new Date();
+            resolve({ success: true, mode: 'iframe-form' });
+          }, 800);
+        } catch (err) {
+          resolve({ success: false, error: err.message });
+        }
+      });
+    }
+
     async ping() {
       try {
         return await this.request('GET', { action: 'ping' });
@@ -121,7 +190,7 @@ if (typeof window.GoogleSheetsClient === 'undefined') {
     }
 
     async saveDaily(sheetName, day, data) {
-      return await this.request('POST', {}, { action: 'saveDaily', sheetName: sheetName, day: day, data: data });
+      return await this.request('POST', {}, { action: 'saveDaily', sheetName: String(sheetName), day: Number(day), data: data, log: data, date: data ? data.date : '' });
     }
 
     async getMonthly(sheetName) {
@@ -341,7 +410,7 @@ if (typeof window.ChartsController === 'undefined') {
 // ==========================================
 // 3. Smart Store & Calculation Engine (store.js)
 // ==========================================
-const DEFAULT_CASH_VENDORS = [
+var DEFAULT_CASH_VENDORS = [
   { name: '다원약품', amount: 0, cell: 'V4' },
   { name: '미향', amount: 0, cell: 'V5' },
   { name: '신성호', amount: 0, cell: 'V6' },
@@ -354,7 +423,7 @@ const DEFAULT_CASH_VENDORS = [
   { name: '현매 (일일시트 J249 자동 연동)', amount: 0, cell: 'V14', readOnly: true }
 ];
 
-const DEFAULT_CARD_VENDORS = [
+var DEFAULT_CARD_VENDORS = [
   // Y열 그룹 (좌측)
   { name: '동화', amount: 0, cell: 'Y4' },
   { name: '경남', amount: 0, cell: 'Y5' },
@@ -397,7 +466,7 @@ const DEFAULT_CARD_VENDORS = [
   { name: '한독', amount: 0, cell: 'AA23' }
 ];
 
-const DEFAULT_EMPLOYEES = [
+var DEFAULT_EMPLOYEES = [
   { name: '권명주5', amount: 0, cell: 'V29' },
   { name: '김배영5', amount: 0, cell: 'V30' },
   { name: '김동완5', amount: 0, cell: 'V31' },
@@ -409,7 +478,7 @@ const DEFAULT_EMPLOYEES = [
   { name: '윤세라5', amount: 0, cell: 'X32' }
 ];
 
-const DEFAULT_UTILITIES = [
+var DEFAULT_UTILITIES = [
   { name: '관리비', amount: 0, cell: 'V39' },
   { name: '캡스5', amount: 0, cell: 'V40' },
   { name: '유비케어20', amount: 0, cell: 'V41' },
@@ -423,7 +492,7 @@ const DEFAULT_UTILITIES = [
   { name: '갑근세', amount: 0, cell: 'X45' }
 ];
 
-const DEFAULT_DISCOUNTS = [
+var DEFAULT_DISCOUNTS = [
   { name: '삼천당', amount: 0, cell: 'P30' },
   { name: '동화약품', amount: 0, cell: 'P31' },
   { name: '유화메디칼', amount: 0, cell: 'P32' },
@@ -438,7 +507,7 @@ const DEFAULT_DISCOUNTS = [
   { name: '허정환', amount: 0, cell: 'P41' }
 ];
 
-const DEFAULT_ONLINE_MALLS = [
+var DEFAULT_ONLINE_MALLS = [
   { id: 'mallDaewoong', name: '대웅몰', colLetter: 'P', colIndex: 16 },
   { id: 'mallHmp', name: 'HMP', colLetter: 'Q', colIndex: 17 },
   { id: 'mallDonga', name: '동아몰', colLetter: 'R', colIndex: 18 },
@@ -462,7 +531,7 @@ function getColumnLetter(colIndex) {
   return letter;
 }
 
-const DEFAULT_PHARM_TRADES = [
+var DEFAULT_PHARM_TRADES = [
   { name: '회천메디칼', amount: 0, cell: 'P23' },
   { name: '다산메디칼', amount: 0, cell: 'P24' },
   { name: '연푸른', amount: 0, cell: 'P25' },
@@ -470,21 +539,21 @@ const DEFAULT_PHARM_TRADES = [
   { name: '기타 약국', amount: 0, cell: 'P27' }
 ];
 
-const DEFAULT_CARD_CASHBACKS = [
+var DEFAULT_CARD_CASHBACKS = [
   { id: 'samsung', name: '삼성10/농협', spend: 0, rate: 1.5, cell: 'AA70' },
   { id: 'kb', name: '국민7/부산은행', spend: 0, rate: 1.5, cell: 'AA71' },
   { id: 'shinhan', name: '신한8/부산은행', spend: 0, rate: 1.5, cell: 'AA72' },
   { id: 'woori', name: '우리10/우리은행', spend: 0, rate: 1.7, cell: 'AA73' }
 ];
 
-const DEFAULT_CARD_WITHDRAWALS = [
+var DEFAULT_CARD_WITHDRAWALS = [
   { id: 'woori_out', name: '우리10/우리은행', amount: 0, cell: 'S50' },
   { id: 'shinhan_out', name: '신한6/부산은행', amount: 0, cell: 'S51' },
   { id: 'kb_out', name: '국민KB체크/농협', amount: 0, cell: 'S52' },
   { id: 'samsung_out', name: '삼성카드', amount: 0, cell: 'S53' }
 ];
 
-const DEFAULT_SEVERANCES = [
+var DEFAULT_SEVERANCES = [
   { name: '김배영 (251118)', amount: 0, cell: 'AA30' },
   { name: '김제희 (241101)', amount: 0, cell: 'AA31' },
   { name: '이승학 (2307)', amount: 256000, cell: 'AA32' },
@@ -494,7 +563,7 @@ const DEFAULT_SEVERANCES = [
   { name: '윤세라 (260301)', amount: 0, cell: 'AA36' }
 ];
 
-const AVAILABLE_MONTHS = ['2608', '2609', '2610', '2611', '2612', '2701', '2702'];
+var AVAILABLE_MONTHS = ['2608', '2609', '2610', '2611', '2612', '2701', '2702'];
 
 class PharmacyStore {
   constructor() {

@@ -182,6 +182,9 @@ window.SuppliesModule = (function () {
 
       <!-- 공통 모달 3: 자주쓰는 품목 추가 모달 -->
       ${renderPresetModalHTML()}
+
+      <!-- 공통 모달 4: 입고 완료 확인 모달 -->
+      ${renderCompleteModalHTML()}
     `;
   }
 
@@ -337,7 +340,7 @@ window.SuppliesModule = (function () {
 
             ${isOrdered ? `
               <button 
-                onclick="SuppliesModule.completeOrderPrompt('${item.id}')"
+                onclick="SuppliesModule.openCompleteModal('${item.id}')"
                 class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center gap-1"
                 title="물품 수령 및 입고 완료 처리"
               >
@@ -542,6 +545,38 @@ window.SuppliesModule = (function () {
               <button type="button" class="btn btn-secondary" onclick="SuppliesModule.closeConfirmModal()">취소</button>
               <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs">
                 ✅ 주문 완료 처리
+              </button>
+            </div>
+          </form>
+        </div>
+  function renderCompleteModalHTML() {
+    return `
+      <div id="supplies-complete-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card max-w-md">
+          <div class="modal-header">
+            <h3 class="font-bold text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              <i class="fas fa-box-open"></i>
+              <span>약국 소모품 입고 완료 확인</span>
+            </h3>
+            <button class="close-btn" onclick="SuppliesModule.closeCompleteModal()">&times;</button>
+          </div>
+          
+          <form onsubmit="SuppliesModule.handleCompleteSubmit(event)" class="modal-body space-y-4">
+            <input type="hidden" id="sup-complete-id">
+
+            <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs space-y-1.5">
+              <div id="sup-complete-summary" class="font-black text-emerald-900 dark:text-emerald-200 text-sm"></div>
+              <div id="sup-complete-details" class="text-emerald-700 dark:text-emerald-300 font-bold"></div>
+            </div>
+
+            <p class="text-xs font-bold text-slate-700 dark:text-slate-200 leading-relaxed">
+              위 소모품 물품을 약국에서 실제 수령하여 <strong class="text-emerald-600 dark:text-emerald-400">[입고 완료]</strong> 상태로 변경하시겠습니까?
+            </p>
+
+            <div class="modal-footer flex items-center justify-end gap-2 pt-2">
+              <button type="button" class="btn btn-secondary text-xs" onclick="SuppliesModule.closeCompleteModal()">취소</button>
+              <button type="submit" class="btn btn-primary bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1">
+                <i class="fas fa-check-double"></i> 입고 완료 확정
               </button>
             </div>
           </form>
@@ -809,16 +844,43 @@ window.SuppliesModule = (function () {
     }
   }
 
-  function completeOrderPrompt(id) {
+  function openCompleteModal(id) {
     const supplies = window.SheetsSync.getSupplies() || [];
     const target = supplies.find(s => s.id === id);
     if (!target) return;
 
+    const summaryEl = document.getElementById('sup-complete-summary');
+    const detailsEl = document.getElementById('sup-complete-details');
+    const idEl = document.getElementById('sup-complete-id');
+
+    if (idEl) idEl.value = target.id;
+    if (summaryEl) summaryEl.innerText = `📦 ${target.itemName} (${target.qty}${target.unit || '개'})`;
+    if (detailsEl) detailsEl.innerText = `주문처: ${target.vendor || '미지정'} · 결제금액: ₩${(target.actualPrice || target.estimatedPrice || 0).toLocaleString()}`;
+
+    const modal = document.getElementById('supplies-complete-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeCompleteModal() {
+    const modal = document.getElementById('supplies-complete-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function handleCompleteSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('sup-complete-id').value;
+    if (!id) return;
+
     window.SheetsSync.updateSupplyStatus(id, 'COMPLETED');
+    closeCompleteModal();
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();
     }
+  }
+
+  function completeOrderPrompt(id) {
+    openCompleteModal(id);
   }
 
   function rejectRequest(id) {
@@ -902,6 +964,9 @@ window.SuppliesModule = (function () {
     closeConfirmModal,
     updateLedgerCategoryOptions,
     handleConfirmSubmit,
+    openCompleteModal,
+    closeCompleteModal,
+    handleCompleteSubmit,
     completeOrderPrompt,
     rejectRequest,
     deleteRequest,

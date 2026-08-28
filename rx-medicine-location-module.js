@@ -8,6 +8,11 @@ window.RxMedicineLocationModule = (function () {
   let activeCategory = 'ALL';
   let searchQuery = '';
 
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
   const DEFAULT_ZONES = [
     { id: 'ZONE_NOR', name: '📦 일반 조제선반 (실온)', icon: 'fa-cubes', color: '#059669', bg: '#f0fdf4', border: '#86efac' },
     { id: 'ZONE_REF', name: '❄️ 조제실 냉장고 (2~8℃)', icon: 'fa-snowflake', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },

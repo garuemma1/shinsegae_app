@@ -6,6 +6,11 @@ window.MedicineLocationModule = (function () {
   let activeCategory = 'ALL';
   let searchQuery = '';
 
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
   const DEFAULT_ZONES = [
     { id: 'ZONE_A', name: 'A구역 (메인 카운터)', icon: 'fa-cash-register', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
     { id: 'ZONE_B', name: 'B구역 (벽면 영양제)', icon: 'fa-capsules', color: '#059669', bg: '#f0fdf4', border: '#86efac' },

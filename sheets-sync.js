@@ -1547,18 +1547,17 @@ window.SheetsSync = (function () {
               if (String(sig.timestamp) !== String(lastHandled)) {
                 safeSetItem('ssg_last_push_signal_time', String(sig.timestamp));
                 const currUser = getCurrentUser();
-                if (!currUser || sig.senderId !== currUser.id) {
-                  playNotificationChime();
-                  sendDesktopNotification('📢 신세계약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
-                  
-                  // 🔥 즉시 0.05초 만에 클라우드 최신 데이터 수신 및 사이드바/스마트폰 N 배지 동시에 100% 강제 갱신!
-                  pullFromCloud(() => {
-                    if (window.App) {
-                      if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
-                      if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
-                    }
-                  });
-                }
+                // 📱 누가 글을 쓰든 (동일 계정 다중 기기 테스트 포함) 100% 알림 소리 + 푸시 + N 배지 짠 노출!
+                playNotificationChime();
+                sendDesktopNotification('📢 신세계약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
+                
+                // 🔥 즉시 0.05초 만에 클라우드 최신 데이터 수신 및 사이드바/스마트폰 N 배지 동시에 100% 강제 갱신!
+                pullFromCloud(() => {
+                  if (window.App) {
+                    if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
+                    if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
+                  }
+                });
               }
             }
           });

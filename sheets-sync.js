@@ -1893,6 +1893,12 @@ window.SheetsSync = (function () {
         pushToCloud();
       }
 
+      const isOpsChanged = noticesChanged || worklogsChanged || suppliesChanged || medLocationsChanged || rxMedLocationsChanged;
+      if (updated && isOpsChanged) {
+        playNotificationChime();
+        sendDesktopNotification('📢 365메가스타약국 신규 알림', '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.');
+      }
+
       if (updated) {
         const activeEl = document.activeElement;
         const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');

@@ -1244,7 +1244,7 @@ window.store = new PharmacyStore();
 // ==========================================
 // 4. UI Component Renderer (ui.js 100% 완전 원본)
 // ==========================================
-const UI = {
+var UI = {
   currentRoute: 'daily-settlement',
   selectedDay: 1,
   activeMonthlyTab: 0,

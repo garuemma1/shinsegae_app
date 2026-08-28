@@ -1423,9 +1423,9 @@ window.SheetsSync = (function () {
       const currUser = getCurrentUser();
       const payload = {
         app_id: "8188167f-9f79-451e-bfe8-b715e7144e50",
-        included_segments: ["Subscribed Users"],
-        headings: { en: title || "📢 신세계약국 실시간 알림" },
-        contents: { en: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다." },
+        included_segments: ["Subscribed Users", "All"],
+        headings: { en: title || "📢 신세계약국 실시간 알림", ko: title || "📢 신세계약국 실시간 알림" },
+        contents: { en: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다.", ko: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다." },
         url: "https://ganumma1.github.io/shinsegae_app/",
         chrome_web_icon: "https://ganumma1.github.io/shinsegae_app/logo.jpg",
         chrome_web_badge: "https://ganumma1.github.io/shinsegae_app/logo.jpg",
@@ -1435,7 +1435,8 @@ window.SheetsSync = (function () {
       fetch("https://onesignal.com/api/v1/notifications", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json; charset=utf-8"
+          "Content-Type": "application/json; charset=utf-8",
+          "Authorization": "Basic os_v2_app_z5nd4zxbzbftvplsm43xrm7vg2xrm43xrm7vg2xrm43x"
         },
         body: JSON.stringify(payload)
       }).catch(() => {});

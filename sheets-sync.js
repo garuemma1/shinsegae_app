@@ -783,6 +783,7 @@ window.SheetsSync = (function () {
   function setCurrentUser(emp) {
     try {
       sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(emp));
+      safeSetItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(emp));
       safeSetItem('ssg_is_logged_out', 'false');
     } catch(e) {}
   }

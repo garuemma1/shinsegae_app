@@ -955,7 +955,7 @@ window.SuppliesModule = (function () {
     }
   }
 
-  async function completeOrderPrompt(id) {
+  function completeOrderPrompt(id) {
     const supplies = window.SheetsSync.getSupplies() || [];
     const target = supplies.find(s => s.id === id);
     if (!target) return;
@@ -964,19 +964,7 @@ window.SuppliesModule = (function () {
     if (!confirm(confirmMsg)) return;
 
     window.SheetsSync.updateSupplyStatus(id, 'COMPLETED');
-
-    const pushSuccess = await syncSupplyToLedgerSheet(target);
-    const price = Number(target.actualPrice || target.estimatedPrice) || 0;
-    const payMethod = target.payMethod || (target.ledgerCategory && target.ledgerCategory.includes('현금') ? 'CASH' : 'CARD');
-    const colName = target.ledgerCategory || (payMethod === 'CARD' ? '잡비 카드' : '잡비 현금');
-    const payLabel = payMethod === 'CARD' ? '💳 카드관련' : '💵 현금관련';
-    const todayNum = new Date().getDate();
-
-    if (pushSuccess) {
-      alert(`✅ [${target.itemName}] 입고 완료 처리!\n\n구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열에 ₩${price.toLocaleString()}원 자동 기장 완결되었습니다.`);
-    } else {
-      alert(`✅ [${target.itemName}] 입고 완료 처리!\n\n구글 시트 ${todayNum}일자 ${payLabel} [${colName}] 열로 ₩${price.toLocaleString()}원이 자동 기장되었습니다.`);
-    }
+    alert('✅ [입고 완료] 물품 수령 및 입고 상태 갱신이 완료되었습니다.');
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();

@@ -774,6 +774,11 @@ window.App = (function () {
             <span>${curr.name}</span>
           </span>
 
+          <button type="button" class="header-action-btn" onclick="App.openSoundSettingsModal()" title="알림 소리 선택 및 4가지 소리 미리듣기" style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:20px; font-size:11.5px; font-weight:700; color:#0284c7; padding:5px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onmouseover="this.style.background='#e0f2fe'; this.style.borderColor='#7dd3fc';" onmouseout="this.style.background='#f0f9ff'; this.style.borderColor='#bae6fd';">
+            <i class="fas fa-volume-high text-info"></i>
+            <span>알림 소리</span>
+          </button>
+
           <button type="button" class="header-action-btn" onclick="App.openChangePwModal()" title="비밀번호 자율 변경" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:20px; font-size:11.5px; font-weight:700; color:#334155; padding:5px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#94a3b8';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#cbd5e1';">
             <i class="fas fa-key text-warning"></i>
             <span>비번 변경</span>
@@ -970,6 +975,50 @@ window.App = (function () {
   function closeChangePwModal() {
     const m = document.getElementById('change-password-modal');
     if (m) m.style.display = 'none';
+  }
+
+  function openSoundSettingsModal() {
+    const m = document.getElementById('sound-settings-modal');
+    if (m) {
+      updateSoundModalUI();
+      m.style.display = 'flex';
+    }
+  }
+
+  function closeSoundSettingsModal() {
+    const m = document.getElementById('sound-settings-modal');
+    if (m) m.style.display = 'none';
+  }
+
+  function updateSoundModalUI() {
+    const currPreset = window.SheetsSync && typeof window.SheetsSync.getSoundPreset === 'function' ? window.SheetsSync.getSoundPreset() : 'crystal';
+    document.querySelectorAll('.sound-preset-card').forEach(card => {
+      const p = card.getAttribute('data-preset');
+      const activeBadge = card.querySelector('.sound-active-badge');
+      if (p === currPreset) {
+        card.style.borderColor = '#2563eb';
+        card.style.background = '#eff6ff';
+        if (activeBadge) activeBadge.style.display = 'inline-block';
+      } else {
+        card.style.borderColor = '#e2e8f0';
+        card.style.background = '#ffffff';
+        if (activeBadge) activeBadge.style.display = 'none';
+      }
+    });
+  }
+
+  function previewSoundPreset(presetKey) {
+    if (window.SheetsSync && typeof window.SheetsSync.playNotificationChime === 'function') {
+      window.SheetsSync.playNotificationChime(presetKey);
+    }
+  }
+
+  function selectSoundPreset(presetKey) {
+    if (window.SheetsSync && typeof window.SheetsSync.setSoundPreset === 'function') {
+      window.SheetsSync.setSoundPreset(presetKey);
+      updateSoundModalUI();
+      previewSoundPreset(presetKey);
+    }
   }
 
   function checkPwRealtime() {
@@ -2114,6 +2163,10 @@ function writeSheetData(sheet, dataList) {
     userLogout,
     openChangePwModal,
     closeChangePwModal,
+    openSoundSettingsModal,
+    closeSoundSettingsModal,
+    previewSoundPreset,
+    selectSoundPreset,
     checkPwRealtime,
     handleChangePwSubmit,
     switchModule,

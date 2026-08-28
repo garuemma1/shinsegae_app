@@ -1279,41 +1279,112 @@ window.SheetsSync = (function () {
     window.addEventListener('touchstart', unlockAudio, { once: true });
   }
 
-  function playNotificationChime() {
+  function getSoundPreset() {
+    return safeGetItem('ssg_sound_preset') || 'crystal';
+  }
+
+  function setSoundPreset(type) {
+    safeSetItem('ssg_sound_preset', type || 'crystal');
+  }
+
+  function playNotificationChime(customPreset) {
     try {
       const isMuted = safeGetItem('ssg_sound_muted') === 'true';
-      if (isMuted) return;
+      if (isMuted && !customPreset) return;
 
       initAudioContext();
       if (!audioCtx) return;
 
       const now = audioCtx.currentTime;
+      const preset = customPreset || getSoundPreset();
 
-      // 1st note: C5 (523.25 Hz)
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(523.25, now);
-      gain1.gain.setValueAtTime(0, now);
-      gain1.gain.linearRampToValueAtTime(0.18, now + 0.02);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.35);
+      if (preset === 'chime') {
+        // 🔔 1. 맑은 2음 딩동 (C5 523Hz -> E5 659Hz, 4.5배 증폭)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, now);
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.85, now + 0.02);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.38);
 
-      // 2nd note: E5 (659.25 Hz)
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(659.25, now + 0.12);
-      gain2.gain.setValueAtTime(0, now + 0.12);
-      gain2.gain.linearRampToValueAtTime(0.22, now + 0.14);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.start(now + 0.12);
-      osc2.stop(now + 0.55);
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(659.25, now + 0.12);
+        gain2.gain.setValueAtTime(0, now + 0.12);
+        gain2.gain.linearRampToValueAtTime(0.92, now + 0.14);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.58);
+
+      } else if (preset === 'kakao') {
+        // 💬 2. 카카오톡 스타일 고주파 알림 (A5 880Hz -> E6 1318.5Hz, 5배 증폭)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880.00, now);
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.90, now + 0.015);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.25);
+
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1318.51, now + 0.08);
+        gain2.gain.setValueAtTime(0, now + 0.08);
+        gain2.gain.linearRampToValueAtTime(0.95, now + 0.10);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.08);
+        osc2.stop(now + 0.45);
+
+      } else if (preset === 'bell') {
+        // 🛎️ 3. 약국 카운터 데스크 실버 벨 (C6 1046.5Hz, 5배 증폭)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(1046.50, now);
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.95, now + 0.01);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.70);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.70);
+
+      } else {
+        // ✨ 4. 크리스탈 3음 피아노 챠임 (도-미-솔 C5-E5-G5 523-659-784Hz, 기본값)
+        const notes = [
+          { freq: 523.25, time: now, duration: 0.35, vol: 0.85 },
+          { freq: 659.25, time: now + 0.10, duration: 0.40, vol: 0.90 },
+          { freq: 783.99, time: now + 0.20, duration: 0.60, vol: 0.95 }
+        ];
+        notes.forEach(n => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(n.freq, n.time);
+          gain.gain.setValueAtTime(0, n.time);
+          gain.gain.linearRampToValueAtTime(n.vol, n.time + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, n.time + n.duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(n.time);
+          osc.stop(n.time + n.duration);
+        });
+      }
     } catch (e) {
       console.warn('Chime play error:', e);
     }
@@ -2536,6 +2607,8 @@ window.SheetsSync = (function () {
     exportFullBackupJSON,
     importFullBackupJSON,
     playNotificationChime,
+    getSoundPreset,
+    setSoundPreset,
     toggleSoundMute,
     isSoundMuted,
     requestPushPermission,

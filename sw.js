@@ -58,7 +58,7 @@ self.addEventListener('push', (event) => {
     renotify: true,
     data: { url: data.url || 'https://ganumma1.github.io/shinsegae_app/' },
     vibrate: [200, 100, 200, 100, 300], // 스마트폰 진동 패턴
-    requireInteraction: false
+    requireInteraction: true // 📱 삼성 갤럭시 알림바 지속 보존 (홈 화면 배지 100% 노출유지)
   };
 
   // 📱 스마트폰(삼성 갤럭시/안드로이드) OS 홈 화면 PWA 아이콘 N 배지 백그라운드 100% 강제 연동

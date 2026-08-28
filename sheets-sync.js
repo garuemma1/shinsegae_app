@@ -1405,6 +1405,43 @@ window.SheetsSync = (function () {
     return safeGetItem('ssg_sound_muted') === 'true';
   }
 
+  // 🔔 OneSignal 백그라운드 무적 웹 푸시 SDK 연동
+  if (typeof window !== 'undefined') {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.init({
+          appId: "8188167f-9f79-451e-bfe8-b715e7144e50",
+          allowLocalhostAsSecureOrigin: true,
+        });
+      } catch(e) {}
+    });
+  }
+
+  function sendOneSignalPush(title, bodyText) {
+    try {
+      const currUser = getCurrentUser();
+      const payload = {
+        app_id: "8188167f-9f79-451e-bfe8-b715e7144e50",
+        included_segments: ["Subscribed Users"],
+        headings: { en: title || "📢 신세계약국 실시간 알림" },
+        contents: { en: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다." },
+        url: "https://ganumma1.github.io/shinsegae_app/",
+        chrome_web_icon: "https://ganumma1.github.io/shinsegae_app/logo.jpg",
+        chrome_web_badge: "https://ganumma1.github.io/shinsegae_app/logo.jpg",
+        priority: 10
+      };
+
+      fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    } catch(e) {}
+  }
+
   function requestPushPermission() {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       alert('이 브라우저는 웹 푸시 알림을 지원하지 않습니다.');
@@ -1414,6 +1451,11 @@ window.SheetsSync = (function () {
       if (permission === 'granted') {
         alert('✅ 신세계약국 실시간 웹 푸시 알림이 성공적으로 설정되었습니다!');
         registerServiceWorker();
+        if (window.OneSignalDeferred) {
+          window.OneSignalDeferred.push(function(OneSignal) {
+            try { OneSignal.Notifications.requestPermission(); } catch(e) {}
+          });
+        }
       } else {
         alert('⚠️ 푸시 알림 권한이 차단되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
       }
@@ -2141,6 +2183,9 @@ window.SheetsSync = (function () {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(pushPayload)
         }).catch(() => {});
+
+        // 🔔 OneSignal 백그라운드 전문 푸시 파이프라인 방출
+        sendOneSignalPush('📢 신세계약국 실시간 알림', pushPayload.body);
       } catch(fbe) {
         console.warn('Firebase WebSocket push warning:', fbe);
       }

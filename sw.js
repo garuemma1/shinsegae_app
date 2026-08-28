@@ -1,7 +1,10 @@
 /**
  * 🔔 신세계약국 실시간 웹 푸시 & 백그라운드 알림 서비스 워커 (Service Worker)
- * 카카오톡 방식 스마트폰 알림바 배너 & 폰 시스템 알림음 제어 모듈
+ * OneSignal Web Push SDK 옴니 멀티캐스트 백그라운드 무적 파이프라인
  */
+try {
+  importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+} catch(e) {}
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

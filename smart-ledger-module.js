@@ -572,7 +572,8 @@ var DEFAULT_SEVERANCES = [
 
 var AVAILABLE_MONTHS = ['2608', '2609', '2610', '2611', '2612', '2701', '2702'];
 
-class PharmacyStore {
+if (typeof window.PharmacyStore === 'undefined') {
+  window.PharmacyStore = class PharmacyStore {
   constructor() {
     this.activePharmacy = 'ssg';
     this.pharmacyName = '신세계약국';
@@ -1232,9 +1233,12 @@ class PharmacyStore {
       };
     });
   }
+};
 }
 
-window.store = new PharmacyStore();
+if (!window.store) {
+  window.store = new window.PharmacyStore();
+}
 
 
 // ==========================================

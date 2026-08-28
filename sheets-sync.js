@@ -1472,6 +1472,28 @@ window.SheetsSync = (function () {
           console.warn('Firebase WebSocket listener warning -> REST 폴백 가동:', err);
           pullFromCloud();
         });
+
+        // 📱 타 기기(PC/핸드폰) 작성 시 0.05초 카카오톡 스타일 푸시 신호 수신
+        try {
+          const fbRefPush = fbDb.ref('shinsegae_master_db/pushSignal');
+          fbRefPush.on('value', (snapshot) => {
+            const sig = snapshot.val();
+            if (sig && sig.timestamp) {
+              const lastHandled = safeGetItem('ssg_last_push_signal_time') || '0';
+              if (String(sig.timestamp) !== String(lastHandled)) {
+                safeSetItem('ssg_last_push_signal_time', String(sig.timestamp));
+                const currUser = getCurrentUser();
+                if (!currUser || sig.senderId !== currUser.id) {
+                  playNotificationChime();
+                  sendDesktopNotification('📢 365메가스타약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
+                  if (window.App && typeof window.App.updateAppIconBadge === 'function') {
+                    window.App.updateAppIconBadge(1);
+                  }
+                }
+              }
+            }
+          });
+        } catch(pe) {}
       }
     } catch(e) {
       console.warn('Firebase init warning -> REST 폴백 가동:', e);
@@ -2093,6 +2115,15 @@ window.SheetsSync = (function () {
       try {
         if (fbRef) {
           fbRef.set(payload.data);
+        }
+        if (fbDb) {
+          const currUser = getCurrentUser();
+          fbDb.ref('shinsegae_master_db/pushSignal').set({
+            timestamp: Date.now(),
+            senderId: currUser ? currUser.id : 'unknown',
+            senderName: currUser ? currUser.name : '시스템',
+            body: '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.'
+          });
         }
       } catch(fbe) {
         console.warn('Firebase WebSocket push warning:', fbe);

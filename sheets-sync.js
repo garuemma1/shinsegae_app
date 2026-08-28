@@ -1992,7 +1992,7 @@ window.SheetsSync = (function () {
         const res = await fetch(`${FIREBASE_REST_URL}?t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
-          if (json && (json.worklogs || json.employees || json.notices || json.schedule)) {
+          if (json && (json.worklogs || json.employees || json.notices || json.schedule || json.supplies)) {
             cloudData = json;
           }
         }

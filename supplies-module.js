@@ -24,28 +24,28 @@ window.SuppliesModule = (function () {
     const totalCompletedPrice = completedList.reduce((sum, s) => sum + (Number(s.actualPrice || s.estimatedPrice) || 0), 0);
 
     return `
-      <div class="supplies-container p-4 md:p-6 space-y-6">
+      <div class="supplies-container p-3 sm:p-5 md:p-6 space-y-4 sm:space-y-6">
         
         <!-- 상단 헤더 & 타이틀 -->
-        <div class="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 <span>📦 약국 소모품 관리 & 주문 시스템</span>
-                <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
-                  신세계약국 소모품 시스템
-                </span>
               </h2>
+              <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 whitespace-nowrap">
+                신세계약국 소모품 시스템
+              </span>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              전산봉투, 약봉투, 영수증롤, 라벨지 등 약국 소모품 요청 및 주문/입고 관리 현황
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed break-keep">
+              전산봉투, 약봉투, 영수증롤, 라벨지 등 약국 소모품 요청 및 주문/입고 현황 관리
             </p>
           </div>
 
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-2 w-full sm:w-auto pt-1 sm:pt-0">
             <button 
               onclick="SuppliesModule.openRequestModal()"
-              class="btn btn-primary px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition"
+              class="flex-1 sm:flex-initial btn btn-primary px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition whitespace-nowrap"
             >
               <i class="fas fa-plus-circle"></i>
               <span>+ 신규 소모품 요청 올리기</span>
@@ -54,7 +54,7 @@ window.SuppliesModule = (function () {
             ${isDirector ? `
               <button 
                 onclick="SuppliesModule.openPresetModal()"
-                class="btn btn-secondary px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition"
+                class="flex-1 sm:flex-initial btn btn-secondary px-3 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition whitespace-nowrap"
               >
                 <i class="fas fa-cog text-amber-500"></i>
                 <span>자주 쓰는 품목 관리</span>
@@ -63,80 +63,80 @@ window.SuppliesModule = (function () {
           </div>
         </div>
 
-        <!-- KPI 통계 카운터 카드 -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between">
+        <!-- KPI 통계 카운터 카드 (2x2 모바일 / 4x1 PC 적응형) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+          <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <div class="text-xs font-bold text-amber-600 dark:text-amber-400">요청 대기 중</div>
-              <div class="text-2xl font-black text-amber-700 dark:text-amber-300 mt-1">${pendingList.length} <span class="text-xs font-normal">건</span></div>
+              <div class="text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400">요청 대기 중</div>
+              <div class="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-300 mt-0.5">${pendingList.length} <span class="text-xs font-normal">건</span></div>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-sm sm:text-base">
               ${urgentCount > 0 ? `<span class="animate-bounce text-red-500">⚡${urgentCount}</span>` : '⏳'}
             </div>
           </div>
 
-          <div class="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 flex items-center justify-between">
+          <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <div class="text-xs font-bold text-blue-600 dark:text-blue-400">주문 진행 중</div>
-              <div class="text-2xl font-black text-blue-700 dark:text-blue-300 mt-1">${orderedList.length} <span class="text-xs font-normal">건</span></div>
+              <div class="text-[11px] sm:text-xs font-bold text-blue-600 dark:text-blue-400">주문 진행 중</div>
+              <div class="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 mt-0.5">${orderedList.length} <span class="text-xs font-normal">건</span></div>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-500 text-lg font-bold">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-500 text-sm sm:text-lg font-bold">
               🚚
             </div>
           </div>
 
-          <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between">
+          <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400">입고 완료 (누적)</div>
-              <div class="text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-1">${completedList.length} <span class="text-xs font-normal">건</span></div>
+              <div class="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400">입고 완료 (누적)</div>
+              <div class="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">${completedList.length} <span class="text-xs font-normal">건</span></div>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-500 text-lg font-bold">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-500 text-sm sm:text-lg font-bold">
               ✅
             </div>
           </div>
 
-          <div class="bg-slate-500/10 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 flex items-center justify-between">
+          <div class="bg-slate-500/10 border border-slate-300 dark:border-slate-700 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <div class="text-xs font-bold text-slate-500 dark:text-slate-400">이번 달 집계 금액</div>
-              <div class="text-lg font-black text-slate-800 dark:text-slate-100 mt-1">₩${(totalOrderedPrice + totalCompletedPrice).toLocaleString()}</div>
+              <div class="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">이번 달 집계 금액</div>
+              <div class="text-base sm:text-lg font-black text-slate-800 dark:text-slate-100 mt-0.5">₩${(totalOrderedPrice + totalCompletedPrice).toLocaleString()}</div>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 text-lg font-bold">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 text-sm sm:text-lg font-bold">
               💳
             </div>
           </div>
         </div>
 
         <!-- 탭 및 검색 / 필터 컨트롤 Bar -->
-        <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
           
           <!-- 서브 탭 스위치 -->
-          <div class="flex items-center justify-between flex-wrap gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-            <div class="flex items-center gap-2">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               <button 
                 onclick="SuppliesModule.setTab('requests')"
-                class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${activeTab === 'requests' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}"
+                class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'requests' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}"
               >
                 <i class="fas fa-clipboard-list"></i>
                 <span>소모품 요청 목록</span>
-                <span class="px-2 py-0.5 text-[10px] rounded-full bg-white/20 font-bold">${supplies.length}</span>
+                <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-white/20 font-bold">${supplies.length}</span>
               </button>
 
               <button 
                 onclick="SuppliesModule.setTab('catalog')"
-                class="px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${activeTab === 'catalog' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}"
+                class="px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'catalog' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}"
               >
                 <i class="fas fa-th-large"></i>
                 <span>자주 쓰는 소모품 카탈로그</span>
-                <span class="px-2 py-0.5 text-[10px] rounded-full bg-white/20 font-bold">${presets.length}</span>
+                <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-white/20 font-bold">${presets.length}</span>
               </button>
             </div>
 
             <!-- 검색 창 & 긴급 필터 -->
-            <div class="flex items-center gap-2 flex-grow sm:flex-grow-0">
-              <div class="relative flex-grow sm:w-64">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <div class="relative flex-grow sm:w-60">
                 <input 
                   type="text"
-                  placeholder="품목명, 신청자, 구매처 검색..."
+                  placeholder="품목명, 신청자 검색..."
                   value="${searchQuery}"
                   oninput="SuppliesModule.handleSearch(this.value)"
                   class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-emerald-500 pl-8 text-slate-900 dark:text-white"
@@ -146,7 +146,7 @@ window.SuppliesModule = (function () {
 
               <button 
                 onclick="SuppliesModule.toggleUrgentFilter()"
-                class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border ${urgentOnlyFilter ? 'bg-red-500 text-white border-red-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200'}"
+                class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border whitespace-nowrap ${urgentOnlyFilter ? 'bg-red-500 text-white border-red-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200'}"
               >
                 <span>⚡ 긴급만 보기</span>
               </button>
@@ -155,13 +155,13 @@ window.SuppliesModule = (function () {
 
           <!-- 상태별 필터 칩 (요청 목록 탭일 경우만 표시) -->
           ${activeTab === 'requests' ? `
-            <div class="flex items-center gap-2 flex-wrap text-xs font-bold">
-              <span class="text-slate-400 text-[11px] mr-1">상태 필터:</span>
-              <button onclick="SuppliesModule.setStatusFilter('ALL')" class="px-3 py-1 rounded-lg transition ${statusFilter === 'ALL' ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 font-black' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'}">전체</button>
-              <button onclick="SuppliesModule.setStatusFilter('PENDING')" class="px-3 py-1 rounded-lg transition ${statusFilter === 'PENDING' ? 'bg-amber-500 text-white font-black' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'}">⏳ 요청 대기 (${pendingList.length})</button>
-              <button onclick="SuppliesModule.setStatusFilter('ORDERED')" class="px-3 py-1 rounded-lg transition ${statusFilter === 'ORDERED' ? 'bg-blue-500 text-white font-black' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20'}">🚚 주문 완료 (${orderedList.length})</button>
-              <button onclick="SuppliesModule.setStatusFilter('COMPLETED')" class="px-3 py-1 rounded-lg transition ${statusFilter === 'COMPLETED' ? 'bg-emerald-600 text-white font-black' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'}">✅ 입고 완료 (${completedList.length})</button>
-              <button onclick="SuppliesModule.setStatusFilter('REJECTED')" class="px-3 py-1 rounded-lg transition ${statusFilter === 'REJECTED' ? 'bg-rose-500 text-white font-black' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20'}">❌ 반려</button>
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs font-bold whitespace-nowrap">
+              <span class="text-slate-400 text-[11px] mr-1 hidden sm:inline">상태 필터:</span>
+              <button onclick="SuppliesModule.setStatusFilter('ALL')" class="px-2.5 py-1 rounded-lg transition ${statusFilter === 'ALL' ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 font-black' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'}">전체</button>
+              <button onclick="SuppliesModule.setStatusFilter('PENDING')" class="px-2.5 py-1 rounded-lg transition ${statusFilter === 'PENDING' ? 'bg-amber-500 text-white font-black' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'}">⏳ 요청 대기 (${pendingList.length})</button>
+              <button onclick="SuppliesModule.setStatusFilter('ORDERED')" class="px-2.5 py-1 rounded-lg transition ${statusFilter === 'ORDERED' ? 'bg-blue-500 text-white font-black' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20'}">🚚 주문 완료 (${orderedList.length})</button>
+              <button onclick="SuppliesModule.setStatusFilter('COMPLETED')" class="px-2.5 py-1 rounded-lg transition ${statusFilter === 'COMPLETED' ? 'bg-emerald-600 text-white font-black' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'}">✅ 입고 완료 (${completedList.length})</button>
+              <button onclick="SuppliesModule.setStatusFilter('REJECTED')" class="px-2.5 py-1 rounded-lg transition ${statusFilter === 'REJECTED' ? 'bg-rose-500 text-white font-black' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20'}">❌ 반려</button>
             </div>
           ` : ''}
 

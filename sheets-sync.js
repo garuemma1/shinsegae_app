@@ -181,7 +181,7 @@ window.SheetsSync = (function () {
       status: 'PENDING',
       memo: '잔여 수량 1상자 미만입니다. 긴급 주문 부탁드립니다.',
       createdAt: '2026-08-28 09:30',
-      updatedAt: Date.now(),
+      updatedAt: 1700000000000,
       vendor: '조은봉투 인쇄소',
       estimatedPrice: 120000,
       actualPrice: 120000,
@@ -199,7 +199,7 @@ window.SheetsSync = (function () {
       status: 'ORDERED',
       memo: '카운터 영수증 롤 재고 소진 예정',
       createdAt: '2026-08-27 15:20',
-      updatedAt: Date.now(),
+      updatedAt: 1700000000000,
       vendor: '드림오피스',
       estimatedPrice: 45000,
       actualPrice: 45000,
@@ -1377,6 +1377,7 @@ window.SheetsSync = (function () {
       let paystubsChanged = false;
       let empsChanged = false;
       let ratesChanged = false;
+      let suppliesChanged = false;
 
       // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.notices && Array.isArray(cloudData.notices)) {
@@ -1480,10 +1481,20 @@ window.SheetsSync = (function () {
         if (isListDifferent(localSupplies, mergedSupplies)) {
           safeSetItem(STORAGE_KEYS.SUPPLIES, JSON.stringify(mergedSupplies));
           updated = true;
+          suppliesChanged = true;
         }
         const cloudSupIds = new Set((cloudData.supplies || []).map(s => s.id));
         if ((localSupplies || []).some(s => s && s.id && !cloudSupIds.has(s.id) && !activeDeletedIds.includes(s.id))) {
           needPushBack = true;
+        }
+      }
+
+      if (cloudData.supplyPresets && Array.isArray(cloudData.supplyPresets)) {
+        const localPresets = getSupplyPresets() || [];
+        if (isListDifferent(localPresets, cloudData.supplyPresets)) {
+          safeSetItem(STORAGE_KEYS.SUPPLY_PRESETS, JSON.stringify(cloudData.supplyPresets));
+          updated = true;
+          suppliesChanged = true;
         }
       }
 

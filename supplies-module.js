@@ -918,13 +918,14 @@ window.SuppliesModule = (function () {
             alert(`✅ 구글 시트 ${todayNum}일자 현금관련 [${colName}] 열에 ₩${price.toLocaleString()}원 자동 기장 완료!`);
           }
 
-          // ⚡ 구글 시트 Apps Script Web App 직통 Cell Push API 호출
-          if (window.GoogleSheetsClient) {
+          // ⚡ 구글 시트 Apps Script Web App 직통 Cell Push API 호출 (saveDaily: 2608 탭 28일자 행 기장)
+          if (window.GoogleSheetsClient || window.sheetsClient) {
             try {
-              const client = new window.GoogleSheetsClient();
+              const client = window.sheetsClient || new window.GoogleSheetsClient();
               client.setPharmacy('ssg');
               if (client.isConfigured) {
-                client.request('POST', { action: 'updateDaily', date: todayStr, log: todayLog });
+                const yymm = `${String(now.getFullYear()).substring(2)}${String(now.getMonth()+1).padStart(2,'0')}`;
+                client.saveDaily(yymm, todayNum, todayLog);
               }
             } catch(e) {
               console.warn('GoogleSheetsClient direct push warning:', e);

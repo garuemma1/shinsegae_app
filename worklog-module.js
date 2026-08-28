@@ -595,6 +595,7 @@ window.WorklogModule = (function () {
       imageUrl: imageUrl,
       status: 'PENDING',
       createdAt: fullCreatedAt,
+      updatedAt: Date.now(),
       checkedBy: []
     };
 

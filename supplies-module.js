@@ -549,6 +549,10 @@ window.SuppliesModule = (function () {
             </div>
           </form>
         </div>
+      </div>
+    `;
+  }
+
   function renderCompleteModalHTML() {
     return `
       <div id="supplies-complete-modal" class="modal-overlay" style="display:none;">

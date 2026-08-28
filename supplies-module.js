@@ -344,7 +344,7 @@ window.SuppliesModule = (function () {
                 class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center gap-1"
                 title="물품 수령 및 입고 완료 처리"
               >
-                <i class="fas fa-box-open"></i> 입고 완료
+                <i class="fas fa-box-open"></i> 물품 수령 / 입고 확정
               </button>
             ` : ''}
 

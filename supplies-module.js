@@ -341,7 +341,7 @@ window.SuppliesModule = (function () {
                 class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center gap-1"
                 title="물품 수령 및 입고 완료 처리"
               >
-                <i class="fas fa-box-open"></i> 입고 완료 (지출연동)
+                <i class="fas fa-box-open"></i> 입고 완료
               </button>
             ` : ''}
 
@@ -515,7 +515,7 @@ window.SuppliesModule = (function () {
           <div class="modal-header">
             <h3 class="font-bold text-base text-blue-600 dark:text-blue-400 flex items-center gap-2">
               <i class="fas fa-check-circle"></i>
-              <span>약국장 소모품 주문 확정 & 결제 정보 입력</span>
+              <span>약국장 소모품 주문 확정</span>
             </h3>
             <button class="close-btn" onclick="SuppliesModule.closeConfirmModal()">&times;</button>
           </div>
@@ -536,27 +536,6 @@ window.SuppliesModule = (function () {
             <div class="form-group">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">실제 결제/주문 금액 (원) <span class="text-rose-500">*</span></label>
               <input type="number" id="sup-confirm-price" required min="0" step="100" placeholder="예: 120000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-emerald-600">
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div class="form-group">
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">결제 수단 구분 <span class="text-rose-500">*</span></label>
-                <select id="sup-confirm-paymethod" onchange="SuppliesModule.updateLedgerCategoryOptions(this.value)" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-emerald-600">
-                  <option value="CASH">💵 현금 / 통장 계좌이체</option>
-                  <option value="CARD">💳 카드 결제</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">지출 분류 항목 선택 <span class="text-rose-500">*</span></label>
-                <select id="sup-confirm-ledgercategory" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-blue-600">
-                  <option value="잡비 현금">🟢 [현금] 잡비 현금 (소모품/전산봉투/기타)</option>
-                  <option value="식대">🟢 [현금] 식대</option>
-                  <option value="박카스">🟢 [현금] 박카스</option>
-                  <option value="현매">🟢 [현금] 현매</option>
-                  <option value="손님계좌이체">🟢 [현금] 손님계좌이체</option>
-                </select>
-              </div>
             </div>
 
             <div class="modal-footer flex items-center justify-end gap-2 pt-3">
@@ -813,25 +792,17 @@ window.SuppliesModule = (function () {
   function handleConfirmSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('sup-confirm-id').value;
-    const vendor = document.getElementById('sup-confirm-vendor').value.trim();
-    const price = Number(document.getElementById('sup-confirm-price').value) || 0;
-    const payMethod = document.getElementById('sup-confirm-paymethod').value;
-    const ledgerCategory = document.getElementById('sup-confirm-ledgercategory').value;
+    const vendorEl = document.getElementById('sup-confirm-vendor');
+    const priceEl = document.getElementById('sup-confirm-price');
+    const vendor = vendorEl ? vendorEl.value.trim() : '';
+    const price = priceEl ? (Number(priceEl.value) || 0) : 0;
 
     window.SheetsSync.updateSupplyStatus(id, 'ORDERED', {
       vendor,
-      actualPrice: price,
-      payMethod,
-      ledgerCategory
+      actualPrice: price
     });
 
     closeConfirmModal();
-
-    const supplies = window.SheetsSync.getSupplies() || [];
-    const target = supplies.find(s => s.id === id);
-    const itemName = target ? target.itemName : '소모품';
-
-    alert(`🚚 [${itemName}] 주문 확정이 완료되었습니다.`);
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();
@@ -843,11 +814,7 @@ window.SuppliesModule = (function () {
     const target = supplies.find(s => s.id === id);
     if (!target) return;
 
-    const confirmMsg = `📦 [${target.itemName}] 물품 수령 및 입고를 완료하시겠습니까?`;
-    if (!confirm(confirmMsg)) return;
-
     window.SheetsSync.updateSupplyStatus(id, 'COMPLETED');
-    alert(`✅ [${target.itemName}] 물품 수령 및 입고 완료 처리되었습니다.`);
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();

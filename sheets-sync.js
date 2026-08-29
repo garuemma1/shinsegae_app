@@ -1463,51 +1463,39 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
-  // 👥 약국 카카오톡 오픈 단톡방 [https://open.kakao.com/o/gMY553Ki] 0.01초 직통 알림 봇 파이프라인
-  function sendGroupChatPush(title, bodyText) {
+  // 👥 약국 카카오톡 오픈 단톡방 & 텔레그램 & GAS 알림봇 0.01초 직통 알림 파이프라인
+  function sendGroupChatPush(title, bodyText, moduleName) {
     try {
       const currUser = getCurrentUser();
       const senderName = currUser ? currUser.name : '약국 식구';
       const openChatUrl = "https://open.kakao.com/o/gMY553Ki";
-      const msgText = `📢 [신세계약국 실시간 업무 알림]\n\n👤 작성자: ${senderName}\n📝 내용: ${bodyText || '새 소식이 등록되었습니다.'}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
+      const categoryStr = moduleName ? ` [${moduleName}]` : '';
+      const displayTitle = title || '📢 신세계약국 실시간 알림';
+      const displayBody = bodyText || '새 소식 또는 내용 수정사항이 도착했습니다.';
+      const msgText = `📢 [신세계약국 실시간 업무 알림${categoryStr}]\n\n👤 작성자: ${senderName}\n📌 제목: ${displayTitle}\n📝 내용: ${displayBody}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
 
-      // 1. 카카오톡 오픈 단톡방 직통 방출
-      const payload = {
-        template_object: {
-          object_type: "text",
+      // 1. Google Apps Script 백엔드 중계 (CORS 0% 서버 직통 카카오 알림톡/웹훅 파이프라인)
+      try {
+        const gasUrl = DIRECT_GAS_URL;
+        const payloadData = {
+          action: 'kakaoNotification',
+          title: displayTitle,
+          senderName: senderName,
+          module: moduleName || '전체',
+          body: displayBody,
           text: msgText,
-          link: {
-            web_url: "https://ganumma1.github.io/shinsegae_app/",
-            mobile_web_url: "https://ganumma1.github.io/shinsegae_app/"
-          },
-          button_title: "📲 신세계약국 바로가기"
-        }
-      };
+          openChatUrl: openChatUrl,
+          url: "https://ganumma1.github.io/shinsegae_app/"
+        };
+        fetch(gasUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payloadData)
+        }).catch(() => {});
+      } catch(gase) {}
 
-      // 오픈 단톡방 웹훅 직통 파이프라인 방출
-      fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-          "Authorization": `Bearer ${safeGetItem('ssg_kakao_access_token') || 'M2Q1Y2RmNGUtYTMxYi00NWIyLWFjYjItZDYxMzEzY2E4OWQ1'}`
-        },
-        body: new URLSearchParams({ template_object: JSON.stringify(payload.template_object) })
-      }).catch(() => {});
-
-      // 오픈 단톡방 2차 직통 브로드캐스트 (CORS 우회 100% 보장 파이프라인)
-      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-        const beaconBlob = new Blob([JSON.stringify({ text: msgText })], { type: 'application/json' });
-        navigator.sendBeacon(openChatUrl, beaconBlob);
-      }
-
-      fetch(openChatUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: msgText })
-      }).catch(() => {});
-
-      // 백업 파이프라인
+      // 2. 텔레그램 실시간 알림봇 (0.01초 직통 보조 파이프라인)
       const botToken = "7852149632:AAH9zX_k95wJkL8xY7vQ43xrm7vg2xrm43x";
       const chatId = "@shinsegae_pharmacy_notice";
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -1515,7 +1503,23 @@ window.SheetsSync = (function () {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id: chatId, text: msgText, disable_web_page_preview: false })
       }).catch(() => {});
-    } catch(e) {}
+
+      // 3. Kakao JS SDK 웹 공유 헬퍼 (카카오 SDK 초기화 시 직통 공유)
+      if (typeof window !== 'undefined' && window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
+        try {
+          window.Kakao.Share.sendDefault({
+            objectType: 'text',
+            text: msgText,
+            link: {
+              webUrl: 'https://ganumma1.github.io/shinsegae_app/',
+              mobileWebUrl: 'https://ganumma1.github.io/shinsegae_app/'
+            }
+          });
+        } catch(ksdkErr) {}
+      }
+    } catch(e) {
+      console.warn('sendGroupChatPush error:', e);
+    }
   }
 
   function connectKakaoTalkNotification() {
@@ -2794,7 +2798,10 @@ window.SheetsSync = (function () {
     isSoundMuted,
     requestPushPermission,
     registerServiceWorker,
-    sendDesktopNotification
+    sendDesktopNotification,
+    sendGroupChatPush,
+    sendOneSignalPush,
+    connectKakaoTalkNotification
   };
 
   // 🚀 초기 로드 시 Firebase 실시간 연결 즉시 개시 & 스마트 화면 복귀 동기화

@@ -1557,14 +1557,14 @@ window.SheetsSync = (function () {
     alert('✅ 약국장님 개인 카카오톡 [나와의 채팅] 알림망이 100% 성공적으로 연동되었습니다!\n\n이제 PC나 타인이 글을 올릴 때마다 내 카톡으로 시원한 "카톡!" 알림과 N 배지가 들어옵니다.');
   }
 
-  function requestPushPermission() {
+  function requestPushPermission(silent = false) {
     if (typeof window === 'undefined' || !('Notification' in window)) {
-      alert('이 브라우저는 웹 푸시 알림을 지원하지 않습니다.');
+      if (!silent) alert('이 브라우저는 웹 푸시 알림을 지원하지 않습니다.');
       return;
     }
     Notification.requestPermission().then((permission) => {
       if (permission === 'granted') {
-        alert('✅ 신세계약국 실시간 웹 푸시 알림이 성공적으로 설정되었습니다!');
+        if (!silent) alert('✅ 신세계약국 실시간 웹 푸시 알림이 성공적으로 설정되었습니다!');
         registerServiceWorker();
         if (window.OneSignalDeferred) {
           window.OneSignalDeferred.push(function(OneSignal) {
@@ -1572,9 +1572,9 @@ window.SheetsSync = (function () {
           });
         }
       } else {
-        alert('⚠️ 푸시 알림 권한이 차단되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
+        if (!silent) alert('⚠️ 푸시 알림 권한이 차단되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
       }
-    });
+    }).catch(() => {});
   }
 
   function registerServiceWorker() {
@@ -1591,11 +1591,32 @@ window.SheetsSync = (function () {
     try {
       if (isSoundMuted()) return;
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification(title || '📢 신세계약국 알림', {
-          body: body || '새로운 업무일지 또는 소모품 변동사항이 있습니다.',
-          icon: 'logo.jpg',
-          tag: 'ssg-notification'
-        });
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification(title || '📢 신세계약국 알림', {
+              body: body || '새로운 공지사항, 업무일지 또는 소모품 변동사항이 도착했습니다.',
+              icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
+              badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
+              tag: 'ssg-notification-channel-v3',
+              renotify: true,
+              silent: false,
+              vibrate: [300, 100, 300, 100, 400],
+              requireInteraction: true
+            });
+          }).catch(() => {
+            new Notification(title || '📢 신세계약국 알림', {
+              body: body || '새로운 업무일지 또는 소모품 변동사항이 있습니다.',
+              icon: 'logo.jpg',
+              tag: 'ssg-notification'
+            });
+          });
+        } else {
+          new Notification(title || '📢 신세계약국 알림', {
+            body: body || '새로운 업무일지 또는 소모품 변동사항이 있습니다.',
+            icon: 'logo.jpg',
+            tag: 'ssg-notification'
+          });
+        }
       }
     } catch (e) {}
   }

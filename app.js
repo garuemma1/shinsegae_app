@@ -2099,6 +2099,9 @@ function writeSheetData(sheet, dataList) {
     // 2. 다른 앱이나 탭에서 약국 앱으로 돌아올 때(Focus / VisibilityChange) 1회만 초고속 최신화 (가만히 있을 때는 0 Byte 대기!)
     window.addEventListener('focus', () => {
       checkAppUpdate();
+      if (window.SheetsSync && typeof window.SheetsSync.requestPushPermission === 'function') {
+        window.SheetsSync.requestPushPermission(true);
+      }
       if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
         window.SheetsSync.pullFromCloud();
       }
@@ -2107,6 +2110,9 @@ function writeSheetData(sheet, dataList) {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         checkAppUpdate();
+        if (window.SheetsSync && typeof window.SheetsSync.requestPushPermission === 'function') {
+          window.SheetsSync.requestPushPermission(true);
+        }
         if (window.SheetsSync && typeof window.SheetsSync.pullFromCloud === 'function') {
           window.SheetsSync.pullFromCloud();
         }

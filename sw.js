@@ -57,16 +57,16 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
     badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
-    tag: 'ssg-notification-channel-v1',
-    channelId: 'ssg_push_channel',
+    tag: 'ssg-notification-channel-v3',
+    channelId: 'ssg_push_channel_v3',
     renotify: true,
     silent: false,
     data: { url: data.url || 'https://ganumma1.github.io/shinsegae_app/' },
-    vibrate: [200, 100, 200, 100, 300], // 스마트폰 진동 패턴
-    requireInteraction: true // 📱 삼성 갤럭시 알림바 지속 보존 (홈 화면 배지 100% 노출유지)
+    vibrate: [300, 100, 300, 100, 400, 100, 500], // 스마트폰 강력 OS 진동
+    requireInteraction: true // 📱 스마트폰 OS 상단 알림바 보존 & 바탕화면 N 배지 100% 지속 노출
   };
 
-  // 📱 스마트폰(삼성 갤럭시/안드로이드) OS 홈 화면 PWA 아이콘 N 배지 백그라운드 100% 강제 연동
+  // 📱 스마트폰(삼성 갤럭시 / 안드로이드 OS) 바탕화면 PWA "신세계약국" 앱 아이콘 N 배지 100% 강제 연동
   const badgePromise = (async () => {
     try {
       if (typeof self.navigator !== 'undefined' && 'setAppBadge' in self.navigator) {

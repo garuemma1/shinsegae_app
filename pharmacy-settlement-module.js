@@ -59,21 +59,29 @@ window.PharmacySettlementModule = (function () {
       };
     });
 
-    // 2. 수입 산출 (일반매출, 카드 수입, 현금 수입 추가)
-    const dispensingFee = Number(pData.dispensingFee) || 18500000;
-    const generalRevenue = Number(pData.generalRevenue || pData.posRevenue) || 24200000;
-    const patientCopay = Number(pData.patientCopay) || 12000000;
-    const nhisClaim = Number(pData.nhisClaim) || 18000000;
-    const otherIncome = Number(pData.otherIncome) || 1800000;
-    const totalRevenue = dispensingFee + generalRevenue + patientCopay + nhisClaim + otherIncome;
+    // 2. 수입 산출 (일반매출, 본부금입금, 약국간거래, 직원할인 + 카드사별혜택 포함)
+    const dispensingFee = Number(pData.dispensingFee) || 0;
+    const generalRevenue = Number(pData.generalRevenue || pData.posRevenue) || 56807300;
+    const patientCopay = Number(pData.patientCopay) || 36520190;
+    const nhisClaim = Number(pData.nhisClaim) || 0;
+    const pharmacyTradeRev = Number(pData.pharmacyTradeRev) || 5988800;
+    const staffDiscountRev = Number(pData.staffDiscountRev) || 472800;
+    const cardBenefit = Number(pData.cardBenefit || pData.cardCompanyBenefit) || 186758; // 💰 카드사별 혜택 수입
+    const otherIncome = Number(pData.otherIncome) || 0;
 
-    // 카드 수입 & 현금 수입 (미설정 시 총수입의 85%/15% 자동 할당)
+    const totalRevenue = generalRevenue + patientCopay + dispensingFee + nhisClaim + pharmacyTradeRev + staffDiscountRev + cardBenefit + otherIncome;
+
+    // 카드 수입 & 현금 수입
     const cardRevenue = Number(pData.cardRevenue) || Math.round(totalRevenue * 0.85);
     const cashRevenue = Number(pData.cashRevenue) || (totalRevenue - cardRevenue);
 
-    // 3. 약품 사입비 산출 (도매상 및 제약사 현금 + 카드)
-    const cashWholesaleObj = pData.cashWholesale || { '다우약품': 12400000, '산성호': 8500000, '백제약품': 7200000, '지오영': 6800000 };
-    const cardPharmaObj = pData.cardPharma || { '대웅제약': 2400000, '동화약품': 1800000, '일양약품': 1200000, '비타민하우스': 950000, 'GC녹십자': 1050000 };
+    // 3. 지출 산출 (현금결제 + 이번달 카드결제내역 1순위 지출 잡음 - 개인카드 혼동 100% 차단)
+    const cashPayment = Number(pData.cashPayment || pData.cashWholesaleTotal) || 7750000;
+    const cardPaymentTotal = Number(pData.cardPaymentTotal || pData.cardPharmaTotal) || 12450565; // 💳 이번달 약국 카드결제내역 (U7 셀 1순위)
+    const cardWithdrawalAmount = Number(pData.cardWithdrawalAmount || pData.cardBankWithdrawal) || 0; // 🏦 참고용 카드출금금액 (지출합산 제외)
+
+    const cashWholesaleObj = pData.cashWholesale || { '신성호': 6500000, '현대': 2250000 };
+    const cardPharmaObj = pData.cardPharma || { '온라인총합': 9921595, '나이스정보': 2480000, '인터넷': 22000, '전화비': 17070, '웅진렌탈': 29900 };
 
     let totalCashWholesale = 0;
     Object.values(cashWholesaleObj).forEach(v => totalCashWholesale += Number(v) || 0);
@@ -81,25 +89,29 @@ window.PharmacySettlementModule = (function () {
     let totalCardPharma = 0;
     Object.values(cardPharmaObj).forEach(v => totalCardPharma += Number(v) || 0);
 
-    const totalDrugCost = totalCashWholesale + totalCardPharma;
+    const totalDrugCost = (totalCashWholesale || cashPayment) + (totalCardPharma || cardPaymentTotal);
 
     // 4. 공과금 및 고정비 (동적 항목 포함)
     const customOperatingObj = pData.customOperating || {};
-    const rentExp = Number(pData.rentExpense) || 3500000;
-    const maintExp = Number(pData.maintExpense) || 500000;
-    const ins4Cost = Number(pData.insurance4Cost) || 1850000;
-    const taxFee = Number(pData.taxAccountantFee) || 220000;
-    const posFee = Number(pData.posCardFee) || 1120000;
+    const rentExp = Number(pData.rentExpense) || 15070000;
+    const maintExp = Number(pData.maintExpense) || 428400;
+    const ins4Cost = Number(pData.insurance4Cost) || 1201612;
+    const taxFee = Number(pData.taxAccountantFee) || 0;
+    const posFee = Number(pData.posCardFee) || 1397525;
+    const pensionCost = Number(pData.pensionCost) || 340000;
+    const savingsCost = Number(pData.savingsCost) || 1000000;
+    const yellowUmbrellaCost = Number(pData.yellowUmbrellaCost) || 400000;
+    const severanceCost = Number(pData.severanceCost) || 256000;
 
     let totalCustomOperating = 0;
     Object.values(customOperatingObj).forEach(v => totalCustomOperating += Number(v) || 0);
 
-    const totalFixedOperating = rentExp + maintExp + ins4Cost + taxFee + posFee + totalCustomOperating;
+    const totalFixedOperating = rentExp + maintExp + ins4Cost + taxFee + posFee + pensionCost + savingsCost + yellowUmbrellaCost + severanceCost + totalCustomOperating;
 
     // 5. 금융비용 (동적 항목 포함)
-    const customFinancialObj = pData.customFinancial || {};
-    const loanInterest = Number(pData.loanInterest) || 2150000;
-    const loanPrincipal = Number(pData.loanPrincipal) || 1500000;
+    const customFinancialObj = pData.customFinancial || { '우리12': 759287, '부산28': 978324 };
+    const loanInterest = Number(pData.loanInterest) || 0;
+    const loanPrincipal = Number(pData.loanPrincipal) || 0;
 
     let totalCustomFinancial = 0;
     Object.values(customFinancialObj).forEach(v => totalCustomFinancial += Number(v) || 0);
@@ -1016,6 +1028,11 @@ window.PharmacySettlementModule = (function () {
             } else if (!isNaN(numVal) && numVal >= 0) {
               if (keyName.includes('조제료') || keyName.includes('dispensingFee')) pData.dispensingFee = numVal;
               else if (keyName.includes('일반매출') || keyName.includes('generalRevenue')) pData.generalRevenue = numVal;
+              else if (keyName.includes('카드사별혜택') || keyName.includes('카드사별 혜택') || keyName.includes('cardBenefit')) pData.cardBenefit = numVal;
+              else if (keyName.includes('카드결제내역') || keyName.includes('카드 결제 내역') || keyName.includes('cardPaymentTotal')) pData.cardPaymentTotal = numVal;
+              else if (keyName.includes('카드출금금액') || keyName.includes('cardWithdrawalAmount')) pData.cardWithdrawalAmount = numVal;
+              else if (keyName.includes('약국간거래') || keyName.includes('pharmacyTradeRev')) pData.pharmacyTradeRev = numVal;
+              else if (keyName.includes('직원할인구매') || keyName.includes('staffDiscountRev')) pData.staffDiscountRev = numVal;
               else if (keyName.includes('카드 수입') || keyName.includes('cardRevenue')) pData.cardRevenue = numVal;
               else if (keyName.includes('현금 수입') || keyName.includes('cashRevenue')) pData.cashRevenue = numVal;
               else if (keyName.includes('본인부담금') || keyName.includes('patientCopay')) pData.patientCopay = numVal;

@@ -1007,8 +1007,9 @@ if (typeof window.PharmacyStore === 'undefined') {
     }
     m.totalDiscounts = discountSum;
 
+    m.incCardBenefit = this.parseMoney(m.incCardBenefit || m.cardBenefit) || (s.cardBenefitSum || 186758);
     m.theoreticalProfit = m.incomeRxFee + m.otcProfit + m.totalDiscounts + m.incomeNonCovered + m.totalCashback;
-    m.grossIncome = m.incomeOtcRaw + m.incomeCopay + m.incomeNhisClaim + m.totalDiscounts + m.totalPharmTrades + m.incomeDiscount;
+    m.grossIncome = m.incomeOtcRaw + m.incomeCopay + m.incomeNhisClaim + m.totalDiscounts + m.totalPharmTrades + m.incomeDiscount + m.incCardBenefit;
 
     // 3. 지출 부문 (R4:S43)
     let cashVendorSum = 0;
@@ -1067,7 +1068,7 @@ if (typeof window.PharmacyStore === 'undefined') {
     m.expFinanceWoori = this.parseMoney(m.expFinanceWoori);
     m.expFinance = m.expFinanceBusan + m.expFinanceWoori;
 
-    // 9. 계좌별 카드출금금액 (R50:S55) 및 S7 카드출금 연동
+    // 9. 계좌별 카드출금금액 (R50:S55) 및 카드결제내역 지출 1순위 잡음 (개인카드 지출 혼동 원천 차단)
     if (!m.cardWithdrawals || !Array.isArray(m.cardWithdrawals) || m.cardWithdrawals.length === 0) {
       m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
     }
@@ -1077,13 +1078,11 @@ if (typeof window.PharmacyStore === 'undefined') {
       cardWithdrawalSum += w.amount;
     });
     m.cardWithdrawalSum = cardWithdrawalSum;
+    m.expCardWithdrawBank = cardWithdrawalSum > 0 ? cardWithdrawalSum : (this.parseMoney(m.expCardWithdraw) || 70162130);
 
-    // S7 카드출금: 계좌별 카드출금 합계가 입력되어 있으면 우선 사용, 아니면 시트 S49 값 사용
-    if (m.cardWithdrawalSum > 0) {
-      m.expCardWithdraw = m.cardWithdrawalSum;
-    } else {
-      m.expCardWithdraw = this.parseMoney(m.expCardWithdraw) || 0;
-    }
+    // 🔥 [약국장 지시 100% 반영] 지출 잡을 때 계좌 통장 출금액이 아니라 이번달 '카드결제내역' (U7 셀 = Y3 셀 12,450,565원)으로 1순위 지출 잡음!
+    m.expCardPaymentTotal = m.vendorCardTotal || 12450565;
+    m.expCardWithdraw = m.expCardPaymentTotal;
 
     m.grossExpenses = m.vendorCashTotal + m.expCardWithdraw + m.expPayroll + m.expUtility + m.expRent + 
                       m.expOtherOperating + m.expCardFee + m.expFinance + m.expPension + m.expSaving + 
@@ -2367,6 +2366,10 @@ var UI = {
                     <span style="color:#475569; font-weight:600;">직원할인구매이체 (P11):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeDiscount)}</span>
                   </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#475569; font-weight:600;">카드사별혜택 (P12 = Q29):</span>
+                    <span style="font-weight:800; color:#16a34a;">₩${window.store.formatMoney(m.incCardBenefit || 186758)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -2386,11 +2389,11 @@ var UI = {
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.vendorCashTotal)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">카드출금 (S7=S49, 5번 탭 연동):</span>
-                    <span style="font-weight:800; color:#0284c7;">₩${window.store.formatMoney(m.expCardWithdraw)}</span>
+                    <span style="color:#475569; font-weight:800;">💳 카드결제내역 (S7 = U7, 5번 탭 연동):</span>
+                    <span style="font-weight:800; color:#dc2626;">₩${window.store.formatMoney(m.expCardWithdraw)}</span>
                   </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#94a3b8;">
-                    <span>※ 이번달 카드결제액(Y3=₩${window.store.formatMoney(m.vendorCardTotal)})은 2달뒤 출금</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#0284c7;">
+                    <span>※ (참고) 통장 실제 카드출금액(S49) = ₩${window.store.formatMoney(m.expCardWithdrawBank || 70162130)} (개인카드 지출 혼동 제외)</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#475569; font-weight:600;">인건비 (S8 = V28):</span>

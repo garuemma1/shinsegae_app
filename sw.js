@@ -35,9 +35,9 @@ self.addEventListener('push', (event) => {
   let data = {
     title: '📢 신세계약국 알림',
     body: '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.',
-    icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
-    badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
-    url: 'https://ganumma1.github.io/shinsegae_app/',
+    icon: 'https://garuemma1.github.io/shinsegae_app/logo.jpg',
+    badge: 'https://garuemma1.github.io/shinsegae_app/logo.jpg',
+    url: 'https://garuemma1.github.io/shinsegae_app/',
     tag: 'ssg-notification',
     unreadCount: 1
   };
@@ -55,13 +55,13 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
-    badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
+    icon: 'https://garuemma1.github.io/shinsegae_app/logo.jpg',
+    badge: 'https://garuemma1.github.io/shinsegae_app/logo.jpg',
     tag: 'ssg-notification-channel-v3',
     channelId: 'ssg_push_channel_v3',
     renotify: true,
     silent: false,
-    data: { url: data.url || 'https://ganumma1.github.io/shinsegae_app/' },
+    data: { url: data.url || 'https://garuemma1.github.io/shinsegae_app/' },
     vibrate: [300, 100, 300, 100, 400, 100, 500], // 스마트폰 강력 OS 진동
     requireInteraction: true // 📱 스마트폰 OS 상단 알림바 보존 & 바탕화면 N 배지 100% 지속 노출
   };
@@ -87,7 +87,7 @@ self.addEventListener('push', (event) => {
 // 🖱️ 스마트폰 상단 알림 배너 터치/클릭 이벤트
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || 'https://ganumma1.github.io/shinsegae_app/';
+  const targetUrl = (event.notification.data && event.notification.data.url) || 'https://garuemma1.github.io/shinsegae_app/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

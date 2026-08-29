@@ -1458,9 +1458,9 @@ window.SheetsSync = (function () {
         included_segments: ["Subscribed Users", "All"],
         headings: { en: title || "📢 신세계약국 실시간 알림", ko: title || "📢 신세계약국 실시간 알림" },
         contents: { en: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다.", ko: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다." },
-        url: "https://ganumma1.github.io/shinsegae_app/",
-        chrome_web_icon: "https://ganumma1.github.io/shinsegae_app/logo.jpg",
-        chrome_web_badge: "https://ganumma1.github.io/shinsegae_app/logo.jpg",
+        url: "https://garuemma1.github.io/shinsegae_app/",
+        chrome_web_icon: "https://garuemma1.github.io/shinsegae_app/logo.jpg",
+        chrome_web_badge: "https://garuemma1.github.io/shinsegae_app/logo.jpg",
         priority: 10
       };
 
@@ -1485,7 +1485,7 @@ window.SheetsSync = (function () {
         const categoryStr = moduleName ? ` [${moduleName}]` : '';
         const displayTitle = title || '📢 신세계약국 실시간 알림';
         const displayBody = bodyText || '새 소식 또는 내용 수정사항이 도착했습니다.';
-        const msgText = `📢 [신세계약국 실시간 업무 알림${categoryStr}]\n\n👤 작성자: ${senderName}\n📌 제목: ${displayTitle}\n📝 내용: ${displayBody}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
+        const msgText = `📢 [신세계약국 실시간 업무 알림${categoryStr}]\n\n👤 작성자: ${senderName}\n📌 제목: ${displayTitle}\n📝 내용: ${displayBody}\n\n👉 [📲 신세계약국 앱 바로가기]: https://garuemma1.github.io/shinsegae_app/`;
 
         // 1. Google Apps Script 백엔드 중계 (비동기 fetch 전송 - 메인 스레드 멈춤 100% 방지)
         try {
@@ -1498,7 +1498,7 @@ window.SheetsSync = (function () {
             body: displayBody,
             text: msgText,
             openChatUrl: openChatUrl,
-            url: "https://ganumma1.github.io/shinsegae_app/"
+            url: "https://garuemma1.github.io/shinsegae_app/"
           };
 
           if (typeof fetch === 'function') {
@@ -1565,8 +1565,8 @@ window.SheetsSync = (function () {
           navigator.serviceWorker.ready.then((reg) => {
             reg.showNotification(title || '📢 신세계약국 알림', {
               body: body || '새로운 공지사항, 업무일지 또는 소모품 변동사항이 도착했습니다.',
-              icon: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
-              badge: 'https://ganumma1.github.io/shinsegae_app/logo.jpg',
+              icon: 'https://garuemma1.github.io/shinsegae_app/logo.jpg',
+              badge: 'https://garuemma1.github.io/shinsegae_app/logo.jpg',
               tag: 'ssg-notification-channel-v3',
               renotify: true,
               silent: false,

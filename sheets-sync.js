@@ -1533,16 +1533,7 @@ window.SheetsSync = (function () {
         }
       } catch(gase) {}
 
-      // 2. 텔레그램 실시간 알림봇 (0.01초 직통 보조 파이프라인)
-      const botToken = "7852149632:AAH9zX_k95wJkL8xY7vQ43xrm7vg2xrm43x";
-      const chatId = "@shinsegae_pharmacy_notice";
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: chatId, text: msgText, disable_web_page_preview: false })
-      }).catch(() => {});
-
-      // 3. Kakao JS SDK 웹 공유 헬퍼 (카카오 SDK 초기화 시 직통 공유)
+      // 2. Kakao JS SDK 웹 공유 헬퍼 (카카오 SDK 초기화 시 직통 공유)
       if (typeof window !== 'undefined' && window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
         try {
           window.Kakao.Share.sendDefault({

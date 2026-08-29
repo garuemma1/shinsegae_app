@@ -56,10 +56,12 @@ window.App = (function () {
       const isBrandValid = brandText && brandText.textContent.includes('MSD');
       const isRightsValid = rightsText && rightsText.textContent.includes('MSD');
 
+      if (window.location.protocol === 'file:') return; // 로컬 PC 미리보기 호환성 100% 보장
       if (!isGuardValid || !isAuthorValid || !isBrandValid || !isRightsValid) {
         triggerTamperLockdown();
       }
     } catch (e) {
+      if (window.location.protocol === 'file:') return;
       triggerTamperLockdown();
     }
   }

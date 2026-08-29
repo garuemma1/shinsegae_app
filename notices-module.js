@@ -157,14 +157,27 @@ window.NoticesModule = (function () {
     const currUser = window.SheetsSync.getCurrentUser();
     const isDirector = currUser && (currUser.role === '약국장' || currUser.id === 'emp_1');
 
+    const getTime = (item) => {
+      if (!item) return 0;
+      if (typeof item.updatedAt === 'number' && item.updatedAt > 1000000000000) return item.updatedAt;
+      if (typeof item.createdAt === 'number' && item.createdAt > 1000000000000) return item.createdAt;
+      if (item.id && typeof item.id === 'string') {
+        const numStr = item.id.replace(/^[a-zA-Z_]+/, '');
+        const idNum = parseInt(numStr, 10);
+        if (!isNaN(idNum) && idNum > 1000000000000) return idNum;
+      }
+      const str = item.date || item.dateStr || '';
+      if (!str) return 0;
+      const ms = new Date(String(str).replace(/-/g, '/')).getTime();
+      return isNaN(ms) ? 0 : ms;
+    };
+
     // 1단계: 📌 최상단 고정글 우선, 2단계: 최신 작성일시(시간순) 내림차순 정렬
     const sorted = [...list].sort((a, b) => {
       const pinA = a.isPinned ? 1 : 0;
       const pinB = b.isPinned ? 1 : 0;
       if (pinB !== pinA) return pinB - pinA;
-      const timeA = a.createdAt ? Number(a.createdAt) : (new Date(String(a.date || 0).replace(/-/g, '/')).getTime() || 0);
-      const timeB = b.createdAt ? Number(b.createdAt) : (new Date(String(b.date || 0).replace(/-/g, '/')).getTime() || 0);
-      return timeB - timeA;
+      return getTime(b) - getTime(a);
     });
 
     return sorted.map(notice => {

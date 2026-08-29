@@ -1678,23 +1678,26 @@ window.SheetsSync = (function () {
 
       function getSafeTime(item, dateField) {
         if (!item) return 0;
+        if (typeof item.updatedAt === 'number' && item.updatedAt > 1000000000000) {
+          return item.updatedAt;
+        }
+        if (typeof item.createdAt === 'number' && item.createdAt > 1000000000000) {
+          return item.createdAt;
+        }
         if (item.id && typeof item.id === 'string') {
-          if (item.id.startsWith('task_') || item.id.startsWith('sup_') || item.id.startsWith('w_') || item.id.startsWith('disc_')) {
-            const numStr = item.id.replace(/^[a-z_]+/, '');
-            const idNum = parseInt(numStr, 10);
-            if (!isNaN(idNum) && idNum > 1000000000000) {
-              // 만약 updatedAt 수치가 더 최신이면 updatedAt 사용
-              const uTime = typeof item.updatedAt === 'number' ? item.updatedAt : (item.updatedAt ? new Date(String(item.updatedAt).replace(/-/g, '/')).getTime() : 0);
-              return (!isNaN(uTime) && uTime > idNum) ? uTime : idNum;
-            }
+          const numStr = item.id.replace(/^[a-zA-Z_]+/, '');
+          const idNum = parseInt(numStr, 10);
+          if (!isNaN(idNum) && idNum > 1000000000000) {
+            const uTime = typeof item.updatedAt === 'number' ? item.updatedAt : (item.updatedAt ? new Date(String(item.updatedAt).replace(/-/g, '/')).getTime() : 0);
+            return (!isNaN(uTime) && uTime > idNum) ? uTime : idNum;
           }
         }
-        const str = (dateField && item[dateField] !== undefined && item[dateField] !== null && item[dateField] !== '')
+        const val = (dateField && item[dateField] !== undefined && item[dateField] !== null && item[dateField] !== '')
           ? item[dateField]
           : (item.updatedAt || item.createdAt || item.date || item.dateStr || '');
-        if (!str) return 0;
-        if (typeof str === 'number') return str;
-        const s = String(str).trim().replace(/\+/g, ' ').replace(/-/g, '/').replace(/\./g, '/');
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        const s = String(val).trim().replace(/\+/g, ' ').replace(/-/g, '/').replace(/\./g, '/');
         const ms = new Date(s).getTime();
         return isNaN(ms) ? 0 : ms;
       }
@@ -1763,7 +1766,7 @@ window.SheetsSync = (function () {
       // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.notices && Array.isArray(cloudData.notices)) {
         const localNotices = getNotices() || [];
-        const mergedNotices = mergeById(localNotices, cloudData.notices, 'date');
+        const mergedNotices = mergeById(localNotices, cloudData.notices, 'updatedAt');
         if (isListDifferent(localNotices, mergedNotices)) {
           safeSetItem(STORAGE_KEYS.NOTICES, JSON.stringify(mergedNotices));
           updated = true;

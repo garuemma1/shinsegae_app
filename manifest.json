@@ -5,6 +5,7 @@
   "start_url": "https://garuemma1.github.io/shinsegae_app/index.html",
   "scope": "https://garuemma1.github.io/shinsegae_app/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#059669",
   "orientation": "portrait-primary",

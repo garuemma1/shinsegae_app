@@ -1270,14 +1270,26 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
+  function playSilentBuffer() {
+    try {
+      initAudioContext();
+      if (audioCtx && audioCtx.state === 'running') {
+        const buffer = audioCtx.createBuffer(1, 1, 22050);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.start(0);
+      }
+    } catch(e) {}
+  }
+
   if (typeof window !== 'undefined') {
     const unlockAudio = () => {
       initAudioContext();
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
+      playSilentBuffer();
     };
-    window.addEventListener('click', unlockAudio, { once: true });
-    window.addEventListener('touchstart', unlockAudio, { once: true });
+    window.addEventListener('click', unlockAudio, { passive: true });
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
 
     // 📱 스마트폰 앱 복귀, 화면 켜짐, 앱 아이콘 터치 진입 시 F5 손 새로고침 필요없이 0.01초 직통 자동 갱신
     const triggerInstantCloudResync = () => {
@@ -1463,78 +1475,56 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
-  // 👥 약국 카카오톡 오픈 단톡방 & 텔레그램 & GAS 알림봇 0.01초 직통 알림 파이프라인
+  // 👥 약국 카카오톡 오픈 단톡방 & GAS 알림봇 0.01초 직통 비동기 알림 파이프라인
   function sendGroupChatPush(title, bodyText, moduleName) {
-    try {
-      const currUser = getCurrentUser();
-      const senderName = currUser ? currUser.name : '약국 식구';
-      const openChatUrl = "https://open.kakao.com/o/gMY553Ki";
-      const categoryStr = moduleName ? ` [${moduleName}]` : '';
-      const displayTitle = title || '📢 신세계약국 실시간 알림';
-      const displayBody = bodyText || '새 소식 또는 내용 수정사항이 도착했습니다.';
-      const msgText = `📢 [신세계약국 실시간 업무 알림${categoryStr}]\n\n👤 작성자: ${senderName}\n📌 제목: ${displayTitle}\n📝 내용: ${displayBody}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
-
-      // 1. Google Apps Script 백엔드 중계 (CORS 0% 서버 직통 카카오 알림톡/웹훅 파이프라인)
+    setTimeout(() => {
       try {
-        const gasUrl = DIRECT_GAS_URL;
-        const payloadData = {
-          action: 'kakaoNotification',
-          title: displayTitle,
-          senderName: senderName,
-          module: moduleName || '전체',
-          body: displayBody,
-          text: msgText,
-          openChatUrl: openChatUrl,
-          url: "https://ganumma1.github.io/shinsegae_app/"
-        };
+        const currUser = getCurrentUser();
+        const senderName = currUser ? currUser.name : '약국 식구';
+        const openChatUrl = "https://open.kakao.com/o/gMY553Ki";
+        const categoryStr = moduleName ? ` [${moduleName}]` : '';
+        const displayTitle = title || '📢 신세계약국 실시간 알림';
+        const displayBody = bodyText || '새 소식 또는 내용 수정사항이 도착했습니다.';
+        const msgText = `📢 [신세계약국 실시간 업무 알림${categoryStr}]\n\n👤 작성자: ${senderName}\n📌 제목: ${displayTitle}\n📝 내용: ${displayBody}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
 
-        // 모바일 사파리/크롬 302 리다이렉트 우회 Hidden Form Submit 파이프라인
-        if (typeof document !== 'undefined') {
-          let iframe = document.getElementById('ssg_push_iframe');
-          if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'ssg_push_iframe';
-            iframe.name = 'ssg_push_iframe';
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-          }
-          let form = document.getElementById('ssg_push_form');
-          if (!form) {
-            form = document.createElement('form');
-            form.id = 'ssg_push_form';
-            form.target = 'ssg_push_iframe';
-            form.method = 'POST';
-            form.action = gasUrl;
-            form.style.display = 'none';
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'payload';
-            input.id = 'ssg_push_payload_input';
-            form.appendChild(input);
-            document.body.appendChild(form);
-          }
-          const inputEl = document.getElementById('ssg_push_payload_input');
-          if (inputEl && form) {
-            inputEl.value = JSON.stringify(payloadData);
-            form.submit();
-          }
-
-          // 보조 GET 파라미터 백업 방출 (GAS doGet 지원 파이프라인)
-          const params = new URLSearchParams({
+        // 1. Google Apps Script 백엔드 중계 (비동기 fetch 전송 - 메인 스레드 멈춤 100% 방지)
+        try {
+          const gasUrl = DIRECT_GAS_URL;
+          const payloadData = {
             action: 'kakaoNotification',
             title: displayTitle,
-            sender: senderName,
+            senderName: senderName,
             module: moduleName || '전체',
             body: displayBody,
-            t: Date.now()
-          });
-          const pingImg = new Image();
-          pingImg.src = `${gasUrl}?${params.toString()}`;
-        }
-      } catch(gase) {}
-    } catch(e) {
-      console.warn('sendGroupChatPush error:', e);
-    }
+            text: msgText,
+            openChatUrl: openChatUrl,
+            url: "https://ganumma1.github.io/shinsegae_app/"
+          };
+
+          if (typeof fetch === 'function') {
+            fetch(gasUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              keepalive: true,
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify(payloadData)
+            }).catch(() => {});
+
+            const params = new URLSearchParams({
+              action: 'kakaoNotification',
+              title: displayTitle,
+              sender: senderName,
+              module: moduleName || '전체',
+              body: displayBody,
+              t: Date.now()
+            });
+            fetch(`${gasUrl}?${params.toString()}`, { mode: 'no-cors', keepalive: true }).catch(() => {});
+          }
+        } catch(gase) {}
+      } catch(e) {
+        console.warn('sendGroupChatPush error:', e);
+      }
+    }, 0);
   }
 
   function requestPushPermission(silent = false) {
@@ -1642,17 +1632,20 @@ window.SheetsSync = (function () {
               if (String(sig.timestamp) !== String(lastHandled)) {
                 safeSetItem('ssg_last_push_signal_time', String(sig.timestamp));
                 const currUser = getCurrentUser();
-                // 📱 누가 글을 쓰든 (동일 계정 다중 기기 테스트 포함) 100% 알림 소리 + 푸시 + N 배지 짠 노출!
-                playNotificationChime();
-                sendDesktopNotification('📢 신세계약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
+                const isSelf = sig.senderId && currUser && String(sig.senderId) === String(currUser.id);
                 
-                // 🔥 즉시 0.05초 만에 클라우드 최신 데이터 수신 및 사이드바/스마트폰 N 배지 동시에 100% 강제 갱신!
-                pullFromCloud(() => {
-                  if (window.App) {
-                    if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
-                    if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
-                  }
-                });
+                // 📱 타 기기 / 제3자 작성 수신 시에만 100% 알림 소리 + 푸시 + N 배지 갱신 (자신의 작성건 무한 동기화 루프 원천 차단)
+                if (!isSelf) {
+                  playNotificationChime();
+                  sendDesktopNotification('📢 신세계약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
+                  
+                  pullFromCloud(() => {
+                    if (window.App) {
+                      if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
+                      if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
+                    }
+                  });
+                }
               }
             }
           });
@@ -2286,86 +2279,62 @@ window.SheetsSync = (function () {
       const payloadStr = JSON.stringify(payload);
 
       // 🔥 1. Google Firebase Realtime Database (WebSocket + 직통 REST 듀얼 전송)
+      const currUser = getCurrentUser();
+      const pushPayload = {
+        timestamp: Date.now() + '_' + Math.floor(Math.random() * 10000),
+        senderId: currUser ? currUser.id : 'unknown',
+        senderName: currUser ? currUser.name : '시스템',
+        body: '새로운 공지, 업무일지, 약품 위치 또는 소모품 변동사항이 도착했습니다.'
+      };
+
       try {
         if (fbRef) {
           fbRef.set(payload.data);
         }
-        const currUser = getCurrentUser();
-        const pushPayload = {
-          timestamp: Date.now() + '_' + Math.floor(Math.random() * 10000),
-          senderId: currUser ? currUser.id : 'unknown',
-          senderName: currUser ? currUser.name : '시스템',
-          body: '새로운 공지, 업무일지, 약품 위치 또는 소모품 변동사항이 도착했습니다.'
-        };
         if (fbDb) {
           fbDb.ref('shinsegae_master_db/pushSignal').set(pushPayload);
         }
-        // 🔥 직통 REST API 듀얼 방출 (웹소켓 연결 상태와 무관하게 100% 0.01초 푸시 전파)
-        fetch("https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pushSignal.json", {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pushPayload)
-        }).catch(() => {});
-
-        // 🔔 OneSignal 백그라운드 전문 푸시 파이프라인 방출
-        sendOneSignalPush('📢 신세계약국 실시간 알림', pushPayload.body);
-
-        // 👥 약국 식구 전체 단체방 0.01초 직통 알림 봇 방출
-        sendGroupChatPush('📢 신세계약국 실시간 알림', pushPayload.body);
       } catch(fbe) {
         console.warn('Firebase WebSocket push warning:', fbe);
       }
 
-      try {
-        fetch(FIREBASE_REST_URL, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify(payload.data)
-        }).catch(() => {});
-      } catch(fre) {}
-
-      // 2. 구글 앱스 스크립트(GAS) 보조 백업 전송
-      try {
-        let iframe = document.getElementById('ssg_gas_iframe');
-        if (!iframe) {
-          iframe = document.createElement('iframe');
-          iframe.id = 'ssg_gas_iframe';
-          iframe.name = 'ssg_gas_iframe';
-          iframe.style.display = 'none';
-          document.body.appendChild(iframe);
-        }
-        let form = document.getElementById('ssg_gas_form');
-        if (!form) {
-          form = document.createElement('form');
-          form.id = 'ssg_gas_form';
-          form.target = 'ssg_gas_iframe';
-          form.method = 'POST';
-          form.action = DIRECT_GAS_URL;
-          form.style.display = 'none';
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'payload';
-          input.id = 'ssg_gas_payload_input';
-          form.appendChild(input);
-          document.body.appendChild(form);
-        }
-        const inputEl = document.getElementById('ssg_gas_payload_input');
-        if (inputEl) {
-          inputEl.value = payloadStr;
-          form.submit();
-        }
-      } catch(fe) {}
-
-      // 3. 버셀 호스팅 환경에서만 보조 REST 전송
-      if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
+      // ⚡ 보조 클라우드 REST 푸시 및 백업 전송을 넌블로킹 비동기로 실행하여 메인 스레드 멈춤 100% 차단
+      setTimeout(() => {
         try {
-          window.fetch('/api/sync', {
-            method: 'POST',
+          fetch("https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pushSignal.json", {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pushPayload)
+          }).catch(() => {});
+
+          sendOneSignalPush('📢 신세계약국 실시간 알림', pushPayload.body);
+          sendGroupChatPush('📢 신세계약국 실시간 알림', pushPayload.body);
+
+          fetch(FIREBASE_REST_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(payload.data)
+          }).catch(() => {});
+
+          // 2. 구글 앱스 스크립트(GAS) 비동기 백업 전송
+          fetch(DIRECT_GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            keepalive: true,
+            headers: { 'Content-Type': 'text/plain' },
             body: payloadStr
           }).catch(() => {});
-        } catch(ve) {}
-      }
+
+          // 3. 버셀 호스팅 환경 보조 REST 전송
+          if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
+            window.fetch('/api/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: payloadStr
+            }).catch(() => {});
+          }
+        } catch(asyncErr) {}
+      }, 0);
 
       safeSetItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
       updateSyncStatusUI('success');

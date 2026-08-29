@@ -111,9 +111,14 @@ window.WorklogModule = (function () {
     return `<div style="width: 82px; min-width: 82px; height: 32px; background: ${bg}; color: ${color}; border: 1.5px solid ${border}; border-radius: 8px; font-size: 13px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 1px; flex-shrink: 0; box-sizing: border-box;">${text}</div>`;
   }
 
-  function render(containerId) {
+  function render(containerId, preserveScroll = true) {
     const container = document.getElementById(containerId || 'module-content');
     if (!container) return;
+
+    // 📌 2중 스크롤 위치 자석 보존 (Window scrollY + Feed Container scrollTop)
+    const prevWindowY = (preserveScroll && typeof window !== 'undefined') ? window.scrollY : 0;
+    const prevFeedEl = document.getElementById('wl-feed-container');
+    const prevFeedTop = (preserveScroll && prevFeedEl) ? prevFeedEl.scrollTop : 0;
 
     try {
       const currUser = window.SheetsSync ? window.SheetsSync.getCurrentUser() : null;
@@ -274,7 +279,7 @@ window.WorklogModule = (function () {
             <h3 style="font-size:17px; font-weight:800; margin:0; color:#0f172a;">📋 최근 15일 인수인계 & 업무 피드</h3>
             <p style="font-size:12.5px; margin:0; color:#64748b; margin-top:4px;">최근 15일 내역만 최신순으로 나열됩니다. 내용을 확인하신 후 하단의 <b>'✔ 확인 완료'</b>를 눌러 인계받았음을 표시해 주세요.</p>
           </div>
-          <div class="card-body" style="padding:24px; background:#f1f5f9; display:flex; flex-direction:column; gap:16px; max-height:800px; overflow-y:auto;">
+          <div id="wl-feed-container" class="card-body" style="padding:24px; background:#f1f5f9; display:flex; flex-direction:column; gap:16px; max-height:800px; overflow-y:auto;">
             ${sortedLogs.length === 0 ? '<div class="text-center text-muted py-4">최근 15일 내에 등록된 업무 내역이 없습니다.</div>' : ''}
             ${sortedLogs.map(log => {
                if (!log) return '';
@@ -437,6 +442,19 @@ window.WorklogModule = (function () {
     `;
 
       container.innerHTML = html;
+
+      // 🎯 스크롤 자석 복원 (0.001초 2중 스크롤 원복)
+      if (preserveScroll) {
+        requestAnimationFrame(() => {
+          if (typeof window !== 'undefined' && prevWindowY > 0) {
+            window.scrollTo({ top: prevWindowY, behavior: 'instant' });
+          }
+          const newFeedEl = document.getElementById('wl-feed-container');
+          if (newFeedEl && prevFeedTop > 0) {
+            newFeedEl.scrollTop = prevFeedTop;
+          }
+        });
+      }
     } catch (err) {
       console.error("Worklog render error:", err);
       container.innerHTML = `
@@ -654,7 +672,7 @@ window.WorklogModule = (function () {
         if (window.App && typeof window.App.markWorklogRead === 'function') {
           window.App.markWorklogRead();
         }
-        render('module-content');
+        render('module-content', true); // 📌 2중 스크롤 자석 보존 렌더링 (화면 튕김 100% 차단)
         if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
           window.App.renderSidebarNavigation();
         }

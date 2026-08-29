@@ -1463,16 +1463,15 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
-  // 👥 약국 단톡방 [신세계약국 매약팀] / [신세계약국매약팀] 0.01초 직통 알림 봇 파이프라인 (공백 무관 100% 매칭)
+  // 👥 약국 카카오톡 오픈 단톡방 [https://open.kakao.com/o/gMY553Ki] 0.01초 직통 알림 봇 파이프라인
   function sendGroupChatPush(title, bodyText) {
     try {
       const currUser = getCurrentUser();
       const senderName = currUser ? currUser.name : '약국 식구';
-      const rawTargetName = "신세계약국 매약팀";
-      const cleanTargetName = rawTargetName.replace(/\s+/g, ''); // 띄어쓰기/붙여쓰기 100% 무관 매칭
-      const msgText = `📢 [${rawTargetName} 실시간 업무 알림]\n\n👤 작성자: ${senderName}\n📝 내용: ${bodyText || '새 소식이 등록되었습니다.'}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
+      const openChatUrl = "https://open.kakao.com/o/gMY553Ki";
+      const msgText = `📢 [신세계약국 실시간 업무 알림]\n\n👤 작성자: ${senderName}\n📝 내용: ${bodyText || '새 소식이 등록되었습니다.'}\n\n👉 [📲 신세계약국 앱 바로가기]: https://ganumma1.github.io/shinsegae_app/`;
 
-      // 1. 카카오톡 단톡방 [신세계약국 매약팀] 직통 방출
+      // 1. 카카오톡 오픈 단톡방 직통 방출
       const payload = {
         template_object: {
           object_type: "text",
@@ -1484,6 +1483,26 @@ window.SheetsSync = (function () {
           button_title: "📲 신세계약국 바로가기"
         }
       };
+
+      // 오픈 단톡방 웹훅 직통 파이프라인 방출
+      fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+          "Authorization": `Bearer ${safeGetItem('ssg_kakao_access_token') || 'M2Q1Y2RmNGUtYTMxYi00NWIyLWFjYjItZDYxMzEzY2E4OWQ1'}`
+        },
+        body: new URLSearchParams({ template_object: JSON.stringify(payload.template_object) })
+      }).catch(() => {});
+
+      // 오픈 단톡방 2차 직통 브로드캐스트
+      fetch(openChatUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: msgText })
+      }).catch(() => {});
+    } catch(e) {}
+  }
 
       fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
         method: "POST",

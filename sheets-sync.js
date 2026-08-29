@@ -1727,6 +1727,26 @@ window.SheetsSync = (function () {
         });
       }
 
+      function getItemFingerprint(item) {
+        if (!item) return '';
+        return [
+          item.id || '',
+          item.updatedAt || '',
+          item.createdAt || '',
+          item.date || item.dateStr || '',
+          item.title || item.name || item.content || item.text || '',
+          item.locationDetail || item.zoneId || item.zoneName || '',
+          item.status || item.shift || '',
+          item.photoUrl || item.imageUrl || '',
+          item.notes || '',
+          item.updatedBy || '',
+          item.isPaid ? 'paid' : 'unpaid',
+          item.totalPrice || '',
+          Array.isArray(item.history) ? item.history.length : 0,
+          Array.isArray(item.checkedBy) ? item.checkedBy.join(',') : String(item.checkedBy || '')
+        ].join('|');
+      }
+
       function isListDifferent(listA, listB) {
         if (!listA && !listB) return false;
         if (!listA || !listB) return true;
@@ -1735,13 +1755,13 @@ window.SheetsSync = (function () {
         listA.forEach(item => {
           if (item) {
             const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
-            if (key) mapA[key] = String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || item.status || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
+            if (key) mapA[key] = getItemFingerprint(item);
           }
         });
         return listB.some(item => {
           if (!item) return false;
           const key = item.id || (item.date && item.empId ? `${item.date}_${item.empId}` : null);
-          return !key || !mapA[key] || mapA[key] !== String(item.updatedAt || item.date || item.createdAt || item.dateStr || item.title || item.content || item.text || item.shift || item.status || ((item.isPaid ? 'paid' : 'unpaid') + '_' + (item.totalPrice || '')));
+          return !key || !mapA[key] || mapA[key] !== getItemFingerprint(item);
         });
       }
 

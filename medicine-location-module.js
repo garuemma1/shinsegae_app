@@ -35,6 +35,9 @@ window.MedicineLocationModule = (function () {
   function saveStorageData(list) {
     if (window.SheetsSync && typeof window.SheetsSync.saveMedicineLocations === 'function') {
       window.SheetsSync.saveMedicineLocations(list);
+      if (typeof window.SheetsSync.pushToCloud === 'function') {
+        window.SheetsSync.pushToCloud();
+      }
     } else {
       localStorage.setItem('ssg_medicine_locations_v1', JSON.stringify(list));
       localStorage.setItem('ssg_medicine_locations', JSON.stringify(list));

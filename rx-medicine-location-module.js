@@ -113,6 +113,9 @@ window.RxMedicineLocationModule = (function () {
   function saveStorageData(list) {
     if (window.SheetsSync && typeof window.SheetsSync.saveRxMedicineLocations === 'function') {
       window.SheetsSync.saveRxMedicineLocations(list);
+      if (typeof window.SheetsSync.pushToCloud === 'function') {
+        window.SheetsSync.pushToCloud();
+      }
     } else {
       localStorage.setItem('ssg_rx_medicine_locations_v1', JSON.stringify(list));
       localStorage.setItem('ssg_rx_medicine_locations', JSON.stringify(list));

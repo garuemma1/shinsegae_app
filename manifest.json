@@ -14,26 +14,26 @@
     {
       "src": "https://ganumma1.github.io/shinsegae_app/logo.jpg",
       "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "any"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "https://ganumma1.github.io/shinsegae_app/logo.jpg",
       "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "https://ganumma1.github.io/shinsegae_app/logo.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
       "src": "https://ganumma1.github.io/shinsegae_app/logo.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "related_applications": [

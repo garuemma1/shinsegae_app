@@ -2183,53 +2183,7 @@ function writeSheetData(sheet, dataList) {
     return base64Data;
   }
 
-  let deferredPwaPrompt = null;
-  if (typeof window !== 'undefined') {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPwaPrompt = e;
-      updatePushSetupButtonUI();
-    });
-  }
-
-  function updatePushSetupButtonUI() {
-    try {
-      const btn = document.getElementById('pwa-install-push-btn');
-      const text = document.getElementById('pwa-install-text');
-      if (!btn || !text) return;
-
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-        btn.style.borderColor = '#047857';
-        btn.style.boxShadow = '0 2px 8px rgba(16,185,129,0.35)';
-        text.innerHTML = '<i class="fas fa-check-circle me-1"></i> 🔔 실시간 알림 ON';
-      } else {
-        btn.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
-        btn.style.borderColor = '#1e40af';
-        btn.style.boxShadow = '0 2px 8px rgba(37,99,235,0.35)';
-        text.innerHTML = '<i class="fas fa-bell me-1"></i> 📱 앱 설치 & 🔔 알림 켜기';
-      }
-    } catch(e) {}
-  }
-
-  function handlePwaInstallAndPush() {
-    try {
-      if (deferredPwaPrompt) {
-        deferredPwaPrompt.prompt();
-        deferredPwaPrompt.userChoice.then(() => {
-          deferredPwaPrompt = null;
-        }).catch(() => {});
-      }
-      if (window.SheetsSync && typeof window.SheetsSync.requestPushPermission === 'function') {
-        window.SheetsSync.requestPushPermission(false);
-      }
-      setTimeout(updatePushSetupButtonUI, 500);
-    } catch(e) {}
-  }
-
   return {
-    handlePwaInstallAndPush,
-    updatePushSetupButtonUI,
     openImageLightbox,
     closeImageLightbox,
     uploadImageToImgBB,

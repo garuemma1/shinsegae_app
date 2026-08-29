@@ -1506,17 +1506,6 @@ window.SheetsSync = (function () {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: msgText })
       }).catch(() => {});
-    } catch(e) {}
-  }
-
-      fetch("https://kapi.kakao.com/v2/api/talk/memo/default/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-          "Authorization": `Bearer ${safeGetItem('ssg_kakao_access_token') || 'M2Q1Y2RmNGUtYTMxYi00NWIyLWFjYjItZDYxMzEzY2E4OWQ1'}`
-        },
-        body: new URLSearchParams({ template_object: JSON.stringify(payload.template_object) })
-      }).catch(() => {});
 
       // 백업 파이프라인
       const botToken = "7852149632:AAH9zX_k95wJkL8xY7vQ43xrm7vg2xrm43x";

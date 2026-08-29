@@ -208,28 +208,32 @@ window.NoticesModule = (function () {
     }).join('');
   }
 
+  let searchTimer = null;
   function filterNotices() {
-    const data = window.SheetsSync.getData();
-    let notices = data.notices || [];
-    const searchElem = document.getElementById('notice-search');
-    const query = searchElem ? searchElem.value.toLowerCase() : '';
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const data = window.SheetsSync.getData();
+      let notices = data.notices || [];
+      const searchElem = document.getElementById('notice-search');
+      const query = searchElem ? searchElem.value.toLowerCase().trim() : '';
 
-    if (selectedCategory !== 'ALL') {
-      notices = notices.filter(n => n.category === selectedCategory);
-    }
+      if (selectedCategory !== 'ALL') {
+        notices = notices.filter(n => n.category === selectedCategory);
+      }
 
-    if (query) {
-      notices = notices.filter(n =>
-        n.title.toLowerCase().includes(query) ||
-        n.content.toLowerCase().includes(query) ||
-        n.author.toLowerCase().includes(query)
-      );
-    }
+      if (query) {
+        notices = notices.filter(n =>
+          (n.title && n.title.toLowerCase().includes(query)) ||
+          (n.content && n.content.toLowerCase().includes(query)) ||
+          (n.author && n.author.toLowerCase().includes(query))
+        );
+      }
 
-    const container = document.getElementById('notices-list-container');
-    if (container) {
-      container.innerHTML = renderNoticesList(notices);
-    }
+      const container = document.getElementById('notices-list-container');
+      if (container) {
+        container.innerHTML = renderNoticesList(notices);
+      }
+    }, 120);
   }
 
   function filterCategory(cat, btnElem) {
@@ -312,10 +316,19 @@ window.NoticesModule = (function () {
     };
 
     data.notices.unshift(newNotice);
-    if (window.SheetsSync && typeof window.SheetsSync.saveNotices === 'function') {
-      window.SheetsSync.saveNotices(data.notices);
-    } else {
-      window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.NOTICES, data.notices);
+    if (window.SheetsSync) {
+      if (typeof window.SheetsSync.saveNotices === 'function') {
+        window.SheetsSync.saveNotices(data.notices);
+      } else {
+        window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.NOTICES, data.notices);
+      }
+      if (typeof window.SheetsSync.sendGroupChatPush === 'function') {
+        const snippet = content.length > 90 ? content.substring(0, 90) + '...' : content;
+        window.SheetsSync.sendGroupChatPush(title, snippet, `공지사항 · ${category}`);
+      }
+      if (typeof window.SheetsSync.sendOneSignalPush === 'function') {
+        window.SheetsSync.sendOneSignalPush(`📢 [공지] ${title}`, `${author}님: ${content.substring(0, 60)}`);
+      }
     }
 
     closeModal();

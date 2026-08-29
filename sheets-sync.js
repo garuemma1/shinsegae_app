@@ -1487,12 +1487,50 @@ window.SheetsSync = (function () {
           openChatUrl: openChatUrl,
           url: "https://ganumma1.github.io/shinsegae_app/"
         };
-        fetch(gasUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payloadData)
-        }).catch(() => {});
+
+        // 모바일 사파리/크롬 302 리다이렉트 우회 Hidden Form Submit 파이프라인
+        if (typeof document !== 'undefined') {
+          let iframe = document.getElementById('ssg_push_iframe');
+          if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'ssg_push_iframe';
+            iframe.name = 'ssg_push_iframe';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+          }
+          let form = document.getElementById('ssg_push_form');
+          if (!form) {
+            form = document.createElement('form');
+            form.id = 'ssg_push_form';
+            form.target = 'ssg_push_iframe';
+            form.method = 'POST';
+            form.action = gasUrl;
+            form.style.display = 'none';
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'payload';
+            input.id = 'ssg_push_payload_input';
+            form.appendChild(input);
+            document.body.appendChild(form);
+          }
+          const inputEl = document.getElementById('ssg_push_payload_input');
+          if (inputEl && form) {
+            inputEl.value = JSON.stringify(payloadData);
+            form.submit();
+          }
+
+          // 보조 GET 파라미터 백업 방출 (GAS doGet 지원 파이프라인)
+          const params = new URLSearchParams({
+            action: 'kakaoNotification',
+            title: displayTitle,
+            sender: senderName,
+            module: moduleName || '전체',
+            body: displayBody,
+            t: Date.now()
+          });
+          const pingImg = new Image();
+          pingImg.src = `${gasUrl}?${params.toString()}`;
+        }
       } catch(gase) {}
 
       // 2. 텔레그램 실시간 알림봇 (0.01초 직통 보조 파이프라인)

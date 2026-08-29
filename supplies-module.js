@@ -753,6 +753,14 @@ window.SuppliesModule = (function () {
       memo
     });
 
+    if (window.SheetsSync && typeof window.SheetsSync.sendGroupChatPush === 'function') {
+      const urgentTag = urgency === 'URGENT' ? '⚡ [긴급소모품] ' : '📦 [소모품신청] ';
+      window.SheetsSync.sendGroupChatPush(`${urgentTag}${name} (${qty}${unit})`, `신청자: ${applicantName} | 비고: ${memo || '약국 소모품 요청'}`, '약국 소모품 관리');
+    }
+    if (window.SheetsSync && typeof window.SheetsSync.sendOneSignalPush === 'function') {
+      window.SheetsSync.sendOneSignalPush(`📦 [소모품] ${name}`, `${applicantName}님: ${qty}${unit} 요청 (${category})`);
+    }
+
     closeRequestModal();
     alert('📦 소모품 요청이 정상 등록되었습니다!\n사이드바와 약국장 대시보드에 실시간 공유됩니다.');
 

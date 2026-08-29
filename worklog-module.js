@@ -603,6 +603,14 @@ window.WorklogModule = (function () {
     logs.unshift(newLog);
     window.SheetsSync.saveWorklogs(logs);
 
+    if (window.SheetsSync && typeof window.SheetsSync.sendGroupChatPush === 'function') {
+      const snippet = content.length > 80 ? content.substring(0, 80) + '...' : content;
+      window.SheetsSync.sendGroupChatPush(`[${tag}] ${snippet}`, `작성자: ${curr.name} | 작성시각: ${fullCreatedAt}`, '업무일지');
+    }
+    if (window.SheetsSync && typeof window.SheetsSync.sendOneSignalPush === 'function') {
+      window.SheetsSync.sendOneSignalPush(`📋 [업무일지] ${curr.name}`, `[${tag}] ${content.substring(0, 60)}`);
+    }
+
     closeModal();
     alert('✅ 성공적으로 등록되었습니다.');
     render('module-content');

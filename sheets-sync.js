@@ -1532,29 +1532,9 @@ window.SheetsSync = (function () {
           pingImg.src = `${gasUrl}?${params.toString()}`;
         }
       } catch(gase) {}
-
-      // 2. Kakao JS SDK 웹 공유 헬퍼 (카카오 SDK 초기화 시 직통 공유)
-      if (typeof window !== 'undefined' && window.Kakao && window.Kakao.isInitialized && window.Kakao.isInitialized()) {
-        try {
-          window.Kakao.Share.sendDefault({
-            objectType: 'text',
-            text: msgText,
-            link: {
-              webUrl: 'https://ganumma1.github.io/shinsegae_app/',
-              mobileWebUrl: 'https://ganumma1.github.io/shinsegae_app/'
-            }
-          });
-        } catch(ksdkErr) {}
-      }
     } catch(e) {
       console.warn('sendGroupChatPush error:', e);
     }
-  }
-
-  function connectKakaoTalkNotification() {
-    alert('💬 약국장님 개인 카카오톡 [나와의 채팅] 실시간 알림망을 연결합니다!\n\n✔ 버튼만 누르시면 약국장님 개인 카카오톡으로 0.01초 실시간 "카톡!" 알림이 100% 설정됩니다.');
-    safeSetItem('ssg_kakao_linked', 'true');
-    alert('✅ 약국장님 개인 카카오톡 [나와의 채팅] 알림망이 100% 성공적으로 연동되었습니다!\n\n이제 PC나 타인이 글을 올릴 때마다 내 카톡으로 시원한 "카톡!" 알림과 N 배지가 들어옵니다.');
   }
 
   function requestPushPermission(silent = false) {
@@ -2853,8 +2833,7 @@ window.SheetsSync = (function () {
     registerServiceWorker,
     sendDesktopNotification,
     sendGroupChatPush,
-    sendOneSignalPush,
-    connectKakaoTalkNotification
+    sendOneSignalPush
   };
 
   // 🚀 초기 로드 시 Firebase 실시간 연결 즉시 개시 & 스마트 화면 복귀 동기화

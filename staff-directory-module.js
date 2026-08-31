@@ -299,6 +299,11 @@ window.StaffDirectoryModule = (function () {
             </div>
 
             <div class="card-body" style="padding:20px; font-size:13px;">
+              <div class="alert alert-primary p-2 mb-3" style="font-size:12.5px; border-radius:10px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af;">
+                <i class="fas fa-info-circle me-1"></i> <strong>직원 세부정보 & 탭 접근 권한 & 보안 관리 통합 수정란</strong>
+              </div>
+
+              <!-- Part 1. 기본 인적사항 -->
               <div class="row g-2 mb-2">
                 <div class="col-6">
                   <label class="form-label mb-1 font-bold" style="color:#334155;">성명 (이름)</label>
@@ -337,7 +342,7 @@ window.StaffDirectoryModule = (function () {
                 </div>
               </div>
 
-              <!-- 급여 및 시급 조건 수정 -->
+              <!-- Part 2. 급여 및 시급 조건 수정 -->
               <div class="p-3 my-2" style="background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
                 <div class="font-bold mb-2" style="color:#1e293b; font-size:12.5px;"><i class="fas fa-coins text-warning"></i> 급여 조건 및 시급 수정</div>
                 ${isPharmacist ? `
@@ -365,15 +370,73 @@ window.StaffDirectoryModule = (function () {
                 `}
               </div>
 
+              <!-- Part 3. 약국장 참고 메모 -->
               <div class="mb-2">
                 <label class="form-label mb-1 font-bold" style="color:#334155;">💬 약국장 참고 메모</label>
                 <textarea id="edit-memo-${emp.id}" class="form-control form-control-sm" rows="2">${emp.memo || ''}</textarea>
+              </div>
+
+              <!-- Part 4. 비밀번호 보안 관리 -->
+              <div class="p-3 my-2" style="background:#fff7ed; border-radius:12px; border:1px solid #ffedd5;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="font-bold" style="color:#c2410c; font-size:12.5px;"><i class="fas fa-key text-warning me-1"></i> 계정 비밀번호 보안 관리</span>
+                  <button type="button" class="btn btn-xs btn-outline-warning font-bold" onclick="StaffDirectoryModule.resetPasscode('${emp.id}')" style="font-size:11px; padding:2px 8px; border-radius:6px;">
+                    <i class="fas fa-redo"></i> 🔄 '1234' 임시비번 리셋
+                  </button>
+                </div>
+                <input type="text" id="edit-passcode-${emp.id}" class="form-control form-control-sm font-bold" value="${emp.passcode || '1234'}" placeholder="비밀번호 설정">
+              </div>
+
+              <!-- Part 5. 사이드바 메뉴 탭 접근 권한 설정 -->
+              <div class="p-3 my-2" style="background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
+                <label class="form-label mb-2 font-bold" style="color:#1e40af; font-size:12.5px;">
+                  <i class="fas fa-lock me-1"></i> 🔐 사이드바 메뉴 탭 접근 권한 맞춤 설정
+                </label>
+                <div class="row g-2" style="max-height:180px; overflow-y:auto;">
+                  ${(() => {
+                    let permMap = {};
+                    try {
+                      const pRaw = localStorage.getItem('ssg_emp_permissions') || localStorage.getItem('ssg_emp_permissions_v1');
+                      if (pRaw) permMap = JSON.parse(pRaw);
+                    } catch(e) {}
+                    const allowed = (permMap && permMap[emp.id]) || emp.allowedTabs || [
+                      'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
+                      'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+                    ];
+                    const tabs = [
+                      { id: 'notices-module', name: '📢 공지사항' },
+                      { id: 'worklog-module', name: '📝 업무일지' },
+                      { id: 'medicine-location-module', name: '💊 일반약 위치' },
+                      { id: 'rx-medicine-location-module', name: '💉 전문약 위치' },
+                      { id: 'schedule-module', name: '📅 근무 스케줄' },
+                      { id: 'annual-leave-module', name: '🌴 연차대장' },
+                      { id: 'discount-purchase-module', name: '🛍️ 할인구매' },
+                      { id: 'rules-module', name: '📜 취업규칙' },
+                      { id: 'emergency-contacts-module', name: '☎️ 연락망' }
+                    ];
+                    return tabs.map(t => `
+                      <div class="col-6">
+                        <div class="form-check">
+                          <input class="form-check-input perm-tab-cb-${emp.id}" type="checkbox" value="${t.id}" id="ptab-${emp.id}-${t.id}" ${allowed.includes(t.id) ? 'checked' : ''}>
+                          <label class="form-check-label font-bold" for="ptab-${emp.id}-${t.id}" style="font-size:11.5px; color:#334155;">${t.name}</label>
+                        </div>
+                      </div>
+                    `).join('');
+                  })()}
+                </div>
+              </div>
+
+              <!-- Part 6. 위험 관리 (퇴사 및 계정 영구 삭제) -->
+              <div class="p-2 mt-2 text-end">
+                <button type="button" class="btn btn-xs btn-outline-danger font-bold" onclick="StaffDirectoryModule.deleteEmployee('${emp.id}')" style="font-size:11px; padding:4px 10px; border-radius:8px;">
+                  <i class="fas fa-user-minus me-1"></i> 🗑️ 이 직원 계정 영구 삭제 / 퇴사 처리
+                </button>
               </div>
             </div>
 
             <div class="card-footer d-flex justify-content-end gap-2" style="background:#ffffff; padding:12px 20px; border-top:1px solid #e2e8f0;">
               <button type="button" class="btn btn-sm btn-secondary" onclick="StaffDirectoryModule.cancelFullEdit()" style="border-radius:10px; padding:6px 14px;">취소</button>
-              <button type="button" class="btn btn-sm btn-primary font-bold" onclick="StaffDirectoryModule.saveFullEdit('${emp.id}')" style="border-radius:10px; padding:6px 18px; background:#2563eb;"><i class="fas fa-check"></i> 💾 세부 정보 수정 저장</button>
+              <button type="button" class="btn btn-sm btn-primary font-bold" onclick="StaffDirectoryModule.saveFullEdit('${emp.id}')" style="border-radius:10px; padding:7px 20px; background:linear-gradient(135deg, #1e40af, #1d4ed8); border:none; box-shadow:0 3px 8px rgba(30,64,175,0.25);"><i class="fas fa-check me-1"></i> 💾 100% 통합 수정 저장</button>
             </div>
           </div>
         `;
@@ -398,9 +461,13 @@ window.StaffDirectoryModule = (function () {
               <span class="badge bg-light text-dark font-bold" style="font-size:11.5px; border:1px solid #cbd5e1; border-radius:12px; padding:4px 8px;">
                 ${payBadge}
               </span>
-              <button type="button" class="btn btn-xs btn-primary font-bold" onclick="StaffDirectoryModule.openAllInOneModal('${emp.id}')" style="font-size:11.5px; padding:4px 10px; border-radius:10px; background:linear-gradient(135deg, #1e40af, #1d4ed8); border:none; box-shadow:0 2px 6px rgba(30,64,175,0.25);" title="직원 정보/비밀번호/탭권한/퇴사통합관리">
-                <i class="fas fa-sliders-h me-1"></i> ⚙️ 직원 관리 & 권한
-              </button>
+              ${!isDirector ? `
+                <button type="button" class="btn btn-xs btn-primary font-bold" onclick="StaffDirectoryModule.editFullEmployee('${emp.id}')" style="font-size:11.5px; padding:4px 12px; border-radius:10px; background:linear-gradient(135deg, #1e40af, #1d4ed8); border:none; box-shadow:0 2px 6px rgba(30,64,175,0.25);" title="직원 정보/급여/비밀번호/탭권한/퇴사 100% 통합 관리">
+                  <i class="fas fa-edit me-1"></i> ✏️ 세부정보 수정 및 권한 설정
+                </button>
+              ` : `
+                <span class="badge bg-danger" style="font-size:11px; padding:4px 8px;">👑 약국장 계정</span>
+              `}
             </div>
           </div>
 
@@ -460,18 +527,6 @@ window.StaffDirectoryModule = (function () {
               <div class="mb-1 text-muted font-bold"><i class="fas fa-sticky-note text-info"></i> 약국장 참고 메모:</div>
               <div id="memo-box-${emp.id}" style="color:#334155; line-height:1.5;">${emp.memo ? emp.memo : '등록된 참고 메모가 없습니다.'}</div>
             </div>
-          </div>
-
-          <div class="card-footer d-flex gap-2 flex-wrap" style="background:#ffffff; padding:14px 20px; border-top:1px solid #e2e8f0;">
-            ${!isDirector ? `
-              <button type="button" class="btn btn-sm btn-primary w-100 font-bold" onclick="StaffDirectoryModule.openAllInOneModal('${emp.id}')" style="border-radius:12px; padding:9px; font-size:13.5px; background:linear-gradient(135deg, #1e40af, #1d4ed8); border:none; box-shadow:0 3px 8px rgba(30,64,175,0.25);">
-                <i class="fas fa-sliders-h me-1"></i> ⚙️ 직원 통합 관리 및 권한 설정
-              </button>
-            ` : `
-              <div class="text-center w-100 py-1 text-danger font-bold" style="font-size:13px;">
-                👑 신세계약국 대표약사 최고 관리자 계정
-              </div>
-            `}
           </div>
         </div>
       `;
@@ -540,13 +595,37 @@ window.StaffDirectoryModule = (function () {
       target.hourlyRate = hourlyRate;
     }
 
+    // 비밀번호 수정 저장
+    const passcodeElem = document.getElementById(`edit-passcode-${empId}`);
+    if (passcodeElem && passcodeElem.value.trim()) {
+      target.passcode = passcodeElem.value.trim();
+    }
+
+    // 탭 접근 권한 1:1 수집 및 동시 저장
+    const permChks = document.querySelectorAll(`.perm-tab-cb-${empId}`);
+    if (permChks && permChks.length > 0) {
+      const newAllowed = [];
+      permChks.forEach(cb => {
+        if (cb.checked) newAllowed.push(cb.value);
+      });
+      window.SheetsSync.updateStaffPermissions(empId, newAllowed);
+    }
+
     window.SheetsSync.saveEmployees(emps);
     if (typeof window.SheetsSync.pushToCloud === 'function') {
       window.SheetsSync.pushToCloud();
     }
+
+    if (window.App && typeof window.App.renderSidebarNavigation === 'function') {
+      window.App.renderSidebarNavigation();
+    }
+    if (window.App && typeof window.App.renderUserHeader === 'function') {
+      window.App.renderUserHeader();
+    }
+
     editingEmpId = null;
 
-    alert(`✅ [${newName}] 직원의 세부 정보 수정이 완벽히 저장되었습니다!`);
+    alert(`✅ [${newName}] 직원의 세부 정보, 비밀번호 및 탭 접근 권한이 100% 완벽히 통합 저장되었습니다!`);
     render('module-content');
   }
 

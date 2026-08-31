@@ -399,10 +399,12 @@ window.StaffDirectoryModule = (function () {
                       const pRaw = localStorage.getItem('ssg_emp_permissions') || localStorage.getItem('ssg_emp_permissions_v1');
                       if (pRaw) permMap = JSON.parse(pRaw);
                     } catch(e) {}
-                    const allowed = (permMap && permMap[emp.id]) || emp.allowedTabs || [
-                      'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
-                      'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
-                    ];
+                    const allowed = (Array.isArray(emp.allowedTabs) && emp.allowedTabs.length > 0)
+                      ? emp.allowedTabs
+                      : ((permMap && permMap[emp.id]) || [
+                          'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
+                          'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+                        ]);
                     const tabs = [
                       { id: 'notices-module', name: '📢 공지사항' },
                       { id: 'worklog-module', name: '📝 업무일지' },
@@ -601,14 +603,18 @@ window.StaffDirectoryModule = (function () {
       target.passcode = passcodeElem.value.trim();
     }
 
-    // 탭 접근 권한 1:1 수집 및 동시 저장
+    // 탭 접근 권한 1:1 수집 및 동시 저장 (target 객체 속성 direct 갱신)
     const permChks = document.querySelectorAll(`.perm-tab-cb-${empId}`);
     if (permChks && permChks.length > 0) {
       const newAllowed = [];
       permChks.forEach(cb => {
         if (cb.checked) newAllowed.push(cb.value);
       });
+      target.allowedTabs = newAllowed;
+      target.updatedAt = Date.now();
       window.SheetsSync.updateStaffPermissions(empId, newAllowed);
+    } else {
+      target.updatedAt = Date.now();
     }
 
     window.SheetsSync.saveEmployees(emps);

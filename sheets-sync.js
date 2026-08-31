@@ -2088,13 +2088,6 @@ window.SheetsSync = (function () {
             : (permMap[id] || (cloudData.empPermissions && cloudData.empPermissions[id]) || chosen.allowedTabs) || [];
 
           if (!Array.isArray(targetAllowed)) targetAllowed = [];
-
-          if (!targetAllowed.includes('medicine-location-module')) {
-            targetAllowed.push('medicine-location-module');
-          }
-          if (!targetAllowed.includes('rx-medicine-location-module')) {
-            targetAllowed.push('rx-medicine-location-module');
-          }
           permMap[id] = targetAllowed;
 
           return {

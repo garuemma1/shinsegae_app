@@ -547,6 +547,9 @@ window.StaffDirectoryModule = (function () {
     }
 
     window.SheetsSync.saveEmployees(emps);
+    if (typeof window.SheetsSync.pushToCloud === 'function') {
+      window.SheetsSync.pushToCloud();
+    }
     editingEmpId = null;
 
     alert(`✅ [${newName}] 직원의 세부 정보 수정이 완벽히 저장되었습니다!`);
@@ -564,8 +567,14 @@ window.StaffDirectoryModule = (function () {
     }
 
     if (confirm(`⚠️ [${target.name} ${target.role}] 직원의 계정 및 명부를 삭제(퇴사 처리)하시겠습니까?`)) {
+      if (typeof window.SheetsSync.addDeletedId === 'function') {
+        window.SheetsSync.addDeletedId(empId);
+      }
       const updatedEmps = emps.filter(e => e.id !== empId);
       window.SheetsSync.saveEmployees(updatedEmps);
+      if (typeof window.SheetsSync.pushToCloud === 'function') {
+        window.SheetsSync.pushToCloud();
+      }
       alert(`🗑️ [${target.name}] 직원의 계정 및 명부가 성공적으로 삭제되었습니다.`);
       render('module-content');
     }
@@ -664,7 +673,7 @@ window.StaffDirectoryModule = (function () {
 
     let permMap = {};
     try {
-      const pRaw = localStorage.getItem('ssg_emp_permissions_v1');
+      const pRaw = localStorage.getItem('ssg_emp_permissions') || localStorage.getItem('ssg_emp_permissions_v1');
       if (pRaw) permMap = JSON.parse(pRaw);
     } catch(e) {}
 

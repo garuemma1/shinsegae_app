@@ -853,6 +853,9 @@ window.SheetsSync = (function () {
     target.passcode = String(customPasscode).trim() || '1234';
     target.updatedAt = Date.now();
     saveEmployees(emps);
+    if (typeof pushToCloud === 'function') {
+      pushToCloud();
+    }
     
     // 현재 세션 갱신
     const curr = getCurrentUser();
@@ -880,6 +883,9 @@ window.SheetsSync = (function () {
       target.allowedTabs = allowedTabs;
       target.updatedAt = Date.now();
       saveEmployees(emps);
+      if (typeof pushToCloud === 'function') {
+        pushToCloud();
+      }
     }
 
     // 3. 현재 세션 유저 업데이트

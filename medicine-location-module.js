@@ -33,14 +33,17 @@ window.MedicineLocationModule = (function () {
   }
 
   function saveStorageData(list) {
+    try {
+      const json = JSON.stringify(list || []);
+      localStorage.setItem('ssg_medicine_locations_v1', json);
+      localStorage.setItem('ssg_medicine_locations', json);
+    } catch (e) {}
+
     if (window.SheetsSync && typeof window.SheetsSync.saveMedicineLocations === 'function') {
       window.SheetsSync.saveMedicineLocations(list);
       if (typeof window.SheetsSync.pushToCloud === 'function') {
         window.SheetsSync.pushToCloud();
       }
-    } else {
-      localStorage.setItem('ssg_medicine_locations_v1', JSON.stringify(list));
-      localStorage.setItem('ssg_medicine_locations', JSON.stringify(list));
     }
   }
 
@@ -520,6 +523,8 @@ window.MedicineLocationModule = (function () {
 
       saveStorageData(items);
       closeModal();
+      searchQuery = '';
+      activeCategory = 'ALL';
       alert('✅ 성공적으로 저장되었습니다!');
       render('module-content');
 

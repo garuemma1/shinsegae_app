@@ -576,57 +576,71 @@ window.WorklogModule = (function () {
   async function submitTask(e) {
     e.preventDefault();
     const btn = document.getElementById('wl-submit-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...'; }
 
-    const curr = window.SheetsSync.getCurrentUser();
-    if (!curr) { alert("로그인이 필요합니다."); btn.disabled = false; btn.innerText = '등록하기'; return; }
+    try {
+      const curr = window.SheetsSync && window.SheetsSync.getCurrentUser ? window.SheetsSync.getCurrentUser() : null;
+      if (!curr) { alert("로그인이 필요합니다."); return; }
 
-    const tag = document.getElementById('wl-tag').value;
-    const content = document.getElementById('wl-content').value;
-    const base64Data = (document.getElementById('wl-compressed-base64') && document.getElementById('wl-compressed-base64').value) || '';
-    let imageUrl = base64Data || '';
-    if (base64Data && window.App && typeof window.App.processAndUploadPhoto === 'function') {
-      imageUrl = await window.App.processAndUploadPhoto(base64Data);
+      const tag = document.getElementById('wl-tag') ? document.getElementById('wl-tag').value : '일반';
+      const content = document.getElementById('wl-content') ? document.getElementById('wl-content').value.trim() : '';
+      if (!content) { alert('⚠️ 내용을 입력해 주세요.'); return; }
+
+      // 🚀 사진은 이미 handleFileSelect에서 압축 완료된 base64를 직접 사용
+      const base64Data = (document.getElementById('wl-compressed-base64') && document.getElementById('wl-compressed-base64').value) || '';
+      let imageUrl = base64Data || '';
+      // 넌블로킹 방식으로 imageUrl은 즉시 base64 그대로 사용 (외부 서버 대기 0초)
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const fullCreatedAt = `${dateStr} ${timeStr}`;
+
+      const newLog = {
+        id: 'task_' + Date.now(),
+        date: dateStr,
+        authorName: curr.name,
+        author: curr.name,
+        tag: tag,
+        type: tag,
+        content: content,
+        text: content,
+        imageUrl: imageUrl,
+        status: 'PENDING',
+        createdAt: fullCreatedAt,
+        updatedAt: Date.now(),
+        checkedBy: []
+      };
+
+      const logs = (window.SheetsSync.getWorklogs && window.SheetsSync.getWorklogs()) || [];
+      logs.unshift(newLog);
+      window.SheetsSync.saveWorklogs(logs);
+
+      // 🔔 알림은 저장 성공 후 넌블로킹 백그라운드로 실행
+      setTimeout(() => {
+        try {
+          if (window.SheetsSync && typeof window.SheetsSync.sendGroupChatPush === 'function') {
+            const snippet = content.length > 80 ? content.substring(0, 80) + '...' : content;
+            window.SheetsSync.sendGroupChatPush(`[${tag}] ${snippet}`, `작성자: ${curr.name} | 작성시각: ${fullCreatedAt}`, '업무일지');
+          }
+          if (window.SheetsSync && typeof window.SheetsSync.sendOneSignalPush === 'function') {
+            window.SheetsSync.sendOneSignalPush(`📋 [업무일지] ${curr.name}`, `[${tag}] ${content.substring(0, 60)}`);
+          }
+        } catch(ne) {}
+      }, 200);
+
+      closeModal();
+      alert('✅ 성공적으로 등록되었습니다.');
+      render('module-content');
+
+    } catch (err) {
+      console.error("submitTask error:", err);
+      alert("⚠️ 등록 처리 중 오류가 발생했습니다: " + err.message);
+    } finally {
+      const liveBtn = document.getElementById('wl-submit-btn');
+      if (liveBtn) { liveBtn.disabled = false; liveBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> 등록하기'; }
     }
-
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    const fullCreatedAt = `${dateStr} ${timeStr}`;
-
-    const newLog = {
-      id: 'task_' + Date.now(),
-      date: dateStr,
-      authorName: curr.name,
-      author: curr.name,
-      tag: tag,
-      type: tag,
-      content: content,
-      text: content,
-      imageUrl: imageUrl,
-      status: 'PENDING',
-      createdAt: fullCreatedAt,
-      updatedAt: Date.now(),
-      checkedBy: []
-    };
-
-    const logs = window.SheetsSync.getWorklogs() || [];
-    logs.unshift(newLog);
-    window.SheetsSync.saveWorklogs(logs);
-
-    if (window.SheetsSync && typeof window.SheetsSync.sendGroupChatPush === 'function') {
-      const snippet = content.length > 80 ? content.substring(0, 80) + '...' : content;
-      window.SheetsSync.sendGroupChatPush(`[${tag}] ${snippet}`, `작성자: ${curr.name} | 작성시각: ${fullCreatedAt}`, '업무일지');
-    }
-    if (window.SheetsSync && typeof window.SheetsSync.sendOneSignalPush === 'function') {
-      window.SheetsSync.sendOneSignalPush(`📋 [업무일지] ${curr.name}`, `[${tag}] ${content.substring(0, 60)}`);
-    }
-
-    closeModal();
-    alert('✅ 성공적으로 등록되었습니다.');
-    render('module-content');
   }
 
   // 📌 1. 상단 미해결 업무 완료 처리 로직 (재확인 팝업 강화)

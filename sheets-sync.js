@@ -2286,9 +2286,19 @@ window.SheetsSync = (function () {
           schedule: getSchedule(),
           leaveRequests: getLeaveRequests(),
           notices: getNotices(),
-          worklogs: getWorklogs(),
-          medicineLocations: getMedicineLocations(),
-          rxMedicineLocations: getRxMedicineLocations(),
+          // 🛡️ Firebase 1MB 한계 초과 방지: Base64 사진 데이터 자동 스트립, URL만 유지
+          worklogs: (getWorklogs() || []).map(l => {
+            if (!l.imageUrl || l.imageUrl.startsWith('http')) return l;
+            return { ...l, imageUrl: '' };
+          }),
+          medicineLocations: (getMedicineLocations() || []).map(m => {
+            if (!m.photoUrl || m.photoUrl.startsWith('http')) return m;
+            return { ...m, photoUrl: '' };
+          }),
+          rxMedicineLocations: (getRxMedicineLocations() || []).map(m => {
+            if (!m.photoUrl || m.photoUrl.startsWith('http')) return m;
+            return { ...m, photoUrl: '' };
+          }),
           supplies: getSupplies(),
           supplyPresets: getSupplyPresets(),
           gasUrls: getGasUrls()

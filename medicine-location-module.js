@@ -452,18 +452,8 @@ window.MedicineLocationModule = (function () {
       const notes = notesElem ? notesElem.value.trim() : '';
 
       let photoUrl = photoBase64;
-      if (photoBase64 && window.App && typeof window.App.uploadImageToImgBB === 'function') {
-        try {
-          if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 사진 업로드 처리 중...';
-          const uploadPromise = window.App.uploadImageToImgBB(photoBase64);
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("ImgBB upload timeout")), 2500)
-          );
-          photoUrl = await Promise.race([uploadPromise, timeoutPromise]);
-        } catch (err) {
-          console.warn("ImgBB upload timeout/fail, using compressed base64 fallback:", err);
-          photoUrl = photoBase64;
-        }
+      if (photoBase64 && window.App && typeof window.App.processAndUploadPhoto === 'function') {
+        photoUrl = await window.App.processAndUploadPhoto(photoBase64);
       }
 
       const now = new Date();

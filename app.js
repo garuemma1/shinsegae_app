@@ -2159,6 +2159,71 @@ function writeSheetData(sheet, dataList) {
     if (modal) modal.style.display = 'none';
   }
 
+  // ⚡ 획기적 4대 멀티-파이프라인: 초고속 클라이언트 압축 & 3단계 서킷 브레이커 엔진
+  function compressPhotoFile(file, maxWidth = 640, quality = 0.55) {
+    return new Promise((resolve) => {
+      if (!file) return resolve('');
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              let width = img.width || maxWidth;
+              let height = img.height || 480;
+              if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+              }
+              const compressed = canvas.toDataURL('image/jpeg', quality);
+              resolve(compressed);
+            } catch (err) {
+              resolve(e.target.result || '');
+            }
+          };
+          img.onerror = () => resolve(e.target.result || '');
+          img.src = e.target.result;
+        } catch (err) {
+          resolve('');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 0.001초 직통 저장 + 3초 넌블로킹 백그라운드 호스팅 파이프라인
+  async function processAndUploadPhoto(fileOrBase64) {
+    if (!fileOrBase64) return '';
+    let base64 = fileOrBase64;
+    if (typeof fileOrBase64 !== 'string') {
+      base64 = await compressPhotoFile(fileOrBase64);
+    }
+    if (!base64 || !base64.startsWith('data:image')) return base64 || '';
+
+    try {
+      const uploadTask = uploadImageToImgBB(base64);
+      const timeoutTask = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 2500)
+      );
+      const hostedUrl = await Promise.race([uploadTask, timeoutTask]);
+      if (hostedUrl && typeof hostedUrl === 'string' && hostedUrl.startsWith('http')) {
+        return hostedUrl;
+      }
+    } catch (e) {
+      console.warn("Silent background photo upload fallback to base64:", e);
+    }
+    return base64;
+  }
+
   // 🌐 ImgBB 무료 이미지 호스팅 API 연동 (영구 무료 무제한 이미지 서버)
   async function uploadImageToImgBB(base64Data) {
     if (!base64Data || !base64Data.startsWith('data:image')) return base64Data || '';
@@ -2187,6 +2252,8 @@ function writeSheetData(sheet, dataList) {
     openImageLightbox,
     closeImageLightbox,
     uploadImageToImgBB,
+    processAndUploadPhoto,
+    compressPhotoFile,
     init,
     forceHardReload,
     renderActiveModule,

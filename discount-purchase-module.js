@@ -228,22 +228,27 @@ window.DiscountPurchaseModule = (function () {
         if (p.id && typeof p.id === 'string') {
           const cleanId = p.id.replace(/[^0-9]/g, '');
           if (cleanId.length >= 10) {
-            const num = parseInt(cleanId, 10);
+            const num = parseInt(cleanId.substring(0, 13), 10);
             if (!isNaN(num) && num > 1000000000) return num;
           }
         }
 
-        // 3. 날짜/시간 문자열 (2026. 08. 28. 12:20 or 2026-08-28 12:20)
-        const dateVal = p.updatedAt || p.createdAt || p.dateStr || p.dateIso || p.date || '';
-        if (dateVal) {
-          if (typeof dateVal === 'number' && !isNaN(dateVal) && dateVal > 1000000000) return dateVal;
-          const strVal = String(dateVal).trim();
-          const numParsed = Number(strVal);
-          if (!isNaN(numParsed) && numParsed > 1000000000) return numParsed;
-
-          const normalized = strVal.replace(/\./g, '-').replace(/\s+/g, ' ').trim();
-          const ms = Date.parse(normalized);
-          if (!isNaN(ms)) return ms;
+        // 3. 날짜/시간 문자열 ("2026. 08. 28. 21:41") 정밀 숫자 분해 파싱
+        const rawDate = p.dateStr || p.updatedAt || p.createdAt || p.dateIso || p.date || '';
+        if (rawDate) {
+          if (typeof rawDate === 'number' && !isNaN(rawDate) && rawDate > 1000000000) return rawDate;
+          const str = String(rawDate).trim();
+          const matches = str.match(/\d+/g);
+          if (matches && matches.length >= 3) {
+            const y = parseInt(matches[0], 10);
+            const m = parseInt(matches[1], 10) - 1;
+            const d = parseInt(matches[2], 10);
+            const hh = matches[3] ? parseInt(matches[3], 10) : 0;
+            const mm = matches[4] ? parseInt(matches[4], 10) : 0;
+            const ss = matches[5] ? parseInt(matches[5], 10) : 0;
+            const parsedTime = new Date(y, m, d, hh, mm, ss).getTime();
+            if (!isNaN(parsedTime) && parsedTime > 1000000000) return parsedTime;
+          }
         }
 
         return 0;

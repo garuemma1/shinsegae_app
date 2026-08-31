@@ -545,119 +545,143 @@ window.RxMedicineLocationModule = (function () {
   }
 
   async function handleFormSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const btn = document.getElementById('rx-submit-btn');
-    if (btn) btn.disabled = true;
-
-    const itemId = document.getElementById('rx-item-id').value;
-    const name = document.getElementById('rx-name').value.trim();
-    const zoneId = document.getElementById('rx-zone-id').value;
-    const zoneObj = DEFAULT_ZONES.find(z => z.id === zoneId);
-    const zoneName = zoneObj ? zoneObj.name : '📦 일반 조제선반';
-    const locationDetail = document.getElementById('rx-location-detail').value.trim();
-    const adjustmentReason = document.getElementById('rx-adjustment-reason').value.trim();
-    const photoBase64 = document.getElementById('rx-photo-base64').value;
-    const notes = document.getElementById('rx-notes').value.trim();
-
-    let photoUrl = photoBase64;
-    if (photoBase64 && window.App && typeof window.App.uploadImageToImgBB === 'function') {
-      try {
-        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 이미지 호스팅 업로드 중...';
-        photoUrl = await window.App.uploadImageToImgBB(photoBase64);
-      } catch (err) {
-        console.warn("ImgBB upload fail, using base64 fallback:", err);
-      }
-    }
-
-    const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || { name: '약국' };
-    const nowStr = formatCurrentDateTime();
-    const items = getStorageData();
-
-    if (itemId) {
-      // 기존 위치 수정 및 수정 흔적 이력 축적
-      const target = items.find(i => i.id === itemId);
-      if (target) {
-        const historyEntry = {
-          zoneName: target.zoneName,
-          locationDetail: target.locationDetail,
-          photoUrl: target.photoUrl,
-          updatedBy: target.updatedBy,
-          updatedAt: target.updatedAt,
-          notes: target.notes,
-          adjustmentReason: target.adjustmentReason
-        };
-        if (!target.history) target.history = [];
-        target.history.unshift(historyEntry);
-        if (target.history.length > 5) target.history = target.history.slice(0, 5);
-
-        target.zoneId = zoneId;
-        target.zoneName = zoneName;
-        target.locationDetail = locationDetail;
-        target.photoUrl = photoUrl || target.photoUrl;
-        target.notes = notes;
-        target.adjustmentReason = adjustmentReason;
-        target.updatedBy = currUser.name || '약국';
-        target.updatedAt = nowStr;
-      }
-    } else {
-      // 신규 등록 또는 동종 제품 존재 시 덮어쓰기
-      const existingIndex = items.findIndex(i => (i.name || '').trim().toLowerCase() === name.toLowerCase());
-
-      if (existingIndex !== -1) {
-        const target = items[existingIndex];
-        const historyEntry = {
-          zoneName: target.zoneName,
-          locationDetail: target.locationDetail,
-          photoUrl: target.photoUrl,
-          updatedBy: target.updatedBy,
-          updatedAt: target.updatedAt,
-          notes: target.notes,
-          adjustmentReason: target.adjustmentReason
-        };
-        if (!target.history) target.history = [];
-        target.history.unshift(historyEntry);
-        if (target.history.length > 5) target.history = target.history.slice(0, 5);
-
-        items[existingIndex] = {
-          ...target,
-          name: name,
-          zoneId: zoneId,
-          zoneName: zoneName,
-          locationDetail: locationDetail,
-          notes: notes || target.notes,
-          photoUrl: photoUrl || target.photoUrl,
-          adjustmentReason: adjustmentReason,
-          updatedAt: Date.now(),
-          displayDate: nowStr,
-          updatedBy: currUser.name || '약국'
-        };
-      } else {
-        const newItem = {
-          id: 'rx_' + Date.now(),
-          name,
-          zoneId,
-          zoneName,
-          locationDetail,
-          photoUrl: photoUrl || '',
-          notes,
-          adjustmentReason,
-          updatedBy: currUser.name || '약국',
-          updatedAt: Date.now(),
-          displayDate: nowStr,
-          history: []
-        };
-        items.unshift(newItem);
-      }
-    }
-
-    saveStorageData(items);
-    closeModal();
     if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-save me-1"></i> 저장하기';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 저장 중...';
     }
-    alert('✅ 성공적으로 저장되었습니다!');
-    render('module-content');
+
+    try {
+      const itemId = document.getElementById('rx-item-id') ? document.getElementById('rx-item-id').value : '';
+      const nameElem = document.getElementById('rx-name');
+      const name = nameElem ? nameElem.value.trim() : '';
+      if (!name) {
+        alert('⚠️ 전문약 품목명을 입력해 주세요.');
+        return;
+      }
+
+      const zoneIdElem = document.getElementById('rx-zone-id');
+      const zoneId = zoneIdElem ? zoneIdElem.value : 'ZONE_NOR';
+      const zoneObj = DEFAULT_ZONES.find(z => z.id === zoneId);
+      const zoneName = zoneObj ? zoneObj.name : '📦 일반 조제선반';
+      const locDetailElem = document.getElementById('rx-location-detail');
+      const locationDetail = locDetailElem ? locDetailElem.value.trim() : '';
+      const adjReasonElem = document.getElementById('rx-adjustment-reason');
+      const adjustmentReason = adjReasonElem ? adjReasonElem.value.trim() : '';
+      const photoElem = document.getElementById('rx-photo-base64');
+      const photoBase64 = photoElem ? photoElem.value : '';
+      const notesElem = document.getElementById('rx-notes');
+      const notes = notesElem ? notesElem.value.trim() : '';
+
+      let photoUrl = photoBase64;
+      if (photoBase64 && window.App && typeof window.App.uploadImageToImgBB === 'function') {
+        try {
+          if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 이미지 호스팅 업로드 중...';
+          photoUrl = await window.App.uploadImageToImgBB(photoBase64);
+        } catch (err) {
+          console.warn("ImgBB upload fail, using base64 fallback:", err);
+        }
+      }
+
+      const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || { name: '약국' };
+      const nowStr = formatCurrentDateTime();
+      const nowMs = Date.now();
+      const items = getStorageData() || [];
+
+      if (itemId) {
+        // 기존 위치 수정 및 수정 흔적 이력 축적
+        const target = items.find(i => i.id === itemId);
+        if (target) {
+          const historyEntry = {
+            zoneName: target.zoneName,
+            locationDetail: target.locationDetail,
+            photoUrl: target.photoUrl,
+            updatedBy: target.updatedBy,
+            updatedAt: target.updatedAt,
+            notes: target.notes,
+            adjustmentReason: target.adjustmentReason
+          };
+          if (!target.history) target.history = [];
+          target.history.unshift(historyEntry);
+          if (target.history.length > 5) target.history = target.history.slice(0, 5);
+
+          target.zoneId = zoneId;
+          target.zoneName = zoneName;
+          target.locationDetail = locationDetail;
+          target.photoUrl = photoUrl || target.photoUrl;
+          target.notes = notes;
+          target.adjustmentReason = adjustmentReason;
+          target.updatedBy = currUser.name || '약국';
+          target.updatedAt = nowMs;
+          target.displayDate = nowStr;
+        }
+      } else {
+        // 신규 등록 또는 동종 제품 존재 시 덮어쓰기
+        const existingIndex = items.findIndex(i => (i.name || '').trim().toLowerCase() === name.toLowerCase());
+
+        if (existingIndex !== -1) {
+          const target = items[existingIndex];
+          const historyEntry = {
+            zoneName: target.zoneName,
+            locationDetail: target.locationDetail,
+            photoUrl: target.photoUrl,
+            updatedBy: target.updatedBy,
+            updatedAt: target.updatedAt,
+            notes: target.notes,
+            adjustmentReason: target.adjustmentReason
+          };
+          if (!target.history) target.history = [];
+          target.history.unshift(historyEntry);
+          if (target.history.length > 5) target.history = target.history.slice(0, 5);
+
+          items[existingIndex] = {
+            ...target,
+            name: name,
+            zoneId: zoneId,
+            zoneName: zoneName,
+            locationDetail: locationDetail,
+            notes: notes || target.notes,
+            photoUrl: photoUrl || target.photoUrl,
+            adjustmentReason: adjustmentReason,
+            updatedAt: nowMs,
+            displayDate: nowStr,
+            updatedBy: currUser.name || '약국'
+          };
+        } else {
+          const newItem = {
+            id: 'rx_' + nowMs,
+            name,
+            zoneId,
+            zoneName,
+            locationDetail,
+            photoUrl: photoUrl || '',
+            notes,
+            adjustmentReason,
+            updatedBy: currUser.name || '약국',
+            updatedAt: nowMs,
+            displayDate: nowStr,
+            history: []
+          };
+          items.unshift(newItem);
+        }
+      }
+
+      saveStorageData(items);
+      closeModal();
+      alert('✅ 성공적으로 저장되었습니다!');
+      render('module-content');
+
+    } catch (err) {
+      console.error("RxMedicineLocationModule handleFormSubmit error:", err);
+      alert("⚠️ 전문약 저장 처리 중 오류가 발생했습니다: " + err.message);
+    } finally {
+      const liveBtn = document.getElementById('rx-submit-btn');
+      if (liveBtn) {
+        liveBtn.disabled = false;
+        liveBtn.innerHTML = '<i class="fas fa-save me-1"></i> 저장하기';
+      }
+    }
   }
 
   function openDetailModal(id) {

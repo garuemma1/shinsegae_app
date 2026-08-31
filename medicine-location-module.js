@@ -391,7 +391,7 @@ window.MedicineLocationModule = (function () {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const currUser = window.SheetsSync ? window.SheetsSync.getCurrentUser() : null;
     if (!currUser) {
       alert("로그인이 필요합니다.");
@@ -399,89 +399,112 @@ window.MedicineLocationModule = (function () {
     }
 
     const btn = document.getElementById('med-submit-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
-
-    const itemId = document.getElementById('med-item-id').value;
-    const name = document.getElementById('med-name').value.trim();
-    const zoneId = document.getElementById('med-zone-id').value;
-    const zoneObj = DEFAULT_ZONES.find(z => z.id === zoneId);
-    const zoneName = zoneObj ? zoneObj.name : '일반구역';
-    const locationDetail = document.getElementById('med-location-detail').value.trim();
-    const photoBase64 = document.getElementById('med-photo-base64').value;
-    const notes = document.getElementById('med-notes').value.trim();
-
-    let photoUrl = photoBase64;
-    if (photoBase64 && window.App && typeof window.App.uploadImageToImgBB === 'function') {
-      try {
-        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 이미지 호스팅 업로드 중...';
-        photoUrl = await window.App.uploadImageToImgBB(photoBase64);
-      } catch (err) {
-        console.warn("ImgBB upload fail, using base64 fallback:", err);
-      }
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 저장 중...';
     }
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const date = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const nowStr = `${year}-${month}-${date} ${hours}:${minutes}`;
-    const items = getStorageData();
+    try {
+      const itemId = document.getElementById('med-item-id') ? document.getElementById('med-item-id').value : '';
+      const nameElem = document.getElementById('med-name');
+      const name = nameElem ? nameElem.value.trim() : '';
+      if (!name) {
+        alert('⚠️ 약품명을 입력해 주세요.');
+        return;
+      }
 
-    if (itemId) {
-      // 기존 약품 위치 수정/변경 (히스토리 누적)
-      const target = items.find(i => i.id === itemId);
-      if (target) {
-        const historyEntry = {
-          zoneName: target.zoneName,
-          locationDetail: target.locationDetail,
-          photoUrl: target.photoUrl,
-          updatedBy: target.updatedBy,
-          updatedAt: target.updatedAt,
-          notes: target.notes
-        };
-        if (!target.history) target.history = [];
-        target.history.unshift(historyEntry);
-        // 약품당 과거 사진 히스토리는 최근 5건만 보존하고 오래된 히스토리는 자동 정리 (메모리 절감)
-        if (target.history.length > 5) {
-          target.history = target.history.slice(0, 5);
+      const zoneIdElem = document.getElementById('med-zone-id');
+      const zoneId = zoneIdElem ? zoneIdElem.value : 'ZONE_A';
+      const zoneObj = DEFAULT_ZONES.find(z => z.id === zoneId);
+      const zoneName = zoneObj ? zoneObj.name : '일반구역';
+
+      const locDetailElem = document.getElementById('med-location-detail');
+      const locationDetail = locDetailElem ? locDetailElem.value.trim() : '';
+      const photoElem = document.getElementById('med-photo-base64');
+      const photoBase64 = photoElem ? photoElem.value : '';
+      const notesElem = document.getElementById('med-notes');
+      const notes = notesElem ? notesElem.value.trim() : '';
+
+      let photoUrl = photoBase64;
+      if (photoBase64 && window.App && typeof window.App.uploadImageToImgBB === 'function') {
+        try {
+          if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 이미지 호스팅 업로드 중...';
+          photoUrl = await window.App.uploadImageToImgBB(photoBase64);
+        } catch (err) {
+          console.warn("ImgBB upload fail, using base64 fallback:", err);
         }
-
-        target.zoneId = zoneId;
-        target.zoneName = zoneName;
-        target.locationDetail = locationDetail;
-        target.photoUrl = photoUrl || target.photoUrl;
-        target.notes = notes;
-        target.updatedBy = currUser.name;
-        target.updatedAt = Date.now();
-        target.displayDate = nowStr;
       }
-    } else {
-      // 신규 입고 약품 위치 등록
-      const newItem = {
-        id: 'med_' + Date.now(),
-        name,
-        zoneId,
-        zoneName,
-        locationDetail,
-        photoUrl: photoUrl || '',
-        notes,
-        updatedBy: currUser.name,
-        updatedAt: Date.now(),
-        displayDate: nowStr,
-        history: []
-      };
-      items.unshift(newItem);
-    }
 
-    saveStorageData(items);
-    closeModal();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save me-1"></i> 저장하기';
-    alert('✅ 성공적으로 저장되었습니다!');
-    render('module-content');
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const date = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const nowStr = `${year}-${month}-${date} ${hours}:${minutes}`;
+      const nowMs = Date.now();
+      const items = getStorageData() || [];
+
+      if (itemId) {
+        // 기존 약품 위치 수정/변경 (히스토리 누적)
+        const target = items.find(i => i.id === itemId);
+        if (target) {
+          const historyEntry = {
+            zoneName: target.zoneName,
+            locationDetail: target.locationDetail,
+            photoUrl: target.photoUrl,
+            updatedBy: target.updatedBy,
+            updatedAt: target.updatedAt,
+            notes: target.notes
+          };
+          if (!target.history) target.history = [];
+          target.history.unshift(historyEntry);
+          if (target.history.length > 5) {
+            target.history = target.history.slice(0, 5);
+          }
+
+          target.zoneId = zoneId;
+          target.zoneName = zoneName;
+          target.locationDetail = locationDetail;
+          target.photoUrl = photoUrl || target.photoUrl;
+          target.notes = notes;
+          target.updatedBy = currUser.name;
+          target.updatedAt = nowMs;
+          target.displayDate = nowStr;
+        }
+      } else {
+        // 신규 입고 약품 위치 등록
+        const newItem = {
+          id: 'med_' + nowMs,
+          name,
+          zoneId,
+          zoneName,
+          locationDetail,
+          photoUrl: photoUrl || '',
+          notes,
+          updatedBy: currUser.name,
+          updatedAt: nowMs,
+          displayDate: nowStr,
+          history: []
+        };
+        items.unshift(newItem);
+      }
+
+      saveStorageData(items);
+      closeModal();
+      alert('✅ 성공적으로 저장되었습니다!');
+      render('module-content');
+
+    } catch (err) {
+      console.error("MedicineLocationModule handleSubmit error:", err);
+      alert("⚠️ 저장 처리 중 오류가 발생했습니다: " + err.message);
+    } finally {
+      const liveBtn = document.getElementById('med-submit-btn');
+      if (liveBtn) {
+        liveBtn.disabled = false;
+        liveBtn.innerHTML = '<i class="fas fa-save me-1"></i> 저장하기';
+      }
+    }
   }
 
   function openDetailModal(id) {

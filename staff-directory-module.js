@@ -398,8 +398,8 @@ window.StaffDirectoryModule = (function () {
               <span class="badge bg-light text-dark font-bold" style="font-size:11.5px; border:1px solid #cbd5e1; border-radius:12px; padding:4px 8px;">
                 ${payBadge}
               </span>
-              <button type="button" class="btn btn-xs btn-outline-primary font-bold" onclick="StaffDirectoryModule.editFullEmployee('${emp.id}')" style="font-size:11px; padding:2px 8px; border-radius:8px;" title="연락처/입사일/직책/급여 세부정보 전체 수정">
-                <i class="fas fa-user-edit"></i> ✏️ 세부정보 수정
+              <button type="button" class="btn btn-xs btn-primary font-bold" onclick="StaffDirectoryModule.openAllInOneModal('${emp.id}')" style="font-size:11.5px; padding:4px 10px; border-radius:10px; background:linear-gradient(135deg, #1e40af, #1d4ed8); border:none; box-shadow:0 2px 6px rgba(30,64,175,0.25);" title="직원 정보/비밀번호/탭권한/퇴사통합관리">
+                <i class="fas fa-sliders-h me-1"></i> ⚙️ 직원 관리 & 권한
               </button>
             </div>
           </div>
@@ -464,14 +464,8 @@ window.StaffDirectoryModule = (function () {
 
           <div class="card-footer d-flex gap-2 flex-wrap" style="background:#ffffff; padding:14px 20px; border-top:1px solid #e2e8f0;">
             ${!isDirector ? `
-              <button type="button" class="btn btn-sm btn-outline-primary flex-grow-1 font-bold" onclick="StaffDirectoryModule.openPermModal('${emp.id}')" style="border-radius:10px; padding:7px; font-size:12.5px;">
-                <i class="fas fa-cog"></i> ⚙️ 탭 권한
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-warning font-bold" onclick="StaffDirectoryModule.resetPasscode('${emp.id}')" style="border-radius:10px; padding:7px; font-size:12.5px;">
-                <i class="fas fa-key"></i> 🔑 암호 리셋
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-danger font-bold" onclick="StaffDirectoryModule.deleteEmployee('${emp.id}')" style="border-radius:10px; padding:7px; font-size:12.5px;" title="직원 퇴사/계정 삭제">
-                <i class="fas fa-user-minus"></i> 🗑️ 계정 삭제
+              <button type="button" class="btn btn-sm btn-primary w-100 font-bold" onclick="StaffDirectoryModule.openAllInOneModal('${emp.id}')" style="border-radius:12px; padding:9px; font-size:13.5px; background:linear-gradient(135deg, #1e40af, #1d4ed8); border:none; box-shadow:0 3px 8px rgba(30,64,175,0.25);">
+                <i class="fas fa-sliders-h me-1"></i> ⚙️ 직원 통합 관리 및 권한 설정
               </button>
             ` : `
               <div class="text-center w-100 py-1 text-danger font-bold" style="font-size:13px;">
@@ -658,6 +652,23 @@ window.StaffDirectoryModule = (function () {
     window.SheetsSync.resetPassword(empId, cleanCode);
     alert(`🎉 [${target.name}] 직원의 비밀번호가 '${cleanCode}'(으)로 안전하게 설정되었습니다!\n\n해당 직원에게 1:1 카카오톡으로 안내해 주세요.`);
     render('module-content');
+  }
+
+  function openAllInOneModal(empId) {
+    openPermModal(empId);
+  }
+
+  function quickResetPasscodeInModal() {
+    const empId = document.getElementById('perm-emp-id').value;
+    if (!empId) return;
+    resetPasscode(empId);
+  }
+
+  function quickDeleteInModal() {
+    const empId = document.getElementById('perm-emp-id').value;
+    if (!empId) return;
+    document.getElementById('perm-modal').style.display = 'none';
+    deleteEmployee(empId);
   }
 
   function openPermModal(empId) {
@@ -1028,6 +1039,9 @@ window.StaffDirectoryModule = (function () {
     handleSearch,
     resetPasscode,
     openPermModal,
-    saveStaffPermissions
+    saveStaffPermissions,
+    openAllInOneModal,
+    quickResetPasscodeInModal,
+    quickDeleteInModal
   };
 })();

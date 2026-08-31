@@ -215,19 +215,37 @@ window.DiscountPurchaseModule = (function () {
       return `<div class="text-center text-muted py-5" style="font-size:14px; background:#f8fafc; border-radius:12px;"><i class="fas fa-inbox mb-2" style="font-size:24px;"></i><br>등록된 구매 내역이 없습니다.</div>`;
     }
 
-    // ⚡ 무조건 가장 최근에 등록/수정된 내역이 최상단(Top)에 뜨도록 최신순 내림차순 강제 정렬
+    // ⚡ 무조건 가장 최근에 등록/수정된 내역이 최상단(Top)에 뜨도록 최신순 내림차순 강제 정렬 (NaN 100% 방지)
     const sortedPurchases = [...purchases].sort((a, b) => {
       const getNum = (p) => {
-        if (p.updatedAt) return p.updatedAt;
-        if (p.createdAt) return p.createdAt;
-        if (p.id && typeof p.id === 'string' && p.id.startsWith('disc_')) {
-          const num = parseInt(p.id.replace('disc_', ''), 10);
-          if (!isNaN(num)) return num;
+        if (!p) return 0;
+        
+        // 1. 숫자 밀리초 타임스탬프 우선
+        if (typeof p.updatedAt === 'number' && !isNaN(p.updatedAt) && p.updatedAt > 1000000000) return p.updatedAt;
+        if (typeof p.createdAt === 'number' && !isNaN(p.createdAt) && p.createdAt > 1000000000) return p.createdAt;
+        
+        // 2. id 접두사 disc_ 내 밀리초 타임스탬프 추출
+        if (p.id && typeof p.id === 'string') {
+          const cleanId = p.id.replace(/[^0-9]/g, '');
+          if (cleanId.length >= 10) {
+            const num = parseInt(cleanId, 10);
+            if (!isNaN(num) && num > 1000000000) return num;
+          }
         }
-        if (p.dateIso) {
-          const ms = new Date(p.dateIso).getTime();
+
+        // 3. 날짜/시간 문자열 (2026. 08. 28. 12:20 or 2026-08-28 12:20)
+        const dateVal = p.updatedAt || p.createdAt || p.dateStr || p.dateIso || p.date || '';
+        if (dateVal) {
+          if (typeof dateVal === 'number' && !isNaN(dateVal) && dateVal > 1000000000) return dateVal;
+          const strVal = String(dateVal).trim();
+          const numParsed = Number(strVal);
+          if (!isNaN(numParsed) && numParsed > 1000000000) return numParsed;
+
+          const normalized = strVal.replace(/\./g, '-').replace(/\s+/g, ' ').trim();
+          const ms = Date.parse(normalized);
           if (!isNaN(ms)) return ms;
         }
+
         return 0;
       };
       return getNum(b) - getNum(a);
@@ -779,6 +797,7 @@ window.DiscountPurchaseModule = (function () {
       const idx = purchases.findIndex(p => p.id === id);
       if (idx >= 0) {
         const existing = purchases[idx];
+        const nowMs = Date.now();
         purchases[idx] = { 
           ...existing, 
           empId, 
@@ -789,12 +808,14 @@ window.DiscountPurchaseModule = (function () {
           unitPrice, 
           qty, 
           totalPrice,
-          items
+          items,
+          updatedAt: nowMs
         };
       }
     } else {
+      const nowMs = Date.now();
       purchases.unshift({ 
-        id: 'disc_' + Date.now(), 
+        id: 'disc_' + nowMs, 
         empId, 
         empName: emp ? emp.name : '직원', 
         dateIso: datetime,
@@ -805,7 +826,9 @@ window.DiscountPurchaseModule = (function () {
         totalPrice, 
         items,
         isCrossChecked: false, 
-        isPaid: false 
+        isPaid: false,
+        createdAt: nowMs,
+        updatedAt: nowMs
       });
     }
 

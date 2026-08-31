@@ -215,26 +215,13 @@ window.DiscountPurchaseModule = (function () {
       return `<div class="text-center text-muted py-5" style="font-size:14px; background:#f8fafc; border-radius:12px;"><i class="fas fa-inbox mb-2" style="font-size:24px;"></i><br>등록된 구매 내역이 없습니다.</div>`;
     }
 
-    // ⚡ 무조건 가장 최근에 등록/수정된 내역이 최상단(Top)에 뜨도록 최신순 내림차순 강제 정렬 (NaN 100% 방지)
+    // ⚡ 무조건 가장 최근에 구매 신청 등록된 일시(dateIso/dateStr)를 1순위로 최상단(Top)에 뜨도록 최신순 내림차순 강제 정렬
     const sortedPurchases = [...purchases].sort((a, b) => {
       const getNum = (p) => {
         if (!p) return 0;
         
-        // 1. 숫자 밀리초 타임스탬프 우선
-        if (typeof p.updatedAt === 'number' && !isNaN(p.updatedAt) && p.updatedAt > 1000000000) return p.updatedAt;
-        if (typeof p.createdAt === 'number' && !isNaN(p.createdAt) && p.createdAt > 1000000000) return p.createdAt;
-        
-        // 2. id 접두사 disc_ 내 밀리초 타임스탬프 추출
-        if (p.id && typeof p.id === 'string') {
-          const cleanId = p.id.replace(/[^0-9]/g, '');
-          if (cleanId.length >= 10) {
-            const num = parseInt(cleanId.substring(0, 13), 10);
-            if (!isNaN(num) && num > 1000000000) return num;
-          }
-        }
-
-        // 3. 날짜/시간 문자열 ("2026. 08. 28. 21:41") 정밀 숫자 분해 파싱
-        const rawDate = p.dateStr || p.updatedAt || p.createdAt || p.dateIso || p.date || '';
+        // 1. [1순위 최우선] 구매 신청 일시 (dateIso or dateStr or date) 정밀 파싱
+        const rawDate = p.dateIso || p.dateStr || p.date || '';
         if (rawDate) {
           if (typeof rawDate === 'number' && !isNaN(rawDate) && rawDate > 1000000000) return rawDate;
           const str = String(rawDate).trim();
@@ -250,6 +237,19 @@ window.DiscountPurchaseModule = (function () {
             if (!isNaN(parsedTime) && parsedTime > 1000000000) return parsedTime;
           }
         }
+
+        // 2. id 접두사 disc_ 내 밀리초 타임스탬프 추출
+        if (p.id && typeof p.id === 'string') {
+          const cleanId = p.id.replace(/[^0-9]/g, '');
+          if (cleanId.length >= 10) {
+            const num = parseInt(cleanId.substring(0, 13), 10);
+            if (!isNaN(num) && num > 1000000000) return num;
+          }
+        }
+
+        // 3. createdAt / updatedAt 타임스탬프 백업
+        if (typeof p.createdAt === 'number' && !isNaN(p.createdAt) && p.createdAt > 1000000000) return p.createdAt;
+        if (typeof p.updatedAt === 'number' && !isNaN(p.updatedAt) && p.updatedAt > 1000000000) return p.updatedAt;
 
         return 0;
       };

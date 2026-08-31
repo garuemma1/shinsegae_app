@@ -535,20 +535,40 @@ window.WorklogModule = (function () {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (e) => {
-      const img = new Image();
-      img.src = e.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800; 
-        const scaleSize = MAX_WIDTH / img.width;
-        canvas.width = MAX_WIDTH;
-        canvas.height = img.height * scaleSize;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-        document.getElementById('wl-preview-img').src = compressedBase64;
-        document.getElementById('wl-compressed-base64').value = compressedBase64;
-        document.getElementById('wl-preview-container').style.display = 'block';
+      try {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            // ✅ 480px / quality 0.4 → ~30~60KB로 초경량화 (localStorage 초과 방지)
+            const MAX_WIDTH = 480;
+            let width = img.width || MAX_WIDTH;
+            let height = img.height || 360;
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
+            const prevImg = document.getElementById('wl-preview-img');
+            const base64Input = document.getElementById('wl-compressed-base64');
+            const prevContainer = document.getElementById('wl-preview-container');
+            if (prevImg) prevImg.src = compressedBase64;
+            if (base64Input) base64Input.value = compressedBase64;
+            if (prevContainer) prevContainer.style.display = 'block';
+          } catch (err) {
+            console.warn('Canvas compress fail:', err);
+            const base64Input = document.getElementById('wl-compressed-base64');
+            if (base64Input) base64Input.value = '';
+          }
+        };
+        img.onerror = () => {};
+        img.src = e.target.result;
+      } catch (err) {
+        console.warn('handleFileSelect error:', err);
       }
     };
   }

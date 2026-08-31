@@ -305,37 +305,60 @@ window.MedicineLocationModule = (function () {
   }
 
   function handlePhotoSelect(inputEl) {
+    if (!inputEl || !inputEl.files || !inputEl.files[0]) return;
     const file = inputEl.files[0];
-    if (!file) return;
+
+    const prevImg = document.getElementById('med-photo-preview-img');
+    const base64Input = document.getElementById('med-photo-base64');
+    const prevContainer = document.getElementById('med-photo-preview-container');
 
     const reader = new FileReader();
-    reader.readAsDataURL(file);
     reader.onload = (e) => {
-      const img = new Image();
-      img.src = e.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 600;
-        let width = img.width;
-        let height = img.height;
+      try {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 640;
+            let width = img.width || 640;
+            let height = img.height || 480;
 
-        if (width > MAX_WIDTH) {
-          height = Math.round((height * MAX_WIDTH) / width);
-          width = MAX_WIDTH;
-        }
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        // Firebase payload 크기 최적화를 위해 0.5 압축 (100~200KB 수준)
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              ctx.drawImage(img, 0, 0, width, height);
+            }
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.55);
 
-        document.getElementById('med-photo-preview-img').src = compressedBase64;
-        document.getElementById('med-photo-base64').value = compressedBase64;
-        document.getElementById('med-photo-preview-container').style.display = 'block';
-      };
+            if (prevImg) prevImg.src = compressedBase64;
+            if (base64Input) base64Input.value = compressedBase64;
+            if (prevContainer) prevContainer.style.display = 'block';
+          } catch (err) {
+            console.warn("Canvas resize fail, using fallback:", err);
+            if (prevImg) prevImg.src = e.target.result;
+            if (base64Input) base64Input.value = e.target.result;
+            if (prevContainer) prevContainer.style.display = 'block';
+          }
+        };
+        img.onerror = () => {
+          if (prevImg) prevImg.src = e.target.result;
+          if (base64Input) base64Input.value = e.target.result;
+          if (prevContainer) prevContainer.style.display = 'block';
+        };
+        img.src = e.target.result;
+      } catch (err) {
+        console.error("FileReader onload error:", err);
+      }
     };
+    reader.readAsDataURL(file);
   }
 
   function resetPhoto() {
@@ -428,10 +451,15 @@ window.MedicineLocationModule = (function () {
       let photoUrl = photoBase64;
       if (photoBase64 && window.App && typeof window.App.uploadImageToImgBB === 'function') {
         try {
-          if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 이미지 호스팅 업로드 중...';
-          photoUrl = await window.App.uploadImageToImgBB(photoBase64);
+          if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 사진 업로드 처리 중...';
+          const uploadPromise = window.App.uploadImageToImgBB(photoBase64);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("ImgBB upload timeout")), 2500)
+          );
+          photoUrl = await Promise.race([uploadPromise, timeoutPromise]);
         } catch (err) {
-          console.warn("ImgBB upload fail, using base64 fallback:", err);
+          console.warn("ImgBB upload timeout/fail, using compressed base64 fallback:", err);
+          photoUrl = photoBase64;
         }
       }
 

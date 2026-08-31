@@ -547,15 +547,20 @@ window.AnnualLeaveModule = (function () {
 
     req.status = 'APPROVED';
     req.approvedAt = new Date().toLocaleString('ko-KR');
+    req.updatedAt = Date.now();
 
     const employees = data.employees || [];
     const emp = employees.find(e => e.id === req.empId);
     if (emp) {
       emp.usedLeave = (emp.usedLeave || 0) + req.daysCount;
+      emp.updatedAt = Date.now();
       window.SheetsSync.saveEmployees(employees);
     }
 
     window.SheetsSync.saveLeaveRequests(leaveRequests);
+    if (typeof window.SheetsSync.pushToCloud === 'function') {
+      window.SheetsSync.pushToCloud();
+    }
     render('module-content');
     alert(`🎉 '${req.empName}' 님의 ${req.type} 신청이 성공적으로 승인 완료되었습니다!\n(직원 연차 대장에 자동 차감 반영되었습니다)`);
   }
@@ -579,8 +584,12 @@ window.AnnualLeaveModule = (function () {
     req.status = 'REJECTED';
     req.rejectReason = reason;
     req.approvedAt = new Date().toLocaleString('ko-KR');
+    req.updatedAt = Date.now();
 
     window.SheetsSync.saveLeaveRequests(leaveRequests);
+    if (typeof window.SheetsSync.pushToCloud === 'function') {
+      window.SheetsSync.pushToCloud();
+    }
     render('module-content');
     alert(`'${req.empName}' 님의 연차 신청이 반려 처리되었습니다.`);
   }
@@ -613,15 +622,20 @@ window.AnnualLeaveModule = (function () {
       if (req && req.status === 'PENDING') {
         req.status = 'APPROVED';
         req.approvedAt = new Date().toLocaleString('ko-KR');
+        req.updatedAt = Date.now();
         const emp = employees.find(e => e.id === req.empId);
         if (emp) {
           emp.usedLeave = (emp.usedLeave || 0) + req.daysCount;
+          emp.updatedAt = Date.now();
         }
       }
     });
 
     window.SheetsSync.saveEmployees(employees);
     window.SheetsSync.saveLeaveRequests(leaveRequests);
+    if (typeof window.SheetsSync.pushToCloud === 'function') {
+      window.SheetsSync.pushToCloud();
+    }
     render('module-content');
     alert(`🎉 선택하신 ${chks.length}건의 연차가 한 번에 일괄 승인 완료되었습니다!`);
   }
@@ -648,8 +662,17 @@ window.AnnualLeaveModule = (function () {
     let leaveRequests = data.leaveRequests || [];
     const idsToDelete = Array.from(chks).map(c => c.value);
 
+    idsToDelete.forEach(id => {
+      if (typeof window.SheetsSync.addDeletedId === 'function') {
+        window.SheetsSync.addDeletedId(id);
+      }
+    });
+
     leaveRequests = leaveRequests.filter(r => !idsToDelete.includes(r.id));
     window.SheetsSync.saveLeaveRequests(leaveRequests);
+    if (typeof window.SheetsSync.pushToCloud === 'function') {
+      window.SheetsSync.pushToCloud();
+    }
     render('module-content');
     alert(`선택하신 ${idsToDelete.length}건의 연차 신청 항목이 삭제/반려되었습니다.`);
   }

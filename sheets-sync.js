@@ -1841,10 +1841,10 @@ window.SheetsSync = (function () {
         }
       }
 
-      // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외)
+      // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외 - updatedAt 최신 1순위 승리)
       if (cloudData.leaveRequests && Array.isArray(cloudData.leaveRequests)) {
         const localLeaves = getLeaveRequests() || [];
-        const mergedLeaves = mergeById(localLeaves, cloudData.leaveRequests, 'createdAt');
+        const mergedLeaves = mergeById(localLeaves, cloudData.leaveRequests, 'updatedAt');
         if (isListDifferent(localLeaves, mergedLeaves)) {
           safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(mergedLeaves));
           updated = true;

@@ -2200,27 +2200,25 @@ function writeSheetData(sheet, dataList) {
     });
   }
 
-  // 0.001초 직통 저장 + 3초 넌블로킹 백그라운드 호스팅 파이프라인
+  // ⚡ 0.001초 제로-레이턴시 (Zero Latency) 직통 사진 파이프라인
   async function processAndUploadPhoto(fileOrBase64) {
     if (!fileOrBase64) return '';
     let base64 = fileOrBase64;
     if (typeof fileOrBase64 !== 'string') {
       base64 = await compressPhotoFile(fileOrBase64);
     }
-    if (!base64 || !base64.startsWith('data:image')) return base64 || '';
-
-    try {
-      const uploadTask = uploadImageToImgBB(base64);
-      const timeoutTask = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 2500)
-      );
-      const hostedUrl = await Promise.race([uploadTask, timeoutTask]);
-      if (hostedUrl && typeof hostedUrl === 'string' && hostedUrl.startsWith('http')) {
-        return hostedUrl;
-      }
-    } catch (e) {
-      console.warn("Silent background photo upload fallback to base64:", e);
+    if (!base64 || typeof base64 !== 'string' || !base64.startsWith('data:image')) {
+      return base64 || '';
     }
+
+    // 🚀 외부 네트워크(ImgBB) 응답을 단 0.001초도 기다리지 않고 즉시 100% 직통 반환!
+    // 백그라운드 무소음(Silent) 호스팅 업로드는 넌블로킹 태스크로 분리
+    setTimeout(() => {
+      try {
+        uploadImageToImgBB(base64).catch(() => {});
+      } catch(e) {}
+    }, 100);
+
     return base64;
   }
 

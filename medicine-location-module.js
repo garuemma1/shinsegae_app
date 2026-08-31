@@ -180,8 +180,8 @@ window.MedicineLocationModule = (function () {
             </div>
 
             <div class="mb-3">
-              <label class="form-label font-bold" style="font-size:13.5px; color:#334155; margin-bottom:6px;">상세 위치 설명 <span style="color:#ef4444;">*</span></label>
-              <input type="text" id="med-location-detail" required placeholder="예: A-2 진열대 맨 위칸 / 박스채 창고 D-1 보관" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:700; outline:none; box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#cbd5e1'" />
+              <label class="form-label font-bold" style="font-size:13.5px; color:#334155; margin-bottom:6px;">상세 위치 설명 <span style="font-weight:normal; color:#64748b; font-size:12px;">(선택)</span></label>
+              <input type="text" id="med-location-detail" placeholder="예: A-2 진열대 맨 위칸 / 박스채 창고 D-1 보관" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:700; outline:none; box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#cbd5e1'" />
             </div>
 
             <div class="mb-3">
@@ -445,7 +445,7 @@ window.MedicineLocationModule = (function () {
       const zoneName = zoneObj ? zoneObj.name : '일반구역';
 
       const locDetailElem = document.getElementById('med-location-detail');
-      const locationDetail = locDetailElem ? locDetailElem.value.trim() : '';
+      const locationDetail = (locDetailElem && locDetailElem.value.trim()) ? locDetailElem.value.trim() : '보관위치 사진 참조';
       const photoElem = document.getElementById('med-photo-base64');
       const photoBase64 = photoElem ? photoElem.value : '';
       const notesElem = document.getElementById('med-notes');

@@ -746,52 +746,7 @@ window.SheetsSync = (function () {
     try {
       localStorage.setItem(key, val);
     } catch (e) {
-      // 🛡️ localStorage QuotaExceededError 자동 복구: 오래된 Base64 사진 데이터 자동 정리 후 재시도
-      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
-        console.warn("localStorage 용량 초과! 오래된 사진 Base64 자동 정리 후 재시도...");
-        try {
-          // worklogs에서 base64 사진 스트립
-          const wlKey = STORAGE_KEYS.WORKLOGS;
-          const wlRaw = localStorage.getItem(wlKey);
-          if (wlRaw) {
-            const wlArr = JSON.parse(wlRaw);
-            const cleaned = wlArr.map(l => {
-              if (l.imageUrl && !l.imageUrl.startsWith('http')) return { ...l, imageUrl: '' };
-              return l;
-            });
-            localStorage.setItem(wlKey, JSON.stringify(cleaned));
-          }
-          // medicineLocations에서 base64 사진 스트립
-          const mlKey = STORAGE_KEYS.MEDICINE_LOCATIONS;
-          const mlRaw = localStorage.getItem(mlKey);
-          if (mlRaw) {
-            const mlArr = JSON.parse(mlRaw);
-            const cleaned = mlArr.map(m => {
-              if (m.photoUrl && !m.photoUrl.startsWith('http')) return { ...m, photoUrl: '' };
-              return m;
-            });
-            localStorage.setItem(mlKey, JSON.stringify(cleaned));
-          }
-          // rxMedicineLocations에서 base64 사진 스트립
-          const rxKey = STORAGE_KEYS.RX_MEDICINE_LOCATIONS;
-          const rxRaw = localStorage.getItem(rxKey);
-          if (rxRaw) {
-            const rxArr = JSON.parse(rxRaw);
-            const cleaned = rxArr.map(m => {
-              if (m.photoUrl && !m.photoUrl.startsWith('http')) return { ...m, photoUrl: '' };
-              return m;
-            });
-            localStorage.setItem(rxKey, JSON.stringify(cleaned));
-          }
-          // 정리 후 재시도
-          localStorage.setItem(key, val);
-          console.warn("localStorage 자동 복구 성공!");
-        } catch(e2) {
-          console.error("localStorage 자동 복구 실패:", e2);
-        }
-      } else {
-        console.warn("Storage save warning:", e);
-      }
+      console.warn("Storage save warning:", e);
     }
   }
 
@@ -2331,19 +2286,9 @@ window.SheetsSync = (function () {
           schedule: getSchedule(),
           leaveRequests: getLeaveRequests(),
           notices: getNotices(),
-          // 🛡️ Firebase 1MB 한계 초과 방지: Base64 사진 데이터 자동 스트립, URL만 유지
-          worklogs: (getWorklogs() || []).map(l => {
-            if (!l.imageUrl || l.imageUrl.startsWith('http')) return l;
-            return { ...l, imageUrl: '' };
-          }),
-          medicineLocations: (getMedicineLocations() || []).map(m => {
-            if (!m.photoUrl || m.photoUrl.startsWith('http')) return m;
-            return { ...m, photoUrl: '' };
-          }),
-          rxMedicineLocations: (getRxMedicineLocations() || []).map(m => {
-            if (!m.photoUrl || m.photoUrl.startsWith('http')) return m;
-            return { ...m, photoUrl: '' };
-          }),
+          worklogs: getWorklogs(),
+          medicineLocations: getMedicineLocations(),
+          rxMedicineLocations: getRxMedicineLocations(),
           supplies: getSupplies(),
           supplyPresets: getSupplyPresets(),
           gasUrls: getGasUrls()

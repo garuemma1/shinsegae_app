@@ -2200,7 +2200,7 @@ function writeSheetData(sheet, dataList) {
     });
   }
 
-  // ⚡ 0.001초 제로-레이턴시 (Zero Latency) 직통 사진 파이프라인
+  // ⚡ 3단계 멀티-파이프라인 사진 업로드 (Cloudinary 1순위 → ImgBB 2순위 → Base64 최후)
   async function processAndUploadPhoto(fileOrBase64) {
     if (!fileOrBase64) return '';
     let base64 = fileOrBase64;
@@ -2211,14 +2211,41 @@ function writeSheetData(sheet, dataList) {
       return base64 || '';
     }
 
-    // 🚀 외부 네트워크(ImgBB) 응답을 단 0.001초도 기다리지 않고 즉시 100% 직통 반환!
-    // 백그라운드 무소음(Silent) 호스팅 업로드는 넌블로킹 태스크로 분리
-    setTimeout(() => {
-      try {
-        uploadImageToImgBB(base64).catch(() => {});
-      } catch(e) {}
-    }, 100);
+    // 🌥️ 1단계: Cloudinary 업로드 (25GB 무료 영구 저장 - 신용카드 불필요)
+    try {
+      const CLOUD_NAME = 'n9hlellu';
+      const UPLOAD_PRESET = 'ivyyfanrv';
+      const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
+      const formData = new FormData();
+      formData.append('file', base64);
+      formData.append('upload_preset', UPLOAD_PRESET);
 
+      const uploadResp = await Promise.race([
+        fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+          method: 'POST',
+          body: formData
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Cloudinary timeout')), 10000))
+      ]);
+      const uploadData = await uploadResp.json();
+      if (uploadData && uploadData.secure_url) {
+        return uploadData.secure_url; // ✅ Cloudinary URL 반환 - 25GB 무료 영구 안전
+      }
+    } catch (e) {
+      console.warn('Cloudinary upload failed, trying ImgBB:', e.message);
+    }
+
+    // 🌐 2단계: ImgBB 폴백
+    try {
+      const hostedUrl = await uploadImageToImgBB(base64);
+      if (hostedUrl && hostedUrl.startsWith('http')) {
+        return hostedUrl;
+      }
+    } catch (e) {
+      console.warn('ImgBB also failed, using base64:', e.message);
+    }
+
+    // 🛡️ 3단계: 초경량 Base64 최후 보루
     return base64;
   }
 

@@ -2654,11 +2654,6 @@ window.ScheduleModule = (function () {
     modal.style.opacity = '1';
   }
 
-    modal.style.display = 'flex';
-    modal.style.zIndex = '999999';
-    modal.style.opacity = '1';
-  }
-
   function showPaystubByEmpId(empId) {
     const currUser = window.SheetsSync.getCurrentUser();
     const isDirector = currUser && currUser.role === '약국장';

@@ -1069,96 +1069,21 @@ window.ScheduleModule = (function () {
   function renderStaffPersonalPaystubSection(currUser) {
     if (!currUser) return '';
 
-    const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
-    const monthPaystubs = allPaystubs[monthKey] || {};
-    const paystub = monthPaystubs[currUser.id];
-
-    const isPublished = paystub && paystub.published;
-
-    if (isPublished) {
-      return `
-        <div id="inline-panel-container" class="card-section mt-4 mb-6" style="background: #ffffff; border: 2.5px solid #10b981; border-radius: 24px; padding: 28px; box-shadow: 0 12px 35px rgba(16, 185, 129, 0.12);">
-          
-          <!-- Header Bar -->
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pb-3 border-bottom mb-4">
-            <div>
-              <span class="badge bg-success mb-2" style="font-size:12.5px; padding:6px 14px; border-radius:20px; font-weight:700;">
-                <i class="fas fa-check-circle me-1"></i> ✅ ${currentYear}년 ${currentMonth}월 확정 급여명세서 교부 완료
-              </span>
-              <h3 style="font-size:22px; font-weight:800; color:#065f46; margin:0 0 6px 0; letter-spacing:-0.3px;">
-                📋 ${currUser.name} 님의 ${currentMonth}월 급여명세서
-              </h3>
-            </div>
-            ${(paystub.fileData || paystub.pdfUrl) ? `
-              <button type="button" class="btn btn-outline-success font-bold" onclick="ScheduleModule.openPaystubAttachment('${currUser.id}')" style="border-radius:12px; padding:8px 18px; font-size:13.5px;">
-                <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 다운로드
-              </button>
-            ` : ''}
+    return `
+      <div class="card-section mt-4 mb-5" style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:18px; padding:24px; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:48px; height:48px; border-radius:14px; background:#eff6ff; color:#2563eb; display:flex; justify-content:center; align-items:center; font-size:22px; flex-shrink:0;">
+            <i class="fas fa-shield-alt"></i>
           </div>
-
-          <!-- 💰 당월 통장 입금 실수령액 (세후) 카드 -->
-          <div class="card p-4 mb-4" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:2px solid #86efac; border-radius:18px;">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <div>
-                <span style="font-size:14px; font-weight:700; color:#166534;">💰 당월 통장 입금 실수령액 (세후 확정)</span>
-                <div style="font-size:28px; font-weight:900; color:#15803d; margin-top:4px; font-family:'Outfit', sans-serif;">
-                  ${(paystub.netSalary || 0).toLocaleString()} 원
-                </div>
-              </div>
-              ${(paystub.totalDeduction || paystub.preTax) ? `
-                <div class="text-end">
-                  ${paystub.preTax ? `<div style="font-size:13px; color:#475569;">세전 총급여: <strong>${Number(paystub.preTax).toLocaleString()} 원</strong></div>` : ''}
-                  ${paystub.totalDeduction ? `<div style="font-size:13px; color:#dc2626;">4대보험/세금 공제액: <strong>-${Number(paystub.totalDeduction).toLocaleString()} 원</strong></div>` : ''}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-
-          <!-- 📷 세무사 발급 급여명세서 원본 문서 사본 -->
-          ${(paystub.fileData || paystub.pdfUrl) ? `
-            <div class="card p-4 text-center mt-3" style="background:#ffffff; border-radius:18px; border:1.5px solid #cbd5e1; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 style="font-size:16px; font-weight:800; color:#0f172a; margin:0;">
-                  📷 세무사 발급 급여명세서 원본 문서
-                </h4>
-                <button type="button" class="btn btn-sm btn-outline-primary font-bold" onclick="ScheduleModule.openPaystubAttachment('${currUser.id}')" style="border-radius:10px; padding:6px 14px;">
-                  <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 저장
-                </button>
-              </div>
-              <div style="max-height:800px; overflow-y:auto; border-radius:14px; background:#1e293b; padding:16px;" class="mb-2">
-                ${paystub.fileData ? `<img src="${paystub.fileData}" style="max-width:100%; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5);" />` : `<iframe src="${paystub.pdfUrl}" style="width:100%; height:600px; border:0;"></iframe>`}
-              </div>
-            </div>
-          ` : ''}
-
-          ${paystub.note ? `
-            <div class="p-3 mt-3" style="background:#f1f5f9; border-radius:12px; font-size:13.5px; color:#334155;">
-              <strong>💬 약국장 전달 메시지:</strong> ${paystub.note}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    } else {
-      return `
-        <div class="card-section mt-4 mb-6" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #fde68a; border-radius: 18px; padding: 24px; box-shadow: 0 4px 15px rgba(217, 119, 6, 0.08);">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-              <span class="badge bg-warning text-dark mb-2" style="font-size:12px; padding:6px 12px; border-radius:20px; font-weight:700;">
-                <i class="fas fa-clock"></i> ⏳ ${currentMonth}월 급여명세서 세무 산출 진행 중 (미승인/미등록)
-              </span>
-              <h3 style="font-size:20px; font-weight:800; color:#78350f; margin:0 0 6px 0;">
-                📄 ${currUser.name} 님의 ${currentMonth}월 급여명세서 (약국장 검토 후 공개예정)
-              </h3>
-              <p style="font-size:13.5px; color:#92400e; margin:0; line-height:1.5;">
-                현재 세무사에서 4대보험 및 세금 공제액 산출 정산 작업이 진행 중입니다.<br>
-                약국장이 세후 실수령액 및 PDF 명세서를 승인·등록하면 이곳에서 바로 확인하실 수 있습니다.
-              </p>
-            </div>
+          <div>
+            <h4 style="font-size:16px; font-weight:800; color:#0f172a; margin:0;">🔒 급여명세서 개인정보 보호 안내</h4>
+            <p style="font-size:13.5px; color:#64748b; margin:4px 0 0 0; line-height:1.5;">
+              약국 공용 기기 보안 및 개인 금융정보 보호를 위해, 확정 급여명세서는 <strong>${currUser.name} 님의 등록된 개인 이메일(${currUser.email || '-'})</strong>로 안전하게 1:1 발송됩니다.
+            </p>
           </div>
         </div>
-      `;
-    }
+      </div>
+    `;
   }
 
   function renderSettlementDashboard(employees, scheduleRecords) {
@@ -2301,75 +2226,31 @@ window.ScheduleModule = (function () {
 
   function renderInlinePersonalPaystubDetail(currUser) {
     if (!currUser) return '';
-    const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
-    const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
-    const paystub = (allPaystubs[monthKey] && allPaystubs[monthKey][currUser.id]) || {};
-
-    const isPublished = paystub && paystub.published;
 
     let html = '';
-    html += '<div id="inline-panel-container" class="card-section mb-5" style="background:#ffffff; border:2.5px solid ' + (isPublished ? '#10b981' : '#f59e0b') + '; border-radius:22px; padding:30px; box-shadow:0 20px 45px -10px ' + (isPublished ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.25)') + ';">';
-    html += '  <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">';
+    html += '<div id="inline-panel-container" class="card-section mb-5" style="background:#ffffff; border:2px solid #2563eb; border-radius:22px; padding:26px; box-shadow:0 10px 30px rgba(37,99,235,0.15);">';
+    html += '  <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">';
     html += '    <div class="d-flex align-items-center gap-3">';
-    html += '      <div style="width:48px; height:48px; border-radius:12px; background:' + (isPublished ? '#ecfdf5' : '#fffbeb') + '; color:' + (isPublished ? '#059669' : '#d97706') + '; display:flex; justify-content:center; align-items:center; font-size:24px;">';
-    html += '        <i class="fas fa-file-invoice-dollar"></i>';
+    html += '      <div style="width:48px; height:48px; border-radius:14px; background:#eff6ff; color:#2563eb; display:flex; justify-content:center; align-items:center; font-size:22px;">';
+    html += '        <i class="fas fa-shield-alt"></i>';
     html += '      </div>';
     html += '      <div>';
-    html += '        <span class="badge ' + (isPublished ? 'bg-success' : 'bg-warning text-dark') + ' mb-1" style="font-size:11.5px; border-radius:10px;">';
-    html += '          ' + (isPublished ? '✅ 8월 확정 급여명세서 교부 완료' : '⏳ 세무 산출 진행 중');
-    html += '        </span>';
+    html += '        <span class="badge bg-primary mb-1" style="font-size:11.5px; border-radius:10px;">🔒 급여명세서 개인정보 보호</span>';
     html += '        <h3 style="font-size:20px; font-weight:800; margin:0; color:#0f172a;">';
-    html += '          📄 ' + currUser.name + ' 님의 ' + currentYear + '년 ' + currentMonth + '월 급여명세서 상세';
+    html += '          📄 ' + currUser.name + ' 님의 급여명세서 안내';
     html += '        </h3>';
     html += '      </div>';
     html += '    </div>';
     html += '    <button type="button" class="btn btn-outline-secondary font-bold" onclick="ScheduleModule.closeInlinePanel()">';
-    html += '      <i class="fas fa-times"></i> ❌ 화면 닫기';
+    html += '      <i class="fas fa-times me-1"></i> 창 닫기';
     html += '    </button>';
     html += '  </div>';
-
-    if (isPublished) {
-      html += '  <div class="card p-4 mb-4" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:2px solid #86efac; border-radius:18px;">';
-      html += '    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">';
-      html += '      <div>';
-      html += '        <span style="font-size:14px; font-weight:700; color:#166534;">💰 당월 통장 입금 실수령액 (세후 확정)</span>';
-      html += '        <div style="font-size:28px; font-weight:900; color:#15803d; margin-top:4px; font-family:\'Outfit\', sans-serif;">';
-      html += '          ' + (paystub.netSalary || 0).toLocaleString() + ' 원';
-      html += '        </div>';
-      html += '      </div>';
-      if (paystub.totalDeduction || paystub.preTax) {
-        html += '      <div class="text-end">';
-        if (paystub.preTax) html += '        <div style="font-size:13px; color:#475569;">세전 총급여: <strong>' + Number(paystub.preTax).toLocaleString() + ' 원</strong></div>';
-        if (paystub.totalDeduction) html += '        <div style="font-size:13px; color:#dc2626;">4대보험/세금 공제액: <strong>-' + Number(paystub.totalDeduction).toLocaleString() + ' 원</strong></div>';
-        html += '      </div>';
-      }
-      html += '    </div>';
-      html += '  </div>';
-
-      if (paystub.fileData || paystub.pdfUrl) {
-        html += '  <div class="card p-4 text-center mb-4" style="background:#ffffff; border-radius:18px; border:1.5px solid #cbd5e1; box-shadow:0 4px 15px rgba(0,0,0,0.03);">';
-        html += '    <div class="d-flex justify-content-between align-items-center mb-3">';
-        html += '      <h4 style="font-size:16px; font-weight:800; color:#0f172a; margin:0;">📄 세무사 발급 급여명세서 원본 문서</h4>';
-        html += '      <button type="button" class="btn btn-sm btn-outline-primary font-bold" onclick="ScheduleModule.openPaystubAttachment(\'' + currUser.id + '\')" style="border-radius:10px; padding:6px 14px;">';
-        html += '        <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 저장';
-        html += '      </button>';
-        html += '    </div>';
-        html += '    <div style="max-height:800px; overflow-y:auto; border-radius:14px; background:#1e293b; padding:16px;">';
-        if (paystub.fileData) {
-          html += '      <img src="' + paystub.fileData + '" style="max-width:100%; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5);" />';
-        } else {
-          html += '      <iframe src="' + paystub.pdfUrl + '" style="width:100%; height:600px; border:0;"></iframe>';
-        }
-        html += '    </div>';
-        html += '  </div>';
-      }
-    } else {
-      html += '  <div class="alert alert-warning p-4 text-center" style="font-size:14.5px; border-radius:16px;">';
-      html += '    ⏳ 현재 세무사에서 4대보험 및 근로소득세 정산 작업이 진행 중입니다.<br>약국장의 승인 및 등록이 완료되면 이곳에 실수령액과 명세서 문서가 공개됩니다.';
-      html += '  </div>';
-    }
-
+    html += '  <div class="alert alert-info p-3 mb-0" style="font-size:14px; border-radius:14px; line-height:1.6;">';
+    html += '    약국 현장 보안 및 개인 금융정보 보호를 위해 화면에는 급여 액수가 표시되지 않습니다.<br>';
+    html += '    확정 급여명세서는 <strong>' + currUser.name + ' 님의 등록 개인 이메일 (' + (currUser.email || '-') + ')</strong>로 안전하게 1:1 발송되었습니다.';
+    html += '  </div>';
     html += '</div>';
+
     return html;
   }
 
@@ -3033,17 +2914,42 @@ window.ScheduleModule = (function () {
       }
 
       window.SheetsSync.savePaystubs(allPaystubs);
+
+      // 📧 각 직원의 등록 개인 이메일로 1:1 확정 급여명세서 안전 발송
+      const emps = window.SheetsSync.getEmployees ? window.SheetsSync.getEmployees() : [];
+      let emailSentCount = 0;
+      for (let i = 0; i < matches.length; i++) {
+        const item = matches[i];
+        if (item.empId && item.net) {
+          const emp = emps.find(e => e.id === item.empId);
+          if (emp && emp.email && window.SheetsSync && typeof window.SheetsSync.sendPaystubEmailToStaff === 'function') {
+            window.SheetsSync.sendPaystubEmailToStaff({
+              email: emp.email,
+              name: emp.name,
+              year: currentYear,
+              month: currentMonth,
+              netSalary: item.net,
+              preTax: item.preTax,
+              totalDeduction: item.deduction,
+              fileUrl: item.cloudUrl || '',
+              note: currentMonth + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!'
+            });
+            emailSentCount++;
+          }
+        }
+      }
+
       closeInlinePanel();
       render('module-content');
 
-      alert('🏆 세무 신고 대상 직원 ' + uploadSuccessCount + '명의 ' + currentMonth + '월 급여명세서가 Cloudinary 클라우드 영구 저장 및 각 직원 계정으로 안전하게 최종 교부 확정되었습니다!');
+      alert('🏆 세무 신고 대상 직원 ' + uploadSuccessCount + '명의 ' + currentMonth + '월 확정 급여명세서가 각 직원의 개인 이메일(' + emailSentCount + '명)로 안전하게 1:1 발송 및 교부되었습니다!\n\n🔒 (약국 공용 화면에는 개인 금융정보 보호를 위해 급여 액수가 노출되지 않습니다)');
     } catch (err) {
       console.error('executeTaxPaystubPublishing error:', err);
       alert('⚠️ 교부 처리 중 오류가 발생했습니다: ' + err.message);
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 계정 전송)';
+        btn.innerHTML = '<i class="fas fa-envelope me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 이메일 1:1 발송)';
       }
     }
   }

@@ -1533,6 +1533,41 @@ window.SheetsSync = (function () {
     }, 0);
   }
 
+  // 📧 직원 개인 이메일로 1:1 정식 급여명세서 안전 발송 (GAS 백엔드 중계)
+  function sendPaystubEmailToStaff(paystubData) {
+    if (!paystubData || !paystubData.email) return;
+    setTimeout(() => {
+      try {
+        const gasUrl = DIRECT_GAS_URL;
+        const payload = {
+          action: 'sendPaystubEmail',
+          email: paystubData.email,
+          name: paystubData.name || '직원',
+          year: paystubData.year || 2026,
+          month: paystubData.month || 8,
+          netSalary: paystubData.netSalary || 0,
+          preTax: paystubData.preTax || 0,
+          totalDeduction: paystubData.totalDeduction || 0,
+          fileUrl: paystubData.fileUrl || paystubData.pdfUrl || paystubData.fileData || '',
+          note: paystubData.note || '',
+          url: "https://garuemma1.github.io/shinsegae_app/"
+        };
+
+        if (typeof fetch === 'function') {
+          fetch(gasUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            keepalive: true,
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(payload)
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.warn('sendPaystubEmailToStaff error:', e);
+      }
+    }, 0);
+  }
+
   function requestPushPermission(silent = false) {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       if (!silent) alert('이 브라우저는 웹 푸시 알림을 지원하지 않습니다.');
@@ -2822,7 +2857,8 @@ window.SheetsSync = (function () {
     registerServiceWorker,
     sendDesktopNotification,
     sendGroupChatPush,
-    sendOneSignalPush
+    sendOneSignalPush,
+    sendPaystubEmailToStaff
   };
 
   // 🚀 초기 로드 시 Firebase 실시간 연결 즉시 개시 & 스마트 화면 복귀 동기화

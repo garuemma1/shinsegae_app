@@ -2205,17 +2205,12 @@ window.ScheduleModule = (function () {
     html += '      <textarea id="ps-note" class="form-control" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 14px; font-weight:600;" rows="2" placeholder="예: 8월 노고 많으셨습니다. 세무사 검토 완료분입니다.">' + (existing.note || '8월 확정 급여명세서입니다. 노고에 감사드립니다.') + '</textarea>';
     html += '    </div>';
 
-    html += '    <div class="form-check form-switch mb-4 p-3" style="background:#ecfdf5; border:1.5px solid #a7f3d0; border-radius:14px; display:flex; align-items:center;">';
-    html += '      <input class="form-check-input" type="checkbox" id="ps-published" ' + (existing.published !== false ? 'checked' : '') + ' style="cursor:pointer; width:45px; height:22px; margin-top:0;">';
-    html += '      <label class="form-check-label font-bold text-success ms-2" for="ps-published" style="cursor:pointer; font-size:14px; margin:0;">';
-    html += '        🚀 해당 직원 계정으로 급여명세서 공개 및 교부 확정';
-    html += '      </label>';
-    html += '    </div>';
+    html += '    <input type="hidden" id="ps-published" value="true">';
 
-    html += '    <div class="d-flex justify-content-end gap-2 pt-2 border-top">';
+    html += '    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">';
     html += '      <button type="button" class="btn btn-secondary font-bold" onclick="ScheduleModule.closeInlinePanel()" style="border-radius:12px; padding:10px 20px;">취소</button>';
-    html += '      <button type="submit" class="btn btn-success btn-lg font-bold" style="padding:10px 24px; border-radius:12px;">';
-    html += '        <i class="fas fa-save me-1"></i> ' + emp.name + ' 님 8월 급여명세서 저장 및 교부';
+    html += '      <button type="submit" class="btn btn-success btn-lg font-bold" style="padding:12px 28px; border-radius:14px; box-shadow:0 4px 14px rgba(16,185,129,0.3);">';
+    html += '        <i class="fas fa-paper-plane me-1"></i> ' + emp.name + ' 님 ' + currentMonth + '월 급여명세서 저장 및 이메일 즉시 발송';
     html += '      </button>';
     html += '    </div>';
     html += '  </form>';
@@ -2380,7 +2375,8 @@ window.ScheduleModule = (function () {
       let fileData = document.getElementById('ps-file-data').value;
       const fileName = document.getElementById('ps-file-name').value;
       const note = document.getElementById('ps-note').value.trim();
-      const published = document.getElementById('ps-published').checked;
+      const pubEl = document.getElementById('ps-published');
+      const published = pubEl ? (pubEl.value === 'true' || pubEl.checked) : true;
 
       // 🚀 개별 등록 시에도 이미지 파일이 있으면 Cloudinary 영구 호스팅 업로드
       if (fileData && fileData.startsWith('data:image') && window.App && typeof window.App.processAndUploadPhoto === 'function') {
@@ -2410,16 +2406,36 @@ window.ScheduleModule = (function () {
       };
 
       window.SheetsSync.savePaystubs(allPaystubs);
+
+      // 📧 발행 체크 시 해당 직원 개인 이메일로 1:1 확정 급여명세서 즉시 발송
+      const data = window.SheetsSync.getData ? window.SheetsSync.getData() : {};
+      const emps = window.SheetsSync.getEmployees ? window.SheetsSync.getEmployees() : (data.employees || []);
+      const targetEmp = emps.find(e => e.id === empId);
+
+      if (published && targetEmp && targetEmp.email && window.SheetsSync && typeof window.SheetsSync.sendPaystubEmailToStaff === 'function') {
+        window.SheetsSync.sendPaystubEmailToStaff({
+          email: targetEmp.email,
+          name: targetEmp.name,
+          year: currentYear,
+          month: currentMonth,
+          netSalary,
+          preTax: 0,
+          totalDeduction,
+          fileUrl: pdfUrl || fileData,
+          note: note || (currentMonth + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!')
+        });
+      }
+
       closeInlinePanel();
       render('module-content');
-      alert('🎉 급여명세서가 ' + (published ? '성공적으로 등록 및 직원 계정 교부 확정' : '임시 저장') + '되었습니다!');
+      alert('🎉 ' + (targetEmp ? targetEmp.name : '직원') + ' 님의 급여명세서가 ' + (published ? '등록 완료 및 개인 이메일(' + (targetEmp ? targetEmp.email : '미등록') + ')로 안전하게 1:1 발송' : '임시 저장') + '되었습니다!');
     } catch(err) {
       console.error('saveDirectorPaystub error:', err);
       alert('⚠️ 저장 중 오류가 발생했습니다: ' + err.message);
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save me-1"></i> 급여명세서 저장 및 교부';
+        btn.innerHTML = '<i class="fas fa-envelope me-1"></i> 급여명세서 저장 및 이메일 발송';
       }
     }
   }

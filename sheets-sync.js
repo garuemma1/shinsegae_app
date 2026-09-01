@@ -886,31 +886,40 @@ window.SheetsSync = (function () {
   }
 
   function updateStaffPermissions(empId, allowedTabs) {
-    // 1. 별도 권한 저장소에 먼저 즉시 영구 저장
+    const now = Date.now();
+    let permMap = {};
     try {
-      let permMap = {};
       const permRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
       if (permRaw) permMap = JSON.parse(permRaw);
-      permMap[empId] = allowedTabs;
-      safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
     } catch(e) {}
+    
+    permMap[empId] = allowedTabs || [];
+    permMap[empId + '_updatedAt'] = now;
+    safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
 
-    // 2. 직원 객체 업데이트 & 타임스탬프 갱신 후 클라우드 푸시
-    const emps = getEmployees();
+    // 2. 직원 객체 직접 업데이트 & 타임스탬프 갱신
+    let emps = [];
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.EMPLOYEES);
+      if (raw) emps = JSON.parse(raw);
+    } catch(e) {}
+    if (!Array.isArray(emps) || emps.length === 0) emps = getEmployees();
+
     const target = emps.find(e => e.id === empId);
     if (target) {
-      target.allowedTabs = allowedTabs;
-      target.updatedAt = Date.now();
-      saveEmployees(emps);
-      if (typeof pushToCloud === 'function') {
-        pushToCloud();
-      }
+      target.allowedTabs = allowedTabs || [];
+      target.updatedAt = now;
+    }
+    
+    safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
+    if (typeof pushToCloud === 'function') {
+      pushToCloud();
     }
 
     // 3. 현재 세션 유저 업데이트
     const curr = getCurrentUser();
     if (curr && curr.id === empId) {
-      curr.allowedTabs = allowedTabs;
+      curr.allowedTabs = allowedTabs || [];
       setCurrentUser(curr);
     }
     return true;
@@ -1842,8 +1851,17 @@ window.SheetsSync = (function () {
       } catch(e) {}
 
       if (cloudData.empPermissions && typeof cloudData.empPermissions === 'object') {
-        // 🔥 클라우드 권한과 로컬 권한을 스마트 병합 (클라우드가 더 새로운 변경사항일 수 있으므로 덮어쓰기 보장)
-        permMap = { ...permMap, ...cloudData.empPermissions };
+        // 🔥 타임스탬프 비교로 더 새로운 권한만 덮어쓰기 (로컬 최신 변경사항 철통 보호)
+        Object.keys(cloudData.empPermissions).forEach(k => {
+          if (!k.endsWith('_updatedAt')) {
+            const lTime = Number(permMap[k + '_updatedAt']) || 0;
+            const cTime = Number(cloudData.empPermissions[k + '_updatedAt']) || 0;
+            if (cTime >= lTime) {
+              permMap[k] = cloudData.empPermissions[k];
+              permMap[k + '_updatedAt'] = cTime;
+            }
+          }
+        });
         safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
       }
 
@@ -1863,23 +1881,33 @@ window.SheetsSync = (function () {
           const le = localMap[id];
           if (!ce) return le;
           if (!le) {
-            const allowed = (cloudData.empPermissions && cloudData.empPermissions[id]) || ce.allowedTabs;
-            if (allowed) permMap[id] = allowed;
-            return { ...ce, allowedTabs: allowed || ce.allowedTabs };
+            const isDir = (id === 'emp_1') || (ce.role === '약국장') || (ce.position === '대표약사') || (ce.position === '대표') || (ce.username === 'garuemma@naver.com');
+            if (isDir) return { ...ce, role: '약국장', allowedTabs: [...ALL_SYSTEM_TABS] };
+            const allowed = Array.isArray(permMap[id]) ? permMap[id] : (Array.isArray(ce.allowedTabs) ? ce.allowedTabs : [...ALL_COMMON_TABS]);
+            permMap[id] = allowed;
+            return { ...ce, allowedTabs: allowed };
           }
 
           const cTime = Number(ce.updatedAt) || 0;
           const lTime = Number(le.updatedAt) || 0;
 
-          // 🔥 항상 최신 타임스탬프(더 최근에 약국장님이 수정한 쪽)를 기본 객체로 채택!
+          // 🔥 항상 최신 타임스탬프를 기본 객체로 채택!
           const chosen = (cTime > lTime) ? ce : le;
           
-          // 🔥 탭 권한: 최근 수정 시각(cTime > lTime)이 클라우드쪽이면 클라우드 권한 채택, 아니면 로컬/permMap 채택
-          let targetAllowed = (cTime > lTime)
-            ? ((cloudData.empPermissions && cloudData.empPermissions[id]) || ce.allowedTabs || permMap[id] || chosen.allowedTabs)
-            : (permMap[id] || (cloudData.empPermissions && cloudData.empPermissions[id]) || chosen.allowedTabs) || [];
+          const isDir = (id === 'emp_1') || (chosen.role === '약국장') || (chosen.position === '대표약사') || (chosen.position === '대표') || (chosen.username === 'garuemma@naver.com');
+          if (isDir) {
+            return {
+              ...chosen,
+              role: '약국장',
+              allowedTabs: [...ALL_SYSTEM_TABS]
+            };
+          }
 
-          if (!Array.isArray(targetAllowed)) targetAllowed = [];
+          // 🔥 탭 권한: 로컬 permMap이 유효하면 permMap 우선, 아니면 chosen의 allowedTabs 채택
+          let targetAllowed = Array.isArray(permMap[id]) 
+            ? permMap[id] 
+            : (Array.isArray(chosen.allowedTabs) ? chosen.allowedTabs : [...ALL_COMMON_TABS]);
+
           permMap[id] = targetAllowed;
 
           return {

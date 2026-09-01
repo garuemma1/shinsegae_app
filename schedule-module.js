@@ -1077,7 +1077,6 @@ window.ScheduleModule = (function () {
     const isPublished = paystub && paystub.published;
 
     if (isPublished) {
-      // 1. 세무사 공식 '급상여명세서' 100% 동일 양식 렌더링
       return `
         <div id="inline-panel-container" class="card-section mt-4 mb-6" style="background: #ffffff; border: 2.5px solid #10b981; border-radius: 24px; padding: 28px; box-shadow: 0 12px 35px rgba(16, 185, 129, 0.12);">
           
@@ -1088,32 +1087,47 @@ window.ScheduleModule = (function () {
                 <i class="fas fa-check-circle me-1"></i> ✅ ${currentYear}년 ${currentMonth}월 확정 급여명세서 교부 완료
               </span>
               <h3 style="font-size:22px; font-weight:800; color:#065f46; margin:0 0 6px 0; letter-spacing:-0.3px;">
-                📋 ${currUser.name} 님의 정식 급상여명세서
+                📋 ${currUser.name} 님의 ${currentMonth}월 급여명세서
               </h3>
             </div>
             ${(paystub.fileData || paystub.pdfUrl) ? `
               <button type="button" class="btn btn-outline-success font-bold" onclick="ScheduleModule.openPaystubAttachment('${currUser.id}')" style="border-radius:12px; padding:8px 18px; font-size:13.5px;">
-                <i class="fas fa-file-pdf me-1"></i> 원본 PDF 다운로드
+                <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 다운로드
               </button>
             ` : ''}
           </div>
 
-          <!-- 📄 세무사 공식 급상여명세서 표 -->
-          ${renderOfficialTaxPayslipHtml(currUser, paystub, currentYear, currentMonth)}
+          <!-- 💰 당월 통장 입금 실수령액 (세후) 카드 -->
+          <div class="card p-4 mb-4" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:2px solid #86efac; border-radius:18px;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <span style="font-size:14px; font-weight:700; color:#166534;">💰 당월 통장 입금 실수령액 (세후 확정)</span>
+                <div style="font-size:28px; font-weight:900; color:#15803d; margin-top:4px; font-family:'Outfit', sans-serif;">
+                  ${(paystub.netSalary || 0).toLocaleString()} 원
+                </div>
+              </div>
+              ${(paystub.totalDeduction || paystub.preTax) ? `
+                <div class="text-end">
+                  ${paystub.preTax ? `<div style="font-size:13px; color:#475569;">세전 총급여: <strong>${Number(paystub.preTax).toLocaleString()} 원</strong></div>` : ''}
+                  ${paystub.totalDeduction ? `<div style="font-size:13px; color:#dc2626;">4대보험/세금 공제액: <strong>-${Number(paystub.totalDeduction).toLocaleString()} 원</strong></div>` : ''}
+                </div>
+              ` : ''}
+            </div>
+          </div>
 
-          <!-- 원본 첨부 이미지 사본 -->
+          <!-- 📷 세무사 발급 급여명세서 원본 문서 사본 -->
           ${(paystub.fileData || paystub.pdfUrl) ? `
-            <div class="card p-3 text-center mt-4" style="background:#f8fafc; border-radius:16px; border:1.5px solid #cbd5e1;">
+            <div class="card p-4 text-center mt-3" style="background:#ffffff; border-radius:18px; border:1.5px solid #cbd5e1; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 style="font-size:15px; font-weight:800; color:#0f172a; margin:0;">
-                  📷 세무사 발급 급여명세서 원본 문서 사본
+                <h4 style="font-size:16px; font-weight:800; color:#0f172a; margin:0;">
+                  📷 세무사 발급 급여명세서 원본 문서
                 </h4>
-                <button type="button" class="btn btn-sm btn-outline-primary font-bold" onclick="ScheduleModule.openPaystubAttachment('${currUser.id}')">
-                  <i class="fas fa-external-link-alt me-1"></i> 새창에서 크게보기
+                <button type="button" class="btn btn-sm btn-outline-primary font-bold" onclick="ScheduleModule.openPaystubAttachment('${currUser.id}')" style="border-radius:10px; padding:6px 14px;">
+                  <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 저장
                 </button>
               </div>
-              <div style="max-height:650px; overflow-y:auto; border-radius:12px; background:#1e293b; padding:16px;" class="mb-2">
-                ${paystub.fileData ? `<img src="${paystub.fileData}" style="max-width:100%; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5);" />` : `<iframe src="${paystub.pdfUrl}" style="width:100%; height:500px; border:0;"></iframe>`}
+              <div style="max-height:800px; overflow-y:auto; border-radius:14px; background:#1e293b; padding:16px;" class="mb-2">
+                ${paystub.fileData ? `<img src="${paystub.fileData}" style="max-width:100%; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5);" />` : `<iframe src="${paystub.pdfUrl}" style="width:100%; height:600px; border:0;"></iframe>`}
               </div>
             </div>
           ` : ''}
@@ -2315,33 +2329,37 @@ window.ScheduleModule = (function () {
     html += '  </div>';
 
     if (isPublished) {
-      html += '  <div class="alert alert-success p-3 mb-4" style="font-size:14px; border-radius:14px;">';
-      html += '    🎉 약국장의 검토 승인이 완료된 ' + currentMonth + '월 세후 실수령액 확정 급여명세서입니다.';
-      html += '  </div>';
-      html += '  <div class="row g-3 mb-4">';
-      html += '    <div class="col-md-6">';
-      html += '      <div class="p-3" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; text-center;">';
-      html += '        <span style="font-size:13px; color:#166534;">💰 당월 통장 입금 실수령액 (세후)</span>';
-      html += '        <div style="font-size:24px; font-weight:800; color:#15803d; margin-top:4px;">';
+      html += '  <div class="card p-4 mb-4" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:2px solid #86efac; border-radius:18px;">';
+      html += '    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">';
+      html += '      <div>';
+      html += '        <span style="font-size:14px; font-weight:700; color:#166534;">💰 당월 통장 입금 실수령액 (세후 확정)</span>';
+      html += '        <div style="font-size:28px; font-weight:900; color:#15803d; margin-top:4px; font-family:\'Outfit\', sans-serif;">';
       html += '          ' + (paystub.netSalary || 0).toLocaleString() + ' 원';
       html += '        </div>';
       html += '      </div>';
-      html += '    </div>';
-      html += '    <div class="col-md-6">';
-      html += '      <div class="p-3" style="background:#fff1f2; border:1px solid #fecdd3; border-radius:14px; text-center;">';
-      html += '        <span style="font-size:13px; color:#9f1239;">🛡️ 4대보험 및 세금 공제 총액</span>';
-      html += '        <div style="font-size:24px; font-weight:800; color:#be123c; margin-top:4px;">';
-      html += '          ' + (paystub.totalDeduction || 0).toLocaleString() + ' 원';
-      html += '        </div>';
-      html += '      </div>';
+      if (paystub.totalDeduction || paystub.preTax) {
+        html += '      <div class="text-end">';
+        if (paystub.preTax) html += '        <div style="font-size:13px; color:#475569;">세전 총급여: <strong>' + Number(paystub.preTax).toLocaleString() + ' 원</strong></div>';
+        if (paystub.totalDeduction) html += '        <div style="font-size:13px; color:#dc2626;">4대보험/세금 공제액: <strong>-' + Number(paystub.totalDeduction).toLocaleString() + ' 원</strong></div>';
+        html += '      </div>';
+      }
       html += '    </div>';
       html += '  </div>';
 
-      if (paystub.fileData) {
-        html += '  <div class="card p-3 text-center mb-4" style="background:#f8fafc; border-radius:16px; border:1px solid #e2e8f0;">';
-        html += '    <h4 style="font-size:15px; font-weight:bold; color:#0f172a; margin-bottom:12px;">📄 약국장 교부 세무사 급여명세서 원본 문서</h4>';
-        html += '    <div style="max-height:600px; overflow-y:auto; border-radius:12px; background:#1e293b; padding:12px;">';
-        html += '      <img src="' + paystub.fileData + '" style="max-width:100%; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.4);" />';
+      if (paystub.fileData || paystub.pdfUrl) {
+        html += '  <div class="card p-4 text-center mb-4" style="background:#ffffff; border-radius:18px; border:1.5px solid #cbd5e1; box-shadow:0 4px 15px rgba(0,0,0,0.03);">';
+        html += '    <div class="d-flex justify-content-between align-items-center mb-3">';
+        html += '      <h4 style="font-size:16px; font-weight:800; color:#0f172a; margin:0;">📄 세무사 발급 급여명세서 원본 문서</h4>';
+        html += '      <button type="button" class="btn btn-sm btn-outline-primary font-bold" onclick="ScheduleModule.openPaystubAttachment(\'' + currUser.id + '\')" style="border-radius:10px; padding:6px 14px;">';
+        html += '        <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 저장';
+        html += '      </button>';
+        html += '    </div>';
+        html += '    <div style="max-height:800px; overflow-y:auto; border-radius:14px; background:#1e293b; padding:16px;">';
+        if (paystub.fileData) {
+          html += '      <img src="' + paystub.fileData + '" style="max-width:100%; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5);" />';
+        } else {
+          html += '      <iframe src="' + paystub.pdfUrl + '" style="width:100%; height:600px; border:0;"></iframe>';
+        }
         html += '    </div>';
         html += '  </div>';
       }
@@ -2824,13 +2842,17 @@ window.ScheduleModule = (function () {
         </div>
 
         <div class="alert alert-info p-3 mb-3" style="font-size:13.5px; border-radius:12px; line-height:1.5;">
-          📌 좌측의 <strong>생성된 공식 급상여명세서</strong>와 우측의 <strong>PDF 추출 원본 1페이지 사진</strong>이 정확히 일치하는지 확인해 주세요.<br>
+          📌 세무사 PDF에서 추출된 <strong>1페이지 원본 명세서 사진</strong>과 <strong>세후 실수령액</strong>을 확인해 주세요.<br>
           필요 시 아래 입력창에서 금액을 직접 수정하신 후 확인 버튼을 누르시면 반영됩니다.
         </div>
 
         <!-- 💰 실시간 금액 확인 및 수정 폼 -->
         <div class="card p-3 mb-4" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:16px;">
-          <div class="row g-3">
+          <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+              <label class="form-label font-bold text-success" style="font-size:14px;">💰 세후 실수령액 (원)</label>
+              <input type="text" id="inspect-net" class="form-control form-control-lg font-bold text-success" style="font-size:20px; border:2px solid #059669; border-radius:12px;" value="${(match.net || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
+            </div>
             <div class="col-md-4">
               <label class="form-label font-bold text-muted" style="font-size:13px;">세전 총급여 (원)</label>
               <input type="text" id="inspect-pretax" class="form-control font-bold" style="font-size:16px; border:1.5px solid #cbd5e1; border-radius:10px;" value="${(match.preTax || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
@@ -2839,30 +2861,18 @@ window.ScheduleModule = (function () {
               <label class="form-label font-bold text-danger" style="font-size:13px;">4대보험/세금 공제총액 (원)</label>
               <input type="text" id="inspect-deduction" class="form-control font-bold text-danger" style="font-size:16px; border:1.5px solid #cbd5e1; border-radius:10px;" value="${(match.deduction || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
             </div>
-            <div class="col-md-4">
-              <label class="form-label font-bold text-success" style="font-size:13px;">💰 세후 실수령액 (원)</label>
-              <input type="text" id="inspect-net" class="form-control font-bold text-success" style="font-size:18px; border:2px solid #059669; border-radius:10px;" value="${(match.net || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
-            </div>
           </div>
         </div>
 
-        <div class="row g-4 mb-4">
-          <!-- 좌측: 정식 디지털 급상여명세서 -->
-          <div class="col-lg-6">
-            <h4 style="font-size:15px; font-weight:800; color:#1e40af; margin-bottom:10px;">
-              <i class="fas fa-file-invoice text-primary me-1"></i> 1. 생성된 공식 급상여명세서
+        <!-- 📷 세무사 PDF 추출 원본 1페이지 사진 (선명하고 쾌적한 뷰어) -->
+        <div class="card p-3 mb-4" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:18px;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 style="font-size:15.5px; font-weight:800; color:#065f46; margin:0;">
+              <i class="fas fa-image text-success me-1"></i> 세무사 PDF 추출 원본 1페이지 명세서 (P.${match.pageNum})
             </h4>
-            ${renderOfficialTaxPayslipHtml(emp, paystubTemp, currentYear, currentMonth)}
           </div>
-
-          <!-- 우측: 추출된 1페이지 원본 사진 -->
-          <div class="col-lg-6">
-            <h4 style="font-size:15px; font-weight:800; color:#065f46; margin-bottom:10px;">
-              <i class="fas fa-image text-success me-1"></i> 2. 추출된 세무사 PDF 원본 (P.${match.pageNum})
-            </h4>
-            <div style="background:#1e293b; padding:12px; border-radius:16px; text-align:center; max-height:480px; overflow-y:auto;">
-              ${match.pageImageData ? `<img src="${match.pageImageData}" style="max-width:100%; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.5);" />` : '<div class="text-white py-5">첨부된 사진이 없습니다.</div>'}
-            </div>
+          <div style="background:#1e293b; padding:16px; border-radius:14px; text-align:center; max-height:550px; overflow-y:auto;">
+            ${match.pageImageData ? `<img src="${match.pageImageData}" style="max-width:100%; border-radius:8px; box-shadow:0 8px 25px rgba(0,0,0,0.5);" />` : '<div class="text-white py-5">첨부된 사진이 없습니다.</div>'}
           </div>
         </div>
 

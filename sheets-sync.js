@@ -2284,6 +2284,7 @@ window.SheetsSync = (function () {
           overtimeAdjustments: getOvertimeAdjustments(),
           discountPurchases: getDiscountPurchases(),
           schedule: getSchedule(),
+          paystubs: getPaystubs(),
           leaveRequests: getLeaveRequests(),
           notices: getNotices(),
           worklogs: getWorklogs(),

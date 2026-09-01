@@ -2460,41 +2460,69 @@ window.ScheduleModule = (function () {
     }
   }
 
-  // 2. 급여명세서 최종 등록 함수 (콤마 제거 로직 추가)
-  function saveDirectorPaystub(e, empId) {
+  // 2. 급여명세서 최종 등록 함수 (Cloudinary 업로드 및 콤마 제거 로직)
+  async function saveDirectorPaystub(e, empId) {
     e.preventDefault();
-    const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
-    const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
-    if (!allPaystubs[monthKey]) allPaystubs[monthKey] = {};
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 저장 및 업로드 중...';
+    }
 
-    // 💡 콤마(,) 제거 후 숫자로 변환
-    const netSalary = parseInt(document.getElementById('ps-net-salary').value.replace(/,/g, '')) || 0;
-    const totalDeduction = parseInt(document.getElementById('ps-total-deduction').value.replace(/,/g, '')) || 0;
-    
-    const pdfUrl = document.getElementById('ps-file-url').value.trim();
-    const fileData = document.getElementById('ps-file-data').value;
-    const fileName = document.getElementById('ps-file-name').value;
-    const note = document.getElementById('ps-note').value.trim();
-    const published = document.getElementById('ps-published').checked;
+    try {
+      const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
+      const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
+      if (!allPaystubs[monthKey]) allPaystubs[monthKey] = {};
 
-    allPaystubs[monthKey][empId] = {
-      empId,
-      year: currentYear,
-      month: currentMonth,
-      netSalary,
-      totalDeduction,
-      pdfUrl,
-      fileData,
-      fileName,
-      note,
-      published,
-      updatedAt: new Date().toLocaleString('ko-KR')
-    };
+      const netSalary = parseInt(document.getElementById('ps-net-salary').value.replace(/,/g, '')) || 0;
+      const totalDeduction = parseInt(document.getElementById('ps-total-deduction').value.replace(/,/g, '')) || 0;
+      
+      let pdfUrl = document.getElementById('ps-file-url').value.trim();
+      let fileData = document.getElementById('ps-file-data').value;
+      const fileName = document.getElementById('ps-file-name').value;
+      const note = document.getElementById('ps-note').value.trim();
+      const published = document.getElementById('ps-published').checked;
 
-    window.SheetsSync.savePaystubs(allPaystubs);
-    closeInlinePanel();
-    render('module-content');
-    alert('🎉 급여명세서가 ' + (published ? '성공적으로 등록 및 직원 계정 교부 확정' : '임시 저장') + '되었습니다!');
+      // 🚀 개별 등록 시에도 이미지 파일이 있으면 Cloudinary 영구 호스팅 업로드
+      if (fileData && fileData.startsWith('data:image') && window.App && typeof window.App.processAndUploadPhoto === 'function') {
+        const cloudUrl = await window.App.processAndUploadPhoto(fileData);
+        if (cloudUrl && cloudUrl.startsWith('http')) {
+          fileData = cloudUrl;
+          if (!pdfUrl) pdfUrl = cloudUrl;
+        }
+      }
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      allPaystubs[monthKey][empId] = {
+        empId,
+        year: currentYear,
+        month: currentMonth,
+        netSalary,
+        totalDeduction,
+        pdfUrl,
+        fileData,
+        fileName,
+        note,
+        published,
+        updatedAt: dateStr
+      };
+
+      window.SheetsSync.savePaystubs(allPaystubs);
+      closeInlinePanel();
+      render('module-content');
+      alert('🎉 급여명세서가 ' + (published ? '성공적으로 등록 및 직원 계정 교부 확정' : '임시 저장') + '되었습니다!');
+    } catch(err) {
+      console.error('saveDirectorPaystub error:', err);
+      alert('⚠️ 저장 중 오류가 발생했습니다: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> 급여명세서 저장 및 교부';
+      }
+    }
   }
 
   function openPaystubAttachment(empId) {
@@ -2502,17 +2530,16 @@ window.ScheduleModule = (function () {
     const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
     const paystub = (allPaystubs[monthKey] && allPaystubs[monthKey][empId]) || {};
 
-    if (paystub.fileData) {
-      const win = window.open();
-      if (paystub.fileData.startsWith('data:application/pdf')) {
-        win.document.write('<iframe src="' + paystub.fileData + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100vh;" allowfullscreen></iframe>');
-      } else {
-        win.document.write('<div style="display:flex; justify-content:center; align-items:center; background:#1e293b; min-height:100vh;"><img src="' + paystub.fileData + '" style="max-width:95%; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.5);" /></div>');
-      }
-    } else if (paystub.pdfUrl) {
-      window.open(paystub.pdfUrl, '_blank');
+    const urlOrData = paystub.fileData || paystub.pdfUrl;
+    if (!urlOrData) {
+      alert('등록된 명세서 파일 또는 링크가 없습니다.');
+      return;
+    }
+
+    if (window.App && typeof window.App.openImageLightbox === 'function' && !urlOrData.endsWith('.pdf') && !urlOrData.startsWith('data:application/pdf')) {
+      window.App.openImageLightbox(urlOrData, (paystub.fileName || '급여명세서'));
     } else {
-      alert('등록된 PDF 파일 또는 링크가 없습니다.');
+      window.open(urlOrData, '_blank');
     }
   }
 
@@ -2745,7 +2772,7 @@ window.ScheduleModule = (function () {
     html += '  <button type="button" class="btn btn-outline-secondary font-bold" onclick="ScheduleModule.closeInlinePanel()" style="padding:10px 22px; border-radius:14px;">';
     html += '    <i class="fas fa-times me-1"></i> 작업창 닫기';
     html += '  </button>';
-    html += '  <button type="button" class="btn btn-success btn-lg font-bold" style="padding:12px 28px; border-radius:16px; box-shadow:0 8px 20px rgba(16,185,129,0.35); font-size:16px;" onclick="ScheduleModule.executeTaxPaystubPublishing()">';
+    html += '  <button type="button" id="btn-execute-tax-publish" class="btn btn-success btn-lg font-bold" style="padding:12px 28px; border-radius:16px; box-shadow:0 8px 20px rgba(16,185,129,0.35); font-size:16px;" onclick="ScheduleModule.executeTaxPaystubPublishing()">';
     html += '    <i class="fas fa-paper-plane me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 계정 전송)';
     html += '  </button>';
     html += '</div>';
@@ -2753,7 +2780,7 @@ window.ScheduleModule = (function () {
     return html;
   }
 
-  // 🔍 약국장 1인 중간 검수 & 사진/명세서 실시간 대조 모달
+  // 🔍 약국장 1인 중간 검수 & 사진/명세서 실시간 대조 모달 (금액 수기 수정 지원)
   function openMatchInspectionModal(empId) {
     const matches = window._activeTaxMatches || [];
     const match = matches.find(m => m.empId === empId);
@@ -2781,7 +2808,7 @@ window.ScheduleModule = (function () {
     };
 
     modal.innerHTML = `
-      <div class="modal-card" style="background:#ffffff; border-radius:24px; max-width:960px; width:95%; max-height:92vh; overflow-y:auto; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); position:relative;">
+      <div class="modal-card" style="background:#ffffff; border-radius:24px; max-width:980px; width:95%; max-height:92vh; overflow-y:auto; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); position:relative;">
         <button type="button" class="close-btn" onclick="document.getElementById('tax-match-inspect-modal').style.display='none'" style="position:absolute; top:20px; right:24px; font-size:26px; background:none; border:none; color:#64748b; cursor:pointer;">&times;</button>
         
         <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
@@ -2789,15 +2816,34 @@ window.ScheduleModule = (function () {
             <i class="fas fa-clipboard-check"></i>
           </div>
           <div>
-            <span class="badge bg-primary mb-1" style="font-size:11.5px; border-radius:8px;">약국장 1:1 교부 전 중간 검수 모드</span>
+            <span class="badge bg-primary mb-1" style="font-size:11.5px; border-radius:8px;">약국장 1:1 교부 전 중간 검수 & 금액 보정 모드</span>
             <h3 style="font-size:20px; font-weight:800; margin:0; color:#0f172a;">
               🔍 [${match.empName} ${match.role}] 급여명세서 & 첨부 사진 대조 검수
             </h3>
           </div>
         </div>
 
-        <div class="alert alert-info p-3 mb-4" style="font-size:13.5px; border-radius:12px; line-height:1.5;">
-          📌 좌측의 <strong>생성된 공식 급상여명세서</strong>와 우측의 <strong>PDF 추출 원본 1페이지 사진</strong>이 정확히 일치하는지 확인해 주세요.
+        <div class="alert alert-info p-3 mb-3" style="font-size:13.5px; border-radius:12px; line-height:1.5;">
+          📌 좌측의 <strong>생성된 공식 급상여명세서</strong>와 우측의 <strong>PDF 추출 원본 1페이지 사진</strong>이 정확히 일치하는지 확인해 주세요.<br>
+          필요 시 아래 입력창에서 금액을 직접 수정하신 후 확인 버튼을 누르시면 반영됩니다.
+        </div>
+
+        <!-- 💰 실시간 금액 확인 및 수정 폼 -->
+        <div class="card p-3 mb-4" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:16px;">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label font-bold text-muted" style="font-size:13px;">세전 총급여 (원)</label>
+              <input type="text" id="inspect-pretax" class="form-control font-bold" style="font-size:16px; border:1.5px solid #cbd5e1; border-radius:10px;" value="${(match.preTax || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label font-bold text-danger" style="font-size:13px;">4대보험/세금 공제총액 (원)</label>
+              <input type="text" id="inspect-deduction" class="form-control font-bold text-danger" style="font-size:16px; border:1.5px solid #cbd5e1; border-radius:10px;" value="${(match.deduction || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label font-bold text-success" style="font-size:13px;">💰 세후 실수령액 (원)</label>
+              <input type="text" id="inspect-net" class="form-control font-bold text-success" style="font-size:18px; border:2px solid #059669; border-radius:10px;" value="${(match.net || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
+            </div>
+          </div>
         </div>
 
         <div class="row g-4 mb-4">
@@ -2825,7 +2871,7 @@ window.ScheduleModule = (function () {
             닫기
           </button>
           <button type="button" class="btn btn-success btn-lg font-bold" onclick="ScheduleModule.confirmMatchInspection('${match.empId}')" style="border-radius:14px; padding:12px 28px; box-shadow:0 4px 14px rgba(16,185,129,0.3);">
-            <i class="fas fa-check-circle me-1"></i> ✅ [${match.empName}] 명세서 및 사진 일치 확인 완료
+            <i class="fas fa-check-circle me-1"></i> ✅ [${match.empName}] 명세서 및 금액 확인 완료
           </button>
         </div>
       </div>
@@ -2839,6 +2885,12 @@ window.ScheduleModule = (function () {
     const matches = window._activeTaxMatches || [];
     const match = matches.find(m => m.empId === empId);
     if (match) {
+      const preTaxEl = document.getElementById('inspect-pretax');
+      const dedEl = document.getElementById('inspect-deduction');
+      const netEl = document.getElementById('inspect-net');
+      if (preTaxEl) match.preTax = parseInt(preTaxEl.value.replace(/,/g, '')) || 0;
+      if (dedEl) match.deduction = parseInt(dedEl.value.replace(/,/g, '')) || 0;
+      if (netEl) match.net = parseInt(netEl.value.replace(/,/g, '')) || 0;
       match.verified = true;
     }
 
@@ -2852,7 +2904,7 @@ window.ScheduleModule = (function () {
       wrapper.innerHTML = renderTaxPaystubPreviewTable(matches, employees);
     }
 
-    alert(`🎉 [${match ? match.empName : '직원'}] 님의 명세서와 사진 대조 검수가 완료되었습니다!`);
+    alert(`🎉 [${match ? match.empName : '직원'}] 님의 명세서 검수가 완료되었습니다!`);
   }
 
   async function processTaxPdfFile(input) {
@@ -2880,13 +2932,14 @@ window.ScheduleModule = (function () {
         const textContent = await page.getTextContent();
         const text = textContent.items.map(item => item.str).join(' ');
 
-        const viewport = page.getViewport({ scale: 1.8 });
+        // ✅ scale: 1.4 + JPEG 0.70 압축으로 선명한 한글 텍스트 보존 & 메모리 폭발 방지 (~100KB)
+        const viewport = page.getViewport({ scale: 1.4 });
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-        const pageImageData = canvas.toDataURL('image/png');
+        const pageImageData = canvas.toDataURL('image/jpeg', 0.7);
 
         let matchedEmp = null;
         employees.forEach(e => {
@@ -2938,27 +2991,54 @@ window.ScheduleModule = (function () {
       alert('🎉 PDF 파일 총 ' + numPages + '개 페이지 중 세무 신고 대상 직원 ' + matches.length + '명의 급여명세서가 1페이지씩 개별 고화질 이미지로 안전하게 추출되었습니다!\n각 직원의 [🔍 미리보기 & 검수] 버튼을 눌러 확인 후 최종 교부해 주세요.');
     } catch (err) {
       console.error("PDF Parsing error:", err);
-      alert('PDF 분석이 완료되었습니다. 아래 매칭 목록을 확인 후 일괄 교부 버튼을 눌러주세요.');
+      alert('PDF 분석 중 오류가 발생했습니다: ' + err.message);
     }
   }
 
-  function executeTaxPaystubPublishing() {
-    const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
-    const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
-    if (!allPaystubs[monthKey]) allPaystubs[monthKey] = {};
+  async function executeTaxPaystubPublishing() {
+    const btn = document.getElementById('btn-execute-tax-publish');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Cloudinary 클라우드에 고화질 명세서 업로드 및 전송 중...';
+    }
 
-    const matches = window._activeTaxMatches || [
-      { empId: 'emp_6', net: 2490000, deduction: 305540, preTax: 2795540 },
-      { empId: 'emp_3', net: 4082020, deduction: 449980, preTax: 4532000 },
-      { empId: 'emp_2', net: 1489490, deduction: 160510, preTax: 1650000 },
-      { empId: 'emp_7', net: 2083700, deduction: 236300, preTax: 2320000 },
-      { empId: 'emp_9', net: 998570, deduction: 108130, preTax: 1106700 },
-      { empId: 'emp_4', net: 3018920, deduction: 310080, preTax: 3329000 },
-      { empId: 'emp_8', net: 1695120, deduction: 175690, preTax: 1870810 }
-    ];
+    try {
+      const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
+      const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
+      if (!allPaystubs[monthKey]) allPaystubs[monthKey] = {};
 
-    matches.forEach(item => {
-      if (item.empId && item.net) {
+      const matches = window._activeTaxMatches || [];
+      if (!matches.length) {
+        alert('교부할 매칭 내역이 없습니다. 먼저 PDF 파일을 선택해 주세요.');
+        return;
+      }
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      let uploadSuccessCount = 0;
+
+      for (let i = 0; i < matches.length; i++) {
+        const item = matches[i];
+        if (!item.empId || !item.net) continue;
+
+        let finalUrl = item.cloudUrl || '';
+        // 🚀 Cloudinary 영구 호스팅 파이프라인으로 각 페이지 이미지 업로드
+        if (!finalUrl && item.pageImageData && item.pageImageData.startsWith('data:image')) {
+          if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
+            try {
+              const uploaded = await window.App.processAndUploadPhoto(item.pageImageData);
+              if (uploaded && uploaded.startsWith('http')) {
+                finalUrl = uploaded;
+                item.cloudUrl = uploaded;
+              }
+            } catch(ue) {
+              console.warn('Cloud upload warning for ' + item.empName, ue);
+            }
+          }
+        }
+
         allPaystubs[monthKey][item.empId] = {
           empId: item.empId,
           year: currentYear,
@@ -2966,19 +3046,31 @@ window.ScheduleModule = (function () {
           netSalary: item.net,
           totalDeduction: item.deduction,
           preTax: item.preTax,
-          fileData: item.pageImageData || null,
-          fileName: item.empName + '_급여명세서_' + currentMonth + '월.png',
+          fileData: finalUrl || item.pageImageData || null,
+          pdfUrl: finalUrl || '',
+          fileName: item.empName + '_급여명세서_' + currentMonth + '월.jpg',
           note: currentMonth + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!',
           published: true,
-          updatedAt: new Date().toLocaleString('ko-KR')
+          updatedAt: dateStr
         };
-      }
-    });
 
-    window.SheetsSync.savePaystubs(allPaystubs);
-    closeInlinePanel();
-    render('module-content');
-    alert('🏆 세무 신고 대상 직원 ' + matches.length + '명의 ' + currentMonth + '월 급여명세서가 1페이지씩 개별 검수 완료 후 각 직원 계정으로 안전하게 최종 교부되었습니다!');
+        uploadSuccessCount++;
+      }
+
+      window.SheetsSync.savePaystubs(allPaystubs);
+      closeInlinePanel();
+      render('module-content');
+
+      alert('🏆 세무 신고 대상 직원 ' + uploadSuccessCount + '명의 ' + currentMonth + '월 급여명세서가 Cloudinary 클라우드 영구 저장 및 각 직원 계정으로 안전하게 최종 교부 확정되었습니다!');
+    } catch (err) {
+      console.error('executeTaxPaystubPublishing error:', err);
+      alert('⚠️ 교부 처리 중 오류가 발생했습니다: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 계정 전송)';
+      }
+    }
   }
 
   function toggleCalendar() {

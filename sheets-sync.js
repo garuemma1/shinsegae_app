@@ -43,6 +43,16 @@ window.SheetsSync = (function () {
     'emergency-contacts-module'
   ];
 
+  // 👑 전체 시스템 탭 목록 (약국장 최고관리자 100% 영구 전권 탭)
+  const ALL_SYSTEM_TABS = [
+    ...ALL_COMMON_TABS,
+    'approval-module',
+    'staff-directory-module',
+    'pharmacy-settlement-module',
+    'smart-ledger-module',
+    'building-rental-module'
+  ];
+
   // 신세계약국 영구 마스터 정식 11인 통합 명부 (약국장 1인 + 근무약사 4인 + 일반직원 4인 + 예비인력 2인)
   const INITIAL_EMPLOYEES = [
     { id: 'emp_1', username: 'garuemma@naver.com', email: 'garuemma@naver.com', passcode: '367900', name: '문성도', role: '약국장', position: '대표약사', payType: 'DIRECTOR', joinDate: '2020-03-01', weekdayRate: 45000, holidayRate: 45000, hourlyRate: 45000, baseMonthlySalary: 0, phone: '010-3679-0000', usedLeave: 3, pendingLeave: 0, memo: '신세계약국 대표약사 최고 관리자 계정', allowedTabs: [...ALL_COMMON_TABS, 'approval-module', 'staff-directory-module', 'pharmacy-settlement-module', 'building-rental-module'], updatedAt: 0 },
@@ -756,6 +766,15 @@ window.SheetsSync = (function () {
       if (raw) {
         const u = JSON.parse(raw);
         if (u && u.id) {
+          const isDirector = u.role === '약국장' || u.id === 'emp_1' || u.position === '대표약사' || u.position === '대표' || u.username === 'garuemma@naver.com' || (u.name && u.name.includes('문성도'));
+          if (isDirector) {
+            return {
+              ...u,
+              role: '약국장',
+              allowedTabs: [...ALL_SYSTEM_TABS]
+            };
+          }
+
           const emps = getEmployees();
           const liveEmp = emps.find(e => e.id === u.id);
 
@@ -937,6 +956,10 @@ window.SheetsSync = (function () {
 
     // 별도 저장된 최신 권한 맵 병합
     emps = emps.map(e => {
+      const isDirector = e.role === '약국장' || e.id === 'emp_1' || e.position === '대표약사' || e.position === '대표' || e.username === 'garuemma@naver.com' || (e.name && e.name.includes('문성도'));
+      if (isDirector) {
+        return { ...e, role: '약국장', allowedTabs: [...ALL_SYSTEM_TABS] };
+      }
       if (permMap && permMap[e.id]) {
         return { ...e, allowedTabs: permMap[e.id] };
       }

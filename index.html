@@ -517,7 +517,7 @@
           <label style="font-size:13.5px; font-weight:bold; color:#334155; margin-bottom:8px; display:block;">
             🔐 메뉴 탭 접근 권한 (체크 해제 시 직원의 사이드바에서 0.1초 즉시 숨겨짐)
           </label>
-          <div class="perm-tabs-list p-3" style="max-height:240px; overflow-y:auto; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
+          <div class="perm-tabs-list p-3" style="max-height:280px; overflow-y:auto; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
             <div class="form-check mb-2">
               <input class="form-check-input perm-tab-cb" type="checkbox" value="notices-module" id="ptab-notices">
               <label class="form-check-label font-bold" for="ptab-notices" style="font-size:13px;">📢 공지사항 & SOP</label>
@@ -525,6 +525,10 @@
             <div class="form-check mb-2">
               <input class="form-check-input perm-tab-cb" type="checkbox" value="worklog-module" id="ptab-worklog">
               <label class="form-check-label font-bold" for="ptab-worklog" style="font-size:13px;">📝 약국 업무일지 & 인수인계</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="supplies-module" id="ptab-supplies">
+              <label class="form-check-label font-bold" for="ptab-supplies" style="font-size:13px;">📦 약국 소모품 관리 & 신청</label>
             </div>
             <div class="form-check mb-2">
               <input class="form-check-input perm-tab-cb" type="checkbox" value="medicine-location-module" id="ptab-medicine-location">
@@ -536,7 +540,7 @@
             </div>
             <div class="form-check mb-2">
               <input class="form-check-input perm-tab-cb" type="checkbox" value="schedule-module" id="ptab-schedule">
-              <label class="form-check-label font-bold" for="ptab-schedule" style="font-size:13px;">📅 월간 근무 스케줄</label>
+              <label class="form-check-label font-bold" for="ptab-schedule" style="font-size:13px;">📅 월간 근무 스케줄 & 급여</label>
             </div>
             <div class="form-check mb-2">
               <input class="form-check-input perm-tab-cb" type="checkbox" value="annual-leave-module" id="ptab-annual-leave">
@@ -547,12 +551,36 @@
               <label class="form-check-label font-bold" for="ptab-discount" style="font-size:13px;">🛍️ 직원할인구매대장</label>
             </div>
             <div class="form-check mb-2">
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="emergency-contacts-module" id="ptab-emergency">
+              <label class="form-check-label font-bold" for="ptab-emergency" style="font-size:13px;">☎️ 약국 운영 지원 연락망</label>
+            </div>
+            <div class="form-check mb-2">
               <input class="form-check-input perm-tab-cb" type="checkbox" value="rules-module" id="ptab-rules">
               <label class="form-check-label font-bold" for="ptab-rules" style="font-size:13px;">📜 취업규칙 전문</label>
             </div>
+            
+            <div class="pt-2 my-2 border-top">
+              <span class="badge bg-warning text-dark mb-2" style="font-size:11px;">👑 관리자 전용 탭 권한 설정</span>
+            </div>
             <div class="form-check mb-2">
-              <input class="form-check-input perm-tab-cb" type="checkbox" value="emergency-contacts-module" id="ptab-emergency">
-              <label class="form-check-label font-bold" for="ptab-emergency" style="font-size:13px;">☎️ 약국 운영 지원 연락망</label>
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="approval-module" id="ptab-approval">
+              <label class="form-check-label font-bold text-primary" for="ptab-approval" style="font-size:13px;">📑 약국장 전자결재 센터</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="staff-directory-module" id="ptab-staff-directory">
+              <label class="form-check-label font-bold text-primary" for="ptab-staff-directory" style="font-size:13px;">👥 직원 연락망 & 탭 권한 관리</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="pharmacy-settlement-module" id="ptab-pharmacy-settlement">
+              <label class="form-check-label font-bold text-success" for="ptab-pharmacy-settlement" style="font-size:13px;">📊 신세계약국 스마트장부</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="smart-ledger-module" id="ptab-smart-ledger">
+              <label class="form-check-label font-bold text-success" for="ptab-smart-ledger" style="font-size:13px;">📗 회천메디칼 스마트장부</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="building-rental-module" id="ptab-building-rental">
+              <label class="form-check-label font-bold text-info" for="ptab-building-rental" style="font-size:13px;">🏢 신세계약국 건물 임대 관리</label>
             </div>
           </div>
         </div>
@@ -696,24 +724,24 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <script src="rules-data.js?v=20260901_2315"></script>
-  <script src="labor-calculator.js?v=20260901_2315"></script>
-  <script src="sheets-sync.js?v=20260901_2315"></script>
-  <script src="notices-module.js?v=20260901_2315"></script>
-  <script src="worklog-module.js?v=20260901_2315"></script>
-  <script src="medicine-location-module.js?v=20260901_2315"></script>
-  <script src="rx-medicine-location-module.js?v=20260901_2315"></script>
-  <script src="supplies-module.js?v=20260901_2315"></script>
-  <script src="schedule-module.js?v=20260901_2315"></script>
-  <script src="annual-leave-module.js?v=20260901_2315"></script>
-  <script src="staff-directory-module.js?v=20260901_2315"></script>
-  <script src="discount-purchase-module.js?v=20260901_2315"></script>
-  <script src="emergency-contacts-module.js?v=20260901_2315"></script>
-  <script src="smart-ledger-module.js?v=20260901_2315"></script>
-  <script src="building-rental-module.js?v=20260901_2315"></script>
-  <script src="approval-module.js?v=20260901_2315"></script>
-  <script src="rules-module.js?v=20260901_2315"></script>
-  <script src="app.js?v=20260901_2315"></script>
+  <script src="rules-data.js?v=20260901_2325"></script>
+  <script src="labor-calculator.js?v=20260901_2325"></script>
+  <script src="sheets-sync.js?v=20260901_2325"></script>
+  <script src="notices-module.js?v=20260901_2325"></script>
+  <script src="worklog-module.js?v=20260901_2325"></script>
+  <script src="medicine-location-module.js?v=20260901_2325"></script>
+  <script src="rx-medicine-location-module.js?v=20260901_2325"></script>
+  <script src="supplies-module.js?v=20260901_2325"></script>
+  <script src="schedule-module.js?v=20260901_2325"></script>
+  <script src="annual-leave-module.js?v=20260901_2325"></script>
+  <script src="staff-directory-module.js?v=20260901_2325"></script>
+  <script src="discount-purchase-module.js?v=20260901_2325"></script>
+  <script src="emergency-contacts-module.js?v=20260901_2325"></script>
+  <script src="smart-ledger-module.js?v=20260901_2325"></script>
+  <script src="building-rental-module.js?v=20260901_2325"></script>
+  <script src="approval-module.js?v=20260901_2325"></script>
+  <script src="rules-module.js?v=20260901_2325"></script>
+  <script src="app.js?v=20260901_2325"></script>
 
 </body>
 </html>

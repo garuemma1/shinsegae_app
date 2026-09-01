@@ -2492,57 +2492,32 @@ window.ScheduleModule = (function () {
 
     let html = '';
     html += '<div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">';
-    html += '  <div style="width:44px; height:44px; border-radius:50%; background:#dcfce7; color:#15803d; display:flex; justify-content:center; align-items:center; font-size:22px;">';
-    html += '    <i class="fas fa-file-invoice-dollar"></i>';
+    html += '  <div style="width:48px; height:48px; border-radius:14px; background:#eff6ff; color:#2563eb; display:flex; justify-content:center; align-items:center; font-size:24px;">';
+    html += '    <i class="fas fa-user-shield"></i>';
     html += '  </div>';
     html += '  <div>';
-    html += '    <span class="badge bg-success mb-1" style="font-size:11px; border-radius:12px;">✅ 확정 급여명세서 교부 완료</span>';
-    html += '    <h3 style="font-size:20px; font-weight:bold; margin:0; color:#0f172a;">';
-    html += '      📄 ' + emp.name + ' 님의 ' + currentMonth + '월 급여명세서';
+    html += '    <span class="badge bg-primary mb-1" style="font-size:11.5px; border-radius:10px;">🔒 급여명세서 개인정보 보호</span>';
+    html += '    <h3 style="font-size:20px; font-weight:800; margin:0; color:#0f172a;">';
+    html += '      📄 ' + emp.name + ' 님의 ' + currentMonth + '월 급여명세서 안내';
     html += '    </h3>';
     html += '  </div>';
     html += '</div>';
 
-    html += '<div class="card p-4 mb-3 text-center" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:2px solid #86efac; border-radius:16px;">';
-    html += '  <span style="font-size:13.5px; font-weight:700; color:#166534;">💰 당월 통장 입금 실수령액 (세후 확정)</span>';
-    html += '  <h2 style="font-size:28px; font-weight:900; color:#15803d; margin:4px 0 0 0; font-family:\'Outfit\', sans-serif;">';
-    html += '    ' + fmtNum(paystub.netSalary) + ' 원';
-    html += '  </h2>';
-    if (paystub.totalDeduction || paystub.preTax) {
-      html += '  <div class="d-flex justify-content-center gap-3 mt-2" style="font-size:12.5px; color:#64748b;">';
-      if (paystub.preTax) html += '    <span>세전 총급여: <strong>' + fmtNum(paystub.preTax) + '원</strong></span>';
-      if (paystub.totalDeduction) html += '    <span>공제액: <strong class="text-danger">-' + fmtNum(paystub.totalDeduction) + '원</strong></span>';
-      html += '  </div>';
-    }
+    html += '<div class="alert alert-info p-4 mb-4" style="font-size:14px; border-radius:16px; line-height:1.7; background:#f0f9ff; border:1.5px solid #bae6fd; color:#0369a1;">';
+    html += '  <div class="d-flex align-items-center gap-2 mb-2 font-bold" style="font-size:15px; color:#1e40af;">';
+    html += '    <i class="fas fa-lock"></i> 약국 현장 보안 및 개인 금융정보 보호 방침 안내';
+    html += '  </div>';
+    html += '  약국 공용 기기 및 화면 노출로 인한 <strong>개인정보 유출을 방지</strong>하기 위해, 앱 화면에는 급여 액수 및 명세서 이미지가 표시되지 않습니다.<br><br>';
+    html += '  당월 확정 급여명세서는 <strong>' + emp.name + ' 님의 등록 개인 이메일 계정</strong>으로 안전하게 1:1 전송되었습니다:';
+    html += '  <div class="p-3 my-2 text-center" style="background:#ffffff; border:1.5px dashed #0284c7; border-radius:12px; font-size:15px; font-weight:800; color:#0284c7;">';
+    html += '    📧 ' + (emp.email || '등록된 개인 이메일') + '';
+    html += '  </div>';
+    html += '  개인 이메일함(네이버/네이트 등)을 열어 세무사 확정 명세서 및 실수령액을 안전하게 확인해 주시기 바랍니다.<br>';
+    html += '  <span style="font-size:12px; color:#64748b;">(※ 메일이 보이지 않을 경우 스팸 메일함을 확인하시거나 약국장에게 문의해 주세요.)</span>';
     html += '</div>';
 
-    if (paystub.fileData || paystub.pdfUrl) {
-      html += '<div class="card p-3 mb-3 text-center" style="background:#ffffff; border-radius:16px; border:1.5px solid #cbd5e1;">';
-      html += '  <div class="d-flex justify-content-between align-items-center mb-2">';
-      html += '    <h4 style="font-size:15px; font-weight:800; color:#0f172a; margin:0;">📷 세무사 발급 급여명세서 원본 문서</h4>';
-      html += '    <button type="button" class="btn btn-sm btn-outline-primary font-bold" onclick="ScheduleModule.openPaystubAttachment(\'' + emp.id + '\')" style="border-radius:10px; padding:6px 14px;">';
-      html += '      <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 저장';
-      html += '    </button>';
-      html += '  </div>';
-      html += '  <div style="max-height:550px; overflow-y:auto; border-radius:12px; background:#1e293b; padding:12px;">';
-      if (paystub.fileData) {
-        html += '    <img src="' + paystub.fileData + '" style="max-width:100%; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.5);" />';
-      } else {
-        html += '    <iframe src="' + paystub.pdfUrl + '" style="width:100%; height:500px; border:0;"></iframe>';
-      }
-      html += '  </div>';
-      html += '</div>';
-    }
-
-    if (paystub.note) {
-      html += '<div class="alert alert-secondary p-3 mb-3" style="font-size:12.5px; border-radius:10px; line-height:1.5;">';
-      html += '  💬 <strong>[약국장 전달 메시지]</strong><br>';
-      html += '  ' + paystub.note;
-      html += '</div>';
-    }
-
     html += '<div class="d-flex justify-content-end">';
-    html += '  <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById(\'paystub-detail-modal\').style.display=\'none\'">닫기</button>';
+    html += '  <button type="button" class="btn btn-primary font-bold" onclick="document.getElementById(\'paystub-detail-modal\').style.display=\'none\'" style="border-radius:12px; padding:10px 24px;">확인 완료</button>';
     html += '</div>';
 
     content.innerHTML = html;
@@ -2574,6 +2549,7 @@ window.ScheduleModule = (function () {
       return;
     }
 
+    // 🔒 일반 직원은 앱 화면에서 액수가 절대 뜨지 않고 이메일 확인 안내 모달만 표출
     showPublishedPaystubModal(emp, paystub);
   }
 

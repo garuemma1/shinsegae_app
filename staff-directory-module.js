@@ -420,12 +420,7 @@ window.StaffDirectoryModule = (function () {
                       { id: 'annual-leave-module', name: '🌴 연차대장' },
                       { id: 'discount-purchase-module', name: '🛍️ 할인구매' },
                       { id: 'emergency-contacts-module', name: '☎️ 지원 연락망' },
-                      { id: 'rules-module', name: '📜 취업규칙' },
-                      { id: 'approval-module', name: '📑 약국장 전자결재' },
-                      { id: 'staff-directory-module', name: '👥 직원 권한 관리' },
-                      { id: 'pharmacy-settlement-module', name: '📊 신세계 스마트장부' },
-                      { id: 'smart-ledger-module', name: '📗 회천 스마트장부' },
-                      { id: 'building-rental-module', name: '🏢 건물 임대 관리' }
+                      { id: 'rules-module', name: '📜 취업규칙' }
                     ];
                     return tabs.map(t => `
                       <div class="col-6">

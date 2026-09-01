@@ -392,29 +392,40 @@ window.StaffDirectoryModule = (function () {
                 <label class="form-label mb-2 font-bold" style="color:#1e40af; font-size:12.5px;">
                   <i class="fas fa-lock me-1"></i> 🔐 사이드바 메뉴 탭 접근 권한 맞춤 설정
                 </label>
-                <div class="row g-2" style="max-height:180px; overflow-y:auto;">
+                <div class="row g-2" style="max-height:220px; overflow-y:auto;">
                   ${(() => {
                     let permMap = {};
                     try {
-                      const pRaw = localStorage.getItem('ssg_emp_permissions') || localStorage.getItem('ssg_emp_permissions_v1');
+                      const pRaw = localStorage.getItem('ssg_emp_permissions_v1') || localStorage.getItem('ssg_emp_permissions');
                       if (pRaw) permMap = JSON.parse(pRaw);
                     } catch(e) {}
-                    const allowed = (Array.isArray(emp.allowedTabs) && emp.allowedTabs.length > 0)
+                    
+                    // 🛡️ 마스터 대원칙 6조: 빈 배열([])도 유효한 설정이므로 기본값으로 부활하지 않도록 엄격 보정
+                    const allowed = Array.isArray(emp.allowedTabs)
                       ? emp.allowedTabs
-                      : ((permMap && permMap[emp.id]) || [
-                          'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
-                          'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
-                        ]);
+                      : ((permMap && Array.isArray(permMap[emp.id]))
+                          ? permMap[emp.id]
+                          : [
+                              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
+                              'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+                            ]);
+
                     const tabs = [
                       { id: 'notices-module', name: '📢 공지사항' },
                       { id: 'worklog-module', name: '📝 업무일지' },
+                      { id: 'supplies-module', name: '📦 약국 소모품' },
                       { id: 'medicine-location-module', name: '💊 일반약 위치' },
                       { id: 'rx-medicine-location-module', name: '💉 전문약 위치' },
-                      { id: 'schedule-module', name: '📅 근무 스케줄' },
+                      { id: 'schedule-module', name: '📅 근무 스케줄 & 급여' },
                       { id: 'annual-leave-module', name: '🌴 연차대장' },
                       { id: 'discount-purchase-module', name: '🛍️ 할인구매' },
+                      { id: 'emergency-contacts-module', name: '☎️ 지원 연락망' },
                       { id: 'rules-module', name: '📜 취업규칙' },
-                      { id: 'emergency-contacts-module', name: '☎️ 연락망' }
+                      { id: 'approval-module', name: '📑 약국장 전자결재' },
+                      { id: 'staff-directory-module', name: '👥 직원 권한 관리' },
+                      { id: 'pharmacy-settlement-module', name: '📊 신세계 스마트장부' },
+                      { id: 'smart-ledger-module', name: '📗 회천 스마트장부' },
+                      { id: 'building-rental-module', name: '🏢 건물 임대 관리' }
                     ];
                     return tabs.map(t => `
                       <div class="col-6">
@@ -769,14 +780,18 @@ window.StaffDirectoryModule = (function () {
 
     let permMap = {};
     try {
-      const pRaw = localStorage.getItem('ssg_emp_permissions') || localStorage.getItem('ssg_emp_permissions_v1');
+      const pRaw = localStorage.getItem('ssg_emp_permissions_v1') || localStorage.getItem('ssg_emp_permissions');
       if (pRaw) permMap = JSON.parse(pRaw);
     } catch(e) {}
 
-    const allowed = (permMap && permMap[target.id]) || target.allowedTabs || [
-      'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
-      'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
-    ];
+    const allowed = Array.isArray(target.allowedTabs)
+      ? target.allowedTabs
+      : ((permMap && Array.isArray(permMap[target.id]))
+          ? permMap[target.id]
+          : [
+              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
+              'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+            ]);
 
     const tabCheckboxes = modal.querySelectorAll('.perm-tab-cb');
     tabCheckboxes.forEach(cb => {

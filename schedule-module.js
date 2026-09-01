@@ -2593,72 +2593,49 @@ window.ScheduleModule = (function () {
     const content = document.getElementById('paystub-detail-modal-content');
     if (!content) return;
 
-    const data = window.SheetsSync.getData();
-    const scheduleRecords = data.schedule || [];
-    const monthKey = currentYear + '-' + String(currentMonth).padStart(2, '0');
-    const empShifts = scheduleRecords.filter(r => r.empId === emp.id && r.date && r.date.startsWith(monthKey));
-
-    const allAdjustments = window.SheetsSync.getOvertimeAdjustments ? window.SheetsSync.getOvertimeAdjustments() : {};
-    const empAdj = (allAdjustments[monthKey] && allAdjustments[monthKey][emp.id]) || { overtimePay: 0, deductionPay: 0 };
-
-    const isPharmacist = emp.role && emp.role.includes('약사');
-    let pretaxTotal = 0, netHours = 0;
-
-    if (isPharmacist) {
-      const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, emp.hourlyRate || 35000);
-      pretaxTotal = calc.totalPayroll;
-      netHours = calc.totalNetHours;
-    } else {
-      const baseSal = emp.baseMonthlySalary || 2621500;
-      pretaxTotal = baseSal + 200000 + (empAdj.overtimePay || 0) - (empAdj.deductionPay || 0);
-      netHours = 172.5;
-    }
-
-    const badgeText = isPharmacist ? '👨‍⚕️ 근무약사 (약정 시급제)' : '👨‍💼 일반직원 (주40시간 정액 월급제)';
-    const badgeBg = isPharmacist ? 'bg-primary' : 'bg-success';
-
     let html = '';
     html += '<div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">';
     html += '  <div style="width:44px; height:44px; border-radius:50%; background:#dcfce7; color:#15803d; display:flex; justify-content:center; align-items:center; font-size:22px;">';
     html += '    <i class="fas fa-file-invoice-dollar"></i>';
     html += '  </div>';
     html += '  <div>';
-    html += '    <span class="badge ' + badgeBg + ' mb-1" style="font-size:11px; border-radius:12px;">' + badgeText + '</span>';
+    html += '    <span class="badge bg-success mb-1" style="font-size:11px; border-radius:12px;">✅ 확정 급여명세서 교부 완료</span>';
     html += '    <h3 style="font-size:20px; font-weight:bold; margin:0; color:#0f172a;">';
-    html += '      📄 신세계약국 ' + currentYear + '년 ' + currentMonth + '월 확정 급여명세서';
+    html += '      📄 ' + emp.name + ' 님의 ' + currentMonth + '월 급여명세서';
     html += '    </h3>';
     html += '  </div>';
     html += '</div>';
 
-    html += '<div class="card p-3 mb-3" style="background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0; font-size:13.5px; color:#1e293b;">';
-    html += '  <div class="row g-2">';
-    html += '    <div class="col-6"><strong>성명:</strong> ' + emp.name + ' (' + emp.position + ')</div>';
-    html += '    <div class="col-6"><strong>직무:</strong> ' + emp.role + '</div>';
-    html += '    <div class="col-12"><strong>수신 이메일:</strong> ' + emp.email + '</div>';
-    html += '  </div>';
-    html += '</div>';
-
-    html += '<div class="card p-3 mb-3 text-center" style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:1px solid #a7f3d0; border-radius:14px;">';
-    html += '  <span style="font-size:13px; font-weight:bold; color:#047857; text-transform:uppercase;">💰 당월 통장 입금 세후 실수령액</span>';
-    html += '  <h2 style="font-size:26px; font-weight:800; color:#065f46; margin:4px 0 0 0;">';
+    html += '<div class="card p-4 mb-3 text-center" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border:2px solid #86efac; border-radius:16px;">';
+    html += '  <span style="font-size:13.5px; font-weight:700; color:#166534;">💰 당월 통장 입금 실수령액 (세후 확정)</span>';
+    html += '  <h2 style="font-size:28px; font-weight:900; color:#15803d; margin:4px 0 0 0; font-family:\'Outfit\', sans-serif;">';
     html += '    ' + fmtNum(paystub.netSalary) + ' 원';
     html += '  </h2>';
+    if (paystub.totalDeduction || paystub.preTax) {
+      html += '  <div class="d-flex justify-content-center gap-3 mt-2" style="font-size:12.5px; color:#64748b;">';
+      if (paystub.preTax) html += '    <span>세전 총급여: <strong>' + fmtNum(paystub.preTax) + '원</strong></span>';
+      if (paystub.totalDeduction) html += '    <span>공제액: <strong class="text-danger">-' + fmtNum(paystub.totalDeduction) + '원</strong></span>';
+      html += '  </div>';
+    }
     html += '</div>';
 
-    html += '<div class="card p-3 mb-3" style="background:#ffffff; border-radius:12px; border:1px solid #cbd5e1; font-size:13.5px; color:#0f172a;">';
-    html += '  <div class="d-flex justify-content-between mb-2">';
-    html += '    <span style="color:#64748b;">▪️ 세전 계산 총급여액</span>';
-    html += '    <strong>' + fmtNum(pretaxTotal) + ' 원</strong>';
-    html += '  </div>';
-    html += '  <div class="d-flex justify-content-between mb-2">';
-    html += '    <span style="color:#64748b;">▪️ 4대보험 및 세금 공제 합계</span>';
-    html += '    <strong style="color:#e11d48;">- ' + fmtNum(paystub.totalDeduction) + ' 원</strong>';
-    html += '  </div>';
-    html += '  <div class="pt-2 border-top d-flex justify-content-between">';
-    html += '    <strong style="color:#0f172a;">▪️ 최종 실입금액</strong>';
-    html += '    <strong style="color:#059669; font-size:16px;">' + fmtNum(paystub.netSalary) + ' 원</strong>';
-    html += '  </div>';
-    html += '</div>';
+    if (paystub.fileData || paystub.pdfUrl) {
+      html += '<div class="card p-3 mb-3 text-center" style="background:#ffffff; border-radius:16px; border:1.5px solid #cbd5e1;">';
+      html += '  <div class="d-flex justify-content-between align-items-center mb-2">';
+      html += '    <h4 style="font-size:15px; font-weight:800; color:#0f172a; margin:0;">📷 세무사 발급 급여명세서 원본 문서</h4>';
+      html += '    <button type="button" class="btn btn-sm btn-outline-primary font-bold" onclick="ScheduleModule.openPaystubAttachment(\'' + emp.id + '\')" style="border-radius:10px; padding:6px 14px;">';
+      html += '      <i class="fas fa-search-plus me-1"></i> 원본 크게보기 / 저장';
+      html += '    </button>';
+      html += '  </div>';
+      html += '  <div style="max-height:550px; overflow-y:auto; border-radius:12px; background:#1e293b; padding:12px;">';
+      if (paystub.fileData) {
+        html += '    <img src="' + paystub.fileData + '" style="max-width:100%; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.5);" />';
+      } else {
+        html += '    <iframe src="' + paystub.pdfUrl + '" style="width:100%; height:500px; border:0;"></iframe>';
+      }
+      html += '  </div>';
+      html += '</div>';
+    }
 
     if (paystub.note) {
       html += '<div class="alert alert-secondary p-3 mb-3" style="font-size:12.5px; border-radius:10px; line-height:1.5;">';
@@ -2667,22 +2644,15 @@ window.ScheduleModule = (function () {
       html += '</div>';
     }
 
-    html += '<div class="d-flex flex-column gap-2 mb-3">';
-    if (paystub.fileData || paystub.pdfUrl) {
-      html += '  <button type="button" class="btn btn-primary font-bold py-2" onclick="ScheduleModule.openPaystubAttachment(\'' + emp.id + '\')">';
-      html += '    <i class="fas fa-file-pdf"></i> 📄 세무사 공식 PDF / 이미지 급여명세서 크게보기 및 다운로드';
-      html += '  </button>';
-    }
-    html += '  <button type="button" class="btn btn-success font-bold py-2" onclick="ScheduleModule.sendPaystubEmail(\'' + emp.email + '\', \'' + emp.name + '\', \'' + emp.role + '\', ' + netHours + ', ' + (emp.hourlyRate || 35000) + ', ' + pretaxTotal + ', 0, ' + paystub.netSalary + ', 200000, \'' + (isPharmacist ? 'pharmacist' : 'staff') + '\')">';
-    html += '    <i class="fas fa-envelope"></i> 📧 내 이메일로 명세서 전송하기';
-    html += '  </button>';
-    html += '</div>';
-
     html += '<div class="d-flex justify-content-end">';
     html += '  <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById(\'paystub-detail-modal\').style.display=\'none\'">닫기</button>';
     html += '</div>';
 
     content.innerHTML = html;
+    modal.style.display = 'flex';
+    modal.style.zIndex = '999999';
+    modal.style.opacity = '1';
+  }
 
     modal.style.display = 'flex';
     modal.style.zIndex = '999999';

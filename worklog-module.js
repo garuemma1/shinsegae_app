@@ -637,19 +637,6 @@ window.WorklogModule = (function () {
       logs.unshift(newLog);
       window.SheetsSync.saveWorklogs(logs);
 
-      // 🔔 알림은 저장 성공 후 넌블로킹 백그라운드로 실행
-      setTimeout(() => {
-        try {
-          if (window.SheetsSync && typeof window.SheetsSync.sendGroupChatPush === 'function') {
-            const snippet = content.length > 80 ? content.substring(0, 80) + '...' : content;
-            window.SheetsSync.sendGroupChatPush(`[${tag}] ${snippet}`, `작성자: ${curr.name} | 작성시각: ${fullCreatedAt}`, '업무일지');
-          }
-          if (window.SheetsSync && typeof window.SheetsSync.sendOneSignalPush === 'function') {
-            window.SheetsSync.sendOneSignalPush(`📋 [업무일지] ${curr.name}`, `[${tag}] ${content.substring(0, 60)}`);
-          }
-        } catch(ne) {}
-      }, 200);
-
       closeModal();
       alert('✅ 성공적으로 등록되었습니다.');
       render('module-content');

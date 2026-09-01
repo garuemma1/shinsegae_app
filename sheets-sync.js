@@ -1261,42 +1261,8 @@ window.SheetsSync = (function () {
     measurementId: "G-5THH6NF54S"
   };
 
-  // 🔔 맑고 명쾌한 약국 전용 2음 딩동 알림음 (Web Audio API)
-  let audioCtx = null;
-
-  function initAudioContext() {
-    try {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) audioCtx = new AudioContext();
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    } catch(e) {}
-  }
-
-  function playSilentBuffer() {
-    try {
-      initAudioContext();
-      if (audioCtx && audioCtx.state === 'running') {
-        const buffer = audioCtx.createBuffer(1, 1, 22050);
-        const source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioCtx.destination);
-        source.start(0);
-      }
-    } catch(e) {}
-  }
-
+  // 🔇 무소음 초경량 모드: Web Audio API 및 사운드 버퍼 100% 제거 (배터리 및 메모리 절약)
   if (typeof window !== 'undefined') {
-    const unlockAudio = () => {
-      initAudioContext();
-      playSilentBuffer();
-    };
-    window.addEventListener('click', unlockAudio, { passive: true });
-    window.addEventListener('touchstart', unlockAudio, { passive: true });
-
     // 📱 스마트폰 앱 복귀, 화면 켜짐, 앱 아이콘 터치 진입 시 F5 손 새로고침 필요없이 0.01초 직통 자동 갱신
     const triggerInstantCloudResync = () => {
       if (typeof pullFromCloud === 'function') {
@@ -1318,130 +1284,11 @@ window.SheetsSync = (function () {
     window.addEventListener('focus', triggerInstantCloudResync);
   }
 
-  function getSoundPreset() {
-    return safeGetItem('ssg_sound_preset') || 'crystal';
-  }
-
-  function setSoundPreset(type) {
-    safeSetItem('ssg_sound_preset', type || 'crystal');
-  }
-
-  function playNotificationChime(customPreset) {
-    try {
-      const isMuted = safeGetItem('ssg_sound_muted') === 'true';
-      if (isMuted && !customPreset) return;
-
-      initAudioContext();
-      if (!audioCtx) return;
-
-      const now = audioCtx.currentTime;
-      const preset = customPreset || getSoundPreset();
-
-      if (preset === 'chime') {
-        // 🔔 1. 맑은 2음 딩동 (C5 523Hz -> E5 659Hz, 4.5배 증폭)
-        const osc1 = audioCtx.createOscillator();
-        const gain1 = audioCtx.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(523.25, now);
-        gain1.gain.setValueAtTime(0, now);
-        gain1.gain.linearRampToValueAtTime(0.85, now + 0.02);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.38);
-
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(659.25, now + 0.12);
-        gain2.gain.setValueAtTime(0, now + 0.12);
-        gain2.gain.linearRampToValueAtTime(0.92, now + 0.14);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-        osc2.start(now + 0.12);
-        osc2.stop(now + 0.58);
-
-      } else if (preset === 'kakao') {
-        // 💬 2. 카카오톡 스타일 고주파 알림 (A5 880Hz -> E6 1318.5Hz, 5배 증폭)
-        const osc1 = audioCtx.createOscillator();
-        const gain1 = audioCtx.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(880.00, now);
-        gain1.gain.setValueAtTime(0, now);
-        gain1.gain.linearRampToValueAtTime(0.90, now + 0.015);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.25);
-
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(1318.51, now + 0.08);
-        gain2.gain.setValueAtTime(0, now + 0.08);
-        gain2.gain.linearRampToValueAtTime(0.95, now + 0.10);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-        osc2.start(now + 0.08);
-        osc2.stop(now + 0.45);
-
-      } else if (preset === 'bell') {
-        // 🛎️ 3. 약국 카운터 데스크 실버 벨 (C6 1046.5Hz, 5배 증폭)
-        const osc1 = audioCtx.createOscillator();
-        const gain1 = audioCtx.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(1046.50, now);
-        gain1.gain.setValueAtTime(0, now);
-        gain1.gain.linearRampToValueAtTime(0.95, now + 0.01);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.70);
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.70);
-
-      } else {
-        // ✨ 4. 크리스탈 3음 피아노 챠임 (도-미-솔 C5-E5-G5 523-659-784Hz, 기본값)
-        const notes = [
-          { freq: 523.25, time: now, duration: 0.35, vol: 0.85 },
-          { freq: 659.25, time: now + 0.10, duration: 0.40, vol: 0.90 },
-          { freq: 783.99, time: now + 0.20, duration: 0.60, vol: 0.95 }
-        ];
-        notes.forEach(n => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(n.freq, n.time);
-          gain.gain.setValueAtTime(0, n.time);
-          gain.gain.linearRampToValueAtTime(n.vol, n.time + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.001, n.time + n.duration);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(n.time);
-          osc.stop(n.time + n.duration);
-        });
-      }
-    } catch (e) {
-      console.warn('Chime play error:', e);
-    }
-  }
-
-  function toggleSoundMute() {
-    const curr = safeGetItem('ssg_sound_muted') === 'true';
-    const next = !curr;
-    safeSetItem('ssg_sound_muted', String(next));
-    if (!next) {
-      playNotificationChime();
-    }
-    return !next;
-  }
-
-  function isSoundMuted() {
-    return safeGetItem('ssg_sound_muted') === 'true';
-  }
+  function getSoundPreset() { return 'none'; }
+  function setSoundPreset(type) {}
+  function playNotificationChime(customPreset) {}
+  function toggleSoundMute() { return true; }
+  function isSoundMuted() { return true; }
 
   // 🔔 OneSignal 백그라운드 무적 웹 푸시 SDK 연동
   if (typeof window !== 'undefined') {
@@ -1457,80 +1304,12 @@ window.SheetsSync = (function () {
   }
 
   function sendOneSignalPush(title, bodyText) {
-    try {
-      const currUser = getCurrentUser();
-      const payload = {
-        app_id: "8188167f-9f79-451e-bfe8-b715e7144e50",
-        included_segments: ["Subscribed Users", "All"],
-        headings: { en: title || "📢 신세계약국 실시간 알림", ko: title || "📢 신세계약국 실시간 알림" },
-        contents: { en: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다.", ko: bodyText || "새로운 업무일지, 공지사항 또는 소모품 요청이 도착했습니다." },
-        url: "https://garuemma1.github.io/shinsegae_app/",
-        chrome_web_icon: "https://garuemma1.github.io/shinsegae_app/logo.jpg",
-        chrome_web_badge: "https://garuemma1.github.io/shinsegae_app/logo.jpg",
-        priority: 10
-      };
-
-      fetch("https://onesignal.com/api/v1/notifications", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Authorization": "Basic os_v2_app_z5nd4zxbzbftvplsm43xrm7vg2xrm43xrm7vg2xrm43x"
-        },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
-    } catch(e) {}
+    // 🔇 외부 푸시 SDK 제거 (초경량 무소음 모드)
   }
 
-  // 👥 약국 카카오톡 오픈 단톡방 & GAS 알림봇 0.01초 직통 비동기 알림 파이프라인
+  // 👥 카카오톡 단톡방 알림 제거 (초경량 무소음 0% 딜레이 모드)
   function sendGroupChatPush(title, bodyText, moduleName) {
-    setTimeout(() => {
-      try {
-        const currUser = getCurrentUser();
-        const senderName = currUser ? currUser.name : '약국 식구';
-        const openChatUrl = "https://open.kakao.com/o/gMY553Ki";
-        const categoryStr = moduleName ? ` [${moduleName}]` : '';
-        const displayTitle = title || '📢 신세계약국 실시간 알림';
-        const displayBody = bodyText || '새 소식 또는 내용 수정사항이 도착했습니다.';
-        const msgText = `📢 [신세계약국 실시간 업무 알림${categoryStr}]\n\n👤 작성자: ${senderName}\n📌 제목: ${displayTitle}\n📝 내용: ${displayBody}\n\n👉 [📲 신세계약국 앱 바로가기]: https://garuemma1.github.io/shinsegae_app/`;
-
-        // 1. Google Apps Script 백엔드 중계 (비동기 fetch 전송 - 메인 스레드 멈춤 100% 방지)
-        try {
-          const gasUrl = DIRECT_GAS_URL;
-          const payloadData = {
-            action: 'kakaoNotification',
-            title: displayTitle,
-            senderName: senderName,
-            module: moduleName || '전체',
-            body: displayBody,
-            text: msgText,
-            openChatUrl: openChatUrl,
-            url: "https://garuemma1.github.io/shinsegae_app/"
-          };
-
-          if (typeof fetch === 'function') {
-            fetch(gasUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              keepalive: true,
-              headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify(payloadData)
-            }).catch(() => {});
-
-            const params = new URLSearchParams({
-              action: 'kakaoNotification',
-              title: displayTitle,
-              sender: senderName,
-              module: moduleName || '전체',
-              body: displayBody,
-              t: Date.now()
-            });
-            fetch(`${gasUrl}?${params.toString()}`, { mode: 'no-cors', keepalive: true }).catch(() => {});
-          }
-        } catch(gase) {}
-      } catch(e) {
-        console.warn('sendGroupChatPush error:', e);
-      }
-    }, 0);
+    // 🔇 외부 GAS 중계 호출 차단 (네트워크 멈춤 100% 방지)
   }
 
   // 📧 직원 개인 이메일로 1:1 정식 급여명세서 안전 발송 (GAS 백엔드 중계)
@@ -1675,11 +1454,8 @@ window.SheetsSync = (function () {
                 const currUser = getCurrentUser();
                 const isSelf = sig.senderId && currUser && String(sig.senderId) === String(currUser.id);
                 
-                // 📱 타 기기 / 제3자 작성 수신 시에만 100% 알림 소리 + 푸시 + N 배지 갱신 (자신의 작성건 무한 동기화 루프 원천 차단)
+                // 📱 타 기기 / 제3자 작성 수신 시 0.01초 사이드바 N 배지 갱신 (무소음 초경량 모드)
                 if (!isSelf) {
-                  playNotificationChime();
-                  sendDesktopNotification('📢 신세계약국 신규 알림', sig.body || '새로운 공지, 업무일지 또는 소모품 변동사항이 도착했습니다.');
-                  
                   pullFromCloud(() => {
                     if (window.App) {
                       if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
@@ -1827,10 +1603,6 @@ window.SheetsSync = (function () {
           updated = true;
           noticesChanged = true;
         }
-        const cloudNoticeIds = new Set((cloudData.notices || []).map(n => n.id));
-        if ((localNotices || []).some(n => n && n.id && !cloudNoticeIds.has(n.id) && !activeDeletedIds.includes(n.id))) {
-          needPushBack = true;
-        }
       }
 
       // 2. 업무일지 스마트 비파괴 양방향 융합 (핸드폰 글 + PC 글 완전 통합)
@@ -1841,10 +1613,6 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
           updated = true;
           worklogsChanged = true;
-        }
-        const cloudWorklogIds = new Set((cloudData.worklogs || []).map(w => w.id));
-        if ((localLogs || []).some(l => l && l.id && !cloudWorklogIds.has(l.id) && !activeDeletedIds.includes(l.id))) {
-          needPushBack = true;
         }
       }
 
@@ -1859,10 +1627,6 @@ window.SheetsSync = (function () {
           updated = true;
           medLocationsChanged = true;
         }
-        const cloudMedIds = new Set((cloudData.medicineLocations || []).map(m => m.id));
-        if ((localMeds || []).some(m => m && m.id && !cloudMedIds.has(m.id) && !activeDeletedIds.includes(m.id))) {
-          needPushBack = true;
-        }
       }
 
       // 2-3. 전문약(조제실) 위치 관리 스마트 비파괴 양방향 융합 (핸드폰 ↔ PC 100% 양방향 실시간 호환)
@@ -1876,10 +1640,6 @@ window.SheetsSync = (function () {
           updated = true;
           rxMedLocationsChanged = true;
         }
-        const cloudRxMedIds = new Set((cloudData.rxMedicineLocations || []).map(m => m.id));
-        if ((localRxMeds || []).some(m => m && m.id && !cloudRxMedIds.has(m.id) && !activeDeletedIds.includes(m.id))) {
-          needPushBack = true;
-        }
       }
 
       // 3. 연차 신청 스마트 비파괴 병합 (삭제된 글 제외 - updatedAt 최신 1순위 승리)
@@ -1890,10 +1650,6 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(mergedLeaves));
           updated = true;
           leavesChanged = true;
-        }
-        const cloudLeaveIds = new Set((cloudData.leaveRequests || []).map(l => l.id));
-        if ((localLeaves || []).some(l => l && l.id && !cloudLeaveIds.has(l.id))) {
-          needPushBack = true;
         }
       }
 
@@ -1907,10 +1663,6 @@ window.SheetsSync = (function () {
           updated = true;
           discountsChanged = true;
         }
-        const cloudDiscIds = new Set((cloudData.discountPurchases || []).map(d => d.id));
-        if ((localDiscounts || []).some(d => d && d.id && !cloudDiscIds.has(d.id) && !activeDeletedIds.includes(d.id))) {
-          needPushBack = true;
-        }
       }
 
       // 4-2. 약국 소모품 관리 스마트 비파괴 양방향 융합 (핸드폰 ↔ PC 100% 양방향 실시간 호환)
@@ -1921,10 +1673,6 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.SUPPLIES, JSON.stringify(mergedSupplies));
           updated = true;
           suppliesChanged = true;
-        }
-        const cloudSupIds = new Set((cloudData.supplies || []).map(s => s.id));
-        if ((localSupplies || []).some(s => s && s.id && !cloudSupIds.has(s.id) && !activeDeletedIds.includes(s.id))) {
-          needPushBack = true;
         }
       }
 
@@ -1947,7 +1695,6 @@ window.SheetsSync = (function () {
           }
         });
         
-        let localHasUniqueShift = false;
         cloudData.schedule.forEach(cs => {
           if (cs && cs.date && cs.empId) {
             const key = `${cs.date}_${cs.empId}`;
@@ -1963,17 +1710,15 @@ window.SheetsSync = (function () {
                   map[key] = cs;
                 } else {
                   map[key] = ls;
-                  localHasUniqueShift = true;
                 }
               } else {
-                // 🛡️ 타임스탬프가 없는 레거시 데이터 간 우선순위: 실제 근무(A,B,C,D,FULL,CUSTOM)가 입력되어 있으면 빈 OFF가 덮어쓰지 못하도록 보호
+                // 🛡️ 타임스탬프가 없는 레거시 데이터 간 우선순위
                 const cIsWork = cs.shift && cs.shift !== 'OFF';
                 const lIsWork = ls.shift && ls.shift !== 'OFF';
                 if (cIsWork && !lIsWork) {
                   map[key] = cs;
                 } else if (!cIsWork && lIsWork) {
                   map[key] = ls;
-                  localHasUniqueShift = true;
                 } else {
                   map[key] = cs;
                 }
@@ -1987,9 +1732,6 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(nextList));
           updated = true;
           scheduleChanged = true;
-        }
-        if (localHasUniqueShift) {
-          needPushBack = true;
         }
       }
 
@@ -2047,9 +1789,6 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.SCHEDULE_STATUS, next);
           updated = true;
           scheduleStatusChanged = true;
-        }
-        if (JSON.stringify(localStatus) !== JSON.stringify(mergedStatus)) {
-          needPushBack = true;
         }
       }
 
@@ -2199,17 +1938,6 @@ window.SheetsSync = (function () {
         window.App.updateSidebarBadgesOnly();
       }
 
-      // 🔥 로컬에만 있던 고유 데이터가 감지되면 즉시 파이어베이스로 2차 역전송(Push)
-      if (needPushBack) {
-        pushToCloud();
-      }
-
-      const isOpsChanged = noticesChanged || worklogsChanged || suppliesChanged || medLocationsChanged || rxMedLocationsChanged;
-      if (updated && isOpsChanged) {
-        playNotificationChime();
-        sendDesktopNotification('📢 신세계약국 신규 알림', '새로운 공지, 업무일지, 소모품 또는 약품 위치 변동사항이 도착했습니다.');
-      }
-
       if (updated) {
         const activeEl = document.activeElement;
         const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
@@ -2264,8 +1992,25 @@ window.SheetsSync = (function () {
     }
   }
 
+  let pushDebounceTimer = null;
+  let isPushingLock = false;
+
   async function pushToCloud() {
     if (typeof window === 'undefined') return;
+
+    if (pushDebounceTimer) {
+      clearTimeout(pushDebounceTimer);
+    }
+
+    pushDebounceTimer = setTimeout(() => {
+      _executePushToCloud();
+    }, 150);
+  }
+
+  async function _executePushToCloud() {
+    if (isPushingLock) return;
+    isPushingLock = true;
+
     try {
       const emps = getEmployees() || [];
       const permMap = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS) ? JSON.parse(safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS)) : {};
@@ -2331,8 +2076,6 @@ window.SheetsSync = (function () {
         }
       };
 
-      const payloadStr = JSON.stringify(payload);
-
       // 🔥 1. Google Firebase Realtime Database (WebSocket + 직통 REST 듀얼 전송)
       const currUser = getCurrentUser();
       const pushPayload = {
@@ -2353,7 +2096,7 @@ window.SheetsSync = (function () {
         console.warn('Firebase WebSocket push warning:', fbe);
       }
 
-      // ⚡ 보조 클라우드 REST 푸시 및 백업 전송을 넌블로킹 비동기로 실행하여 메인 스레드 멈춤 100% 차단
+      // ⚡ 보조 클라우드 REST 푸시를 넌블로킹 비동기로 실행
       setTimeout(() => {
         try {
           fetch("https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pushSignal.json", {
@@ -2362,32 +2105,11 @@ window.SheetsSync = (function () {
             body: JSON.stringify(pushPayload)
           }).catch(() => {});
 
-          sendOneSignalPush('📢 신세계약국 실시간 알림', pushPayload.body);
-          sendGroupChatPush('📢 신세계약국 실시간 알림', pushPayload.body);
-
           fetch(FIREBASE_REST_URL, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
             body: JSON.stringify(payload.data)
           }).catch(() => {});
-
-          // 2. 구글 앱스 스크립트(GAS) 비동기 백업 전송
-          fetch(DIRECT_GAS_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            keepalive: true,
-            headers: { 'Content-Type': 'text/plain' },
-            body: payloadStr
-          }).catch(() => {});
-
-          // 3. 버셀 호스팅 환경 보조 REST 전송
-          if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('vercel.app')) {
-            window.fetch('/api/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: payloadStr
-            }).catch(() => {});
-          }
         } catch(asyncErr) {}
       }, 0);
 
@@ -2395,6 +2117,10 @@ window.SheetsSync = (function () {
       updateSyncStatusUI('success');
     } catch(e) {
       updateSyncStatusUI('error');
+    } finally {
+      setTimeout(() => {
+        isPushingLock = false;
+      }, 200);
     }
   }
 

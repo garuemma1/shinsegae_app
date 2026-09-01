@@ -335,13 +335,6 @@ window.NoticesModule = (function () {
       } else {
         window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.NOTICES, data.notices);
       }
-      if (typeof window.SheetsSync.sendGroupChatPush === 'function') {
-        const snippet = content.length > 90 ? content.substring(0, 90) + '...' : content;
-        window.SheetsSync.sendGroupChatPush(title, snippet, `공지사항 · ${category}`);
-      }
-      if (typeof window.SheetsSync.sendOneSignalPush === 'function') {
-        window.SheetsSync.sendOneSignalPush(`📢 [공지] ${title}`, `${author}님: ${content.substring(0, 60)}`);
-      }
     }
 
     closeModal();

@@ -770,11 +770,6 @@ window.App = (function () {
             <span>${curr.name}</span>
           </span>
 
-          <button type="button" class="header-action-btn" onclick="App.openSoundSettingsModal()" title="알림 소리 선택 및 4가지 소리 미리듣기" style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:20px; font-size:11.5px; font-weight:700; color:#0284c7; padding:5px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onmouseover="this.style.background='#e0f2fe'; this.style.borderColor='#7dd3fc';" onmouseout="this.style.background='#f0f9ff'; this.style.borderColor='#bae6fd';">
-            <i class="fas fa-volume-high text-info"></i>
-            <span>알림 소리</span>
-          </button>
-
           <button type="button" class="header-action-btn" onclick="App.openChangePwModal()" title="비밀번호 자율 변경" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:20px; font-size:11.5px; font-weight:700; color:#334155; padding:5px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#94a3b8';" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#cbd5e1';">
             <i class="fas fa-key text-warning"></i>
             <span>비번 변경</span>

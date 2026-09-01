@@ -981,75 +981,10 @@ window.App = (function () {
     if (m) m.style.display = 'none';
   }
 
-  function updateSoundModalUI() {
-    const currPreset = window.SheetsSync && typeof window.SheetsSync.getSoundPreset === 'function' ? window.SheetsSync.getSoundPreset() : 'crystal';
-    document.querySelectorAll('.sound-preset-card').forEach(card => {
-      const p = card.getAttribute('data-preset');
-      const activeBadge = card.querySelector('.sound-active-badge');
-      const selectBtn = card.querySelector('.sound-select-btn');
-      
-      if (p === currPreset) {
-        card.style.borderColor = '#2563eb';
-        card.style.background = '#eff6ff';
-        card.style.boxShadow = '0 4px 12px rgba(37,99,235,0.15)';
-        if (activeBadge) activeBadge.style.display = 'inline-block';
-        if (selectBtn) {
-          selectBtn.className = 'btn btn-sm sound-select-btn';
-          selectBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> 사용 중';
-          selectBtn.style.background = '#16a34a';
-          selectBtn.style.color = '#ffffff';
-          selectBtn.style.border = 'none';
-        }
-      } else {
-        card.style.borderColor = '#e2e8f0';
-        card.style.background = '#ffffff';
-        card.style.boxShadow = 'none';
-        if (activeBadge) activeBadge.style.display = 'none';
-        if (selectBtn) {
-          selectBtn.className = 'btn btn-sm sound-select-btn';
-          selectBtn.innerText = '선택';
-          selectBtn.style.background = '#2563eb';
-          selectBtn.style.color = '#ffffff';
-          selectBtn.style.border = 'none';
-        }
-      }
-    });
-  }
-
-  function showSoundToast(msg) {
-    let toast = document.getElementById('ssg-sound-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'ssg-sound-toast';
-      toast.style.cssText = 'position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.95); color:#ffffff; padding:12px 24px; border-radius:30px; font-size:14px; font-weight:800; z-index:99999999; box-shadow:0 10px 25px rgba(0,0,0,0.35); border:1px solid #3b82f6; transition:opacity 0.25s ease; opacity:0; pointer-events:none; white-space:nowrap; text-align:center;';
-      document.body.appendChild(toast);
-    }
-    toast.innerHTML = msg;
-    toast.style.opacity = '1';
-    setTimeout(() => { if (toast) toast.style.opacity = '0'; }, 2200);
-  }
-
-  function previewSoundPreset(presetKey) {
-    if (window.SheetsSync && typeof window.SheetsSync.playNotificationChime === 'function') {
-      window.SheetsSync.playNotificationChime(presetKey);
-    }
-  }
-
-  function selectSoundPreset(presetKey) {
-    if (window.SheetsSync && typeof window.SheetsSync.setSoundPreset === 'function') {
-      window.SheetsSync.setSoundPreset(presetKey);
-      updateSoundModalUI();
-      previewSoundPreset(presetKey);
-
-      const names = {
-        'crystal': '✨ 1. 크리스탈 3음 피아노',
-        'chime': '🔔 2. 맑은 2음 딩동',
-        'kakao': '💬 3. 카카오톡 스타일 (고음)',
-        'bell': '🛎️ 4. 약국 카운터 데스크 벨'
-      };
-      showSoundToast(`🎉 알림 소리가 <b>${names[presetKey] || presetKey}</b>(으)로 변경되었습니다!`);
-    }
-  }
+  function updateSoundModalUI() {}
+  function showSoundToast() {}
+  function previewSoundPreset() {}
+  function selectSoundPreset() {}
 
   function checkPwRealtime() {
     const newPw = document.getElementById('cpw-new').value;

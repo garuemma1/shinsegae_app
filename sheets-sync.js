@@ -1356,11 +1356,6 @@ window.SheetsSync = (function () {
       if (permission === 'granted') {
         if (!silent) alert('✅ 신세계약국 실시간 웹 푸시 알림이 성공적으로 설정되었습니다!');
         registerServiceWorker();
-        if (window.OneSignalDeferred) {
-          window.OneSignalDeferred.push(function(OneSignal) {
-            try { OneSignal.Notifications.requestPermission(); } catch(e) {}
-          });
-        }
       } else {
         if (!silent) alert('⚠️ 푸시 알림 권한이 차단되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
       }

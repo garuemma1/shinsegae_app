@@ -396,15 +396,16 @@ window.StaffDirectoryModule = (function () {
                   ${(() => {
                     let permMap = {};
                     try {
-                      const pRaw = localStorage.getItem('ssg_emp_permissions_v1') || localStorage.getItem('ssg_emp_permissions');
+                      const pRaw = localStorage.getItem('ssg_emp_permissions_v1');
                       if (pRaw) permMap = JSON.parse(pRaw);
                     } catch(e) {}
                     
-                    // 🛡️ 마스터 대원칙 6조: 빈 배열([])도 유효한 설정이므로 기본값으로 부활하지 않도록 엄격 보정
-                    const allowed = Array.isArray(emp.allowedTabs)
-                      ? emp.allowedTabs
-                      : ((permMap && Array.isArray(permMap[emp.id]))
-                          ? permMap[emp.id]
+                    // 🛡️ permMap이 존재하면 항상 permMap 우선 (가장 최신 저장 상태 반영)
+                    // emp.allowedTabs는 클라우드에서 덮어써졌을 수 있으므로 신뢰하지 않음
+                    const allowed = Array.isArray(permMap[emp.id])
+                      ? permMap[emp.id]
+                      : (Array.isArray(emp.allowedTabs)
+                          ? emp.allowedTabs
                           : [
                               'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
                               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
@@ -611,19 +612,34 @@ window.StaffDirectoryModule = (function () {
 
     // 탭 접근 권한 1:1 수집 및 동시 저장 (target 객체 속성 direct 갱신)
     const permChks = document.querySelectorAll(`.perm-tab-cb-${empId}`);
+    const now2 = Date.now();
     if (permChks && permChks.length > 0) {
       const newAllowed = [];
       permChks.forEach(cb => {
         if (cb.checked) newAllowed.push(cb.value);
       });
       target.allowedTabs = newAllowed;
-      target.updatedAt = Date.now();
+      target.updatedAt = now2;
+      // ① 먼저 permMap에 타임스탬프 함께 기록
       window.SheetsSync.updateStaffPermissions(empId, newAllowed);
     } else {
-      target.updatedAt = Date.now();
+      target.updatedAt = now2;
     }
 
-    window.SheetsSync.saveEmployees(emps);
+    // ② saveEmployees 대신 직접 localStorage에 단일 저장(updatedAt을 모든 직원에게 덮어쓰지 않음)
+    try {
+      const rawList = JSON.parse(localStorage.getItem('ssg_employees_v1') || '[]');
+      const idx = rawList.findIndex(e => e.id === empId);
+      if (idx >= 0) {
+        rawList[idx] = target;
+      } else {
+        rawList.push(target);
+      }
+      localStorage.setItem('ssg_employees_v1', JSON.stringify(rawList));
+    } catch(e) {
+      // fallback: 기존 saveEmployees 호출
+      window.SheetsSync.saveEmployees(emps);
+    }
     if (typeof window.SheetsSync.pushToCloud === 'function') {
       window.SheetsSync.pushToCloud();
     }

@@ -2653,7 +2653,7 @@ window.ScheduleModule = (function () {
     html += '    <i class="fas fa-times me-1"></i> 작업창 닫기';
     html += '  </button>';
     html += '  <button type="button" id="btn-execute-tax-publish" class="btn btn-success btn-lg font-bold" style="padding:12px 28px; border-radius:16px; box-shadow:0 8px 20px rgba(16,185,129,0.35); font-size:16px;" onclick="ScheduleModule.executeTaxPaystubPublishing()">';
-    html += '    <i class="fas fa-paper-plane me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 계정 전송)';
+    html += '    <i class="fas fa-envelope me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 이메일 1:1 발송)';
     html += '  </button>';
     html += '</div>';
 

@@ -420,89 +420,104 @@ if (typeof window.ChartsController === 'undefined') {
 var DEFAULT_CASH_VENDORS = [
   { name: '다원약품', amount: 0, cell: 'V4' },
   { name: '미향', amount: 0, cell: 'V5' },
-  { name: '신성호', amount: 0, cell: 'V6' },
+  { name: '신성호', amount: 5500000, cell: 'V6' },
   { name: '에코테라팜', amount: 0, cell: 'V7' },
   { name: '영진약품', amount: 0, cell: 'V8' },
-  { name: '유화메디칼', amount: 0, cell: 'V9' },
-  { name: '훼밀리팜일반', amount: 0, cell: 'V10' },
-  { name: '훼밀리팜전문', amount: 0, cell: 'V11' },
+  { name: '유화메디칼', amount: 1700000, cell: 'V9' },
+  { name: '훼밀리팜일반', amount: 282500, cell: 'V10' },
+  { name: '훼밀리팜전문', amount: 31863682, cell: 'V11' },
   { name: '맥스포스', amount: 0, cell: 'V12' },
-  { name: '현매 (일일시트 J249 자동 연동)', amount: 0, cell: 'V14', readOnly: true }
+  { name: '현매', amount: 3060000, cell: 'V14' }
 ];
 
 var DEFAULT_CARD_VENDORS = [
-  // Y열 그룹 (좌측)
-  { name: '동화', amount: 0, cell: 'Y4' },
-  { name: '경남', amount: 0, cell: 'Y5' },
-  { name: '경방', amount: 0, cell: 'Y6' },
-  { name: '고려', amount: 0, cell: 'Y7' },
-  { name: '광동제약', amount: 0, cell: 'Y8' },
-  { name: '그린스토어', amount: 0, cell: 'Y9' },
-  { name: '나이스팜2', amount: 0, cell: 'Y10' },
-  { name: '동국일반', amount: 0, cell: 'Y12' },
-  { name: '동성', amount: 0, cell: 'Y13' },
-  { name: '디알에스', amount: 0, cell: 'Y14' },
-  { name: '박카스', amount: 0, cell: 'Y15' },
-  { name: '백제', amount: 0, cell: 'Y16' },
-  { name: '삼진', amount: 0, cell: 'Y17' },
-  { name: '신신제약', amount: 0, cell: 'Y19' },
-  { name: '아워팜', amount: 0, cell: 'Y20' },
-  { name: '에코테라팜2', amount: 0, cell: 'Y21' },
-  { name: '온라인몰결제총합 (Y252 자동 연동)', amount: 0, cell: 'Y22', readOnly: true },
-  { name: '웅진렌탈', amount: 0, cell: 'Y23' },
-  { name: '위생', amount: 0, cell: 'Y24' },
-  { name: '전화비', amount: 0, cell: 'Y25' },
+  // X열 그룹 (좌측)
+  { name: '동화', amount: 0, cell: 'X4' },
+  { name: '경남', amount: 0, cell: 'X5' },
+  { name: '광동', amount: 0, cell: 'X6' },
+  { name: '고려', amount: 0, cell: 'X7' },
+  { name: '광동제약', amount: 0, cell: 'X8' },
+  { name: '그린스토어', amount: 0, cell: 'X9' },
+  { name: '나이스팜2', amount: 0, cell: 'X10' },
+  { name: '쥴릭', amount: 0, cell: 'X11' },
+  { name: '동국일반', amount: 0, cell: 'X12' },
+  { name: '동성', amount: 0, cell: 'X13' },
+  { name: '디알에스', amount: 0, cell: 'X14' },
+  { name: '바로팜', amount: 2460000, cell: 'X15' },
+  { name: '백제', amount: 16465133, cell: 'X16' },
+  { name: '삼진', amount: 0, cell: 'X17' },
+  { name: '지오영', amount: 12613136, cell: 'X18' },
+  { name: '신신제약', amount: 0, cell: 'X19' },
+  { name: '아워팜', amount: 0, cell: 'X20' },
+  { name: '에코테라팜2', amount: 0, cell: 'X21' },
+  { name: '온라인몰결제총합', amount: 10034407, cell: 'X22' },
 
-  // AA열 그룹 (우측)
-  { name: '대원제약', amount: 0, cell: 'AA4' },
-  { name: '동원팜', amount: 0, cell: 'AA5' },
-  { name: '비타민하우스', amount: 0, cell: 'AA6' },
-  { name: '원탁', amount: 0, cell: 'AA7' },
-  { name: '유한내츄럴보호대', amount: 0, cell: 'AA8' },
-  { name: '유한양행', amount: 0, cell: 'AA9' },
-  { name: '인터넷', amount: 0, cell: 'AA10' },
-  { name: '제일약품', amount: 0, cell: 'AA11' },
-  { name: '쥴릭', amount: 0, cell: 'AA14' },
-  { name: '지오영', amount: 0, cell: 'AA15' },
-  { name: '케어센스', amount: 0, cell: 'AA17' },
-  { name: '태극제약', amount: 0, cell: 'AA18' },
-  { name: '하나', amount: 0, cell: 'AA19' },
-  { name: '한가람약품', amount: 0, cell: 'AA20' },
-  { name: '한풍', amount: 0, cell: 'AA21' },
-  { name: '현대', amount: 0, cell: 'AA22' },
-  { name: '한독', amount: 0, cell: 'AA23' }
+  // Z열 그룹 (우측)
+  { name: '대원제약', amount: 0, cell: 'Z4' },
+  { name: '동원팜', amount: 5283905, cell: 'Z5' },
+  { name: '비타민하우스', amount: 0, cell: 'Z6' },
+  { name: '원탁', amount: 0, cell: 'Z7' },
+  { name: '유한내츄럴보호대', amount: 400000, cell: 'Z8' },
+  { name: '유한양행', amount: 0, cell: 'Z9' },
+  { name: '인터넷', amount: 22000, cell: 'Z10' },
+  { name: '제일약품', amount: 0, cell: 'Z11' },
+  { name: '케어센스', amount: 0, cell: 'Z12' },
+  { name: '태극제약', amount: 0, cell: 'Z13' },
+  { name: '하나', amount: 0, cell: 'Z14' },
+  { name: '한가람약품', amount: 0, cell: 'Z15' },
+  { name: '한풍', amount: 0, cell: 'Z16' },
+  { name: '현대', amount: 0, cell: 'Z17' },
+  { name: '한독', amount: 0, cell: 'Z18' },
+  { name: '위생', amount: 0, cell: 'Z19' },
+  { name: '전화비', amount: 17070, cell: 'Z20' },
+  { name: '웅진렌탈', amount: 29900, cell: 'Z21' }
 ];
 
 var DEFAULT_EMPLOYEES = [
-  { name: '권명주', amount: 1480000, cell: 'S53' },
-  { name: '김배영', amount: 988570, cell: 'S54' },
-  { name: '김동완', amount: 3014170, cell: 'S55' },
-  { name: '문성도', amount: 3685540, cell: 'S56' },
-  { name: '김제희', amount: 2295890, cell: 'S57' },
-  { name: '이승학', amount: 2490000, cell: 'V53' },
-  { name: '유호종', amount: 1962000, cell: 'V54' },
-  { name: '간영자', amount: 2942010, cell: 'V55' },
-  { name: '윤세라', amount: 1563210, cell: 'V56' }
+  { name: '권명주5', amount: 1480000, cell: 'T54' },
+  { name: '김배영5', amount: 998570, cell: 'T55' },
+  { name: '김동완5', amount: 3014170, cell: 'T56' },
+  { name: '양윤지5', amount: 3685540, cell: 'T57' },
+  { name: '김제희5', amount: 2295310, cell: 'T58' },
+  { name: '이승학11', amount: 2490000, cell: 'V54' },
+  { name: '유호종31', amount: 1962000, cell: 'V55' },
+  { name: '간영자5', amount: 2862910, cell: 'V56' },
+  { name: '윤세라5', amount: 1633210, cell: 'V57' }
 ];
 
 var DEFAULT_UTILITIES = [
-  { name: '4대보험 (소동빌딩분할포함)', amount: 230110, cell: 'S64' },
-  { name: '공과금 잔여', amount: 8163742, cell: 'S65' }
+  { name: '갑근세', amount: 230110, cell: 'T70' },
+  { name: '관리비', amount: 782900, cell: 'T71' },
+  { name: '캡스5', amount: 88000, cell: 'T72' },
+  { name: '유비케어20', amount: 130150, cell: 'T73' },
+  { name: '토너비용', amount: 71500, cell: 'T74' },
+  { name: '세무사비1', amount: 165000, cell: 'T75' },
+  { name: '이디비27', amount: 77000, cell: 'T76' },
+  { name: '퇴직금수수료', amount: 34612, cell: 'T77' },
+  { name: '건강보험료', amount: 3212220, cell: 'V71' },
+  { name: '연금보험료', amount: 2834560, cell: 'V72' },
+  { name: '고용보험료', amount: 482970, cell: 'V73' },
+  { name: '산재보험료', amount: 229830, cell: 'V74' },
+  { name: '주민세', amount: 55000, cell: 'V75' }
+];
+
+var DEFAULT_OTHER_EXPENSES = [
+  { name: '잡비2카드', amount: 134900, cell: 'R71' },
+  { name: '식대실비', amount: 311900, cell: 'R72' }
 ];
 
 var DEFAULT_DISCOUNTS = [
   { name: '동화약품', amount: 0, cell: 'P53' },
-  { name: '유림메디칼', amount: 70000, cell: 'P54' },
-  { name: '유림', amount: 0, cell: 'P55' },
-  { name: '제이씨팜', amount: 0, cell: 'P56' },
-  { name: '동성제약', amount: 95110, cell: 'P57' },
-  { name: '제일메디팜(신성약품)', amount: 573346, cell: 'P58' },
-  { name: '백제약품', amount: 238310, cell: 'P59' },
-  { name: '지오영약품', amount: 227890, cell: 'P60' },
-  { name: '동아제약(박카스)', amount: 50000, cell: 'P61' },
-  { name: '보령제약(백제)', amount: 720000, cell: 'P62' },
-  { name: '위드(팜투유)', amount: 376045, cell: 'P63' },
-  { name: '위메프', amount: 0, cell: 'P64' }
+  { name: '유화메디칼', amount: 70000, cell: 'P54' },
+  { name: '하나', amount: 0, cell: 'P55' },
+  { name: '동원금융', amount: 95110, cell: 'P56' },
+  { name: '훼밀리팜금융비용', amount: 573546, cell: 'P57' },
+  { name: '백제금융', amount: 296372, cell: 'P58' },
+  { name: '지오영금융', amount: 227036, cell: 'P59' },
+  { name: '동원에누리', amount: 50000, cell: 'P60' },
+  { name: '훼밀리팜에누리', amount: 720000, cell: 'P61' },
+  { name: '메디플레이', amount: 318636, cell: 'P62' },
+  { name: '차정환', amount: 0, cell: 'P63' }
 ];
 
 var DEFAULT_ONLINE_MALLS = [
@@ -530,35 +545,35 @@ function getColumnLetter(colIndex) {
 }
 
 var DEFAULT_PHARM_TRADES = [
-  { name: '화천메디칼', amount: 5000000, cell: 'P36' },
-  { name: '신세계약국', amount: 0, cell: 'P37' },
-  { name: '건강온', amount: 0, cell: 'P38' },
-  { name: '녹십자약국', amount: 908800, cell: 'P39' },
-  { name: '기타약국', amount: 0, cell: 'P40' }
+  { name: '화천메디칼', amount: 5000000, cell: 'P42' },
+  { name: '다산메디칼', amount: 0, cell: 'P43' },
+  { name: '연푸른', amount: 0, cell: 'P44' },
+  { name: '녹십자약국', amount: 908800, cell: 'P45' },
+  { name: '기타 약국', amount: 0, cell: 'P46' }
 ];
 
 var DEFAULT_CARD_CASHBACKS = [
-  { id: 'samsung', name: '삼성카드', amount: 153515, cell: 'P30' },
-  { id: 'kb', name: '국민카드', amount: 1075, cell: 'P31' },
-  { id: 'shinhan', name: '신한카드', amount: 5000, cell: 'P32' },
-  { id: 'woori', name: '우리카드', amount: 625938, cell: 'P33' }
+  { id: 'samsung', name: '삼성카드', amount: 150516, cell: 'P30' },
+  { id: 'kb', name: '국민카드', amount: 1035, cell: 'P31' },
+  { id: 'shinhan', name: '신한카드', amount: 8000, cell: 'P32' },
+  { id: 'woori', name: '우리카드', amount: 625977, cell: 'P33' }
 ];
 
 var DEFAULT_FINANCES = [
-  { id: 'woori_fin', name: '우리12', amount: 758287, cell: 'S32' },
-  { id: 'busan_fin', name: '부산25', amount: 979324, cell: 'S33' }
+  { id: 'woori_fin', name: '우리12', amount: 759287, cell: 'R32' },
+  { id: 'busan_fin', name: '부산28', amount: 978324, cell: 'R33' }
 ];
 
 var DEFAULT_CARD_WITHDRAWALS = [
-  { id: 'woori_out', name: '우리15/우리은행', amount: 41887914, cell: 'P50' },
-  { id: 'shinhan_out', name: '신한/우리은행', amount: 22043645, cell: 'P51' },
-  { id: 'kb_out', name: '국민은행/부산은행', amount: 7457483, cell: 'P52' },
-  { id: 'samsung_out', name: '삼성카드출금', amount: 4773088, cell: 'P53' }
+  { id: 'woori_out', name: '우리10/우리은행', amount: 41887914, cell: 'R50' },
+  { id: 'shinhan_out', name: '신한8/부산은행', amount: 22043645, cell: 'R51' },
+  { id: 'kb_out', name: '국민배보9/부산은행', amount: 7457483, cell: 'R52' },
+  { id: 'samsung_out', name: '삼성9/농협', amount: 4773088, cell: 'R53' }
 ];
 
 var DEFAULT_SEVERANCES = [
-  { name: '김제희 (241101)', amount: 3975066, cell: 'X47' },
-  { name: '이승학 (2307)', amount: 256000, cell: 'X48' }
+  { name: '김제희241101', amount: 3975066, cell: 'Y47' },
+  { name: '이승학2307', amount: 256000, cell: 'Y48' }
 ];
 
 var AVAILABLE_MONTHS = ['2608', '2609', '2610', '2611', '2612', '2701', '2702'];
@@ -638,37 +653,34 @@ if (typeof window.PharmacyStore === 'undefined') {
         } catch (err) {}
       }
 
-      // 🔥 [구글 시트 2608결산 100% 정합성 자동 마이그레이션]
+      // 🔥 [구글 시트 2608결산 100% 정합성 자동 마이그레이션 & 완전 초기화]
       if (this.monthlyRecords['2608']) {
         const m2608 = this.monthlyRecords['2608'];
-        let dSum = 0;
-        if (m2608.discounts && Array.isArray(m2608.discounts)) {
-          m2608.discounts.forEach(d => { dSum += this.parseMoney(d.amount); });
-        }
-        if (dSum !== 2350701 || !m2608.discounts || m2608.discounts.length !== DEFAULT_DISCOUNTS.length) {
-          m2608.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
-        }
+        m2608.cashVendors = DEFAULT_CASH_VENDORS.map(v => ({ ...v }));
+        m2608.cardVendors = DEFAULT_CARD_VENDORS.map(v => ({ ...v }));
+        m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
+        m2608.utilities = DEFAULT_UTILITIES.map(v => ({ ...v }));
+        m2608.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
+        m2608.pharmTrades = DEFAULT_PHARM_TRADES.map(v => ({ ...v }));
+        m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
+        m2608.finances = DEFAULT_FINANCES.map(v => ({ ...v }));
+        m2608.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+        m2608.severances = DEFAULT_SEVERANCES.map(v => ({ ...v }));
 
-        let ptSum = 0;
-        if (m2608.pharmTrades && Array.isArray(m2608.pharmTrades)) {
-          m2608.pharmTrades.forEach(p => { ptSum += this.parseMoney(p.amount); });
-        }
-        if (ptSum !== 5908800 || !m2608.pharmTrades || m2608.pharmTrades.length !== DEFAULT_PHARM_TRADES.length) {
-          m2608.pharmTrades = DEFAULT_PHARM_TRADES.map(v => ({ ...v }));
-        }
-
-        let cSum = 0;
-        if (m2608.cardCashbacks && Array.isArray(m2608.cardCashbacks)) {
-          m2608.cardCashbacks.forEach(c => { cSum += this.parseMoney(c.amount !== undefined ? c.amount : c.spend); });
-        }
-        if (cSum !== 785528 || !m2608.cardCashbacks || m2608.cardCashbacks.length !== DEFAULT_CARD_CASHBACKS.length) {
-          m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
-        }
-
+        m2608.incomeRxFee = 32849250;
         m2608.incomeCopay = 30349850;
         m2608.incomeNhisClaim = 71969828;
+        m2608.incomeNonCovered = 744362.68;
+        m2608.incomeDiscount = 472800;
+        m2608.incCardBenefit = 785528;
+        m2608.expRent = 15070000;
+        m2608.expOtherOperating = 446800;
+        m2608.expCardFee = 1505097;
         m2608.expFinance = 1737611;
-        m2608.expCardWithdraw = 47525951;
+        m2608.expPension = 400000;
+        m2608.expSaving = 1000000;
+        m2608.expYellowUmbrella = 400000;
+        m2608.expSeverance = 4231066;
 
         this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
       }
@@ -950,8 +962,8 @@ if (typeof window.PharmacyStore === 'undefined') {
         incomeDiscount: 472800,
         incCardBenefit: 785528,
         vendorCashTotal: 42404182,
-        vendorCardTotal: 47525951,
-        expCardWithdraw: 47525951,
+        vendorCardTotal: 47325551,
+        expCardWithdraw: 47325551,
         expPayroll: 20421710,
         expUtility: 8393852,
         expRent: 15070000,
@@ -1048,23 +1060,23 @@ if (typeof window.PharmacyStore === 'undefined') {
     if (m.cashVendors && Array.isArray(m.cashVendors)) {
       m.cashVendors.forEach((v, i) => {
         if (i === 9 || (v.name && v.name.includes('현매'))) {
-          v.amount = s.cashBuySum || v.amount || 0;
+          v.amount = s.cashBuySum || v.amount || 3060000;
         }
         cashVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : 42404182;
+    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : 42406182;
 
     let cardVendorSum = 0;
     if (m.cardVendors && Array.isArray(m.cardVendors)) {
       m.cardVendors.forEach((v) => {
         if (v.name && v.name.includes('온라인몰결제총합')) {
-          v.amount = s.onlineMallCardTotal || v.amount || 0;
+          v.amount = s.onlineMallCardTotal || v.amount || 10034407;
         }
         cardVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : 47525951;
+    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : 47325551;
     m.expCardWithdraw = m.vendorCardTotal;
 
     let payrollSum = 0;
@@ -1098,7 +1110,7 @@ if (typeof window.PharmacyStore === 'undefined') {
     }
     m.expFinance = financeSum > 0 ? financeSum : 1737611;
 
-    // 9. 계좌별 카드출금금액 (S50:S53)
+    // 9. 계좌별 카드출금금액 (R50:S53)
     if (!m.cardWithdrawals || !Array.isArray(m.cardWithdrawals) || m.cardWithdrawals.length === 0) {
       m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
     }
@@ -1881,7 +1893,7 @@ var UI = {
             <div style="font-size:24px; font-weight:900; color:${m.netSurplus >= 0 ? '#059669' : '#dc2626'}; letter-spacing:-0.5px;">
               ₩${window.store.formatMoney(m.netSurplus)}
             </div>
-            <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">P4(총수입) - S4(총지출)</span>
+            <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">P3(총수입) - S3(총지출)</span>
           </div>
 
           <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
@@ -1891,13 +1903,13 @@ var UI = {
           </div>
 
           <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
-            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">통장 총수입 (P4)</span>
+            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">통장 총수입 (P3)</span>
             <div style="font-size:24px; font-weight:900; color:#1d4ed8; letter-spacing:-0.5px;">₩${window.store.formatMoney(m.grossIncome)}</div>
             <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">일반매출 + 본부금 + 공단청구 + 에누리 + 약국거래</span>
           </div>
 
           <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
-            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">통장 총지출 (S4)</span>
+            <span style="font-size:12px; color:#64748b; font-weight:700; display:block; margin-bottom:6px;">통장 총지출 (S3)</span>
             <div style="font-size:24px; font-weight:900; color:#dc2626; letter-spacing:-0.5px;">₩${window.store.formatMoney(m.grossExpenses)}</div>
             <span style="font-size:11px; color:#94a3b8; margin-top:4px; display:block;">거래처 + 급여 + 공과금 + 월세 + 금융비용</span>
           </div>
@@ -2387,7 +2399,7 @@ var UI = {
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.totalDiscounts)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">약국간거래합 (P8 = P35):</span>
+                    <span style="color:#475569; font-weight:600;">약국간거래합 (P8 = P41):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.totalPharmTrades)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2427,11 +2439,11 @@ var UI = {
                     <span>📌 (참고용) 통장 실제 카드출금액 (계좌별 카드출금 합계, 지출 별도): ₩${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdrawBank || 76182150)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">인건비 (S6 = U52):</span>
+                    <span style="color:#475569; font-weight:600;">인건비 (S6 = T53):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expPayroll)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">공과금 (S7 = U63):</span>
+                    <span style="color:#475569; font-weight:600;">공과금 (S7 = T69):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expUtility)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2439,7 +2451,7 @@ var UI = {
                     <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expRent)}" oninput="UI.handleMonthlyChange('expRent', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">기타운영비 (S9 = U61):</span>
+                    <span style="color:#475569; font-weight:600;">기타운영비 (S9 = R68):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expOtherOperating)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2447,7 +2459,7 @@ var UI = {
                     <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expCardFee)}" oninput="UI.handleMonthlyChange('expCardFee', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">금융비용 (S31):</span>
+                    <span style="color:#475569; font-weight:600;">금융비용 (S11 = R30):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expFinance)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">

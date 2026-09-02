@@ -491,14 +491,18 @@ var DEFAULT_UTILITIES = [
 ];
 
 var DEFAULT_DISCOUNTS = [
-  { name: '유림약품', amount: 70000, cell: 'P54' },
+  { name: '동화약품', amount: 0, cell: 'P53' },
+  { name: '유림메디칼', amount: 70000, cell: 'P54' },
+  { name: '유림', amount: 0, cell: 'P55' },
+  { name: '제이씨팜', amount: 0, cell: 'P56' },
   { name: '동성제약', amount: 95110, cell: 'P57' },
-  { name: '제일메디팜', amount: 573346, cell: 'P58' },
+  { name: '제일메디팜(신성약품)', amount: 573346, cell: 'P58' },
   { name: '백제약품', amount: 238310, cell: 'P59' },
-  { name: '지오영', amount: 227890, cell: 'P60' },
-  { name: '동아제약', amount: 50000, cell: 'P61' },
-  { name: '보령제약', amount: 720000, cell: 'P62' },
-  { name: '위드(팜투유)', amount: 376045, cell: 'P63' }
+  { name: '지오영약품', amount: 227890, cell: 'P60' },
+  { name: '동아제약(박카스)', amount: 50000, cell: 'P61' },
+  { name: '보령제약(백제)', amount: 720000, cell: 'P62' },
+  { name: '위드(팜투유)', amount: 376045, cell: 'P63' },
+  { name: '위메프', amount: 0, cell: 'P64' }
 ];
 
 var DEFAULT_ONLINE_MALLS = [
@@ -526,9 +530,11 @@ function getColumnLetter(colIndex) {
 }
 
 var DEFAULT_PHARM_TRADES = [
-  { name: '화천신세계', amount: 5000000, cell: 'P36' },
+  { name: '화천메디칼', amount: 5000000, cell: 'P36' },
   { name: '신세계약국', amount: 0, cell: 'P37' },
-  { name: '녹십자약국', amount: 908800, cell: 'P39' }
+  { name: '건강온', amount: 0, cell: 'P38' },
+  { name: '녹십자약국', amount: 908800, cell: 'P39' },
+  { name: '기타약국', amount: 0, cell: 'P40' }
 ];
 
 var DEFAULT_CARD_CASHBACKS = [
@@ -639,21 +645,30 @@ if (typeof window.PharmacyStore === 'undefined') {
         if (m2608.discounts && Array.isArray(m2608.discounts)) {
           m2608.discounts.forEach(d => { dSum += this.parseMoney(d.amount); });
         }
-        if (dSum === 1580700 || dSum === 2332721 || dSum === 2350721 || dSum === 0) {
+        if (dSum !== 2350701 || !m2608.discounts || m2608.discounts.length !== DEFAULT_DISCOUNTS.length) {
           m2608.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
+        }
+
+        let ptSum = 0;
+        if (m2608.pharmTrades && Array.isArray(m2608.pharmTrades)) {
+          m2608.pharmTrades.forEach(p => { ptSum += this.parseMoney(p.amount); });
+        }
+        if (ptSum !== 5908800 || !m2608.pharmTrades || m2608.pharmTrades.length !== DEFAULT_PHARM_TRADES.length) {
+          m2608.pharmTrades = DEFAULT_PHARM_TRADES.map(v => ({ ...v }));
         }
 
         let cSum = 0;
         if (m2608.cardCashbacks && Array.isArray(m2608.cardCashbacks)) {
           m2608.cardCashbacks.forEach(c => { cSum += this.parseMoney(c.amount !== undefined ? c.amount : c.spend); });
         }
-        if (cSum > 10000000 || cSum === 186758 || cSum === 701528 || cSum === 0) {
+        if (cSum !== 785528 || !m2608.cardCashbacks || m2608.cardCashbacks.length !== DEFAULT_CARD_CASHBACKS.length) {
           m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
         }
 
-        if (m2608.incomeCopay === 38549890) m2608.incomeCopay = 30349850;
-        if (m2608.incomeNhisClaim === 71949828) m2608.incomeNhisClaim = 71969828;
-        if (m2608.expFinance === 1717611) m2608.expFinance = 1737611;
+        m2608.incomeCopay = 30349850;
+        m2608.incomeNhisClaim = 71969828;
+        m2608.expFinance = 1737611;
+        m2608.expCardWithdraw = 47525951;
 
         this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
       }

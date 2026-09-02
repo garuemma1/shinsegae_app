@@ -539,45 +539,7 @@
               <label class="form-check-label font-bold" for="ptab-rx-medicine-location" style="font-size:13px;">💉 전문약(조제실) 위치 관리</label>
             </div>
             <div class="form-check mb-2">
-              <input class="form-check-input perm-tab-cb" type="checkbox" value="schedule-module" id="ptab-schedule">
-              <label class="form-check-label font-bold" for="ptab-schedule" style="font-size:13px;">📅 월간 근무 스케줄 & 급여</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input perm-tab-cb" type="checkbox" value="annual-leave-module" id="ptab-annual-leave">
-              <label class="form-check-label font-bold" for="ptab-annual-leave" style="font-size:13px;">🌴 연차대장 & 달력</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input perm-tab-cb" type="checkbox" value="discount-purchase-module" id="ptab-discount">
-              <label class="form-check-label font-bold" for="ptab-discount" style="font-size:13px;">🛍️ 직원할인구매대장</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input perm-tab-cb" type="checkbox" value="emergency-contacts-module" id="ptab-emergency">
-              <label class="form-check-label font-bold" for="ptab-emergency" style="font-size:13px;">☎️ 약국 운영 지원 연락망</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input perm-tab-cb" type="checkbox" value="rules-module" id="ptab-rules">
-              <label class="form-check-label font-bold" for="ptab-rules" style="font-size:13px;">📜 취업규칙 전문</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-          <button type="button" class="btn btn-sm btn-outline-danger font-bold" onclick="StaffDirectoryModule.quickDeleteInModal()" style="border-radius:10px; padding:6px 12px; font-size:12px;">
-            <i class="fas fa-user-minus"></i> 🗑️ 이 계정 삭제/퇴사
-          </button>
-          <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('perm-modal').style.display='none'" style="border-radius:10px; padding:6px 14px;">취소</button>
-            <button type="submit" class="btn btn-sm btn-primary font-bold" style="border-radius:10px; padding:6px 18px; background:linear-gradient(135deg, #1e40af, #1d4ed8); border:none;"><i class="fas fa-save me-1"></i> 💾 권한 설정 저장</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-  <!-- 3-B. 약국장 전용 직원별 세후 급여 & 사진 1장 등록 팝업 모달 -->
-  <div class="modal-overlay" id="paystub-upload-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.65); z-index:999999; justify-content:center; align-items:center;">
-    <div class="modal-card" style="background:#fff; border-radius:20px; max-width:640px; width:94%; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.3); position:relative; max-height:92vh; overflow-y:auto;">
-      <button type="button" class="close-btn" onclick="document.getElementById('paystub-upload-modal').style.display='none'" style="position:absolute; top:20px; right:24px; font-size:24px; background:none; border:none; color:#64748b; cursor:pointer;">&times;</button>
-      <div id="paystub-upload-modal-content">
+              <input class="form-check-input perm-tab-cb" ty      <div id="paystub-upload-modal-content">
         <!-- JS 동적 렌더링 -->
       </div>
     </div>
@@ -587,7 +549,6 @@
   <div class="modal-overlay" id="paystub-detail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; justify-content:center; align-items:center;">
     <div class="modal-card" style="background:#fff; border-radius:20px; max-width:620px; width:94%; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.3); position:relative;">
       <button type="button" class="close-btn" onclick="document.getElementById('paystub-detail-modal').style.display='none'" style="position:absolute; top:20px; right:24px; font-size:24px; background:none; border:none; color:#64748b; cursor:pointer;">&times;</button>
-
       <div id="paystub-detail-modal-content">
         <!-- JS 동적 렌더링 -->
       </div>
@@ -598,7 +559,6 @@
   <div class="modal-overlay" id="director-tax-paystub-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999999; justify-content:center; align-items:center;">
     <div class="modal-card" style="background:#ffffff; border-radius:20px; max-width:880px; width:95%; padding:30px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); position:relative; max-height:90vh; overflow-y:auto;">
       <button type="button" class="close-btn" onclick="document.getElementById('director-tax-paystub-modal').style.display='none'" style="position:absolute; top:20px; right:24px; font-size:26px; background:none; border:none; color:#64748b; cursor:pointer;">&times;</button>
-      
       <div id="director-tax-paystub-modal-content">
         <!-- JS 동적 렌더링 -->
       </div>
@@ -638,23 +598,10 @@
         <div class="row g-3 mb-3">
           <div class="col-md-6">
             <label class="form-label font-bold" style="font-size:13px; color:#334155;">상세 직책</label>
-            <input type="text" id="new-emp-position" class="form-control" plac  <script src="rules-data.js?v=20260826_130"></script>
-  <script src="labor-calculator.js?v=20260826_130"></script>
-  <script src="sheets-sync.js?v=20260826_130"></script>
-  <script src="notices-module.js?v=20260826_130"></script>
-  <script src="worklog-module.js?v=20260826_130"></script>
-  <script src="medicine-location-module.js?v=20260826_130"></script>
-  <script src="rx-medicine-location-module.js?v=20260826_130"></script>
-  <script src="schedule-module.js?v=20260826_130"></script>
-  <script src="annual-leave-module.js?v=20260826_130"></script>
-  <script src="staff-directory-module.js?v=20260826_130"></script>
-  <script src="discount-purchase-module.js?v=20260826_130"></script>
-  <script src="emergency-contacts-module.js?v=20260826_130"></script>
-  <script src="smart-ledger-module.js?v=20260826_130"></script>
-  <script src="building-rental-module.js?v=20260826_130"></script>
-  <script src="approval-module.js?v=20260826_130"></script>
-  <script src="rules-module.js?v=20260826_130"></script>
-  <script src="app.js?v=20260826_130"></script>�)</label>
+            <input type="text" id="new-emp-position" class="form-control" placeholder="예: 조제팀장" required style="border-radius:10px;">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label font-bold" style="font-size:13px; color:#334155;">급여 / 시급 (원)</label>
             <input type="number" id="new-emp-salary" class="form-control" value="2717000" style="border-radius:10px;">
           </div>
         </div>
@@ -700,24 +647,24 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <script src="rules-data.js?v=20260901_2340"></script>
-  <script src="labor-calculator.js?v=20260901_2340"></script>
-  <script src="sheets-sync.js?v=20260901_2340"></script>
-  <script src="notices-module.js?v=20260901_2340"></script>
-  <script src="worklog-module.js?v=20260901_2340"></script>
-  <script src="medicine-location-module.js?v=20260901_2340"></script>
-  <script src="rx-medicine-location-module.js?v=20260901_2340"></script>
-  <script src="supplies-module.js?v=20260901_2340"></script>
-  <script src="schedule-module.js?v=20260901_2340"></script>
-  <script src="annual-leave-module.js?v=20260901_2340"></script>
-  <script src="staff-directory-module.js?v=20260901_2340"></script>
-  <script src="discount-purchase-module.js?v=20260901_2340"></script>
-  <script src="emergency-contacts-module.js?v=20260901_2340"></script>
-  <script src="smart-ledger-module.js?v=20260901_2340"></script>
-  <script src="building-rental-module.js?v=20260901_2340"></script>
-  <script src="approval-module.js?v=20260901_2340"></script>
-  <script src="rules-module.js?v=20260901_2340"></script>
-  <script src="app.js?v=20260901_2340"></script>
+  <script src="rules-data.js?v=20260902_2330"></script>
+  <script src="labor-calculator.js?v=20260902_2330"></script>
+  <script src="sheets-sync.js?v=20260902_2330"></script>
+  <script src="notices-module.js?v=20260902_2330"></script>
+  <script src="worklog-module.js?v=20260902_2330"></script>
+  <script src="medicine-location-module.js?v=20260902_2330"></script>
+  <script src="rx-medicine-location-module.js?v=20260902_2330"></script>
+  <script src="supplies-module.js?v=20260902_2330"></script>
+  <script src="schedule-module.js?v=20260902_2330"></script>
+  <script src="annual-leave-module.js?v=20260902_2330"></script>
+  <script src="staff-directory-module.js?v=20260902_2330"></script>
+  <script src="discount-purchase-module.js?v=20260902_2330"></script>
+  <script src="emergency-contacts-module.js?v=20260902_2330"></script>
+  <script src="smart-ledger-module.js?v=20260902_2330"></script>
+  <script src="building-rental-module.js?v=20260902_2330"></script>
+  <script src="approval-module.js?v=20260902_2330"></script>
+  <script src="rules-module.js?v=20260902_2330"></script>
+  <script src="app.js?v=20260902_2330"></script>
 
 </body>
 </html>

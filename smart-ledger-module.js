@@ -553,10 +553,10 @@ var DEFAULT_PHARM_TRADES = [
 ];
 
 var DEFAULT_CARD_CASHBACKS = [
-  { id: 'samsung', name: '삼성카드', amount: 150516, cell: 'P30' },
-  { id: 'kb', name: '국민카드', amount: 1035, cell: 'P31' },
-  { id: 'shinhan', name: '신한카드', amount: 8000, cell: 'P32' },
-  { id: 'woori', name: '우리카드', amount: 625977, cell: 'P33' }
+  { id: 'samsung', name: '삼성10/농협', payCell: 'AA69', payAmount: 10034407, rate: 1.5, benefitCell: 'P30', benefitAmount: 150516 },
+  { id: 'kb', name: '국민7/부산은행', payCell: 'AA70', payAmount: 68970, rate: 1.5, benefitCell: 'P31', benefitAmount: 1035 },
+  { id: 'shinhan', name: '신한8/부산은행', payCell: 'AA71', payAmount: 400000, rate: 1.5, benefitCell: 'P32', benefitAmount: 6000 },
+  { id: 'woori', name: '우리10/우리은행', payCell: 'AA72', payAmount: 36822174, rate: 1.7, benefitCell: 'P33', benefitAmount: 625977 }
 ];
 
 var DEFAULT_FINANCES = [
@@ -1043,13 +1043,20 @@ if (typeof window.PharmacyStore === 'undefined') {
     }
     m.totalPharmTrades = pharmTradeSum > 0 ? pharmTradeSum : 5908800;
 
+    let cardPayTotal = 0;
     let cashbackSum = 0;
     if (m.cardCashbacks && Array.isArray(m.cardCashbacks)) {
       m.cardCashbacks.forEach(c => {
-        cashbackSum += this.parseMoney(c.amount !== undefined ? c.amount : c.spend);
+        c.payAmount = this.parseMoney(c.payAmount !== undefined ? c.payAmount : (c.amount !== undefined ? c.amount : 0));
+        c.rate = c.rate !== undefined ? parseFloat(c.rate) : (c.name && c.name.includes('우리') ? 1.7 : 1.5);
+        c.benefitAmount = Math.round(c.payAmount * (c.rate / 100));
+        c.amount = c.benefitAmount;
+        cardPayTotal += c.payAmount;
+        cashbackSum += c.benefitAmount;
       });
     }
-    m.incCardBenefit = cashbackSum > 0 ? cashbackSum : 785528;
+    m.totalCardPayments = cardPayTotal > 0 ? cardPayTotal : 47325551;
+    m.incCardBenefit = cashbackSum > 0 ? cashbackSum : 783528;
     m.totalCashback = m.incCardBenefit;
 
     m.theoreticalProfit = Math.round((m.incomeRxFee + m.otcProfit + m.totalDiscounts + m.incomeNonCovered + m.totalCashback) * 100) / 100;
@@ -2223,42 +2230,66 @@ var UI = {
           <!-- 탭 5: 이번달 카드별 결제금액 & 계좌별 카드출금금액 -->
           <div id="tab-content-4" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 4 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- 좌측: 이번달 카드사별 혜택 (P29) -->
+              <!-- 좌측: 이번달 카드별 결제금액 (AA68) 및 카드사별 혜택 (P29) -->
               <div style="background:#faf5ff; border:1.5px solid #ddd6fe; border-radius:14px; padding:16px;" class="space-y-3">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #ede9fe; padding-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px solid #ede9fe; padding-bottom:10px;">
                   <div>
-                    <span style="font-size:12.5px; font-weight:800; color:#6d28d9; display:block;">1. 카드사별 혜택 (P29: ₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span>)</span>
-                    <span style="font-size:11px; color:#6d28d9; font-weight:700;">이론수익(C9) 및 통장수입(P10) 합산 연동</span>
+                    <span style="font-size:13px; font-weight:800; color:#6d28d9; display:block;">
+                      1. 카드별 결제금액 (합계: ₩<span id="disp-total-card-pay">${window.store.formatMoney(m.totalCardPayments || 47325551)}</span>)
+                    </span>
+                    <span style="font-size:11px; color:#059669; font-weight:700; display:block; margin-top:2px;">
+                      ➔ 카드사별 혜택 (P29): <b>₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span></b> (이론수익 C9 · 통장수입 P10 연동)
+                    </span>
                   </div>
                   <button onclick="UI.showAddItemModal('cardCashbacks', '카드사 추가')" style="padding:4px 10px; background:#ffffff; color:#6d28d9; border:1px solid #c4b5fd; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
                     <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 카드사 추가
                   </button>
                 </div>
-                <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
-                  ${m.cardCashbacks.map((c, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${c.name}</span>
-                        ${c.cell ? `<span style="font-size:10px; color:#6d28d9; background:#f5f3ff; padding:1px 6px; border-radius:4px; border:1px solid #ddd6fe;">${c.cell}</span>` : ''}
+                <div class="space-y-2.5 text-xs max-h-[500px] overflow-y-auto pr-1">
+                  ${m.cardCashbacks.map((c, idx) => {
+                    const pay = c.payAmount !== undefined ? c.payAmount : (c.amount || 0);
+                    const rate = c.rate !== undefined ? c.rate : (c.name && c.name.includes('우리') ? 1.7 : 1.5);
+                    const benefit = Math.round(pay * (rate / 100));
+                    return `
+                      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px;" class="space-y-2">
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                          <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-weight:800; color:#0f172a; font-size:13px;">${c.name}</span>
+                            ${c.payCell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">결제 ${c.payCell}</span>` : ''}
+                            ${c.benefitCell ? `<span style="font-size:10px; color:#6d28d9; background:#f5f3ff; padding:1px 6px; border-radius:4px; border:1px solid #ddd6fe;">혜택 ${c.benefitCell}</span>` : ''}
+                          </div>
+                          <div style="display:flex; align-items:center; gap:4px;">
+                            <span style="font-size:11px; background:#ede9fe; color:#6d28d9; padding:2px 6px; border-radius:6px; font-weight:800;">
+                              요율 ${rate}%
+                            </span>
+                            <button onclick="UI.removeVendor('cardCashbacks', ${idx})" style="padding:2px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                              <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; padding:6px 10px; border-radius:8px; gap:8px;">
+                          <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="color:#475569; font-weight:700;">결제금액:</span>
+                            <input 
+                              type="text" 
+                              inputmode="numeric"
+                              value="${window.store.formatMoney(pay)}" 
+                              oninput="UI.handleCardPayChange(${idx}, this.value)" 
+                              style="width:115px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div style="display:flex; align-items:center; gap:4px;">
+                            <span style="color:#059669; font-weight:700;">혜택:</span>
+                            <span style="font-weight:900; color:#059669; font-size:13px;">₩${window.store.formatMoney(benefit)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
-                        <input 
-                          type="text" 
-                          inputmode="numeric"
-                          value="${window.store.formatMoney(c.amount !== undefined ? c.amount : c.spend)}" 
-                          oninput="UI.handleVendorChange('cardCashbacks', ${idx}, this)" 
-                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
-                          placeholder="0"
-                        />
-                        <button onclick="UI.showEditItemModal('cardCashbacks', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
-                        </button>
-                        <button onclick="UI.removeVendor('cardCashbacks', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
-                        </button>
-                      </div>
-                    </div>
-                  `).join('')}
+                    `;
+                  }).join('')}
+                </div>
+                <div style="padding:8px 12px; border-radius:8px; background:#f5f3ff; border:1px solid #ddd6fe; font-size:11px; color:#6d28d9;">
+                  <span>💡 <b>계산 공식:</b> 결제금액 × 1.5% (우리카드는 1.7%) = <b>카드사별 혜택</b> 자동 계산</span>
                 </div>
               </div>
 
@@ -2561,22 +2592,25 @@ var UI = {
     }
   },
 
-  handleCardSpendChange(idx, inputOrVal) {
+  handleCardPayChange(idx, inputOrVal) {
     const isEl = typeof inputOrVal === 'object' && inputOrVal !== null;
     const num = isEl ? this.formatCurrencyInput(inputOrVal) : window.store.parseMoney(inputOrVal);
     const yymm = window.store.currentYYMM;
-    window.store.updateCustomItem(yymm, 'cardCashbacks', idx, 'spend', num);
-    this.renderHeader();
-
     const m = window.store.getMonthly(yymm);
-    const c9El = document.getElementById('disp-c9-cashback');
-    if (c9El) c9El.textContent = `₩${window.store.formatMoney(m.totalCashback)}`;
-    const c4El = document.getElementById('disp-c4-theoretical');
-    if (c4El) c4El.textContent = `₩${window.store.formatMoney(m.theoreticalProfit)}`;
-    const itemCashbackEl = document.getElementById(`disp-cashback-item-${idx}`);
-    if (itemCashbackEl && m.cardCashbacks && m.cardCashbacks[idx]) {
-      itemCashbackEl.textContent = `혜택(${m.cardCashbacks[idx].rate || 1.5}%): ₩${window.store.formatMoney(m.cardCashbacks[idx].cashback)}`;
+    if (m.cardCashbacks && m.cardCashbacks[idx]) {
+      m.cardCashbacks[idx].payAmount = num;
+      const rate = m.cardCashbacks[idx].rate || (m.cardCashbacks[idx].name && m.cardCashbacks[idx].name.includes('우리') ? 1.7 : 1.5);
+      m.cardCashbacks[idx].benefitAmount = Math.round(num * (rate / 100));
+      m.cardCashbacks[idx].amount = m.cardCashbacks[idx].benefitAmount;
+      window.store.calculateMonthly(m);
+      window.store.saveToLocal();
+      this.renderCurrentView();
+      this.renderHeader();
     }
+  },
+
+  handleCardSpendChange(idx, inputOrVal) {
+    this.handleCardPayChange(idx, inputOrVal);
   },
 
   handleMarginRateChange(val) {

@@ -1897,7 +1897,7 @@ var UI = {
             <div class="flex justify-between items-center flex-wrap gap-2">
               <h3 style="font-size:14px; font-weight:800; color:#1d4ed8; display:flex; align-items:center; gap:8px; margin:0;">
                 <i data-lucide="truck" style="width:16px; height:16px; color:#2563eb;"></i>
-                <span>거래처 결제 대장 (S6 현금: ₩${window.store.formatMoney(m.vendorCashTotal)} / S7 카드: ₩${window.store.formatMoney(m.vendorCardTotal)})</span>
+                <span>거래처 결제 대장 (S4 현금(W3): ₩${window.store.formatMoney(m.vendorCashTotal)} / S5 카드(Y3): ₩${window.store.formatMoney(m.vendorCardTotal)})</span>
               </h3>
             </div>
 
@@ -2218,12 +2218,13 @@ var UI = {
                 </div>
               </div>
 
-              <!-- 우측: 계좌별 카드출금금액 (R49:S53) -->
+              <!-- 우측: 계좌별 카드출금금액 (R49:S53) - 참고용 -->
               <div style="background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e0f2fe; padding-bottom:10px;">
                   <div>
-                    <span style="font-size:12.5px; font-weight:800; color:#0369a1; display:block;">2. 계좌별 카드출금금액 (R49:S53)</span>
-                    <span style="font-size:11px; color:#0369a1; font-weight:700;">S7/S49 통장출금 합산 연동: ₩<span id="disp-total-card-withdraw">${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}</span></span>
+                    <span style="font-size:12.5px; font-weight:800; color:#0369a1; display:block;">2. 계좌별 카드출금금액 (R49:S53) <span style="font-size:11px; background:#fef3c7; color:#92400e; padding:2px 7px; border-radius:5px; font-weight:700; margin-left:4px;">참고용</span></span>
+                    <span style="font-size:11px; color:#64748b; font-weight:600; margin-top:2px; display:block;">📌 이번달 통장에서 실제 빠져나간 카드 출금액 (지출 계산과 별개)</span>
+                    <span style="font-size:11px; color:#0369a1; font-weight:700;">합계: ₩<span id="disp-total-card-withdraw">${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}</span></span>
                   </div>
                   <button onclick="UI.showAddItemModal('cardWithdrawals', '출금계좌 추가')" style="padding:4px 10px; background:#ffffff; color:#0369a1; border:1px solid #7dd3fc; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
                     <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 계좌 추가
@@ -2256,7 +2257,7 @@ var UI = {
                   `).join('')}
                 </div>
                 <div style="padding:8px 12px; border-radius:8px; background:#e0f2fe; border:1px solid #bae6fd; font-size:11px; color:#0369a1;" class="flex justify-between items-center">
-                  <span>💡 위 각 계좌별 출금 합계가 <b>6번 탭 '통장 총지출(S7)'</b>에 자동 반영됩니다.</span>
+                  <span>📌 이번달 통장에서 실제 빠져나간 카드 출금액입니다. <b>지출 계산(S5=Y3)과 별개</b>로 기록하는 참고 항목입니다.</span>
                 </div>
               </div>
             </div>
@@ -2384,11 +2385,14 @@ var UI = {
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.vendorCashTotal)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:800;">💳 카드결제내역 (S5 = Z3):</span>
+                    <div>
+                      <span style="color:#475569; font-weight:800;">💳 카드결제내역 (S5 = Y3):</span>
+                      <span style="font-size:10px; color:#6d28d9; background:#ede9fe; padding:1px 6px; border-radius:4px; border:1px solid #c4b5fd; margin-left:4px;">1번탭 거래처 카드결제 합계</span>
+                    </div>
                     <span style="font-weight:800; color:#dc2626;">₩${window.store.formatMoney(m.expCardWithdraw)}</span>
                   </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#0284c7;">
-                    <span>※ (참고) 통장 실제 카드출금액(S49) = ₩${window.store.formatMoney(m.expCardWithdrawBank || 76182150)}</span>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#64748b; background:#f8fafc; padding:5px 8px; border-radius:6px; border:1px solid #e2e8f0;">
+                    <span>📌 (참고용) 통장 실제 카드출금액 (계좌별 카드출금 합계, 지출 별도): ₩${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdrawBank || 76182150)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#475569; font-weight:600;">인건비 (S6 = U52):</span>
@@ -2411,7 +2415,7 @@ var UI = {
                     <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expCardFee)}" oninput="UI.handleMonthlyChange('expCardFee', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">금융비용 (S11 = U24):</span>
+                    <span style="color:#475569; font-weight:600;">금융비용 (S31):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expFinance)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">

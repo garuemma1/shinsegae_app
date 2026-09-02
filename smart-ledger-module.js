@@ -1893,6 +1893,18 @@ var UI = {
 
     return `
       <div class="space-y-6 animate-fadeIn" style="color:#0f172a;">
+        <!-- 상단 원본 리셋 & 동기화 바 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; padding:12px 18px; border-radius:14px; border:1.5px solid #e2e8f0; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:14px; font-weight:900; color:#0f172a;">📊 ${yymm === '2608' ? '2026년 08월' : yymm} 월말 결산 총괄 대장</span>
+            <span style="font-size:11px; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:6px; font-weight:800;">구글시트 2608결산 1:1 매칭</span>
+          </div>
+          <button onclick="UI.resetMonthlyToMaster('${yymm}')" style="padding:6px 14px; background:#fef2f2; color:#dc2626; border:1.5px solid #fca5a5; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+            <i data-lucide="rotate-ccw" style="width:14px; height:14px;"></i>
+            <span>🔄 구글 시트 2608 기준 원본 전체 초기화 (Clean Reset)</span>
+          </button>
+        </div>
+
         <!-- 상단 4대 총괄 지표 카드 (순백 카드 + 가독성 극대화) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div style="background:#ffffff; border-radius:16px; padding:18px 20px; border:1.5px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.04);">
@@ -2622,6 +2634,43 @@ var UI = {
     this.renderHeader();
     const profitEl = document.getElementById('display-otc-profit');
     if (profitEl) profitEl.textContent = `₩${window.store.formatMoney(m.otcProfit)}`;
+  },
+
+  resetMonthlyToMaster(yymm = '2608') {
+    if (confirm(`구글 시트 ${yymm}결산 탭의 원본 마스터 데이터(11대 대장 100% 일치)로 전체 초기화하시겠습니까?`)) {
+      const rec = {
+        yymm: yymm,
+        cashVendors: DEFAULT_CASH_VENDORS.map(v => ({ ...v })),
+        cardVendors: DEFAULT_CARD_VENDORS.map(v => ({ ...v })),
+        employees: DEFAULT_EMPLOYEES.map(v => ({ ...v })),
+        utilities: DEFAULT_UTILITIES.map(v => ({ ...v })),
+        discounts: DEFAULT_DISCOUNTS.map(v => ({ ...v })),
+        pharmTrades: DEFAULT_PHARM_TRADES.map(v => ({ ...v })),
+        cardCashbacks: DEFAULT_CARD_CASHBACKS.map(v => ({ ...v })),
+        finances: DEFAULT_FINANCES.map(v => ({ ...v })),
+        cardWithdrawals: DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v })),
+        severances: DEFAULT_SEVERANCES.map(v => ({ ...v })),
+        incomeRxFee: 32849250,
+        incomeCopay: 30349850,
+        incomeNhisClaim: 71969828,
+        incomeNonCovered: 744362.68,
+        incomeDiscount: 472800,
+        incCardBenefit: 783528,
+        expRent: 15070000,
+        expOtherOperating: 446800,
+        expCardFee: 1505097,
+        expFinance: 1737611,
+        expPension: 400000,
+        expSaving: 1000000,
+        expYellowUmbrella: 400000,
+        expSeverance: 4231066
+      };
+      window.store.monthlyRecords[yymm] = window.store.calculateMonthly(rec);
+      window.store.saveToLocal();
+      this.renderCurrentView();
+      this.renderHeader();
+      this.showToast(`🎉 구글 시트 ${yymm}결산 원본 데이터로 100% 클린 초기화 완료!`);
+    }
   },
 
   handleMonthlyChange(field, inputOrVal) {

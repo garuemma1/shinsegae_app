@@ -431,46 +431,46 @@ var DEFAULT_CASH_VENDORS = [
 ];
 
 var DEFAULT_CARD_VENDORS = [
-  // X열 그룹 (좌측)
-  { name: '동화', amount: 0, cell: 'X4' },
-  { name: '경남', amount: 0, cell: 'X5' },
-  { name: '광동', amount: 0, cell: 'X6' },
-  { name: '고려', amount: 0, cell: 'X7' },
-  { name: '광동제약', amount: 0, cell: 'X8' },
-  { name: '그린스토어', amount: 0, cell: 'X9' },
-  { name: '나이스팜2', amount: 0, cell: 'X10' },
-  { name: '쥴릭', amount: 0, cell: 'X11' },
-  { name: '동국일반', amount: 0, cell: 'X12' },
-  { name: '동성', amount: 0, cell: 'X13' },
-  { name: '디알에스', amount: 0, cell: 'X14' },
-  { name: '바로팜', amount: 2460000, cell: 'X15' },
-  { name: '백제', amount: 16465133, cell: 'X16' },
-  { name: '삼진', amount: 0, cell: 'X17' },
-  { name: '지오영', amount: 12613136, cell: 'X18' },
-  { name: '신신제약', amount: 0, cell: 'X19' },
-  { name: '아워팜', amount: 0, cell: 'X20' },
-  { name: '에코테라팜2', amount: 0, cell: 'X21' },
-  { name: '온라인몰결제총합', amount: 10034407, cell: 'X22' },
+  // Y열 그룹 (좌측)
+  { name: '동화', amount: 0, cell: 'Y4' },
+  { name: '경남', amount: 0, cell: 'Y5' },
+  { name: '광동', amount: 0, cell: 'Y6' },
+  { name: '고려', amount: 0, cell: 'Y7' },
+  { name: '광동제약', amount: 0, cell: 'Y8' },
+  { name: '그린스토어', amount: 0, cell: 'Y9' },
+  { name: '나이스팜2', amount: 0, cell: 'Y10' },
+  { name: '쥴릭', amount: 0, cell: 'Y11' },
+  { name: '동국일반', amount: 0, cell: 'Y12' },
+  { name: '동성', amount: 0, cell: 'Y13' },
+  { name: '디알에스', amount: 0, cell: 'Y14' },
+  { name: '바로팜', amount: 2460000, cell: 'Y15' },
+  { name: '백제', amount: 16465133, cell: 'Y16' },
+  { name: '삼진', amount: 0, cell: 'Y17' },
+  { name: '지오영', amount: 12613136, cell: 'Y18' },
+  { name: '신신제약', amount: 0, cell: 'Y19' },
+  { name: '아워팜', amount: 0, cell: 'Y20' },
+  { name: '에코테라팜2', amount: 0, cell: 'Y21' },
+  { name: '온라인몰결제총합', amount: 10034407, cell: 'Y22' },
 
-  // Z열 그룹 (우측)
-  { name: '대원제약', amount: 0, cell: 'Z4' },
-  { name: '동원팜', amount: 5283905, cell: 'Z5' },
-  { name: '비타민하우스', amount: 0, cell: 'Z6' },
-  { name: '원탁', amount: 0, cell: 'Z7' },
-  { name: '유한내츄럴보호대', amount: 400000, cell: 'Z8' },
-  { name: '유한양행', amount: 0, cell: 'Z9' },
-  { name: '인터넷', amount: 22000, cell: 'Z10' },
-  { name: '제일약품', amount: 0, cell: 'Z11' },
-  { name: '케어센스', amount: 0, cell: 'Z12' },
-  { name: '태극제약', amount: 0, cell: 'Z13' },
-  { name: '하나', amount: 0, cell: 'Z14' },
-  { name: '한가람약품', amount: 0, cell: 'Z15' },
-  { name: '한풍', amount: 0, cell: 'Z16' },
-  { name: '현대', amount: 0, cell: 'Z17' },
-  { name: '한독', amount: 0, cell: 'Z18' },
-  { name: '위생', amount: 0, cell: 'Z19' },
-  { name: '전화비', amount: 17070, cell: 'Z20' },
-  { name: '웅진렌탈', amount: 29900, cell: 'Z21' }
+  // AA열 그룹 (우측)
+  { name: '대원제약', amount: 0, cell: 'AA4' },
+  { name: '동원팜', amount: 5283905, cell: 'AA5' },
+  { name: '비타민하우스', amount: 0, cell: 'AA6' },
+  { name: '원탁', amount: 0, cell: 'AA7' },
+  { name: '유한내츄럴보호대', amount: 400000, cell: 'AA8' },
+  { name: '유한양행', amount: 0, cell: 'AA9' },
+  { name: '인터넷', amount: 22000, cell: 'AA10' },
+  { name: '제일약품', amount: 0, cell: 'AA11' },
+  { name: '케어센스', amount: 0, cell: 'AA12' },
+  { name: '태극제약', amount: 0, cell: 'AA13' },
+  { name: '하나', amount: 0, cell: 'AA14' },
+  { name: '한가람약품', amount: 0, cell: 'AA15' },
+  { name: '한풍', amount: 0, cell: 'AA16' },
+  { name: '현대', amount: 0, cell: 'AA17' },
+  { name: '한독', amount: 0, cell: 'AA18' },
+  { name: '위생', amount: 0, cell: 'AA19' },
+  { name: '전화비', amount: 17070, cell: 'AA20' },
+  { name: '웅진렌탈', amount: 29900, cell: 'AA21' }
 ];
 
 var DEFAULT_EMPLOYEES = [
@@ -672,7 +672,7 @@ if (typeof window.PharmacyStore === 'undefined') {
         m2608.incomeNhisClaim = 71969828;
         m2608.incomeNonCovered = 744362.68;
         m2608.incomeDiscount = 472800;
-        m2608.incCardBenefit = 785528;
+        m2608.incCardBenefit = 783528;
         m2608.expRent = 15070000;
         m2608.expOtherOperating = 446800;
         m2608.expCardFee = 1505097;

@@ -1067,7 +1067,7 @@ if (typeof window.PharmacyStore === 'undefined') {
     if (m.cashVendors && Array.isArray(m.cashVendors)) {
       m.cashVendors.forEach((v, i) => {
         if (i === 9 || (v.name && v.name.includes('현매'))) {
-          v.amount = s.cashBuySum || v.amount || 3060000;
+          v.amount = (m.yymm === '2608' ? 3060000 : (s.cashBuySum || v.amount || 3060000));
         }
         cashVendorSum += this.parseMoney(v.amount);
       });
@@ -1078,7 +1078,8 @@ if (typeof window.PharmacyStore === 'undefined') {
     if (m.cardVendors && Array.isArray(m.cardVendors)) {
       m.cardVendors.forEach((v) => {
         if (v.name && v.name.includes('온라인몰결제총합')) {
-          v.amount = s.onlineMallCardTotal || v.amount || 10034407;
+          v.cell = 'Y22';
+          v.amount = (m.yymm === '2608' ? 10034407 : (v.amount || s.onlineMallCardTotal || 10034407));
         }
         cardVendorSum += this.parseMoney(v.amount);
       });

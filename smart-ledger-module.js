@@ -498,7 +498,7 @@ var DEFAULT_DISCOUNTS = [
   { name: '지오영', amount: 227890, cell: 'P60' },
   { name: '동아제약', amount: 50000, cell: 'P61' },
   { name: '보령제약', amount: 720000, cell: 'P62' },
-  { name: '위드(팜투유)', amount: 376065, cell: 'P63' }
+  { name: '위드(팜투유)', amount: 376045, cell: 'P63' }
 ];
 
 var DEFAULT_ONLINE_MALLS = [
@@ -630,6 +630,32 @@ if (typeof window.PharmacyStore === 'undefined') {
             this.onlineMalls = parsed;
           }
         } catch (err) {}
+      }
+
+      // 🔥 [구글 시트 2608결산 100% 정합성 자동 마이그레이션]
+      if (this.monthlyRecords['2608']) {
+        const m2608 = this.monthlyRecords['2608'];
+        let dSum = 0;
+        if (m2608.discounts && Array.isArray(m2608.discounts)) {
+          m2608.discounts.forEach(d => { dSum += this.parseMoney(d.amount); });
+        }
+        if (dSum === 1580700 || dSum === 2332721 || dSum === 2350721 || dSum === 0) {
+          m2608.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
+        }
+
+        let cSum = 0;
+        if (m2608.cardCashbacks && Array.isArray(m2608.cardCashbacks)) {
+          m2608.cardCashbacks.forEach(c => { cSum += this.parseMoney(c.amount !== undefined ? c.amount : c.spend); });
+        }
+        if (cSum > 10000000 || cSum === 186758 || cSum === 701528 || cSum === 0) {
+          m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
+        }
+
+        if (m2608.incomeCopay === 38549890) m2608.incomeCopay = 30349850;
+        if (m2608.incomeNhisClaim === 71949828) m2608.incomeNhisClaim = 71969828;
+        if (m2608.expFinance === 1717611) m2608.expFinance = 1737611;
+
+        this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
       }
     } catch (e) {
       console.error('Local Storage load error:', e);
@@ -982,7 +1008,7 @@ if (typeof window.PharmacyStore === 'undefined') {
     if (m.discounts && Array.isArray(m.discounts)) {
       m.discounts.forEach(v => { discountSum += this.parseMoney(v.amount); });
     }
-    m.totalDiscounts = discountSum > 0 ? discountSum : 2350721;
+    m.totalDiscounts = discountSum > 0 ? discountSum : 2350701;
 
     let pharmTradeSum = 0;
     if (m.pharmTrades && Array.isArray(m.pharmTrades)) {

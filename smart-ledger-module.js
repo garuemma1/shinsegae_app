@@ -2095,10 +2095,10 @@ var UI = {
           <!-- 탭 4: 에누리 & 약국간거래 -->
           <div id="tab-content-3" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 3 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- 에누리/금융할인 (P9) -->
+              <!-- 에누리/금융할인 (P52) -->
               <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
-                  <span style="font-size:12.5px; font-weight:800; color:#059669;">에누리/금융할인 (P9: ₩${window.store.formatMoney(m.totalDiscounts)})</span>
+                  <span style="font-size:12.5px; font-weight:800; color:#059669;">에누리/금융할인 (P52: ₩${window.store.formatMoney(m.totalDiscounts)})</span>
                   <button onclick="UI.showAddItemModal('discounts', '에누리 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#059669; border:1px solid #6ee7b7; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
                     <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
@@ -2299,7 +2299,7 @@ var UI = {
                     <span style="font-weight:800; color:#059669;" id="display-otc-profit">₩${window.store.formatMoney(m.otcProfit)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">에누리 (C7 = P29):</span>
+                    <span style="color:#475569; font-weight:600;">에누리 (C7 = P52):</span>
                     <span style="font-weight:800; color:#059669;">₩${window.store.formatMoney(m.totalDiscounts)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2308,7 +2308,7 @@ var UI = {
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#faf5ff; border:1px solid #ddd6fe; border-radius:8px;">
                     <div style="display:flex; align-items:center; gap:4px;">
-                      <span style="color:#6d28d9; font-weight:700;">카드별 혜택 (C9 = P13):</span>
+                      <span style="color:#6d28d9; font-weight:700;">카드별 혜택 (C9 = P29):</span>
                       <span style="font-size:10px; color:#6d28d9; background:#ede9fe; padding:2px 6px; border-radius:4px; border:1px solid #c4b5fd;">5번 탭 연동</span>
                     </div>
                     <span style="font-weight:800; color:#6d28d9;" id="disp-c9-cashback">₩${window.store.formatMoney(m.totalCashback)}</span>
@@ -2350,7 +2350,7 @@ var UI = {
                     <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeNhisClaim)}" oninput="UI.handleMonthlyChange('incomeNhisClaim', this)" style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">에누리합계 (P7/Q7):</span>
+                    <span style="color:#475569; font-weight:600;">에누리합계 (P52):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.totalDiscounts)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2362,7 +2362,7 @@ var UI = {
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeDiscount)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">카드사별혜택 (P10/Q10):</span>
+                    <span style="color:#475569; font-weight:600;">카드사별혜택 (P29):</span>
                     <span style="font-weight:800; color:#16a34a;">₩${window.store.formatMoney(m.incCardBenefit)}</span>
                   </div>
                 </div>

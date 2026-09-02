@@ -491,14 +491,14 @@ var DEFAULT_UTILITIES = [
 ];
 
 var DEFAULT_DISCOUNTS = [
-  { name: '유림', amount: 70000, cell: 'P51' },
-  { name: '동성', amount: 95110, cell: 'P52' },
-  { name: '제일메디팜', amount: 573346, cell: 'P53' },
-  { name: '백제', amount: 238310, cell: 'P54' },
-  { name: '지오영', amount: 227890, cell: 'P55' },
-  { name: '동아제약', amount: 50000, cell: 'P56' },
-  { name: '백제약품', amount: 722000, cell: 'P57' },
-  { name: '위드', amount: 376065, cell: 'P58' }
+  { name: '유림약품', amount: 70000, cell: 'P54' },
+  { name: '동성제약', amount: 95110, cell: 'P57' },
+  { name: '제일메디팜', amount: 573346, cell: 'P58' },
+  { name: '백제약품', amount: 238310, cell: 'P59' },
+  { name: '지오영', amount: 227890, cell: 'P60' },
+  { name: '동아제약', amount: 50000, cell: 'P61' },
+  { name: '보령제약', amount: 720000, cell: 'P62' },
+  { name: '위드(팜투유)', amount: 376065, cell: 'P63' }
 ];
 
 var DEFAULT_ONLINE_MALLS = [
@@ -526,28 +526,28 @@ function getColumnLetter(colIndex) {
 }
 
 var DEFAULT_PHARM_TRADES = [
-  { name: '화천신세계', amount: 5000000, cell: 'P35' },
-  { name: '신세계약국', amount: 0, cell: 'P36' },
-  { name: '녹십자약국', amount: 908800, cell: 'P37' }
+  { name: '화천신세계', amount: 5000000, cell: 'P36' },
+  { name: '신세계약국', amount: 0, cell: 'P37' },
+  { name: '녹십자약국', amount: 908800, cell: 'P39' }
 ];
 
 var DEFAULT_CARD_CASHBACKS = [
-  { id: 'samsung', name: '삼성카드', spend: 153510, amount: 153510, rate: 100, cell: 'P24' },
-  { id: 'kb', name: '국민카드', spend: 1075, amount: 1075, rate: 100, cell: 'P25' },
-  { id: 'shinhan', name: '신한카드', spend: 5000, amount: 5000, rate: 100, cell: 'P26' },
-  { id: 'woori', name: '우리카드', spend: 625377, amount: 625377, rate: 100, cell: 'P27' }
+  { id: 'samsung', name: '삼성카드', amount: 153515, cell: 'P30' },
+  { id: 'kb', name: '국민카드', amount: 1075, cell: 'P31' },
+  { id: 'shinhan', name: '신한카드', amount: 5000, cell: 'P32' },
+  { id: 'woori', name: '우리카드', amount: 625938, cell: 'P33' }
 ];
 
 var DEFAULT_FINANCES = [
-  { id: 'woori_fin', name: '우리카드', amount: 738287, cell: 'S25' },
-  { id: 'busan_fin', name: '부산 20', amount: 979324, cell: 'S26' }
+  { id: 'woori_fin', name: '우리12', amount: 758287, cell: 'S32' },
+  { id: 'busan_fin', name: '부산25', amount: 979324, cell: 'S33' }
 ];
 
 var DEFAULT_CARD_WITHDRAWALS = [
-  { id: 'woori_out', name: '우리15/우리통장', amount: 41607014, cell: 'S50' },
-  { id: 'shinhan_out', name: '신한/투스은행', amount: 22040645, cell: 'S51' },
-  { id: 'kb_out', name: '국민통장/부산은행', amount: 7457403, cell: 'S52' },
-  { id: 'samsung_out', name: '삼성카드통장', amount: 4773088, cell: 'S53' }
+  { id: 'woori_out', name: '우리15/우리은행', amount: 41887914, cell: 'P50' },
+  { id: 'shinhan_out', name: '신한/우리은행', amount: 22043645, cell: 'P51' },
+  { id: 'kb_out', name: '국민은행/부산은행', amount: 7457483, cell: 'P52' },
+  { id: 'samsung_out', name: '삼성카드출금', amount: 4773088, cell: 'P53' }
 ];
 
 var DEFAULT_SEVERANCES = [
@@ -902,12 +902,12 @@ if (typeof window.PharmacyStore === 'undefined') {
     if (!rec) {
       rec = {
         yymm: yymm,
-        incomeRxFee: 32849253,
-        incomeCopay: 38549890,
-        incomeNhisClaim: 71949828,
-        incomeNonCovered: 744363,
+        incomeRxFee: 32849250,
+        incomeCopay: 30349850,
+        incomeNhisClaim: 71969828,
+        incomeNonCovered: 744362.68,
         incomeDiscount: 472800,
-        incCardBenefit: 701528,
+        incCardBenefit: 785528,
         vendorCashTotal: 42404182,
         vendorCardTotal: 47525951,
         expCardWithdraw: 47525951,
@@ -916,7 +916,7 @@ if (typeof window.PharmacyStore === 'undefined') {
         expRent: 15070000,
         expOtherOperating: 446800,
         expCardFee: 1505097,
-        expFinance: 1717611,
+        expFinance: 1737611,
         expPension: 400000,
         expSaving: 1000000,
         expYellowUmbrella: 400000,
@@ -968,21 +968,21 @@ if (typeof window.PharmacyStore === 'undefined') {
     m.otcMarginRate = m.otcMarginRate !== undefined ? parseFloat(m.otcMarginRate) : 40;
     m.otcTotalSales = this.parseMoney(m.otcTotalSales) || (s.otcSalesSum > 0 ? s.otcSalesSum : 62354650);
     m.otcProfit = Math.round(m.otcTotalSales * (m.otcMarginRate / 100));
-    m.otcDailyAvg = Math.round(m.otcTotalSales / 30);
-    m.incomeRxFee = this.parseMoney(m.incomeRxFee) || 32849253;
-    m.incomeNonCovered = this.parseMoney(m.incomeNonCovered) || 744363;
+    m.otcDailyAvg = Math.round(m.otcTotalSales / 31);
+    m.incomeRxFee = this.parseMoney(m.incomeRxFee) || 32849250;
+    m.incomeNonCovered = (typeof m.incomeNonCovered === 'number') ? m.incomeNonCovered : (parseFloat(m.incomeNonCovered) || 744362.68);
 
     // 2. 수입 부문 (P3:Q12) - 구글 시트 2608 결산 100% 일치
     m.incomeOtcRaw = m.otcTotalSales;
-    m.incomeCopay = this.parseMoney(m.incomeCopay) || (s.rxSalesSum > 0 ? s.rxSalesSum : 38549890);
-    m.incomeNhisClaim = this.parseMoney(m.incomeNhisClaim) || 71949828;
+    m.incomeCopay = this.parseMoney(m.incomeCopay) || (s.rxSalesSum > 0 ? s.rxSalesSum : 30349850);
+    m.incomeNhisClaim = this.parseMoney(m.incomeNhisClaim) || 71969828;
     m.incomeDiscount = this.parseMoney(m.incomeDiscount) || 472800;
 
     let discountSum = 0;
     if (m.discounts && Array.isArray(m.discounts)) {
       m.discounts.forEach(v => { discountSum += this.parseMoney(v.amount); });
     }
-    m.totalDiscounts = discountSum > 0 ? discountSum : 2332721;
+    m.totalDiscounts = discountSum > 0 ? discountSum : 2350721;
 
     let pharmTradeSum = 0;
     if (m.pharmTrades && Array.isArray(m.pharmTrades)) {
@@ -993,13 +993,13 @@ if (typeof window.PharmacyStore === 'undefined') {
     let cashbackSum = 0;
     if (m.cardCashbacks && Array.isArray(m.cardCashbacks)) {
       m.cardCashbacks.forEach(c => {
-        cashbackSum += this.parseMoney(c.amount || c.spend);
+        cashbackSum += this.parseMoney(c.amount !== undefined ? c.amount : c.spend);
       });
     }
-    m.incCardBenefit = this.parseMoney(m.incCardBenefit) || (cashbackSum > 0 ? cashbackSum : 701528);
+    m.incCardBenefit = cashbackSum > 0 ? cashbackSum : 785528;
     m.totalCashback = m.incCardBenefit;
 
-    m.theoreticalProfit = m.incomeRxFee + m.otcProfit + m.totalDiscounts + m.incomeNonCovered + m.totalCashback;
+    m.theoreticalProfit = Math.round((m.incomeRxFee + m.otcProfit + m.totalDiscounts + m.incomeNonCovered + m.totalCashback) * 100) / 100;
     m.grossIncome = m.incomeOtcRaw + m.incomeCopay + m.incomeNhisClaim + m.totalDiscounts + m.totalPharmTrades + m.incomeDiscount + m.incCardBenefit;
 
     // 3. 지출 부문 (S3:U18) - 구글 시트 2608 결산 100% 일치
@@ -1012,7 +1012,7 @@ if (typeof window.PharmacyStore === 'undefined') {
         cashVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : (this.parseMoney(m.vendorCashTotal) || 42404182);
+    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : 42404182;
 
     let cardVendorSum = 0;
     if (m.cardVendors && Array.isArray(m.cardVendors)) {
@@ -1023,8 +1023,8 @@ if (typeof window.PharmacyStore === 'undefined') {
         cardVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : (this.parseMoney(m.vendorCardTotal) || 47525951);
-    m.expCardWithdraw = this.parseMoney(m.expCardWithdraw) || m.vendorCardTotal;
+    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : 47525951;
+    m.expCardWithdraw = m.vendorCardTotal;
 
     let payrollSum = 0;
     if (m.employees && Array.isArray(m.employees)) {
@@ -1055,7 +1055,7 @@ if (typeof window.PharmacyStore === 'undefined') {
     if (m.finances && Array.isArray(m.finances)) {
       m.finances.forEach(f => { financeSum += this.parseMoney(f.amount); });
     }
-    m.expFinance = financeSum > 0 ? financeSum : (this.parseMoney(m.expFinance) || 1717611);
+    m.expFinance = financeSum > 0 ? financeSum : 1737611;
 
     // 9. 계좌별 카드출금금액 (S50:S53)
     if (!m.cardWithdrawals || !Array.isArray(m.cardWithdrawals) || m.cardWithdrawals.length === 0) {
@@ -1066,7 +1066,7 @@ if (typeof window.PharmacyStore === 'undefined') {
       w.amount = this.parseMoney(w.amount);
       cardWithdrawalSum += w.amount;
     });
-    m.cardWithdrawalSum = cardWithdrawalSum > 0 ? cardWithdrawalSum : 76182150;
+    m.cardWithdrawalSum = cardWithdrawalSum > 0 ? cardWithdrawalSum : 76162130;
     m.expCardWithdrawBank = m.cardWithdrawalSum;
 
     m.grossExpenses = m.vendorCashTotal + m.expCardWithdraw + m.expPayroll + m.expUtility + m.expRent + 
@@ -2170,48 +2170,39 @@ var UI = {
           <!-- 탭 5: 이번달 카드별 결제금액 & 계좌별 카드출금금액 -->
           <div id="tab-content-4" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 4 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- 좌측: 이번달 카드별 결제금액 (Z69:AA75) -->
+              <!-- 좌측: 이번달 카드사별 혜택 (P29) -->
               <div style="background:#faf5ff; border:1.5px solid #ddd6fe; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #ede9fe; padding-bottom:10px;">
                   <div>
-                    <span style="font-size:12.5px; font-weight:800; color:#6d28d9; display:block;">1. 이번달 카드별 결제금액 (Z69:AA75)</span>
-                    <span style="font-size:11px; color:#6d28d9; font-weight:700;">C9/P13 캐시백 혜택 합산: ₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span></span>
+                    <span style="font-size:12.5px; font-weight:800; color:#6d28d9; display:block;">1. 카드사별 혜택 (P29: ₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span>)</span>
+                    <span style="font-size:11px; color:#6d28d9; font-weight:700;">이론수익(C9) 및 통장수입(P10) 합산 연동</span>
                   </div>
                   <button onclick="UI.showAddItemModal('cardCashbacks', '카드사 추가')" style="padding:4px 10px; background:#ffffff; color:#6d28d9; border:1px solid #c4b5fd; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
                     <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 카드사 추가
                   </button>
                 </div>
-                <div class="space-y-3 text-xs max-h-[500px] overflow-y-auto pr-1">
+                <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cardCashbacks.map((c, idx) => `
-                    <div style="padding:10px; border-radius:10px; background:#ffffff; border:1px solid #e2e8f0;" class="space-y-2">
-                      <div style="display:flex; align-items:center; justify-content:space-between;">
-                        <span style="font-weight:800; color:#0f172a; font-size:12.5px;">${c.name}</span>
-                        <div style="display:flex; align-items:center; gap:4px;">
-                          <span style="font-size:10px; color:#6d28d9; background:#f3e8ff; padding:2px 6px; border-radius:4px; font-weight:700;">
-                            요율: ${c.rate || 1.5}%
-                          </span>
-                          <button onclick="UI.showEditItemModal('cardCashbacks', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
-                          </button>
-                          <button onclick="UI.removeVendor('cardCashbacks', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
-                          </button>
-                        </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${c.name}</span>
+                        ${c.cell ? `<span style="font-size:10px; color:#6d28d9; background:#f5f3ff; padding:1px 6px; border-radius:4px; border:1px solid #ddd6fe;">${c.cell}</span>` : ''}
                       </div>
-                      <div class="space-y-1">
-                        <label style="font-size:11px; color:#64748b; font-weight:600;" class="block">이번달 카드 결제원금 입력:</label>
+                      <div style="display:flex; align-items:center; gap:4px;">
                         <input 
                           type="text" 
                           inputmode="numeric"
-                          value="${window.store.formatMoney(c.spend || c.amount)}" 
-                          oninput="UI.handleCardSpendChange(${idx}, this)" 
-                          style="width:100%; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:6px 10px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" 
-                          placeholder="결제금액 입력"
+                          value="${window.store.formatMoney(c.amount !== undefined ? c.amount : c.spend)}" 
+                          oninput="UI.handleVendorChange('cardCashbacks', ${idx}, this)" 
+                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                          placeholder="0"
                         />
-                      </div>
-                      <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; background:#f8fafc; padding:4px 8px; border-radius:6px; border:1px solid #f1f5f9;">
-                        <span style="color:#64748b;">🎁 계산된 캐시백 혜택:</span>
-                        <span style="font-weight:800; color:#6d28d9;" id="disp-cashback-item-${idx}">₩${window.store.formatMoney(c.cashback)}</span>
+                        <button onclick="UI.showEditItemModal('cardCashbacks', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        </button>
+                        <button onclick="UI.removeVendor('cardCashbacks', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        </button>
                       </div>
                     </div>
                   `).join('')}
@@ -2339,31 +2330,31 @@ var UI = {
                 </div>
                 <div class="space-y-2.5">
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">일반매약총액 (P4/Q4):</span>
+                    <span style="color:#475569; font-weight:600;">일반매약총액 (P4):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeOtcRaw)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">조제본인부담금합 (P5/Q5):</span>
-                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeCopay)}</span>
+                    <span style="color:#475569; font-weight:600;">조제본인부담금 (P5):</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeCopay)}" oninput="UI.handleMonthlyChange('incomeCopay', this)" style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">전월공단청구금입금액 (P6/Q6):</span>
+                    <span style="color:#475569; font-weight:600;">전월공단청구금입금액 (P6):</span>
                     <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.incomeNhisClaim)}" oninput="UI.handleMonthlyChange('incomeNhisClaim', this)" style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">에누리합계 (P52):</span>
+                    <span style="color:#475569; font-weight:600;">에누리합계 (P7 = P52):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.totalDiscounts)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">약국간거래합 (P8/Q8):</span>
+                    <span style="color:#475569; font-weight:600;">약국간거래합 (P8 = P35):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.totalPharmTrades)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">직원할인구매이체 (P9/Q9):</span>
+                    <span style="color:#475569; font-weight:600;">직원할인구매이체 (P9):</span>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.incomeDiscount)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">카드사별혜택 (P29):</span>
+                    <span style="color:#475569; font-weight:600;">카드사별혜택 (P10 = P29):</span>
                     <span style="font-weight:800; color:#16a34a;">₩${window.store.formatMoney(m.incCardBenefit)}</span>
                   </div>
                 </div>

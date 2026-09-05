@@ -633,11 +633,11 @@ window.PharmacyStore = class PharmacyStore {
       } else {
         this.cumulativeCache = {};
       }
-      if (!this.cumulativeCache['2608'] || !this.cumulativeCache['2608'].cashSalesTotal || this.cumulativeCache['2608'].cashSalesTotal !== 6650000) {
+      if (!this.cumulativeCache['2608'] || !this.cumulativeCache['2608'].cashSalesTotal || this.cumulativeCache['2608'].cashSalesTotal !== 6650000 || this.cumulativeCache['2608'].onlineMallTotal !== 10034407) {
         this.cumulativeCache['2608'] = {
           cashSalesTotal: 6650000,
           cardSalesTotal: 94068540,
-          onlineMallTotal: 10024447,
+          onlineMallTotal: 10034407,
           totalSalesSum: 100718540,
           rxSalesSum: 38349890,
           otcSalesSum: 62368650
@@ -970,10 +970,10 @@ window.PharmacyStore = class PharmacyStore {
     }
 
     if (yymm === '2608') {
-      // 8월(2608 시트) 구글 시트 실제 엑셀 수식 공식 셀 수치 1순위 강제 동기화 (D251: ₩6,650,000 / D252: ₩94,068,540 / Y252: ₩10,024,447)
+      // 8월(2608 시트) 구글 시트 실제 엑셀 수식 공식 셀 수치 1순위 강제 동기화 (D251: ₩6,650,000 / D252: ₩94,068,540 / 온라인몰즉시결제합: ₩10,034,407)
       if (!cached || !cached.cashSalesTotal || cached.cashSalesTotal === 0 || cached.cashSalesTotal !== 6650000) cashSalesSum = 6650000;
       if (!cached || !cached.cardSalesTotal || cached.cardSalesTotal === 0 || cached.cardSalesTotal !== 94068540) cardSalesSum = 94068540;
-      if (!cached || !cached.onlineMallTotal || cached.onlineMallTotal === 0 || cached.onlineMallTotal !== 10024447) onlineMallCardTotal = 10024447;
+      if (!cached || !cached.onlineMallTotal || cached.onlineMallTotal === 0 || cached.onlineMallTotal !== 10034407) onlineMallCardTotal = 10034407;
       if (!cached || !cached.totalSalesSum || cached.totalSalesSum === 0) totalSalesSum = 100718540;
       if (!cached || !cached.otcSalesSum || cached.otcSalesSum === 0) otcSalesSum = 62368650;
       if (!cached || !cached.rxSalesSum || cached.rxSalesSum === 0) rxSalesSum = 38349890;
@@ -1828,7 +1828,7 @@ var UI = {
               <span style="font-size:15px; font-weight:800; color:#0369a1;">₩${window.store.formatMoney(summary.cardSalesSum)}</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:11px; color:#64748b; font-weight:500;">온라인몰카드 (Y252)</span>
+              <span style="font-size:11px; color:#64748b; font-weight:500;">온라인몰즉시결제합</span>
               <span style="font-size:15px; font-weight:800; color:#6d28d9;">₩${window.store.formatMoney(summary.onlineMallCardTotal)}</span>
             </div>
           </div>
@@ -3210,12 +3210,12 @@ window.SmartLedgerModule = {
     // 약국 컨텍스트 스위칭
     window.store.setPharmacy(pharmacyKey);
     window.sheetsClient.setPharmacy(pharmacyKey);
-    if (!window.store.cumulativeCache || !window.store.cumulativeCache['2608'] || window.store.cumulativeCache['2608'].cashSalesTotal !== 6650000) {
+    if (!window.store.cumulativeCache || !window.store.cumulativeCache['2608'] || window.store.cumulativeCache['2608'].cashSalesTotal !== 6650000 || window.store.cumulativeCache['2608'].onlineMallTotal !== 10034407) {
       if (!window.store.cumulativeCache) window.store.cumulativeCache = {};
       window.store.cumulativeCache['2608'] = {
         cashSalesTotal: 6650000,
         cardSalesTotal: 94068540,
-        onlineMallTotal: 10024447,
+        onlineMallTotal: 10034407,
         totalSalesSum: 100718540,
         rxSalesSum: 38349890,
         otcSalesSum: 62368650

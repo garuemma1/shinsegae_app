@@ -227,14 +227,16 @@ window.MedicineLocationModule = (function () {
                   <span>📁 앨범/사진 선택</span>
                   <span style="font-size:10px; color:#94a3b8;">(갤러리/PC)</span>
                 </label>
-                <input type="file" id="med-photo-gallery" accept="image/*" style="display:none;" onchange="MedicineLocationModule.handlePhotoSelect(this)">
+                <input type="file" id="med-photo-gallery" accept="image/*" multiple style="display:none;" onchange="MedicineLocationModule.handlePhotoSelect(this)">
               </div>
 
-              <!-- 사진 미리보기 컨테이너 -->
-              <div id="med-photo-preview-container" style="display:none; margin-top:12px; text-align:center; background:#f1f5f9; padding:12px; border-radius:12px; position:relative;">
-                <img id="med-photo-preview-img" style="max-height:200px; border-radius:8px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);" />
-                <input type="hidden" id="med-photo-base64" />
-                <button type="button" onclick="MedicineLocationModule.resetPhoto()" style="position:absolute; top:8px; right:8px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:26px; height:26px; font-size:12px; cursor:pointer;">✕</button>
+              <!-- 📷 다중 사진 미리보기 갤러리 컨테이너 -->
+              <div id="med-photo-preview-container" style="display:none; margin-top:12px; background:#f8fafc; padding:12px; border-radius:14px; border:1.5px solid #cbd5e1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span id="med-photo-count-text" style="font-size:12px; font-weight:800; color:#1d4ed8;">📷 첨부된 사진 (0/5장)</span>
+                  <button type="button" onclick="MedicineLocationModule.resetPhoto()" style="background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; cursor:pointer;">전체 취소 ✖</button>
+                </div>
+                <div id="med-photo-thumbnails-grid" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:4px;" class="no-scrollbar"></div>
               </div>
             </div>
 
@@ -268,14 +270,18 @@ window.MedicineLocationModule = (function () {
   function renderMedicineCard(item) {
     const zone = DEFAULT_ZONES.find(z => z.id === item.zoneId) || { name: item.zoneName || '일반구역', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: 'fa-box' };
     const historyCount = item.history ? item.history.length : 1;
+    const allPhotos = (item.photos && Array.isArray(item.photos) && item.photos.length > 0)
+      ? item.photos
+      : (item.photoUrl ? [item.photoUrl] : []);
+    const mainPhoto = allPhotos[0] || '';
 
     return `
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition relative">
         <div>
           <!-- 사진 보관 뷰 영역 -->
           <div class="relative w-full h-40 sm:h-44 bg-slate-100 dark:bg-slate-950 overflow-hidden border-b border-slate-100 dark:border-slate-800 cursor-pointer" onclick="MedicineLocationModule.openDetailModal('${item.id}')">
-            ${item.photoUrl ? `
-              <img src="${item.photoUrl}" alt="${escapeHTML(item.name)}" class="w-full h-full object-cover" />
+            ${mainPhoto ? `
+              <img src="${mainPhoto}" alt="${escapeHTML(item.name)}" class="w-full h-full object-cover" />
             ` : `
               <div class="flex flex-col items-center justify-center h-full text-slate-400">
                 <i class="fas fa-camera text-2xl mb-1"></i>
@@ -285,6 +291,11 @@ window.MedicineLocationModule = (function () {
             <span class="absolute top-2.5 left-2.5 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full shadow-sm" style="background:${zone.bg}; color:${zone.color}; border:1px solid ${zone.border};">
               <i class="fas ${zone.icon}"></i> ${zone.name}
             </span>
+            ${allPhotos.length > 1 ? `
+              <span class="absolute top-2.5 right-2.5 text-[11px] font-black px-2.5 py-1 rounded-full shadow-md bg-black/75 text-white flex items-center gap-1 backdrop-blur-sm">
+                <i class="fas fa-images text-blue-400"></i> 📷 ${allPhotos.length}장
+              </span>
+            ` : ''}
           </div>
 
           <!-- 카드 정보 본문 -->
@@ -330,76 +341,114 @@ window.MedicineLocationModule = (function () {
         </div>
       </div>
     `;
+  let selectedMedPhotos = []; // [{ id, data, isNew }]
+
+  async function handlePhotoSelect(inputEl) {
+    if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
+    const files = Array.from(inputEl.files);
+
+    const remainingSlots = 5 - selectedMedPhotos.length;
+    if (remainingSlots <= 0) {
+      alert('⚠️ 사진은 최대 5장까지 첨부할 수 있습니다.');
+      inputEl.value = '';
+      return;
+    }
+
+    const filesToProcess = files.slice(0, remainingSlots);
+
+    for (const file of filesToProcess) {
+      try {
+        const compressedBase64 = await compressPhotoFile(file);
+        if (compressedBase64) {
+          selectedMedPhotos.push({
+            id: 'med_p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            data: compressedBase64,
+            isNew: true
+          });
+        }
+      } catch (err) {
+        console.warn("Photo compress fail:", err);
+      }
+    }
+
+    inputEl.value = '';
+    renderMedPhotoPreviews();
   }
 
-  function handlePhotoSelect(inputEl) {
-    if (!inputEl || !inputEl.files || !inputEl.files[0]) return;
-    const file = inputEl.files[0];
-
-    const prevImg = document.getElementById('med-photo-preview-img');
-    const base64Input = document.getElementById('med-photo-base64');
-    const prevContainer = document.getElementById('med-photo-preview-container');
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 640;
-            let width = img.width || 640;
-            let height = img.height || 480;
-
-            if (width > MAX_WIDTH) {
-              height = Math.round((height * MAX_WIDTH) / width);
-              width = MAX_WIDTH;
+  function compressPhotoFile(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 480;
+              let width = img.width || MAX_WIDTH;
+              let height = img.height || 360;
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.4));
+            } catch (err) {
+              resolve(e.target.result);
             }
+          };
+          img.onerror = () => resolve('');
+          img.src = e.target.result;
+        } catch (err) {
+          resolve('');
+        }
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
 
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'high';
-              ctx.drawImage(img, 0, 0, width, height);
-            }
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.55);
+  function renderMedPhotoPreviews() {
+    const container = document.getElementById('med-photo-preview-container');
+    const grid = document.getElementById('med-photo-thumbnails-grid');
+    const textEl = document.getElementById('med-photo-count-text');
+    if (!container || !grid) return;
 
-            if (prevImg) prevImg.src = compressedBase64;
-            if (base64Input) base64Input.value = compressedBase64;
-            if (prevContainer) prevContainer.style.display = 'block';
-          } catch (err) {
-            console.warn("Canvas resize fail, using fallback:", err);
-            if (prevImg) prevImg.src = e.target.result;
-            if (base64Input) base64Input.value = e.target.result;
-            if (prevContainer) prevContainer.style.display = 'block';
-          }
-        };
-        img.onerror = () => {
-          if (prevImg) prevImg.src = e.target.result;
-          if (base64Input) base64Input.value = e.target.result;
-          if (prevContainer) prevContainer.style.display = 'block';
-        };
-        img.src = e.target.result;
-      } catch (err) {
-        console.error("FileReader onload error:", err);
-      }
-    };
-    reader.readAsDataURL(file);
+    if (selectedMedPhotos.length === 0) {
+      container.style.display = 'none';
+      grid.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'block';
+    if (textEl) textEl.innerText = `📷 첨부된 사진 (${selectedMedPhotos.length}/5장)`;
+
+    grid.innerHTML = selectedMedPhotos.map((photo, idx) => `
+      <div style="position:relative; flex-shrink:0; width:72px; height:72px; border-radius:10px; overflow:hidden; border:1.5px solid #cbd5e1; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <img src="${photo.data}" alt="사진 ${idx + 1}" style="width:100%; height:100%; object-fit:cover;" />
+        <button type="button" onclick="MedicineLocationModule.removeMedPhoto(${idx})" style="position:absolute; top:2px; right:2px; background:rgba(220,38,38,0.9); color:#ffffff; border:none; width:20px; height:20px; border-radius:50%; font-size:11px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.3); z-index:2;">✕</button>
+        <span style="position:absolute; bottom:2px; left:2px; background:rgba(15,23,42,0.7); color:#fff; font-size:9px; font-weight:800; padding:1px 4px; border-radius:4px;">${idx + 1}</span>
+      </div>
+    `).join('');
+  }
+
+  function removeMedPhoto(idx) {
+    if (idx >= 0 && idx < selectedMedPhotos.length) {
+      selectedMedPhotos.splice(idx, 1);
+      renderMedPhotoPreviews();
+    }
   }
 
   function resetPhoto() {
+    selectedMedPhotos = [];
     const camInput = document.getElementById('med-photo-camera');
     const galInput = document.getElementById('med-photo-gallery');
     if (camInput) camInput.value = '';
     if (galInput) galInput.value = '';
-
-    const base64Input = document.getElementById('med-photo-base64');
-    if (base64Input) base64Input.value = '';
-
-    const prevContainer = document.getElementById('med-photo-preview-container');
-    if (prevContainer) prevContainer.style.display = 'none';
+    renderMedPhotoPreviews();
   }
 
   function openCreateModal() {
@@ -428,17 +477,26 @@ window.MedicineLocationModule = (function () {
     document.getElementById('med-notes').value = target.notes || '';
     resetPhoto();
 
-    if (target.photoUrl) {
-      document.getElementById('med-photo-preview-img').src = target.photoUrl;
-      document.getElementById('med-photo-base64').value = target.photoUrl;
-      document.getElementById('med-photo-preview-container').style.display = 'block';
-    }
+    // 기존 등록된 사진들 복원
+    const existingPhotos = (target.photos && Array.isArray(target.photos) && target.photos.length > 0) 
+      ? target.photos 
+      : (target.photoUrl ? [target.photoUrl] : []);
+
+    existingPhotos.forEach((url, idx) => {
+      selectedMedPhotos.push({
+        id: 'med_exist_' + idx,
+        data: url,
+        isNew: false
+      });
+    });
+    renderMedPhotoPreviews();
 
     document.getElementById('med-location-modal').style.display = 'flex';
   }
 
   function closeModal() {
     document.getElementById('med-location-modal').style.display = 'none';
+    resetPhoto();
   }
 
   async function handleSubmit(e) {
@@ -471,15 +529,24 @@ window.MedicineLocationModule = (function () {
 
       const locDetailElem = document.getElementById('med-location-detail');
       const locationDetail = (locDetailElem && locDetailElem.value.trim()) ? locDetailElem.value.trim() : '보관위치 사진 참조';
-      const photoElem = document.getElementById('med-photo-base64');
-      const photoBase64 = photoElem ? photoElem.value : '';
       const notesElem = document.getElementById('med-notes');
       const notes = notesElem ? notesElem.value.trim() : '';
 
-      let photoUrl = photoBase64;
-      if (photoBase64 && window.App && typeof window.App.processAndUploadPhoto === 'function') {
-        photoUrl = await window.App.processAndUploadPhoto(photoBase64);
+      // 🚀 Cloudinary 1순위 다중 사진 병렬 업로드 (규칙 107 준수)
+      let uploadedUrls = [];
+      if (selectedMedPhotos && selectedMedPhotos.length > 0) {
+        uploadedUrls = await Promise.all(selectedMedPhotos.map(async (p) => {
+          if (!p.isNew && p.data && p.data.startsWith('http')) {
+            return p.data;
+          }
+          if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
+            return await window.App.processAndUploadPhoto(p.data);
+          }
+          return p.data;
+        }));
       }
+      uploadedUrls = uploadedUrls.filter(Boolean);
+      const mainPhotoUrl = uploadedUrls[0] || '';
 
       const now = new Date();
       const year = now.getFullYear();
@@ -499,6 +566,7 @@ window.MedicineLocationModule = (function () {
             zoneName: target.zoneName,
             locationDetail: target.locationDetail,
             photoUrl: target.photoUrl,
+            photos: target.photos || (target.photoUrl ? [target.photoUrl] : []),
             updatedBy: target.updatedBy,
             updatedAt: target.updatedAt,
             notes: target.notes
@@ -512,7 +580,8 @@ window.MedicineLocationModule = (function () {
           target.zoneId = zoneId;
           target.zoneName = zoneName;
           target.locationDetail = locationDetail;
-          target.photoUrl = photoUrl || target.photoUrl;
+          target.photoUrl = mainPhotoUrl;
+          target.photos = uploadedUrls;
           target.notes = notes;
           target.updatedBy = currUser.name;
           target.updatedAt = nowMs;
@@ -526,7 +595,8 @@ window.MedicineLocationModule = (function () {
           zoneId,
           zoneName,
           locationDetail,
-          photoUrl: photoUrl || '',
+          photoUrl: mainPhotoUrl,
+          photos: uploadedUrls,
           notes,
           updatedBy: currUser.name,
           updatedAt: nowMs,
@@ -538,6 +608,7 @@ window.MedicineLocationModule = (function () {
 
       saveStorageData(items);
       closeModal();
+      resetPhoto();
       searchQuery = '';
       activeCategory = 'ALL';
       alert('✅ 성공적으로 저장되었습니다!');
@@ -562,6 +633,9 @@ window.MedicineLocationModule = (function () {
 
     const history = target.history || [];
     const zone = DEFAULT_ZONES.find(z => z.id === target.zoneId) || { name: target.zoneName, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' };
+    const allPhotos = (target.photos && Array.isArray(target.photos) && target.photos.length > 0)
+      ? target.photos
+      : (target.photoUrl ? [target.photoUrl] : []);
 
     const contentHtml = `
       <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px; padding-right:50px;">
@@ -581,13 +655,25 @@ window.MedicineLocationModule = (function () {
         ` : ''}
       </div>
 
-      <!-- 대표 위치 사진 -->
-      ${target.photoUrl ? `
+      <!-- 대표 위치 사진 및 갤러리 -->
+      ${allPhotos.length > 0 ? `
         <div style="margin-bottom:18px; text-align:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:12px; position:relative;">
-          <img src="${target.photoUrl}" alt="${escapeHTML(target.name)}" onclick="MedicineLocationModule.openPhoto('${target.id}')" style="max-height:280px; width:100%; object-fit:contain; border-radius:10px; cursor:pointer;" />
+          <img src="${allPhotos[0]}" alt="${escapeHTML(target.name)}" onclick="MedicineLocationModule.openPhoto('${target.id}', 0)" style="max-height:280px; width:100%; object-fit:contain; border-radius:10px; cursor:pointer;" />
+          
+          ${allPhotos.length > 1 ? `
+            <div style="display:flex; gap:8px; overflow-x:auto; margin-top:10px; padding:4px 2px; justify-content:center;" class="no-scrollbar">
+              ${allPhotos.map((url, pIdx) => `
+                <div onclick="MedicineLocationModule.openPhoto('${target.id}', ${pIdx})" style="position:relative; width:56px; height:56px; border-radius:8px; overflow:hidden; border:2px solid ${pIdx === 0 ? '#2563eb' : '#cbd5e1'}; cursor:pointer; flex-shrink:0;">
+                  <img src="${url}" style="width:100%; height:100%; object-fit:cover;" />
+                  <span style="position:absolute; bottom:1px; right:1px; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; padding:1px 3px; border-radius:3px;">${pIdx+1}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
           <div style="margin-top:8px;">
-            <button type="button" onclick="MedicineLocationModule.openPhoto('${target.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-size:12px; font-weight:800; color:#2563eb; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-              <i class="fas fa-expand"></i> 사진 원본 크게보기
+            <button type="button" onclick="MedicineLocationModule.openPhoto('${target.id}', 0)" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:10px; font-size:12px; font-weight:800; color:#2563eb; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+              <i class="fas fa-expand"></i> 사진 ${allPhotos.length > 1 ? `전체 크게보기 (총 ${allPhotos.length}장)` : '원본 크게보기'}
             </button>
           </div>
         </div>
@@ -739,12 +825,16 @@ window.MedicineLocationModule = (function () {
     });
   }
 
-  function openPhoto(id) {
+  function openPhoto(id, initialIdx = 0) {
     try {
       const items = getStorageData() || [];
       const target = items.find(i => String(i.id) === String(id));
-      if (target && target.photoUrl && window.App && typeof window.App.openImageLightbox === 'function') {
-        window.App.openImageLightbox(target.photoUrl, target.name || '약품 위치 사진');
+      if (!target) return;
+      const allPhotos = (target.photos && Array.isArray(target.photos) && target.photos.length > 0)
+        ? target.photos
+        : (target.photoUrl ? [target.photoUrl] : []);
+      if (allPhotos.length > 0 && window.App && typeof window.App.openImageLightbox === 'function') {
+        window.App.openImageLightbox(allPhotos, target.name || '약품 위치 사진', initialIdx);
       }
     } catch(e) {
       console.warn('openPhoto error:', e);
@@ -753,6 +843,6 @@ window.MedicineLocationModule = (function () {
 
   return {
     render, openCreateModal, openEditModal, closeModal, openDetailModal, closeDetailModal,
-    handlePhotoSelect, resetPhoto, handleSubmit, handleSearch, filterCategory, deleteMedicine, openPhoto
+    handlePhotoSelect, removeMedPhoto, resetPhoto, handleSubmit, handleSearch, filterCategory, deleteMedicine, openPhoto
   };
 })();

@@ -234,14 +234,18 @@ window.WorklogModule = (function () {
 
                       <!-- 2단: 전용 박스칸 (100% 좌측 0px 밀착 칼정렬) -->
                       <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; text-align: left !important; width: 100% !important; box-sizing: border-box !important; margin: 0 !important;">
-                        <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-line !important; word-break: break-word !important; text-align: left !important; margin: 0 !important; padding: 0 !important;">${cleanContent}</div>
-                        ${task.imageUrl ? `
-                          <div style="margin-top: 10px; text-align: left !important;">
-                            <button type="button" onclick="WorklogModule.openPhoto('${task.id}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; color: #1d4ed8; font-size: 12.5px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
-                              <i class="fas fa-camera text-blue-600 me-1"></i> 📷 첨부 사진 크게보기 (클릭)
-                            </button>
-                          </div>
-                        ` : ''}
+                        <div style="font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.6; white-space: pre-wrap; word-break: break-all; text-align: left !important;">${cleanContent}</div>
+                        ${(() => {
+                          const imgs = (task.images && Array.isArray(task.images) && task.images.length > 0) ? task.images : (task.imageUrl ? [task.imageUrl] : []);
+                          if (imgs.length === 0) return '';
+                          return `
+                            <div style="margin-top: 10px; text-align: left !important;">
+                              <button type="button" onclick="WorklogModule.openPhoto('${task.id}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; color: #1d4ed8; font-size: 12.5px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
+                                <i class="fas fa-camera text-blue-600 me-1"></i> 📷 첨부 사진 ${imgs.length > 1 ? `(총 ${imgs.length}장) ` : ''}크게보기 (클릭)
+                              </button>
+                            </div>
+                          `;
+                        })()}
                       </div>
 
                     </div>
@@ -318,13 +322,17 @@ window.WorklogModule = (function () {
                    <!-- 본문 전용 박스칸 (100% 좌측 0px 밀착 칼정렬) -->
                    <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; text-align: left !important; width: 100% !important; box-sizing: border-box !important; margin: 0 !important;">
                      <div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 15.5px !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.65 !important; white-space: pre-line !important; word-break: break-word !important; text-align: left !important; margin: 0 !important; padding: 0 !important;">${cleanContent}</div>
-                     ${log.imageUrl ? `
-                       <div style="margin-top: 10px; text-align: left !important;">
-                         <button type="button" onclick="App.openImageLightbox('${log.imageUrl}', '${authorStr.replace(/'/g, "\\'")}님의 첨부 사진')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; color: #1d4ed8; font-size: 12.5px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
-                           <i class="fas fa-camera text-blue-600 me-1"></i> 📷 첨부 사진 크게보기 (클릭)
-                         </button>
-                       </div>
-                     ` : ''}
+                      ${(() => {
+                        const imgs = (log.images && Array.isArray(log.images) && log.images.length > 0) ? log.images : (log.imageUrl ? [log.imageUrl] : []);
+                        if (imgs.length === 0) return '';
+                        return `
+                          <div style="margin-top: 10px; text-align: left !important;">
+                            <button type="button" onclick="WorklogModule.openPhoto('${log.id}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; color: #1d4ed8; font-size: 12.5px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
+                              <i class="fas fa-camera text-blue-600 me-1"></i> 📷 첨부 사진 ${imgs.length > 1 ? `(총 ${imgs.length}장) ` : ''}크게보기 (클릭)
+                            </button>
+                          </div>
+                        `;
+                      })()}
                    </div>
 
                    <!-- 하단 인수인계 확인 바: 1:1 수평 완벽 배치 -->
@@ -399,18 +407,16 @@ window.WorklogModule = (function () {
                   <span>📁 앨범/사진 선택</span>
                   <span style="font-size:10.5px; color:#94a3b8; font-weight:600;">(갤러리/PC)</span>
                 </label>
-                <input type="file" id="wl-image-gallery" accept="image/*" style="display:none;" onchange="WorklogModule.handleFileSelect(this)">
+                <input type="file" id="wl-image-gallery" accept="image/*" multiple style="display:none;" onchange="WorklogModule.handleFileSelect(this)">
               </div>
 
-              <!-- 선택된 사진 파일명 표시 바 -->
-              <div id="wl-file-name-bar" style="display:none; margin-top:10px; background:#f0fdf4; border:1px solid #86efac; color:#166534; font-size:12px; font-weight:700; padding:8px 12px; border-radius:8px; align-items:center; justify-content:space-between;">
-                <span id="wl-file-name-text">📷 선택된 사진</span>
-                <button type="button" onclick="WorklogModule.resetImageSelection()" style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer; font-weight:bold;">취소 ✖</button>
-              </div>
-
-              <div id="wl-preview-container" style="display:none; margin-top:12px; text-align:center; background:#f1f5f9; padding:14px; border-radius:12px;">
-                <img id="wl-preview-img" style="max-height:180px; border-radius:8px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);" />
-                <input type="hidden" id="wl-compressed-base64" />
+              <!-- 📷 다중 사진 미리보기 갤러리 컨테이너 -->
+              <div id="wl-preview-container" style="display:none; margin-top:12px; background:#f8fafc; padding:12px; border-radius:14px; border:1.5px solid #cbd5e1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span id="wl-file-name-text" style="font-size:12px; font-weight:800; color:#1d4ed8;">📷 첨부된 사진 (0/5장)</span>
+                  <button type="button" onclick="WorklogModule.resetImageSelection()" style="background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; cursor:pointer;">전체 취소 ✖</button>
+                </div>
+                <div id="wl-thumbnails-grid" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:4px;" class="no-scrollbar"></div>
               </div>
             </div>
 
@@ -521,72 +527,114 @@ window.WorklogModule = (function () {
     return gridHtml;
   }
 
-  function handleFileSelect(inputEl) {
-    const file = inputEl.files[0];
-    if (!file) return;
+  let selectedWlPhotos = []; // [{ id, base64, name }]
 
-    const barEl = document.getElementById('wl-file-name-bar');
-    const textEl = document.getElementById('wl-file-name-text');
-    if (barEl && textEl) {
-      textEl.innerText = '📷 선택됨: ' + file.name;
-      barEl.style.display = 'flex';
+  async function handleFileSelect(inputEl) {
+    if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
+    const files = Array.from(inputEl.files);
+
+    const remainingSlots = 5 - selectedWlPhotos.length;
+    if (remainingSlots <= 0) {
+      alert('⚠️ 사진은 최대 5장까지 첨부할 수 있습니다.');
+      inputEl.value = '';
+      return;
     }
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (e) => {
+    const filesToProcess = files.slice(0, remainingSlots);
+
+    for (const file of filesToProcess) {
       try {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            // ✅ 480px / quality 0.4 → ~30~60KB로 초경량화 (localStorage 초과 방지)
-            const MAX_WIDTH = 480;
-            let width = img.width || MAX_WIDTH;
-            let height = img.height || 360;
-            if (width > MAX_WIDTH) {
-              height = Math.round((height * MAX_WIDTH) / width);
-              width = MAX_WIDTH;
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) ctx.drawImage(img, 0, 0, width, height);
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
-            const prevImg = document.getElementById('wl-preview-img');
-            const base64Input = document.getElementById('wl-compressed-base64');
-            const prevContainer = document.getElementById('wl-preview-container');
-            if (prevImg) prevImg.src = compressedBase64;
-            if (base64Input) base64Input.value = compressedBase64;
-            if (prevContainer) prevContainer.style.display = 'block';
-          } catch (err) {
-            console.warn('Canvas compress fail:', err);
-            const base64Input = document.getElementById('wl-compressed-base64');
-            if (base64Input) base64Input.value = '';
-          }
-        };
-        img.onerror = () => {};
-        img.src = e.target.result;
+        const compressedBase64 = await compressPhotoFile(file);
+        if (compressedBase64) {
+          selectedWlPhotos.push({
+            id: 'wl_photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            base64: compressedBase64,
+            name: file.name
+          });
+        }
       } catch (err) {
-        console.warn('handleFileSelect error:', err);
+        console.warn('File compress error:', err);
       }
-    };
+    }
+
+    inputEl.value = '';
+    renderWlPhotoPreviews();
+  }
+
+  function compressPhotoFile(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 480;
+              let width = img.width || MAX_WIDTH;
+              let height = img.height || 360;
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.4));
+            } catch (err) {
+              resolve(e.target.result);
+            }
+          };
+          img.onerror = () => resolve('');
+          img.src = e.target.result;
+        } catch (err) {
+          resolve('');
+        }
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderWlPhotoPreviews() {
+    const container = document.getElementById('wl-preview-container');
+    const grid = document.getElementById('wl-thumbnails-grid');
+    const textEl = document.getElementById('wl-file-name-text');
+    if (!container || !grid) return;
+
+    if (selectedWlPhotos.length === 0) {
+      container.style.display = 'none';
+      grid.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'block';
+    if (textEl) textEl.innerText = `📷 첨부된 사진 (${selectedWlPhotos.length}/5장)`;
+
+    grid.innerHTML = selectedWlPhotos.map((photo, idx) => `
+      <div style="position:relative; flex-shrink:0; width:72px; height:72px; border-radius:10px; overflow:hidden; border:1.5px solid #cbd5e1; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <img src="${photo.base64}" alt="${photo.name || '사진'}" style="width:100%; height:100%; object-fit:cover;" />
+        <button type="button" onclick="WorklogModule.removeWlPhoto(${idx})" style="position:absolute; top:2px; right:2px; background:rgba(220,38,38,0.9); color:#ffffff; border:none; width:20px; height:20px; border-radius:50%; font-size:11px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.3); z-index:2;">✕</button>
+        <span style="position:absolute; bottom:2px; left:2px; background:rgba(15,23,42,0.7); color:#fff; font-size:9px; font-weight:800; padding:1px 4px; border-radius:4px;">${idx + 1}</span>
+      </div>
+    `).join('');
+  }
+
+  function removeWlPhoto(idx) {
+    if (idx >= 0 && idx < selectedWlPhotos.length) {
+      selectedWlPhotos.splice(idx, 1);
+      renderWlPhotoPreviews();
+    }
   }
 
   function resetImageSelection() {
+    selectedWlPhotos = [];
     const camInput = document.getElementById('wl-image-camera');
     const galInput = document.getElementById('wl-image-gallery');
     if (camInput) camInput.value = '';
     if (galInput) galInput.value = '';
-
-    const barEl = document.getElementById('wl-file-name-bar');
-    if (barEl) barEl.style.display = 'none';
-
-    const base64Input = document.getElementById('wl-compressed-base64');
-    if (base64Input) base64Input.value = '';
-
-    const prevContainer = document.getElementById('wl-preview-container');
-    if (prevContainer) prevContainer.style.display = 'none';
+    renderWlPhotoPreviews();
   }
 
   function previewImage(event) {
@@ -606,16 +654,17 @@ window.WorklogModule = (function () {
       const content = document.getElementById('wl-content') ? document.getElementById('wl-content').value.trim() : '';
       if (!content) { alert('⚠️ 내용을 입력해 주세요.'); return; }
 
-      // 🚀 Cloudinary 1순위 영구 클라우드 업로드 파이프라인 (규칙 107 준수)
-      const base64Data = (document.getElementById('wl-compressed-base64') && document.getElementById('wl-compressed-base64').value) || '';
-      let imageUrl = '';
-      if (base64Data && base64Data.startsWith('data:image')) {
+      // 🚀 Cloudinary 1순위 다중 사진 병렬 업로드 (규칙 107 준수)
+      let uploadedUrls = [];
+      if (selectedWlPhotos.length > 0) {
         if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
-          imageUrl = await window.App.processAndUploadPhoto(base64Data);
+          uploadedUrls = await Promise.all(selectedWlPhotos.map(p => window.App.processAndUploadPhoto(p.base64)));
         } else {
-          imageUrl = base64Data;
+          uploadedUrls = selectedWlPhotos.map(p => p.base64);
         }
       }
+      uploadedUrls = uploadedUrls.filter(Boolean);
+      const mainImageUrl = uploadedUrls[0] || '';
 
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
@@ -632,7 +681,8 @@ window.WorklogModule = (function () {
         type: tag,
         content: content,
         text: content,
-        imageUrl: imageUrl,
+        imageUrl: mainImageUrl,
+        images: uploadedUrls,
         status: 'PENDING',
         createdAt: fullCreatedAt,
         updatedAt: Date.now(),
@@ -643,6 +693,7 @@ window.WorklogModule = (function () {
       logs.unshift(newLog);
       window.SheetsSync.saveWorklogs(logs);
 
+      resetImageSelection();
       closeModal();
       alert('✅ 성공적으로 등록되었습니다.');
       render('module-content');
@@ -796,13 +847,17 @@ window.WorklogModule = (function () {
           </div>
           <div style="font-size:15px; color:#334155; line-height:1.6; background:#f1f5f9; padding:14px 16px; border-radius:12px;">
             <div>${highlightedText}</div>
-            ${l.imageUrl ? `
-              <div style="margin-top:10px;">
-                <button type="button" onclick="WorklogModule.openPhoto('${l.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                  <i class="far fa-image me-1" style="font-size:12px;"></i> 첨부 사진 크게보기 (클릭)
-                </button>
-              </div>
-            ` : ''}
+            ${(() => {
+              const imgs = (l.images && Array.isArray(l.images) && l.images.length > 0) ? l.images : (l.imageUrl ? [l.imageUrl] : []);
+              if (imgs.length === 0) return '';
+              return `
+                <div style="margin-top:10px;">
+                  <button type="button" onclick="WorklogModule.openPhoto('${l.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <i class="far fa-image me-1" style="font-size:12px;"></i> 첨부 사진 ${imgs.length > 1 ? `(총 ${imgs.length}장) ` : ''}크게보기 (클릭)
+                  </button>
+                </div>
+              `;
+            })()}
           </div>
         </div>
       `}).join('');
@@ -858,13 +913,17 @@ window.WorklogModule = (function () {
           
           <div style="font-size:15px; color:#334155; line-height:1.7; white-space:pre-wrap; word-break:break-word; background:#f1f5f9; padding:14px 16px; border-radius:12px;">
             <div>${contentText}</div>
-            ${l.imageUrl ? `
-              <div style="margin-top:10px;">
-                <button type="button" onclick="WorklogModule.openPhoto('${l.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                  <i class="far fa-image me-1" style="font-size:12px;"></i> 첨부 사진 크게보기 (클릭)
-                </button>
-              </div>
-            ` : ''}
+            ${(() => {
+              const imgs = (l.images && Array.isArray(l.images) && l.images.length > 0) ? l.images : (l.imageUrl ? [l.imageUrl] : []);
+              if (imgs.length === 0) return '';
+              return `
+                <div style="margin-top:10px;">
+                  <button type="button" onclick="WorklogModule.openPhoto('${l.id}')" style="display:inline-flex; align-items:center; gap:5px; background:#ffffff; border:1px solid #cbd5e1; padding:6px 14px; border-radius:8px; font-size:12px; color:#2563eb; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <i class="far fa-image me-1" style="font-size:12px;"></i> 첨부 사진 ${imgs.length > 1 ? `(총 ${imgs.length}장) ` : ''}크게보기 (클릭)
+                  </button>
+                </div>
+              `;
+            })()}
           </div>
         </div>
       `}).join('');
@@ -880,8 +939,10 @@ window.WorklogModule = (function () {
     try {
       const logs = (window.SheetsSync && typeof window.SheetsSync.getWorklogs === 'function' ? window.SheetsSync.getWorklogs() : null) || [];
       const target = logs.find(l => String(l.id) === String(id));
-      if (target && target.imageUrl && window.App && typeof window.App.openImageLightbox === 'function') {
-        window.App.openImageLightbox(target.imageUrl, (target.authorName || '약국') + '님의 첨부 사진');
+      if (!target) return;
+      const allImgs = (target.images && Array.isArray(target.images) && target.images.length > 0) ? target.images : (target.imageUrl ? [target.imageUrl] : []);
+      if (allImgs.length > 0 && window.App && typeof window.App.openImageLightbox === 'function') {
+        window.App.openImageLightbox(allImgs, (target.authorName || '약국') + '님의 첨부 사진');
       }
     } catch(e) {
       console.warn('openPhoto error:', e);
@@ -890,7 +951,7 @@ window.WorklogModule = (function () {
 
   // 외부에서 호출할 수 있도록 함수들을 내보냅니다 (checkTask, deleteTask 포함됨)
   return { 
-    render, showCreateModal, closeModal, previewImage, handleFileSelect, resetImageSelection,
+    render, showCreateModal, closeModal, previewImage, handleFileSelect, resetImageSelection, removeWlPhoto,
     submitTask, completeTask, checkTask, deleteTask, changeMonth, 
     openDayModal, closeDayModal, executeSearch, openPhoto
   };

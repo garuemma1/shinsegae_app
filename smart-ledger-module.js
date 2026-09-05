@@ -507,17 +507,17 @@ var DEFAULT_OTHER_EXPENSES = [
 ];
 
 var DEFAULT_DISCOUNTS = [
-  { name: '동화약품', amount: 0, cell: 'P53' },
-  { name: '유화메디칼', amount: 70000, cell: 'P54' },
-  { name: '하나', amount: 0, cell: 'P55' },
-  { name: '동원금융', amount: 95110, cell: 'P56' },
-  { name: '훼밀리팜금융비용', amount: 573546, cell: 'P57' },
-  { name: '백제금융', amount: 296372, cell: 'P58' },
-  { name: '지오영금융', amount: 227036, cell: 'P59' },
-  { name: '동원에누리', amount: 50000, cell: 'P60' },
-  { name: '훼밀리팜에누리', amount: 720000, cell: 'P61' },
-  { name: '메디플레이', amount: 318636, cell: 'P62' },
-  { name: '차정환', amount: 0, cell: 'P63' }
+  { name: '동화약품', amount: 0, cell: 'P54' },
+  { name: '유화메디칼', amount: 70000, cell: 'P55' },
+  { name: '하나', amount: 0, cell: 'P56' },
+  { name: '동원금융', amount: 95110, cell: 'P57' },
+  { name: '훼밀리직접금융비용', amount: 573546, cell: 'P58' },
+  { name: '백제금융', amount: 296372, cell: 'P59' },
+  { name: '지오영금융', amount: 227036, cell: 'P60' },
+  { name: '동원에누리', amount: 50000, cell: 'P61' },
+  { name: '훼밀리에누리', amount: 720000, cell: 'P62' },
+  { name: '훼밀리페이', amount: 318636, cell: 'P63' },
+  { name: '위영관', amount: 0, cell: 'P64' }
 ];
 
 var DEFAULT_ONLINE_MALLS = [
@@ -3220,6 +3220,15 @@ window.SmartLedgerModule = {
         rxSalesSum: 38349890,
         otcSalesSum: 62368650
       };
+      try { window.store.saveToLocal(); } catch (e) {}
+    }
+
+    const m2608 = window.store.monthlyRecords && window.store.monthlyRecords['2608'];
+    if (!m2608 || !m2608.discounts || m2608.discounts.length < 11 || !m2608.discounts.some(d => d.name.includes('훼밀리에누리'))) {
+      if (!window.store.monthlyRecords) window.store.monthlyRecords = {};
+      const targetM = m2608 || window.store.getMonthly('2608');
+      targetM.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
+      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(targetM);
       try { window.store.saveToLocal(); } catch (e) {}
     }
 

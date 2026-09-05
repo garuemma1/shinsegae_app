@@ -356,13 +356,17 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
   for (var r = 54; r <= 80; r++) {
     var rawName = getCellValue(dispValues, r, 14) || getCellValue(dispValues, r, 15) || '';
     var amt = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
-    if (rawName && !String(rawName).includes('에누리') && !String(rawName).includes('합계')) discounts.push({ name: String(rawName).trim(), amount: amt, cell: 'P' + r });
+    var cleanName = String(rawName).trim();
+    var isHeader = (cleanName === '에누리' || cleanName === '에누리합계' || cleanName === '에누리/금융할인' || cleanName === '합계' || cleanName.indexOf('합계') === 0);
+    if (cleanName && !isHeader) discounts.push({ name: cleanName, amount: amt, cell: 'P' + r });
   }
   if (discounts.length === 0) {
     for (var r = 30; r <= 50; r++) {
       var rawName = getCellValue(dispValues, r, 14) || getCellValue(dispValues, r, 15) || '';
       var amt = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
-      if (rawName && !String(rawName).includes('에누리')) discounts.push({ name: String(rawName).trim(), amount: amt, cell: 'P' + r });
+      var cleanName = String(rawName).trim();
+      var isHeader = (cleanName === '에누리' || cleanName === '에누리합계' || cleanName === '에누리/금융할인' || cleanName === '합계' || cleanName.indexOf('합계') === 0);
+      if (cleanName && !isHeader) discounts.push({ name: cleanName, amount: amt, cell: 'P' + r });
     }
   }
 

@@ -606,10 +606,16 @@ window.WorklogModule = (function () {
       const content = document.getElementById('wl-content') ? document.getElementById('wl-content').value.trim() : '';
       if (!content) { alert('⚠️ 내용을 입력해 주세요.'); return; }
 
-      // 🚀 사진은 이미 handleFileSelect에서 압축 완료된 base64를 직접 사용
+      // 🚀 Cloudinary 1순위 영구 클라우드 업로드 파이프라인 (규칙 107 준수)
       const base64Data = (document.getElementById('wl-compressed-base64') && document.getElementById('wl-compressed-base64').value) || '';
-      let imageUrl = base64Data || '';
-      // 넌블로킹 방식으로 imageUrl은 즉시 base64 그대로 사용 (외부 서버 대기 0초)
+      let imageUrl = '';
+      if (base64Data && base64Data.startsWith('data:image')) {
+        if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
+          imageUrl = await window.App.processAndUploadPhoto(base64Data);
+        } else {
+          imageUrl = base64Data;
+        }
+      }
 
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');

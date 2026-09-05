@@ -1341,6 +1341,12 @@ window.App = (function () {
       console.warn("Read tracking error:", err);
     }
 
+    if (moduleName === 'schedule' && isUserAction) {
+      if (window.ScheduleModule && typeof window.ScheduleModule.setCurrentToNow === 'function') {
+        window.ScheduleModule.setCurrentToNow();
+      }
+    }
+
     renderActiveModule(false);
 
     if (isUserAction && window.innerWidth <= 900) {

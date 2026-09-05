@@ -4,8 +4,9 @@
  */
 window.AnnualLeaveModule = (function () {
 
-  let currentCalYear = 2026;
-  let currentCalMonth = 8;
+  const _initCalDate = new Date();
+  let currentCalYear = _initCalDate.getFullYear();
+  let currentCalMonth = _initCalDate.getMonth() + 1;
   let calViewMode = 'grid'; // 'grid': 달력 뷰, 'list': 모바일 리스트 뷰
   let showInlineLeaveForm = false;
 

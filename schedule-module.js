@@ -4,8 +4,9 @@
  */
 window.ScheduleModule = (function () {
 
-  let currentYear = 2026;
-  let currentMonth = 8;
+  const _initDate = new Date();
+  let currentYear = _initDate.getFullYear();
+  let currentMonth = _initDate.getMonth() + 1;
   let roleFilter = 'all'; // 'all': 전체, 'pharmacist': 약사만
   let showOffStaff = false; // false: 근무자만 보기, true: OFF 포함 전체 보기
   let showSettlement = true;
@@ -1440,9 +1441,16 @@ window.ScheduleModule = (function () {
   }
 
   function goToday() {
-    currentYear = 2026;
-    currentMonth = 8;
+    const now = new Date();
+    currentYear = now.getFullYear();
+    currentMonth = now.getMonth() + 1;
     render('module-content');
+  }
+
+  function setCurrentToNow() {
+    const now = new Date();
+    currentYear = now.getFullYear();
+    currentMonth = now.getMonth() + 1;
   }
 
   let currentModalWorkMode = true; // true: 근무, false: OFF
@@ -2993,6 +3001,7 @@ window.ScheduleModule = (function () {
     executeTaxPaystubPublishing,
     changeMonth,
     goToday,
+    setCurrentToNow,
     openShiftModal,
     onModalEmpChange,
     setModalWorkMode,

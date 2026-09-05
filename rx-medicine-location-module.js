@@ -19,6 +19,31 @@ window.RxMedicineLocationModule = (function () {
     { id: 'ZONE_SAFE', name: '🔒 향정/마약류 보안금고', icon: 'fa-shield-halved', color: '#dc2626', bg: '#fff1f2', border: '#fecdd3' }
   ];
 
+  // 🕒 한국 로컬 일시(KST) 안전 포맷팅 헬퍼 함수
+  function formatLocationDate(val, fallbackStr) {
+    if (fallbackStr && typeof fallbackStr === 'string' && fallbackStr.length >= 10) {
+      return fallbackStr.replace(/-/g, '.');
+    }
+    if (!val) return '';
+    if (typeof val === 'number' || (!isNaN(Number(val)) && String(val).length >= 10 && !String(val).includes('-') && !String(val).includes('.'))) {
+      const d = new Date(Number(val));
+      if (!isNaN(d.getTime())) {
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${yy}.${mm}.${dd} ${hh}:${mi}`;
+      }
+    }
+    if (typeof val === 'string') {
+      if (val.includes('-') || val.includes('.')) {
+        return val.replace(/-/g, '.').substring(0, 16);
+      }
+    }
+    return '';
+  }
+
   function getInitialSound(text) {
     if (!text) return '';
     const CHOSUNG = [
@@ -483,7 +508,7 @@ window.RxMedicineLocationModule = (function () {
         <!-- 하단 관리 메타 바 -->
         <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 text-xs">
           <span class="text-[11px] font-medium text-slate-400">
-            🕒 <b>${escapeHTML(item.updatedBy || '약국')}</b> (${escapeHTML(item.updatedAt ? String(item.updatedAt).substring(5,16) : '')})
+            🕒 <b>${escapeHTML(item.updatedBy || '약국')}</b> · ${escapeHTML(formatLocationDate(item.updatedAt, item.displayDate))}
           </span>
           <div class="flex items-center gap-1.5 flex-wrap">
             <button type="button" onclick="RxMedicineLocationModule.openEditModal('${item.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-bold text-xs transition">
@@ -742,7 +767,7 @@ window.RxMedicineLocationModule = (function () {
         <div style="font-size:15px; font-weight:900; color:#065f46;">${escapeHTML(target.locationDetail || '미지정')}</div>
         ${target.adjustmentReason ? `<div style="font-size:12.5px; color:#334155; margin-top:6px; font-weight:700;">📝 수정한 흔적: ${escapeHTML(target.adjustmentReason)}</div>` : ''}
         <div style="font-size:11px; color:#64748b; margin-top:8px; padding-top:6px; border-top:1px solid #bbf7d0;">
-          수정자: <b>${escapeHTML(target.updatedBy || '약국')}</b> · 최종 수정시각: ${escapeHTML(target.updatedAt || '')}
+          수정자: <b>${escapeHTML(target.updatedBy || '약국')}</b> · 작성/수정일시: ${formatLocationDate(target.updatedAt, target.displayDate)}
         </div>
       </div>
 
@@ -752,14 +777,14 @@ window.RxMedicineLocationModule = (function () {
 
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div style="border-left:3px solid #059669; padding-left:12px; margin-left:4px;">
-          <div style="font-size:11px; color:#059669; font-weight:800;">[최신 수정 흔적] ${target.updatedAt}</div>
+          <div style="font-size:11px; color:#059669; font-weight:800;">[최신 수정 흔적] ${formatLocationDate(target.updatedAt, target.displayDate)}</div>
           <div style="font-size:13px; font-weight:800; color:#0f172a;">${target.zoneName} - ${escapeHTML(target.locationDetail)}</div>
           <div style="font-size:11.5px; color:#334155; font-weight:600;">수정자: <b>${escapeHTML(target.updatedBy)}</b> | 내용: ${escapeHTML(target.adjustmentReason || '최신 등록')}</div>
         </div>
 
         ${history.map((h, idx) => `
           <div style="border-left:3px solid #cbd5e1; padding-left:12px; margin-left:4px; opacity:0.85;">
-            <div style="font-size:11px; color:#64748b; font-weight:700;">[과거 수정 흔적 ${history.length - idx}] ${h.updatedAt || ''}</div>
+            <div style="font-size:11px; color:#64748b; font-weight:700;">[과거 수정 흔적 ${history.length - idx}] ${formatLocationDate(h.updatedAt, h.displayDate)}</div>
             <div style="font-size:12.5px; font-weight:700; color:#475569;">${h.zoneName || ''} - ${escapeHTML(h.locationDetail || '')}</div>
             <div style="font-size:11px; color:#64748b;">수정자: <b>${escapeHTML(h.updatedBy || '')}</b> | 내용: ${escapeHTML(h.adjustmentReason || '이전 수정 흔적')}</div>
           </div>

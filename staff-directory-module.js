@@ -676,6 +676,7 @@ window.StaffDirectoryModule = (function () {
       if (typeof window.SheetsSync.pushToCloud === 'function') {
         window.SheetsSync.pushToCloud();
       }
+      editingEmpId = null;
       alert(`🗑️ [${target.name}] 직원의 계정 및 명부가 성공적으로 삭제되었습니다.`);
       render('module-content');
     }

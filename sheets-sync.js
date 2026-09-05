@@ -61,7 +61,6 @@ window.SheetsSync = (function () {
     { id: 'emp_4', username: 'steve9650@naver.com', email: 'steve9650@naver.com', passcode: '9650', name: '김동완', role: '근무약사', position: '처방검수및일반약재고관리', payType: 'HOURLY', joinDate: '2026-03-01', weekdayRate: 23000, holidayRate: 23000, hourlyRate: 23000, baseMonthlySalary: 0, phone: '010-8236-9650', usedLeave: 5, pendingLeave: 0, memo: '처방검수및일반관리 / 약정시급제 적용 근무약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_5', username: 'yoop@shinsegae.com', email: 'yoop@shinsegae.com', passcode: '5860', name: '유호종', role: '근무약사', position: '파트약사', payType: 'HOURLY', joinDate: '0001-01-01', weekdayRate: 25000, holidayRate: 27000, hourlyRate: 25000, baseMonthlySalary: 0, phone: '010-4055-5860', usedLeave: 2, pendingLeave: 0, memo: '신규 입고약 수량 점검 및 검수 약사', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_6', username: 'sshak6871@naver.com', email: 'sshak6871@naver.com', passcode: '4293', name: '이승학', role: '일반직원', position: '조제실 및 전산 업무총괄', payType: 'MONTHLY', joinDate: '2023-06-12', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2490000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '조제실 및 전산 전반 업무 총괄관리', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_7', username: 'pcs677@naver.com', email: 'pcs677@naver.com', passcode: '7155', name: '김제희', role: '일반직원', position: '조제실일반전산업무', payType: 'MONTHLY', joinDate: '2024-11-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2170000, phone: '010-7273-7155', usedLeave: 6, pendingLeave: 0, memo: '세전계약', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_8', username: 'ysr7979@nate.com', email: 'ysr7979@nate.com', passcode: '4079', name: '윤세라', role: '일반직원', position: '조제실서포트및전산', payType: 'MONTHLY', joinDate: '2026-03-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 1720810, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '조제실재고관리및서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_9', username: 'short0338@naver.com', email: 'short0338@naver.com', passcode: '3257', name: '김배영', role: '일반직원', position: '매장재고관리및 전산서포트', payType: 'MONTHLY', joinDate: '2025-11-18', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 1106700, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '매장 안내 및 전산 서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_10', username: 'mikii1123@naver.com', email: 'mikii1123@naver.com', passcode: '1817', name: '이정은', role: '예비인력', position: '부상', payType: 'MONTHLY', joinDate: '2026-08-18', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-7765-1817', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
@@ -944,17 +943,19 @@ window.SheetsSync = (function () {
       }
     } catch(e) {}
 
+    const deletedIds = getDeletedIds();
+
     if (!emps || emps.length === 0) {
-      emps = INITIAL_EMPLOYEES.map(ie => ({ ...ie }));
+      emps = INITIAL_EMPLOYEES.filter(ie => ie && ie.id && !deletedIds.includes(ie.id)).map(ie => ({ ...ie }));
       safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
     }
 
-    // 누락된 기본 직원이 있다면 보존 추가
+    // 누락된 기본 직원이 있다면 보존 추가 (단, 삭제된 직원은 영구 제외)
     const localMap = {};
     emps.forEach(e => { if (e && e.id) localMap[e.id] = e; });
     let needSave = false;
     INITIAL_EMPLOYEES.forEach(ie => {
-      if (ie && ie.id && !localMap[ie.id]) {
+      if (ie && ie.id && !localMap[ie.id] && !deletedIds.includes(ie.id)) {
         emps.push({ ...ie });
         needSave = true;
       }
@@ -962,6 +963,9 @@ window.SheetsSync = (function () {
     if (needSave) {
       safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
     }
+
+    // 삭제된 ID 확실히 필터링
+    emps = emps.filter(e => e && e.id && !deletedIds.includes(e.id));
 
     // 별도 저장된 최신 권한 맵 병합
     emps = emps.map(e => {
@@ -975,16 +979,19 @@ window.SheetsSync = (function () {
       return e;
     });
 
-    const cleanEmps = emps.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@'));
+    const cleanEmps = emps.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@') && !deletedIds.includes(e.id));
     return cleanEmps;
   }
 
   function saveEmployees(data) {
+    const deletedIds = getDeletedIds();
     const now = Date.now();
-    const list = (data || []).map(e => ({
-      ...e,
-      updatedAt: now
-    }));
+    const list = (data || [])
+      .filter(e => e && e.id && !deletedIds.includes(e.id))
+      .map(e => ({
+        ...e,
+        updatedAt: now
+      }));
     safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(list));
     pushToCloud();
   }
@@ -1875,7 +1882,7 @@ window.SheetsSync = (function () {
         const cloudMap = {};
         cleanCloudEmps.forEach(ce => { if (ce && ce.id) cloudMap[ce.id] = ce; });
 
-        const allEmpIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)]));
+        const allEmpIds = Array.from(new Set([...Object.keys(localMap), ...Object.keys(cloudMap)])).filter(id => !activeDeletedIds.includes(id));
         const finalEmps = allEmpIds.map(id => {
           const ce = cloudMap[id];
           const le = localMap[id];

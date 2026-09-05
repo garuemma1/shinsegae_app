@@ -2065,28 +2065,28 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cashVendors.map((v, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.borderColor='#f59e0b';" onmouseout="this.style.borderColor='#e2e8f0';">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
-                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.borderColor='#f59e0b';" onmouseout="this.style.borderColor='#e2e8f0';">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${v.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(v.amount)}" 
                           ${v.readOnly ? 'readonly' : ''} 
                           oninput="UI.handleVendorChange('cashVendors', ${idx}, this)" 
-                          style="width:110px; background:${v.readOnly ? '#fffbeb' : '#ffffff'}; border:1.5px solid ${v.readOnly ? '#fcd34d' : '#cbd5e1'}; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:${v.readOnly ? '#b45309' : '#0f172a'}; outline:none; font-size:12.5px;"
+                          style="width:95px; background:${v.readOnly ? '#fffbeb' : '#ffffff'}; border:1.5px solid ${v.readOnly ? '#fcd34d' : '#cbd5e1'}; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:${v.readOnly ? '#b45309' : '#0f172a'}; outline:none; font-size:12px;"
                         />
                         ${!v.readOnly ? `
-                          <button onclick="UI.showEditItemModal('cashVendors', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                          <button onclick="UI.showEditItemModal('cashVendors', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                            <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                           </button>
-                          <button onclick="UI.removeVendor('cashVendors', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                          <button onclick="UI.removeVendor('cashVendors', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                           </button>
-                        ` : '<div style="width:40px;"></div>'}
+                        ` : '<div style="width:34px;"></div>'}
                       </div>
                     </div>
                   `).join('')}
@@ -2103,28 +2103,28 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cardVendors.map((v, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.borderColor='#7c3aed';" onmouseout="this.style.borderColor='#e2e8f0';">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
-                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.borderColor='#7c3aed';" onmouseout="this.style.borderColor='#e2e8f0';">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${v.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(v.amount)}" 
                           ${v.readOnly ? 'readonly' : ''} 
                           oninput="UI.handleVendorChange('cardVendors', ${idx}, this)" 
-                          style="width:110px; background:${v.readOnly ? '#faf5ff' : '#ffffff'}; border:1.5px solid ${v.readOnly ? '#c4b5fd' : '#cbd5e1'}; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:${v.readOnly ? '#6d28d9' : '#0f172a'}; outline:none; font-size:12.5px;"
+                          style="width:95px; background:${v.readOnly ? '#faf5ff' : '#ffffff'}; border:1.5px solid ${v.readOnly ? '#c4b5fd' : '#cbd5e1'}; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:${v.readOnly ? '#6d28d9' : '#0f172a'}; outline:none; font-size:12px;"
                         />
                         ${!v.readOnly ? `
-                          <button onclick="UI.showEditItemModal('cardVendors', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                            <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                          <button onclick="UI.showEditItemModal('cardVendors', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                            <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                           </button>
-                          <button onclick="UI.removeVendor('cardVendors', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                          <button onclick="UI.removeVendor('cardVendors', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                           </button>
-                        ` : '<div style="width:40px;"></div>'}
+                        ` : '<div style="width:34px;"></div>'}
                       </div>
                     </div>
                   `).join('')}
@@ -2146,24 +2146,24 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.employees.map((e, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${e.name}</span>
-                        ${e.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${e.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${e.name}</span>
+                        ${e.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${e.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(e.amount)}" 
                           oninput="UI.handleVendorChange('employees', ${idx}, this)" 
-                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                          style="width:95px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
                         />
-                        <button onclick="UI.showEditItemModal('employees', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.showEditItemModal('employees', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('employees', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.removeVendor('employees', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                         </button>
                       </div>
                     </div>
@@ -2181,24 +2181,24 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.severances.map((s, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${s.name}</span>
-                        ${s.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${s.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${s.name}</span>
+                        ${s.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${s.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(s.amount)}" 
                           oninput="UI.handleVendorChange('severances', ${idx}, this)" 
-                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                          style="width:95px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
                         />
-                        <button onclick="UI.showEditItemModal('severances', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.showEditItemModal('severances', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('severances', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.removeVendor('severances', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                         </button>
                       </div>
                     </div>
@@ -2219,24 +2219,24 @@ var UI = {
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs max-h-[500px] overflow-y-auto pr-1">
                 ${m.utilities.map((u, idx) => `
-                  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                    <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                      <span style="font-weight:700; color:#0f172a;" class="truncate">${u.name}</span>
-                      ${u.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${u.cell}</span>` : ''}
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                    <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                      <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${u.name}</span>
+                      ${u.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${u.cell}</span>` : ''}
                     </div>
-                    <div style="display:flex; align-items:center; gap:4px;">
+                    <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                       <input 
                         type="text" 
                         inputmode="numeric"
                         value="${window.store.formatMoney(u.amount)}" 
                         oninput="UI.handleVendorChange('utilities', ${idx}, this)" 
-                        style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                        style="width:95px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
                       />
-                      <button onclick="UI.showEditItemModal('utilities', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                        <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                      <button onclick="UI.showEditItemModal('utilities', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                        <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                       </button>
-                      <button onclick="UI.removeVendor('utilities', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                        <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                      <button onclick="UI.removeVendor('utilities', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                        <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                       </button>
                     </div>
                   </div>
@@ -2247,7 +2247,7 @@ var UI = {
 
           <!-- 탭 4: 에누리 & 약국간거래 -->
           <div id="tab-content-3" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 3 ? '' : 'hidden'}">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               <!-- 에누리/금융할인 (P52) -->
               <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
@@ -2258,24 +2258,24 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.discounts.map((d, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${d.name}</span>
-                        ${d.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${d.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${d.name}</span>
+                        ${d.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${d.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(d.amount)}" 
                           oninput="UI.handleVendorChange('discounts', ${idx}, this)" 
-                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                          style="width:80px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 5px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
                         />
-                        <button onclick="UI.showEditItemModal('discounts', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.showEditItemModal('discounts', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('discounts', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.removeVendor('discounts', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                         </button>
                       </div>
                     </div>
@@ -2293,24 +2293,24 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${m.pharmTrades.map((v, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
-                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${v.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(v.amount)}" 
                           oninput="UI.handleVendorChange('pharmTrades', ${idx}, this)" 
-                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                          style="width:80px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 5px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
                         />
-                        <button onclick="UI.showEditItemModal('pharmTrades', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.showEditItemModal('pharmTrades', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('pharmTrades', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.removeVendor('pharmTrades', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                         </button>
                       </div>
                     </div>
@@ -2331,24 +2331,24 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
                   ${(m.otherExpenses || DEFAULT_OTHER_EXPENSES).map((v, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
-                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${v.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(v.amount)}" 
                           oninput="UI.handleVendorChange('otherExpenses', ${idx}, this)" 
-                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                          style="width:80px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 5px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
                         />
-                        <button onclick="UI.showEditItemModal('otherExpenses', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.showEditItemModal('otherExpenses', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('otherExpenses', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.removeVendor('otherExpenses', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                         </button>
                       </div>
                     </div>
@@ -2438,25 +2438,25 @@ var UI = {
                 </div>
                 <div class="space-y-2 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cardWithdrawals.map((w, idx) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
-                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                        <span style="font-weight:800; color:#0f172a;" class="truncate">${w.name}</span>
-                        ${w.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${w.cell}</span>` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                        <span style="font-weight:800; color:#0f172a; font-size:12.5px; white-space:nowrap; overflow:visible;">${w.name}</span>
+                        ${w.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${w.cell}</span>` : ''}
                       </div>
-                      <div style="display:flex; align-items:center; gap:4px;">
+                      <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
                         <input 
                           type="text" 
                           inputmode="numeric"
                           value="${window.store.formatMoney(w.amount)}" 
                           oninput="UI.handleVendorChange('cardWithdrawals', ${idx}, this)" 
-                          style="width:120px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                          style="width:95px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
                           placeholder="출금액 입력"
                         />
-                        <button onclick="UI.showEditItemModal('cardWithdrawals', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
-                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.showEditItemModal('cardWithdrawals', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:13px; height:13px;"></i>
                         </button>
-                        <button onclick="UI.removeVendor('cardWithdrawals', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
-                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        <button onclick="UI.removeVendor('cardWithdrawals', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                         </button>
                       </div>
                     </div>

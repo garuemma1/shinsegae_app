@@ -234,14 +234,16 @@ function colIndexToLetter(col1) {
   return letter;
 }
 
-// 🛡️ [동적 앵커링: 시트 전체에서 특정 키워드 라벨 위치 검색]
-function findHeaderLocation(dispValues, keywords) {
+// 🛡️ [동적 앵커링: 시트 전체 또는 지정 영역에서 특정 키워드 라벨 위치 검색]
+function findHeaderLocation(dispValues, keywords, minRow, minCol) {
   if (!dispValues || !dispValues.length) return null;
+  var startR = minRow ? Math.max(0, minRow - 1) : 0;
+  var startC = minCol ? Math.max(0, minCol - 1) : 0;
   var maxR = Math.min(dispValues.length, 120);
-  for (var r = 0; r < maxR; r++) {
+  for (var r = startR; r < maxR; r++) {
     var row = dispValues[r];
     if (!row) continue;
-    for (var c = 0; c < row.length; c++) {
+    for (var c = startC; c < row.length; c++) {
       var cellTxt = String(row[c] || '').trim();
       if (!cellTxt) continue;
       for (var k = 0; k < keywords.length; k++) {
@@ -399,8 +401,8 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
 
   var discounts = [], pharmTrades = [], cashVendors = [], cardVendors = [], employees = [], severances = [], utilities = [], cardCashbacks = [], cardWithdrawals = [];
 
-  // 1. 에누리 / 금융할인 동적 앵커링
-  var enuriLoc = findHeaderLocation(dispValues, ['에누리', '에누리합계', '에누리/금융할인']);
+  // 1. 에누리 / 금융할인 동적 앵커링 (요약표 제외 위해 30행 이후에서 검색)
+  var enuriLoc = findHeaderLocation(dispValues, ['에누리', '에누리합계', '에누리/금융할인'], 30, 10);
   if (enuriLoc) {
     var nameCol = enuriLoc.col;
     var amtCol = enuriLoc.col + 1;
@@ -424,8 +426,8 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     }
   }
 
-  // 2. 약국간거래내역 동적 앵커링
-  var pharmLoc = findHeaderLocation(dispValues, ['약국간거래내역', '약국간거래', '약국간']);
+  // 2. 약국간거래내역 동적 앵커링 (요약표 제외 위해 30행 이후에서 검색)
+  var pharmLoc = findHeaderLocation(dispValues, ['약국간거래내역', '약국간거래', '약국간'], 30, 10);
   if (pharmLoc) {
     for (var r = pharmLoc.row + 1; r <= pharmLoc.row + 15 && r <= dispValues.length; r++) {
       var rawName = getCellValue(dispValues, r, pharmLoc.col) || getCellValue(dispValues, r, pharmLoc.col + 1) || '';
@@ -445,7 +447,7 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
   }
 
   // 3. 카드사별 혜택 동적 앵커링
-  var cardBenefitLoc = findHeaderLocation(dispValues, ['카드사별 혜택', '카드사별혜택', '카드사별']);
+  var cardBenefitLoc = findHeaderLocation(dispValues, ['카드사별 혜택', '카드사별혜택', '카드사별'], 20, 10);
   if (cardBenefitLoc) {
     for (var r = cardBenefitLoc.row + 1; r <= cardBenefitLoc.row + 10 && r <= dispValues.length; r++) {
       var rawName = getCellValue(dispValues, r, cardBenefitLoc.col) || getCellValue(dispValues, r, cardBenefitLoc.col + 1) || '';
@@ -457,32 +459,48 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     }
   }
 
-  // 4. 인건비 (직원급여) 동적 앵커링
-  var empLoc = findHeaderLocation(dispValues, ['인건비', '직원급여', '인건비합계']);
+  // 4. 인건비 (직원급여 상세대장) 동적 앵커링
+  // 🛡️ 요약표 R8/S8(인건비 총괄)을 건너뛰고, 실제 직원급여 상세표가 있는 30행 이후, 18열(R열) 이후에서 '인건비' 검색!
+  var empLoc = findHeaderLocation(dispValues, ['인건비', '인건비내역', '직원급여', '인건비합계'], 30, 18);
   if (empLoc) {
-    for (var r = empLoc.row + 1; r <= empLoc.row + 15 && r <= dispValues.length; r++) {
-      var rawName1 = getCellValue(dispValues, r, empLoc.col) || '';
-      var amt1 = parseVal(getCellValue(dispValues, r, empLoc.col + 1)) || parseVal(getCellValue(values, r, empLoc.col + 1));
-      if (rawName1 && !String(rawName1).includes('인건비') && !String(rawName1).includes('합계')) {
-        employees.push({ name: String(rawName1).trim(), amount: amt1, cell: colIndexToLetter(empLoc.col + 1) + r });
+    var eNameCol1 = empLoc.col;
+    var eAmtCol1 = empLoc.col + 1;
+    var eNameCol2 = empLoc.col + 2;
+    var eAmtCol2 = empLoc.col + 3;
+    for (var r = empLoc.row + 1; r <= empLoc.row + 20 && r <= dispValues.length; r++) {
+      // 1열 그룹 (좌측: U열 성명, V열 금액)
+      var rawName1 = getCellValue(dispValues, r, eNameCol1) || '';
+      var amt1 = parseVal(getCellValue(dispValues, r, eAmtCol1)) || parseVal(getCellValue(values, r, eAmtCol1));
+      var clean1 = String(rawName1).trim();
+      if (clean1 === '합계' || clean1.indexOf('합계') === 0 || clean1.indexOf('공과금') !== -1 || clean1.indexOf('기타운영') !== -1) break;
+      if (clean1 && clean1 !== '-' && clean1 !== '.' && !clean1.includes('인건비')) {
+        employees.push({ name: clean1, amount: amt1, cell: colIndexToLetter(eAmtCol1) + r });
       }
-      var rawName2 = getCellValue(dispValues, r, empLoc.col + 2) || '';
-      var amt2 = parseVal(getCellValue(dispValues, r, empLoc.col + 3)) || parseVal(getCellValue(values, r, empLoc.col + 3));
-      if (rawName2 && !String(rawName2).includes('인건비') && !String(rawName2).includes('합계')) {
-        employees.push({ name: String(rawName2).trim(), amount: amt2, cell: colIndexToLetter(empLoc.col + 3) + r });
+
+      // 2열 그룹 (우측: W열 성명, X열 금액)
+      var rawName2 = getCellValue(dispValues, r, eNameCol2) || '';
+      var amt2 = parseVal(getCellValue(dispValues, r, eAmtCol2)) || parseVal(getCellValue(values, r, eAmtCol2));
+      var clean2 = String(rawName2).trim();
+      if (clean2 === '합계' || clean2.indexOf('합계') === 0 || clean2.indexOf('공과금') !== -1 || clean2.indexOf('기타운영') !== -1) break;
+      if (clean2 && clean2 !== '-' && clean2 !== '.' && !clean2.includes('인건비')) {
+        employees.push({ name: clean2, amount: amt2, cell: colIndexToLetter(eAmtCol2) + r });
       }
     }
   }
   if (employees.length === 0) {
     for (var r = 54; r <= 63; r++) {
-      var rawName = getCellValue(dispValues, r, 21);
-      var amt = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
-      if (rawName && !String(rawName).includes('인건비') && !String(rawName).includes('합계')) employees.push({ name: String(rawName).trim(), amount: amt, cell: 'V' + r });
-    }
-    for (var r = 54; r <= 63; r++) {
-      var rawName = getCellValue(dispValues, r, 23);
-      var amt = parseVal(getCellValue(dispValues, r, 24)) || parseVal(getCellValue(values, r, 24));
-      if (rawName && !String(rawName).includes('인건비') && !String(rawName).includes('합계')) employees.push({ name: String(rawName).trim(), amount: amt, cell: 'X' + r });
+      var rawName1 = getCellValue(dispValues, r, 21);
+      var amt1 = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
+      var clean1 = String(rawName1).trim();
+      if (clean1 && !clean1.includes('인건비') && !clean1.includes('합계') && !clean1.includes('공과금')) {
+        employees.push({ name: clean1, amount: amt1, cell: 'V' + r });
+      }
+      var rawName2 = getCellValue(dispValues, r, 23);
+      var amt2 = parseVal(getCellValue(dispValues, r, 24)) || parseVal(getCellValue(values, r, 24));
+      var clean2 = String(rawName2).trim();
+      if (clean2 && !clean2.includes('인건비') && !clean2.includes('합계') && !clean2.includes('공과금')) {
+        employees.push({ name: clean2, amount: amt2, cell: 'X' + r });
+      }
     }
   }
 
@@ -510,16 +528,41 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     if (rawName && !String(rawName).includes('퇴직금') && !String(rawName).includes('합계')) severances.push({ name: String(rawName).trim(), amount: amt, cell: 'AA' + r });
   }
 
-  // 7. 공과금 / 기타운영비
-  for (var r = 69; r <= 85; r++) {
-    var rawName = getCellValue(dispValues, r, 21);
-    var amt = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
-    if (rawName && !String(rawName).includes('공과금') && !String(rawName).includes('합계')) utilities.push({ name: String(rawName).trim(), amount: amt, cell: 'V' + r });
+  // 7. 공과금 / 기타운영비 동적 앵커링 (50행 이후에서 '공과금내역' 또는 '공과금' 검색)
+  var utilLoc = findHeaderLocation(dispValues, ['공과금내역', '공과금'], 50, 18);
+  if (utilLoc) {
+    var uNameCol1 = utilLoc.col;
+    var uAmtCol1 = utilLoc.col + 1;
+    var uNameCol2 = utilLoc.col + 2;
+    var uAmtCol2 = utilLoc.col + 3;
+    for (var r = utilLoc.row + 1; r <= utilLoc.row + 20 && r <= dispValues.length; r++) {
+      var rawName1 = getCellValue(dispValues, r, uNameCol1) || '';
+      var amt1 = parseVal(getCellValue(dispValues, r, uAmtCol1)) || parseVal(getCellValue(values, r, uAmtCol1));
+      var clean1 = String(rawName1).trim();
+      if (clean1 === '합계' || clean1.indexOf('합계') === 0) break;
+      if (clean1 && clean1 !== '-' && clean1 !== '.' && !clean1.includes('공과금')) {
+        utilities.push({ name: clean1, amount: amt1, cell: colIndexToLetter(uAmtCol1) + r });
+      }
+      var rawName2 = getCellValue(dispValues, r, uNameCol2) || '';
+      var amt2 = parseVal(getCellValue(dispValues, r, uAmtCol2)) || parseVal(getCellValue(values, r, uAmtCol2));
+      var clean2 = String(rawName2).trim();
+      if (clean2 === '합계' || clean2.indexOf('합계') === 0) break;
+      if (clean2 && clean2 !== '-' && clean2 !== '.' && !clean2.includes('공과금')) {
+        utilities.push({ name: clean2, amount: amt2, cell: colIndexToLetter(uAmtCol2) + r });
+      }
+    }
   }
-  for (var r = 69; r <= 85; r++) {
-    var rawName = getCellValue(dispValues, r, 23);
-    var amt = parseVal(getCellValue(dispValues, r, 24)) || parseVal(getCellValue(values, r, 24));
-    if (rawName && !String(rawName).includes('공과금') && !String(rawName).includes('합계')) utilities.push({ name: String(rawName).trim(), amount: amt, cell: 'X' + r });
+  if (utilities.length === 0) {
+    for (var r = 69; r <= 85; r++) {
+      var rawName = getCellValue(dispValues, r, 21);
+      var amt = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
+      if (rawName && !String(rawName).includes('공과금') && !String(rawName).includes('합계')) utilities.push({ name: String(rawName).trim(), amount: amt, cell: 'V' + r });
+    }
+    for (var r = 69; r <= 85; r++) {
+      var rawName = getCellValue(dispValues, r, 23);
+      var amt = parseVal(getCellValue(dispValues, r, 24)) || parseVal(getCellValue(values, r, 24));
+      if (rawName && !String(rawName).includes('공과금') && !String(rawName).includes('합계')) utilities.push({ name: String(rawName).trim(), amount: amt, cell: 'X' + r });
+    }
   }
 
   // 8. 카드출금 / 계좌별
@@ -537,6 +580,34 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
   }
   if (netSurplus === 0) {
     netSurplus = parseVal(getCellValue(dispValues, 2, 13)) || parseVal(getCellValue(values, 2, 13));
+  }
+
+  // 🛡️ 인건비 총액: 인건비 상세 테이블 헤더(V53 등)의 금액 또는 직원목록 합계 우선
+  var totalEmpPayroll = 0;
+  if (empLoc) {
+    totalEmpPayroll = parseVal(getCellValue(dispValues, empLoc.row, empLoc.col + 1)) || parseVal(getCellValue(values, empLoc.row, empLoc.col + 1));
+  }
+  if (totalEmpPayroll === 0 && employees.length > 0) {
+    for (var ep = 0; ep < employees.length; ep++) {
+      totalEmpPayroll += (employees[ep].amount || 0);
+    }
+  }
+  if (totalEmpPayroll === 0) {
+    totalEmpPayroll = parseVal(getCellValue(dispValues, 8, 19)) || parseVal(getCellValue(values, 8, 19));
+  }
+
+  // 🛡️ 공과금 총액: 공과금 상세 테이블 헤더의 금액 또는 목록 합계 우선
+  var totalExpUtility = 0;
+  if (utilLoc) {
+    totalExpUtility = parseVal(getCellValue(dispValues, utilLoc.row, utilLoc.col + 1)) || parseVal(getCellValue(values, utilLoc.row, utilLoc.col + 1));
+  }
+  if (totalExpUtility === 0 && utilities.length > 0) {
+    for (var ut = 0; ut < utilities.length; ut++) {
+      totalExpUtility += (utilities[ut].amount || 0);
+    }
+  }
+  if (totalExpUtility === 0) {
+    totalExpUtility = parseVal(getCellValue(dispValues, 9, 19)) || parseVal(getCellValue(values, 9, 19));
   }
 
   return {
@@ -559,8 +630,8 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     vendorCashTotal: parseVal(getCellValue(dispValues, 6, 19)) || parseVal(getCellValue(values, 6, 19)),
     vendorCardTotal: parseVal(getCellValue(dispValues, 7, 19)) || parseVal(getCellValue(values, 7, 19)),
     expCardWithdraw: parseVal(getCellValue(values, 49, 19)) || parseVal(getCellValue(values, 7, 19)) || 0,
-    expPayroll: parseVal(getCellValue(dispValues, 8, 19)) || parseVal(getCellValue(values, 8, 19)),
-    expUtility: parseVal(getCellValue(dispValues, 9, 19)) || parseVal(getCellValue(values, 9, 19)),
+    expPayroll: totalEmpPayroll,
+    expUtility: totalExpUtility,
     expRent: parseVal(getCellValue(values, 10, 19)) || 15070000,
     expOtherOperating: parseVal(getCellValue(dispValues, 11, 19)) || parseVal(getCellValue(values, 11, 19)),
     expCardFee: parseVal(getCellValue(dispValues, 12, 19)) || parseVal(getCellValue(values, 12, 19)),
@@ -654,11 +725,23 @@ function saveMonthlyRecordSafeBlock(ss, sheetName, data) {
     });
   }
 
+  var dispValues = sheet.getDataRange().getDisplayValues();
+
+  var empSaveLoc = findHeaderLocation(dispValues, ['인건비', '인건비내역', '직원급여'], 30, 18);
+  var empNameCol = empSaveLoc ? colIndexToLetter(empSaveLoc.col) : 'U';
+  var empAmtCol = empSaveLoc ? colIndexToLetter(empSaveLoc.col + 1) : 'V';
+  var empStartRow = empSaveLoc ? (empSaveLoc.row + 1) : 54;
+
+  var utilSaveLoc = findHeaderLocation(dispValues, ['공과금내역', '공과금'], 50, 18);
+  var utilNameCol = utilSaveLoc ? colIndexToLetter(utilSaveLoc.col) : 'U';
+  var utilAmtCol = utilSaveLoc ? colIndexToLetter(utilSaveLoc.col + 1) : 'V';
+  var utilStartRow = utilSaveLoc ? (utilSaveLoc.row + 1) : 69;
+
   saveTargetItems(data.cashVendors, 'U', 'V', 4);
   saveTargetItems(data.cardVendors, 'X', 'Y', 4);
-  saveTargetItems(data.employees, 'U', 'V', 54);
+  saveTargetItems(data.employees, empNameCol, empAmtCol, empStartRow);
   saveTargetItems(data.severances, 'Z', 'AA', 44);
-  saveTargetItems(data.utilities, 'U', 'V', 69);
+  saveTargetItems(data.utilities, utilNameCol, utilAmtCol, utilStartRow);
   saveTargetItems(data.discounts, 'N', 'P', 54);
   saveTargetItems(data.pharmTrades, 'N', 'P', 41);
   saveTargetItems(data.cardCashbacks, 'Z', 'AA', 69);

@@ -474,15 +474,17 @@ var DEFAULT_CARD_VENDORS = [
 ];
 
 var DEFAULT_EMPLOYEES = [
-  { name: '권명주5', amount: 1480000, cell: 'T54' },
-  { name: '김배영5', amount: 998570, cell: 'T55' },
-  { name: '김동완5', amount: 3014170, cell: 'T56' },
-  { name: '양윤지5', amount: 3685540, cell: 'T57' },
-  { name: '김제희5', amount: 2295310, cell: 'T58' },
-  { name: '이승학11', amount: 2490000, cell: 'V54' },
-  { name: '유호종31', amount: 1962000, cell: 'V55' },
+  // 좌측 1열 (U열 성명 / V열 금액)
+  { name: '이송학11', amount: 2490000, cell: 'V54' },
+  { name: '유호동31', amount: 1562000, cell: 'V55' },
   { name: '간영자5', amount: 2862910, cell: 'V56' },
-  { name: '윤세라5', amount: 1633210, cell: 'V57' }
+  { name: '윤세라5', amount: 1633210, cell: 'V57' },
+  { name: '김제희5', amount: 2295310, cell: 'V58' },
+  // 우측 2열 (W열 성명 / X열 금액)
+  { name: '이송학11', amount: 2490000, cell: 'X54' },
+  { name: '유호동31', amount: 1562000, cell: 'X55' },
+  { name: '간영자5', amount: 2862910, cell: 'X56' },
+  { name: '윤세라5', amount: 1633210, cell: 'X57' }
 ];
 
 var DEFAULT_UTILITIES = [
@@ -698,6 +700,7 @@ window.PharmacyStore = class PharmacyStore {
         m2608.expSaving = 1000000;
         m2608.expYellowUmbrella = 400000;
         m2608.expSeverance = 4231066;
+        m2608.expPayroll = 20101550;
 
         this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
       }
@@ -2108,7 +2111,7 @@ var UI = {
               <!-- 급여대장 (S8) -->
               <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
-                  <span style="font-size:12.5px; font-weight:800; color:#d97706;">인건비 급여대장 (S8: ₩${window.store.formatMoney(m.expPayroll)})</span>
+                  <span style="font-size:12.5px; font-weight:800; color:#d97706;">인건비 급여대장 (V53: ₩${window.store.formatMoney(m.expPayroll)})</span>
                   <button onclick="UI.showAddItemModal('employees', '직원 급여 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#d97706; border:1px solid #fcd34d; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
                     <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
@@ -3229,6 +3232,13 @@ window.SmartLedgerModule = {
       const targetM = m2608 || window.store.getMonthly('2608');
       targetM.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(targetM);
+      try { window.store.saveToLocal(); } catch (e) {}
+    }
+
+    if (m2608 && m2608.employees && (m2608.employees.some(e => e.name === '공과금' || e.name === '월세' || e.name === '기타운영비' || e.name === '카드수수료') || !m2608.employees.some(e => e.name === '이송학11'))) {
+      m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
+      m2608.expPayroll = 20101550;
+      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
       try { window.store.saveToLocal(); } catch (e) {}
     }
 

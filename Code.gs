@@ -224,6 +224,37 @@ function findDayStartRow(sheet, day) {
   return findDayStartRowInValues(rawValues, displayValues, day);
 }
 
+function colIndexToLetter(col1) {
+  var temp, letter = '';
+  while (col1 > 0) {
+    temp = (col1 - 1) % 26;
+    letter = String.fromCharCode(65 + temp) + letter;
+    col1 = Math.floor((col1 - temp - 1) / 26);
+  }
+  return letter;
+}
+
+// 🛡️ [동적 앵커링: 시트 전체에서 특정 키워드 라벨 위치 검색]
+function findHeaderLocation(dispValues, keywords) {
+  if (!dispValues || !dispValues.length) return null;
+  var maxR = Math.min(dispValues.length, 120);
+  for (var r = 0; r < maxR; r++) {
+    var row = dispValues[r];
+    if (!row) continue;
+    for (var c = 0; c < row.length; c++) {
+      var cellTxt = String(row[c] || '').trim();
+      if (!cellTxt) continue;
+      for (var k = 0; k < keywords.length; k++) {
+        if (cellTxt === keywords[k] || (keywords[k].length >= 3 && cellTxt.indexOf(keywords[k]) !== -1)) {
+          return { row: r + 1, col: c + 1 }; // 1-indexed
+        }
+      }
+    }
+  }
+  return null;
+}
+
+
 // ==========================================
 // 1. 일일 장부 파싱 (2차원 메모리 연산 + parseVal 적용)
 // ==========================================
@@ -297,7 +328,7 @@ function getDailyRecord(ss, sheetName, day) {
 }
 
 // ==========================================
-// ⚡ 2. 일일 장부 초고속 쓰기 (setValues 묶음 일괄 처리)
+// ⚡ 2. 일일 장부 초고속 쓰기 (setValues 묶음 일괄 처리 + 수식 보호)
 // ==========================================
 function saveDailyRecordFast(ss, sheetName, day, data) {
   var sheet = ss.getSheetByName(sheetName);
@@ -306,7 +337,9 @@ function saveDailyRecordFast(ss, sheetName, day, data) {
   var rawValues = sheet.getDataRange().getValues();
   var displayValues = sheet.getDataRange().getDisplayValues();
   var startRow = findDayStartRowInValues(rawValues, displayValues, day);
-  if (startRow === -1) startRow = day === 1 ? 1 : 11 + (day - 2) * 8;
+  if (startRow === -1) {
+    throw new Error(sheetName + ' 시트에서 ' + day + '일 위치를 찾을 수 없습니다.');
+  }
 
   var blockHeight = 8;
   var cashRowOffset = 3;
@@ -320,31 +353,44 @@ function saveDailyRecordFast(ss, sheetName, day, data) {
   var cashRow = startRow + cashRowOffset;
   var cardRow = startRow + cardRowOffset;
 
-  if (data.prevCash !== undefined) sheet.getRange(cashRow, 2).setValue(data.prevCash);
-  
-  sheet.getRange(cashRow, 4, 2, 1).setValues([[data.cashSales || 0], [data.cardSales || 0]]);
-  
-  if (data.rxSales !== undefined) sheet.getRange(cashRow, 6).setValue(data.rxSales);
-  
-  var expBlock = [[
+  // 🛡️ [수식 보호] 각 셀에 수식이 없을 때만 안전하게 저장
+  function setSafeCell(r, c, val) {
+    if (val === undefined || val === null) return;
+    try {
+      var rng = sheet.getRange(r, c);
+      var f = rng.getFormula();
+      if (!f || f.length === 0) rng.setValue(val);
+    } catch(e) {}
+  }
+
+  if (data.prevCash !== undefined) setSafeCell(cashRow, 2, data.prevCash);
+  setSafeCell(cashRow, 4, data.cashSales || 0);
+  setSafeCell(cardRow, 4, data.cardSales || 0);
+  if (data.rxSales !== undefined) setSafeCell(cashRow, 6, data.rxSales);
+
+  var expCols = [
     data.transferSales || 0, data.expCashBuy || 0, data.expDiscount || 0,
     data.expMiscCash || 0, data.expMeal || 0, data.expMiscCard || 0, data.expBacchus || 0
-  ]];
-  sheet.getRange(cashRow, 9, 1, 7).setValues(expBlock);
+  ];
+  for (var j = 0; j < expCols.length; j++) {
+    setSafeCell(cashRow, 9 + j, expCols[j]);
+  }
 
-  var mallBlock = [[
+  var mallCols = [
     data.mallDaewoong || 0, data.mallHmp || 0, data.mallDonga || 0,
     data.mallJoongwae || 0, data.mallVet || 0, data.mallIldong || 0,
     data.mallChongKunDang || 0, data.mallGreenCross || 0, data.mallOther || 0, data.mallBags || 0
-  ]];
-  sheet.getRange(startRow + 3, 16, 1, 10).setValues(mallBlock);
+  ];
+  for (var k = 0; k < mallCols.length; k++) {
+    setSafeCell(startRow + 3, 16 + k, mallCols[k]);
+  }
 
   SpreadsheetApp.flush();
   return { success: true, day: day, sheetName: sheetName };
 }
 
 // ==========================================
-// 3. 월말 결산 파싱 (메모리 2차원 스캔 + parseVal 천단위 콤마 대응)
+// 3. 월말 결산 파싱 (라벨 기반 동적 앵커링 + getDisplayValues)
 // ==========================================
 function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
   var values = rawValues;
@@ -353,15 +399,23 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
 
   var discounts = [], pharmTrades = [], cashVendors = [], cardVendors = [], employees = [], severances = [], utilities = [], cardCashbacks = [], cardWithdrawals = [];
 
-  for (var r = 54; r <= 80; r++) {
-    var rawName = getCellValue(dispValues, r, 14) || getCellValue(dispValues, r, 15) || '';
-    var amt = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
-    var cleanName = String(rawName).trim();
-    var isHeader = (cleanName === '에누리' || cleanName === '에누리합계' || cleanName === '에누리/금융할인' || cleanName === '합계' || cleanName.indexOf('합계') === 0);
-    if (cleanName && !isHeader) discounts.push({ name: cleanName, amount: amt, cell: 'P' + r });
+  // 1. 에누리 / 금융할인 동적 앵커링
+  var enuriLoc = findHeaderLocation(dispValues, ['에누리', '에누리합계', '에누리/금융할인']);
+  if (enuriLoc) {
+    var nameCol = enuriLoc.col;
+    var amtCol = enuriLoc.col + 1;
+    for (var r = enuriLoc.row + 1; r <= enuriLoc.row + 25 && r <= dispValues.length; r++) {
+      var rawName = getCellValue(dispValues, r, nameCol) || getCellValue(dispValues, r, nameCol + 1) || '';
+      var amt = parseVal(getCellValue(dispValues, r, amtCol)) || parseVal(getCellValue(dispValues, r, nameCol + 2)) || parseVal(getCellValue(values, r, amtCol));
+      var cleanName = String(rawName).trim();
+      if (!cleanName || cleanName === '-' || cleanName === '.') continue;
+      if (cleanName === '합계' || cleanName.indexOf('합계') === 0 || cleanName === '약국간거래내역' || cleanName === '기타운영비') break;
+      var cellLetter = colIndexToLetter(amtCol > 16 ? amtCol : 16);
+      discounts.push({ name: cleanName, amount: amt, cell: cellLetter + r });
+    }
   }
   if (discounts.length === 0) {
-    for (var r = 30; r <= 50; r++) {
+    for (var r = 54; r <= 80; r++) {
       var rawName = getCellValue(dispValues, r, 14) || getCellValue(dispValues, r, 15) || '';
       var amt = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
       var cleanName = String(rawName).trim();
@@ -370,11 +424,69 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     }
   }
 
-  for (var r = 41; r <= 50; r++) {
-    var rawName = getCellValue(dispValues, r, 14) || getCellValue(dispValues, r, 15) || '';
-    var amt = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
-    if (rawName && !String(rawName).includes('약국간') && !String(rawName).includes('합계')) pharmTrades.push({ name: String(rawName).trim(), amount: amt, cell: 'P' + r });
+  // 2. 약국간거래내역 동적 앵커링
+  var pharmLoc = findHeaderLocation(dispValues, ['약국간거래내역', '약국간거래', '약국간']);
+  if (pharmLoc) {
+    for (var r = pharmLoc.row + 1; r <= pharmLoc.row + 15 && r <= dispValues.length; r++) {
+      var rawName = getCellValue(dispValues, r, pharmLoc.col) || getCellValue(dispValues, r, pharmLoc.col + 1) || '';
+      var amt = parseVal(getCellValue(dispValues, r, pharmLoc.col + 2)) || parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
+      var cleanName = String(rawName).trim();
+      if (!cleanName || cleanName === '-' || cleanName === '.') continue;
+      if (cleanName === '합계' || cleanName.indexOf('합계') === 0 || cleanName === '에누리') break;
+      pharmTrades.push({ name: cleanName, amount: amt, cell: 'P' + r });
+    }
   }
+  if (pharmTrades.length === 0) {
+    for (var r = 41; r <= 50; r++) {
+      var rawName = getCellValue(dispValues, r, 14) || getCellValue(dispValues, r, 15) || '';
+      var amt = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
+      if (rawName && !String(rawName).includes('약국간') && !String(rawName).includes('합계')) pharmTrades.push({ name: String(rawName).trim(), amount: amt, cell: 'P' + r });
+    }
+  }
+
+  // 3. 카드사별 혜택 동적 앵커링
+  var cardBenefitLoc = findHeaderLocation(dispValues, ['카드사별 혜택', '카드사별혜택', '카드사별']);
+  if (cardBenefitLoc) {
+    for (var r = cardBenefitLoc.row + 1; r <= cardBenefitLoc.row + 10 && r <= dispValues.length; r++) {
+      var rawName = getCellValue(dispValues, r, cardBenefitLoc.col) || getCellValue(dispValues, r, cardBenefitLoc.col + 1) || '';
+      var spend = parseVal(getCellValue(dispValues, r, cardBenefitLoc.col + 2)) || parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
+      var cleanName = String(rawName).trim();
+      if (!cleanName || cleanName === '-' || cleanName === '.') continue;
+      if (cleanName === '합계' || cleanName.indexOf('합계') === 0) break;
+      cardCashbacks.push({ name: cleanName, spend: spend, rate: cleanName.indexOf('우리') !== -1 ? 1.7 : 1.5, cell: 'P' + r });
+    }
+  }
+
+  // 4. 인건비 (직원급여) 동적 앵커링
+  var empLoc = findHeaderLocation(dispValues, ['인건비', '직원급여', '인건비합계']);
+  if (empLoc) {
+    for (var r = empLoc.row + 1; r <= empLoc.row + 15 && r <= dispValues.length; r++) {
+      var rawName1 = getCellValue(dispValues, r, empLoc.col) || '';
+      var amt1 = parseVal(getCellValue(dispValues, r, empLoc.col + 1)) || parseVal(getCellValue(values, r, empLoc.col + 1));
+      if (rawName1 && !String(rawName1).includes('인건비') && !String(rawName1).includes('합계')) {
+        employees.push({ name: String(rawName1).trim(), amount: amt1, cell: colIndexToLetter(empLoc.col + 1) + r });
+      }
+      var rawName2 = getCellValue(dispValues, r, empLoc.col + 2) || '';
+      var amt2 = parseVal(getCellValue(dispValues, r, empLoc.col + 3)) || parseVal(getCellValue(values, r, empLoc.col + 3));
+      if (rawName2 && !String(rawName2).includes('인건비') && !String(rawName2).includes('합계')) {
+        employees.push({ name: String(rawName2).trim(), amount: amt2, cell: colIndexToLetter(empLoc.col + 3) + r });
+      }
+    }
+  }
+  if (employees.length === 0) {
+    for (var r = 54; r <= 63; r++) {
+      var rawName = getCellValue(dispValues, r, 21);
+      var amt = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
+      if (rawName && !String(rawName).includes('인건비') && !String(rawName).includes('합계')) employees.push({ name: String(rawName).trim(), amount: amt, cell: 'V' + r });
+    }
+    for (var r = 54; r <= 63; r++) {
+      var rawName = getCellValue(dispValues, r, 23);
+      var amt = parseVal(getCellValue(dispValues, r, 24)) || parseVal(getCellValue(values, r, 24));
+      if (rawName && !String(rawName).includes('인건비') && !String(rawName).includes('합계')) employees.push({ name: String(rawName).trim(), amount: amt, cell: 'X' + r });
+    }
+  }
+
+  // 5. 거래처 (현금/카드)
   for (var r = 4; r <= 30; r++) {
     var rawName = getCellValue(dispValues, r, 21);
     var amt = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
@@ -390,21 +502,15 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     var amt = parseVal(getCellValue(dispValues, r, 27)) || parseVal(getCellValue(values, r, 27));
     if (rawName && !String(rawName).includes('카드노무') && !String(rawName).includes('합계')) cardVendors.push({ name: String(rawName).trim(), amount: amt, cell: 'AA' + r });
   }
-  for (var r = 54; r <= 63; r++) {
-    var rawName = getCellValue(dispValues, r, 21);
-    var amt = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
-    if (rawName && !String(rawName).includes('인건비') && !String(rawName).includes('합계')) employees.push({ name: String(rawName).trim(), amount: amt, cell: 'V' + r });
-  }
-  for (var r = 54; r <= 63; r++) {
-    var rawName = getCellValue(dispValues, r, 23);
-    var amt = parseVal(getCellValue(dispValues, r, 24)) || parseVal(getCellValue(values, r, 24));
-    if (rawName && !String(rawName).includes('인건비') && !String(rawName).includes('합계')) employees.push({ name: String(rawName).trim(), amount: amt, cell: 'X' + r });
-  }
+
+  // 6. 퇴직금
   for (var r = 44; r <= 63; r++) {
     var rawName = getCellValue(dispValues, r, 26);
     var amt = parseVal(getCellValue(dispValues, r, 27)) || parseVal(getCellValue(values, r, 27));
     if (rawName && !String(rawName).includes('퇴직금') && !String(rawName).includes('합계')) severances.push({ name: String(rawName).trim(), amount: amt, cell: 'AA' + r });
   }
+
+  // 7. 공과금 / 기타운영비
   for (var r = 69; r <= 85; r++) {
     var rawName = getCellValue(dispValues, r, 21);
     var amt = parseVal(getCellValue(dispValues, r, 22)) || parseVal(getCellValue(values, r, 22));
@@ -415,27 +521,27 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     var amt = parseVal(getCellValue(dispValues, r, 24)) || parseVal(getCellValue(values, r, 24));
     if (rawName && !String(rawName).includes('공과금') && !String(rawName).includes('합계')) utilities.push({ name: String(rawName).trim(), amount: amt, cell: 'X' + r });
   }
-  for (var r = 69; r <= 85; r++) {
-    var rawName = getCellValue(dispValues, r, 26) || getCellValue(values, r, 26);
-    var spend = parseVal(getCellValue(dispValues, r, 27)) || parseVal(getCellValue(values, r, 27));
-    if (rawName && !String(rawName).includes('카드별결제') && !String(rawName).includes('합계')) cardCashbacks.push({ name: String(rawName).trim(), spend: spend, rate: String(rawName).includes('우리') ? 1.7 : 1.5, cell: 'AA' + r });
-  }
-  if (cardCashbacks.length === 0) {
-    for (var r = 30; r <= 35; r++) {
-      var rawName = getCellValue(dispValues, r, 14) || getCellValue(dispValues, r, 15);
-      var spend = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
-      if (rawName && !String(rawName).includes('카드사별') && !String(rawName).includes('혜택')) cardCashbacks.push({ name: String(rawName).trim(), spend: spend, rate: String(rawName).includes('우리') ? 1.7 : 1.5, cell: 'P' + r });
-    }
-  }
-  for (var r = 50; r <= 55; r++) {
+
+  // 8. 카드출금 / 계좌별
+  for (var r = 50; r <= 75; r++) {
     var rawName = getCellValue(dispValues, r, 18);
     var amt = parseVal(getCellValue(dispValues, r, 19)) || parseVal(getCellValue(values, r, 19));
     if (rawName && !String(rawName).includes('계좌별') && !String(rawName).includes('합계')) cardWithdrawals.push({ name: String(rawName).trim(), amount: amt, cell: 'S' + r });
   }
 
+  // KPI 종합 분석 수치 동적 앵커링
+  var netSurplus = 0;
+  var surplusLoc = findHeaderLocation(dispValues, ['순잉여금', '월 실질 통장 순잉여금', '실질 순잉여금']);
+  if (surplusLoc) {
+    netSurplus = parseVal(getCellValue(dispValues, surplusLoc.row, surplusLoc.col + 1)) || parseVal(getCellValue(dispValues, surplusLoc.row + 1, surplusLoc.col));
+  }
+  if (netSurplus === 0) {
+    netSurplus = parseVal(getCellValue(dispValues, 2, 13)) || parseVal(getCellValue(values, 2, 13));
+  }
+
   return {
     sheetName: sheetName,
-    netSurplus: parseVal(getCellValue(dispValues, 2, 13)) || parseVal(getCellValue(values, 2, 13)),
+    netSurplus: netSurplus,
     theoreticalProfit: parseVal(getCellValue(dispValues, 4, 3)) || parseVal(getCellValue(values, 4, 3)),
     incomeRxFee: parseVal(getCellValue(dispValues, 5, 3)) || parseVal(getCellValue(values, 5, 3)),
     otcProfit: parseVal(getCellValue(dispValues, 6, 3)) || parseVal(getCellValue(values, 6, 3)),
@@ -485,42 +591,65 @@ function getMonthlyRecord(ss, sheetName) {
 }
 
 // ==========================================
-// ⚡ 4. 월말 결산 초고속 쓰기 (수식 100% 보존)
+// ⚡ 4. 월말 결산 안전 쓰기 (수식 100% 보존 보호)
 // ==========================================
 function saveMonthlyRecordSafeBlock(ss, sheetName, data) {
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) throw new Error('결산 시트를 찾을 수 없습니다: ' + sheetName);
 
-  if (data.incomeRxFee !== undefined) sheet.getRange('C5').setValue(data.incomeRxFee);
-  if (data.otcProfit !== undefined) sheet.getRange('C6').setValue(data.otcProfit);
-  if (data.incomeNonCovered !== undefined) sheet.getRange('C8').setValue(data.incomeNonCovered);
-  if (data.incomeNhisClaim !== undefined) sheet.getRange('P8').setValue(data.incomeNhisClaim);
-  if (data.expRent !== undefined) sheet.getRange('S10').setValue(data.expRent);
-  if (data.expPension !== undefined) sheet.getRange('S14').setValue(data.expPension);
-  if (data.expSaving !== undefined) sheet.getRange('S15').setValue(data.expSaving);
-  if (data.expYellowUmbrella !== undefined) sheet.getRange('S16').setValue(data.expYellowUmbrella);
-  if (data.expDining !== undefined) sheet.getRange('S38').setValue(data.expDining);
+  // 🛡️ [수식 보호 함수] 셀에 = 수식이 있으면 절대 덮어쓰지 않고 보존
+  function safeSetCell(cellA1, val) {
+    if (val === undefined || val === null) return;
+    try {
+      var rng = sheet.getRange(cellA1);
+      var f = rng.getFormula();
+      if (f && f.length > 0) return; // 엑셀 수식 보존!
+      rng.setValue(val);
+    } catch(e) {}
+  }
+
+  safeSetCell('C5', data.incomeRxFee);
+  safeSetCell('C6', data.otcProfit);
+  safeSetCell('C8', data.incomeNonCovered);
+  safeSetCell('P8', data.incomeNhisClaim);
+  safeSetCell('S10', data.expRent);
+  safeSetCell('S14', data.expPension);
+  safeSetCell('S15', data.expSaving);
+  safeSetCell('S16', data.expYellowUmbrella);
+  safeSetCell('S38', data.expDining);
 
   function saveTargetItems(items, defaultColName, defaultColAmt, startRowDefault) {
     if (!items || !Array.isArray(items)) return;
     items.forEach(function(item, idx) {
       if (item.cell) {
-        sheet.getRange(item.cell).setValue(item.amount !== undefined ? item.amount : (item.spend || 0));
-        var rNum = parseInt(item.cell.replace(/[^0-9]/g, ''), 10);
-        if (rNum && item.name) {
-          var colLetter = item.cell.replace(/[0-9]/g, '');
-          var nameCol = colLetter;
-          if (colLetter === 'V') nameCol = 'U';
-          else if (colLetter === 'Y') nameCol = 'X';
-          else if (colLetter === 'AA') nameCol = 'Z';
-          else if (colLetter === 'X') nameCol = 'W';
-          else if (colLetter === 'P') nameCol = 'N';
-          sheet.getRange(nameCol + rNum).setValue(item.name);
-        }
+        try {
+          var rng = sheet.getRange(item.cell);
+          if (!rng.getFormula()) {
+            rng.setValue(item.amount !== undefined ? item.amount : (item.spend || 0));
+          }
+          var rNum = parseInt(item.cell.replace(/[^0-9]/g, ''), 10);
+          if (rNum && item.name) {
+            var colLetter = item.cell.replace(/[0-9]/g, '');
+            var nameCol = colLetter;
+            if (colLetter === 'V') nameCol = 'U';
+            else if (colLetter === 'Y') nameCol = 'X';
+            else if (colLetter === 'AA') nameCol = 'Z';
+            else if (colLetter === 'X') nameCol = 'W';
+            else if (colLetter === 'P') nameCol = 'N';
+            var nameRng = sheet.getRange(nameCol + rNum);
+            if (!nameRng.getFormula()) nameRng.setValue(item.name);
+          }
+        } catch(e) {}
       } else if (startRowDefault && defaultColAmt) {
         var rNum = startRowDefault + idx;
-        sheet.getRange(defaultColAmt + rNum).setValue(item.amount !== undefined ? item.amount : (item.spend || 0));
-        if (item.name && defaultColName) sheet.getRange(defaultColName + rNum).setValue(item.name);
+        try {
+          var rng = sheet.getRange(defaultColAmt + rNum);
+          if (!rng.getFormula()) rng.setValue(item.amount !== undefined ? item.amount : (item.spend || 0));
+          if (item.name && defaultColName) {
+            var nameRng = sheet.getRange(defaultColName + rNum);
+            if (!nameRng.getFormula()) nameRng.setValue(item.name);
+          }
+        } catch(e) {}
       }
     });
   }

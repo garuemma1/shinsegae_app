@@ -574,10 +574,10 @@ var DEFAULT_CARD_WITHDRAWALS = [
 ];
 
 var DEFAULT_OTHER_EXPENSES = [
-  { name: '월세', amount: 0, cell: 'S68' },
-  { name: '경비/현금', amount: 0, cell: 'S69' },
-  { name: '신세계카드', amount: 134160, cell: 'S70' },
-  { name: '식대/실비', amount: 311500, cell: 'S71' }
+  { name: '회식', amount: 0, cell: 'S68' },
+  { name: '잡비1현금', amount: 0, cell: 'S69' },
+  { name: '잡비2카드', amount: 134900, cell: 'S70' },
+  { name: '식대/실비', amount: 311900, cell: 'S71' }
 ];
 
 var DEFAULT_SEVERANCES = [
@@ -1314,6 +1314,7 @@ window.PharmacyStore = class PharmacyStore {
           if (d.cardCashbacks && Array.isArray(d.cardCashbacks)) current.cardCashbacks = d.cardCashbacks;
           if (d.finances && Array.isArray(d.finances)) current.finances = d.finances;
           if (d.cardWithdrawals && Array.isArray(d.cardWithdrawals)) current.cardWithdrawals = d.cardWithdrawals;
+          if (d.otherExpenses && Array.isArray(d.otherExpenses)) current.otherExpenses = d.otherExpenses;
 
           this.monthlyRecords[yymm] = this.calculateMonthly(current);
         }
@@ -2725,6 +2726,11 @@ var UI = {
       const totalEl = document.getElementById('disp-total-card-withdraw');
       if (totalEl) totalEl.textContent = `₩${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}`;
     }
+    if (listKey === 'otherExpenses') {
+      const m = window.store.getMonthly(yymm);
+      const totalEl = document.getElementById('disp-total-other-expenses');
+      if (totalEl) totalEl.textContent = window.store.formatMoney(m.expOtherOperating || 446800);
+    }
   },
 
   handleCardPayChange(idx, inputOrVal) {
@@ -2772,13 +2778,14 @@ var UI = {
         cardCashbacks: DEFAULT_CARD_CASHBACKS.map(v => ({ ...v })),
         finances: DEFAULT_FINANCES.map(v => ({ ...v })),
         cardWithdrawals: DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v })),
+        otherExpenses: DEFAULT_OTHER_EXPENSES.map(v => ({ ...v })),
         severances: DEFAULT_SEVERANCES.map(v => ({ ...v })),
         incomeRxFee: 32849250,
         incomeCopay: 30349850,
         incomeNhisClaim: 71969828,
         incomeNonCovered: 744362.68,
         incomeDiscount: 472800,
-        incCardBenefit: 783528,
+        incCardBenefit: 778608,
         expRent: 15070000,
         expOtherOperating: 446800,
         expCardFee: 1505097,
@@ -3325,6 +3332,13 @@ window.SmartLedgerModule = {
       m2608.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
       m2608.cardWithdrawalSum = 76162130;
       m2608.expCardWithdrawBank = 76162130;
+      m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
+      m2608.expOtherOperating = 446800;
+      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
+      try { window.store.saveToLocal(); } catch (e) {}
+    }
+
+    if (m2608 && (!m2608.otherExpenses || !Array.isArray(m2608.otherExpenses) || m2608.otherExpenses.length === 0 || m2608.otherExpenses.some(oe => oe.name === '월세' || oe.name === '경비/현금' || oe.name === '신세계카드' || oe.amount === 134160 || oe.amount === 311500) || !m2608.otherExpenses.some(oe => oe.name === '잡비2카드'))) {
       m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
       m2608.expOtherOperating = 446800;
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);

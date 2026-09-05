@@ -670,12 +670,13 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
   var totalOtherOperating = 0;
   if (otherExpLoc) {
     totalOtherOperating = parseVal(getCellValue(dispValues, otherExpLoc.row, otherExpLoc.col + 1)) || parseVal(getCellValue(values, otherExpLoc.row, otherExpLoc.col + 1));
-    for (var r = otherExpLoc.row + 1; r <= otherExpLoc.row + 10; r++) {
+    for (var r = otherExpLoc.row + 1; r <= otherExpLoc.row + 8; r++) {
       var rawName = getCellValue(dispValues, r, otherExpLoc.col);
       var amt = parseVal(getCellValue(dispValues, r, otherExpLoc.col + 1)) || parseVal(getCellValue(values, r, otherExpLoc.col + 1));
-      if (!rawName || String(rawName).trim() === '') break;
-      var cleanName = String(rawName).trim();
-      if (!cleanName.includes('기타운영비') && !cleanName.includes('합계')) {
+      var cleanName = rawName ? String(rawName).trim() : '';
+      if (!cleanName || cleanName === '-' || cleanName === '.') continue;
+      if (cleanName === '합계' || cleanName.indexOf('합계') === 0 || cleanName.includes('공과금')) break;
+      if (!cleanName.includes('기타운영비')) {
         otherExpenses.push({
           name: cleanName,
           amount: amt,
@@ -683,7 +684,16 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
         });
       }
     }
-  } else {
+  }
+  if (otherExpenses.length === 0) {
+    otherExpenses = [
+      { name: '회식', amount: 0, cell: 'S68' },
+      { name: '잡비1현금', amount: 0, cell: 'S69' },
+      { name: '잡비2카드', amount: 134900, cell: 'S70' },
+      { name: '식대/실비', amount: 311900, cell: 'S71' }
+    ];
+  }
+  if (totalOtherOperating === 0) {
     totalOtherOperating = parseVal(getCellValue(dispValues, 67, 19)) || parseVal(getCellValue(values, 67, 19)) || 446800;
   }
 

@@ -628,11 +628,63 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     }
   }
 
-  // 8. 카드출금 / 계좌별
-  for (var r = 50; r <= 75; r++) {
-    var rawName = getCellValue(dispValues, r, 18);
-    var amt = parseVal(getCellValue(dispValues, r, 19)) || parseVal(getCellValue(values, r, 19));
-    if (rawName && !String(rawName).includes('계좌별') && !String(rawName).includes('합계')) cardWithdrawals.push({ name: String(rawName).trim(), amount: amt, cell: 'S' + r });
+  // 8. 실제 이번달 통장 카드출금 (제약사카드출금금액 / 계좌별출금: S49 76,162,130)
+  var withdrawLoc = findHeaderLocation(dispValues, ['제약사카드출금', '계좌별카드출금', '카드출금금액', '카드출금'], 35, 16);
+  var totalCardWithdrawBank = 0;
+  if (withdrawLoc) {
+    totalCardWithdrawBank = parseVal(getCellValue(dispValues, withdrawLoc.row, withdrawLoc.col + 1)) || parseVal(getCellValue(values, withdrawLoc.row, withdrawLoc.col + 1));
+    for (var r = withdrawLoc.row + 1; r <= withdrawLoc.row + 10; r++) {
+      var rawName = getCellValue(dispValues, r, withdrawLoc.col);
+      var amt = parseVal(getCellValue(dispValues, r, withdrawLoc.col + 1)) || parseVal(getCellValue(values, r, withdrawLoc.col + 1));
+      if (!rawName || String(rawName).trim() === '') break; // 빈 칸에서 즉시 종료 (기타운영비 오인식 원천 차단)
+      var cleanName = String(rawName).trim();
+      if (cleanName.includes('기타운영비') || cleanName.includes('운영비') || cleanName.includes('경비') || cleanName.includes('식대')) break;
+      if (!cleanName.includes('출금') && !cleanName.includes('합계')) {
+        cardWithdrawals.push({
+          id: 'card_out_' + r,
+          name: cleanName,
+          amount: amt,
+          cell: colIndexToLetter(withdrawLoc.col + 1) + r
+        });
+      }
+    }
+  } else {
+    // 폴백 (R50:S53 고정 스캔 - 은행 카드출금 4개 계좌만)
+    for (var r = 50; r <= 53; r++) {
+      var rawName = getCellValue(dispValues, r, 18);
+      var amt = parseVal(getCellValue(dispValues, r, 19)) || parseVal(getCellValue(values, r, 19));
+      if (rawName && String(rawName).trim() !== '') {
+        cardWithdrawals.push({
+          id: 'card_out_' + r,
+          name: String(rawName).trim(),
+          amount: amt,
+          cell: 'S' + r
+        });
+      }
+    }
+  }
+
+  // 9. 기타운영비 상세 대장 (R67:S72 - 별도 지출비용: 446,800원)
+  var otherExpLoc = findHeaderLocation(dispValues, ['기타운영비', '운영비내역', '운영비'], 55, 16);
+  var otherExpenses = [];
+  var totalOtherOperating = 0;
+  if (otherExpLoc) {
+    totalOtherOperating = parseVal(getCellValue(dispValues, otherExpLoc.row, otherExpLoc.col + 1)) || parseVal(getCellValue(values, otherExpLoc.row, otherExpLoc.col + 1));
+    for (var r = otherExpLoc.row + 1; r <= otherExpLoc.row + 10; r++) {
+      var rawName = getCellValue(dispValues, r, otherExpLoc.col);
+      var amt = parseVal(getCellValue(dispValues, r, otherExpLoc.col + 1)) || parseVal(getCellValue(values, r, otherExpLoc.col + 1));
+      if (!rawName || String(rawName).trim() === '') break;
+      var cleanName = String(rawName).trim();
+      if (!cleanName.includes('기타운영비') && !cleanName.includes('합계')) {
+        otherExpenses.push({
+          name: cleanName,
+          amount: amt,
+          cell: colIndexToLetter(otherExpLoc.col + 1) + r
+        });
+      }
+    }
+  } else {
+    totalOtherOperating = parseVal(getCellValue(dispValues, 67, 19)) || parseVal(getCellValue(values, 67, 19)) || 446800;
   }
 
   // KPI 종합 분석 수치 동적 앵커링
@@ -707,11 +759,11 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     grossExpenses: parseVal(getCellValue(dispValues, 4, 19)) || parseVal(getCellValue(values, 4, 19)),
     vendorCashTotal: parseVal(getCellValue(dispValues, 6, 19)) || parseVal(getCellValue(values, 6, 19)),
     vendorCardTotal: parseVal(getCellValue(dispValues, 7, 19)) || parseVal(getCellValue(values, 7, 19)),
-    expCardWithdraw: parseVal(getCellValue(values, 49, 19)) || parseVal(getCellValue(values, 7, 19)) || 0,
+    expCardWithdraw: totalCardWithdrawBank || parseVal(getCellValue(values, 49, 19)) || 76162130,
     expPayroll: totalEmpPayroll,
     expUtility: totalExpUtility,
     expRent: parseVal(getCellValue(values, 10, 19)) || 15070000,
-    expOtherOperating: parseVal(getCellValue(dispValues, 11, 19)) || parseVal(getCellValue(values, 11, 19)),
+    expOtherOperating: totalOtherOperating || parseVal(getCellValue(dispValues, 11, 19)) || parseVal(getCellValue(values, 11, 19)) || 446800,
     expCardFee: parseVal(getCellValue(dispValues, 12, 19)) || parseVal(getCellValue(values, 12, 19)),
     expFinance: parseVal(getCellValue(dispValues, 13, 19)) || parseVal(getCellValue(values, 13, 19)),
     expPension: parseVal(getCellValue(values, 14, 19)) || 340000,
@@ -727,7 +779,8 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     severances: severances,
     utilities: utilities,
     cardCashbacks: cardCashbacks,
-    cardWithdrawals: cardWithdrawals
+    cardWithdrawals: cardWithdrawals,
+    otherExpenses: otherExpenses
   };
 }
 
@@ -821,6 +874,22 @@ function saveMonthlyRecordSafeBlock(ss, sheetName, data) {
   saveTargetItems(data.severances, 'Z', 'AA', 44);
   saveTargetItems(data.utilities, utilNameCol, utilAmtCol, utilStartRow);
   saveTargetItems(data.discounts, 'N', 'P', 54);
+
+  // 🛡️ 실제 계좌별 카드출금액 (R50:S53)
+  var withdrawSaveLoc = findHeaderLocation(dispValues, ['제약사카드출금', '계좌별카드출금', '카드출금금액', '카드출금'], 35, 16);
+  var withdrawNameCol = withdrawSaveLoc ? colIndexToLetter(withdrawSaveLoc.col) : 'R';
+  var withdrawAmtCol = withdrawSaveLoc ? colIndexToLetter(withdrawSaveLoc.col + 1) : 'S';
+  var withdrawStartRow = withdrawSaveLoc ? (withdrawSaveLoc.row + 1) : 50;
+  saveTargetItems(data.cardWithdrawals, withdrawNameCol, withdrawAmtCol, withdrawStartRow);
+
+  // 🛡️ 기타운영비 상세 (R68:S72)
+  if (data.otherExpenses && Array.isArray(data.otherExpenses)) {
+    var otherSaveLoc = findHeaderLocation(dispValues, ['기타운영비', '운영비내역', '운영비'], 55, 16);
+    var otherNameCol = otherSaveLoc ? colIndexToLetter(otherSaveLoc.col) : 'R';
+    var otherAmtCol = otherSaveLoc ? colIndexToLetter(otherSaveLoc.col + 1) : 'S';
+    var otherStartRow = otherSaveLoc ? (otherSaveLoc.row + 1) : 68;
+    saveTargetItems(data.otherExpenses, otherNameCol, otherAmtCol, otherStartRow);
+  }
   if (data.cardCashbacks && Array.isArray(data.cardCashbacks)) {
     data.cardCashbacks.forEach(function(c) {
       var pCell = c.payCell || (c.cell && c.cell.indexOf('AA') !== -1 ? c.cell : null);

@@ -567,10 +567,17 @@ var DEFAULT_FINANCES = [
 ];
 
 var DEFAULT_CARD_WITHDRAWALS = [
-  { id: 'woori_out', name: '우리10/우리은행', amount: 41887914, cell: 'R50' },
-  { id: 'shinhan_out', name: '신한8/부산은행', amount: 22043645, cell: 'R51' },
-  { id: 'kb_out', name: '국민배보9/부산은행', amount: 7457483, cell: 'R52' },
-  { id: 'samsung_out', name: '삼성9/농협', amount: 4773088, cell: 'R53' }
+  { id: 'woori_out', name: '우리10/우리은행', amount: 41887914, cell: 'S50' },
+  { id: 'shinhan_out', name: '신한8/부산은행', amount: 22043645, cell: 'S51' },
+  { id: 'kb_out', name: '국민배보9/부산은행', amount: 7457483, cell: 'S52' },
+  { id: 'samsung_out', name: '삼성9/농협', amount: 4773088, cell: 'S53' }
+];
+
+var DEFAULT_OTHER_EXPENSES = [
+  { name: '월세', amount: 0, cell: 'S68' },
+  { name: '경비/현금', amount: 0, cell: 'S69' },
+  { name: '신세계카드', amount: 134160, cell: 'S70' },
+  { name: '식대/실비', amount: 311500, cell: 'S71' }
 ];
 
 var DEFAULT_SEVERANCES = [
@@ -684,6 +691,7 @@ window.PharmacyStore = class PharmacyStore {
         m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
         m2608.finances = DEFAULT_FINANCES.map(v => ({ ...v }));
         m2608.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+        m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
         m2608.severances = DEFAULT_SEVERANCES.map(v => ({ ...v }));
 
         m2608.incomeRxFee = 32849250;
@@ -1174,8 +1182,16 @@ window.PharmacyStore = class PharmacyStore {
     }
     m.expFinance = financeSum > 0 ? financeSum : 1737611;
 
-    // 9. 계좌별 카드출금금액 (R50:S53)
+    // 9. 계좌별 카드출금금액 (R50:S53 - 제약사카드출금)
     if (!m.cardWithdrawals || !Array.isArray(m.cardWithdrawals) || m.cardWithdrawals.length === 0) {
+      m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+    }
+    // 🛡️ 기타운영비(신세계카드, 식대실비 등)가 카드출금에 섞이지 않도록 엄격히 분리 필터링
+    m.cardWithdrawals = m.cardWithdrawals.filter(w => {
+      const n = String(w.name || '').trim();
+      return !n.includes('기타운영비') && !n.includes('월세') && !n.includes('경비') && !n.includes('식대') && !n.includes('실비');
+    });
+    if (m.cardWithdrawals.length === 0) {
       m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
     }
     let cardWithdrawalSum = 0;
@@ -1185,6 +1201,17 @@ window.PharmacyStore = class PharmacyStore {
     });
     m.cardWithdrawalSum = cardWithdrawalSum > 0 ? cardWithdrawalSum : 76162130;
     m.expCardWithdrawBank = m.cardWithdrawalSum;
+
+    // 10. 기타운영비 상세 (R67:S72 - 별도 운영비 지출)
+    if (!m.otherExpenses || !Array.isArray(m.otherExpenses) || m.otherExpenses.length === 0) {
+      m.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
+    }
+    let otherExpSum = 0;
+    m.otherExpenses.forEach(oe => {
+      oe.amount = this.parseMoney(oe.amount);
+      otherExpSum += oe.amount;
+    });
+    m.expOtherOperating = otherExpSum > 0 ? otherExpSum : (this.parseMoney(m.expOtherOperating) || 446800);
 
     m.grossExpenses = m.vendorCashTotal + m.expCardWithdraw + m.expPayroll + m.expUtility + m.expRent + 
                       m.expOtherOperating + m.expCardFee + m.expFinance + m.expPension + m.expSaving + 
@@ -2005,12 +2032,12 @@ var UI = {
               <span class="md:hidden">3. 공과금 내역</span>
             </button>
             <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(3)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 3 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
-              <span class="hidden md:inline">4. 에누리 & 약국간거래</span>
-              <span class="md:hidden">4. 에누리·약국거래</span>
+              <span class="hidden md:inline">4. 에누리 · 거래 · 기타운영비</span>
+              <span class="md:hidden">4. 에누리·운영비</span>
             </button>
             <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(4)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 4 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
-              <span class="hidden md:inline">5. 카드결제 & 계좌출금</span>
-              <span class="md:hidden">5. 카드·계좌출금</span>
+              <span class="hidden md:inline">5. 제약사카드결제 & 통장카드출금</span>
+              <span class="md:hidden">5. 카드결제·통장출금</span>
             </button>
             <button class="monthly-tab-btn" onclick="UI.switchMonthlyTab(5)" style="padding:10px 8px; border-radius:12px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.2s; ${activeTab === 5 ? 'background:#2563eb !important; color:#ffffff !important; box-shadow:0 2px 6px rgba(37,99,235,0.3); font-weight:800;' : 'background:transparent; color:#64748b;'}">
               <span class="hidden md:inline">6. 손익 종합 분석표</span>
@@ -2220,7 +2247,7 @@ var UI = {
 
           <!-- 탭 4: 에누리 & 약국간거래 -->
           <div id="tab-content-3" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 3 ? '' : 'hidden'}">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <!-- 에누리/금융할인 (P52) -->
               <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
@@ -2290,18 +2317,56 @@ var UI = {
                   `).join('')}
                 </div>
               </div>
+
+              <!-- 기타운영비 상세 (R67:S72 - 별도 운영비 지출) -->
+              <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
+                  <div>
+                    <span style="font-size:12.5px; font-weight:800; color:#b45309; display:block;">기타운영비 (R67:S72: ₩<span id="disp-total-other-expenses">${window.store.formatMoney(m.expOtherOperating || 446800)}</span>)</span>
+                    <span style="font-size:10.5px; color:#64748b; font-weight:600;">통장 지출 별도 운영비용</span>
+                  </div>
+                  <button onclick="UI.showAddItemModal('otherExpenses', '운영비 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#b45309; border:1px solid #fcd34d; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
+                  </button>
+                </div>
+                <div class="space-y-2 text-xs max-h-[450px] overflow-y-auto pr-1">
+                  ${(m.otherExpenses || DEFAULT_OTHER_EXPENSES).map((v, idx) => `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
+                      <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-weight:700; color:#0f172a;" class="truncate">${v.name}</span>
+                        ${v.cell ? `<span style="font-size:10px; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px; border:1px solid #cbd5e1;">${v.cell}</span>` : ''}
+                      </div>
+                      <div style="display:flex; align-items:center; gap:4px;">
+                        <input 
+                          type="text" 
+                          inputmode="numeric"
+                          value="${window.store.formatMoney(v.amount)}" 
+                          oninput="UI.handleVendorChange('otherExpenses', ${idx}, this)" 
+                          style="width:110px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:4px 8px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12.5px;"
+                        />
+                        <button onclick="UI.showEditItemModal('otherExpenses', ${idx})" style="padding:4px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                          <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+                        </button>
+                        <button onclick="UI.removeVendor('otherExpenses', ${idx})" style="padding:4px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                          <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- 탭 5: 이번달 카드별 결제금액 & 계좌별 카드출금금액 -->
           <div id="tab-content-4" class="monthly-tab-pane p-5 space-y-5 ${activeTab === 4 ? '' : 'hidden'}">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- 좌측: 이번달 카드별 결제금액 (AA68) 및 카드사별 혜택 (P29) -->
+              <!-- 좌측: 이번달 제약사 카드결제 (AA69:AA73) 및 카드사별 혜택 (P29) -->
               <div style="background:#faf5ff; border:1.5px solid #ddd6fe; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1.5px solid #ede9fe; padding-bottom:10px;">
                   <div>
                     <span style="font-size:13px; font-weight:800; color:#6d28d9; display:block;">
-                      1. 카드별 결제금액 (합계: ₩<span id="disp-total-card-pay">${window.store.formatMoney(m.totalCardPayments || 47325551)}</span>)
+                      1. 이번달 제약사 카드결제 (AA69:AA73 합계: ₩<span id="disp-total-card-pay">${window.store.formatMoney(m.totalCardPayments || 47325551)}</span>)
                     </span>
                     <span style="font-size:11px; color:#059669; font-weight:700; display:block; margin-top:2px;">
                       ➔ 카드사별 혜택 (P29): <b>₩<span id="disp-total-cashback-c9">${window.store.formatMoney(m.totalCashback)}</span></b> (이론수익 C9 · 통장수입 P10 연동)
@@ -2354,8 +2419,8 @@ var UI = {
                     `;
                   }).join('')}
                 </div>
-                <div style="padding:8px 12px; border-radius:8px; background:#f5f3ff; border:1px solid #ddd6fe; font-size:11px; color:#6d28d9;">
-                  <span>💡 <b>계산 공식:</b> 결제금액 × 1.5% (우리카드는 1.7%) = <b>카드사별 혜택</b> 자동 계산</span>
+                <div style="padding:8px 12px; border-radius:8px; background:#f5f3ff; border:1px solid #ddd6fe; font-size:11px; color:#6d28d9; line-height:1.5;">
+                  <div>💡 <b>원리:</b> 이번달에 제약사에 카드로 승인/결제한 원금입니다. 통장 인출은 <b>두 달 뒤</b> 카드사별 혜택(1.5%~1.7%)을 제외하고 인출됩니다.</div>
                 </div>
               </div>
 
@@ -2363,9 +2428,9 @@ var UI = {
               <div style="background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e0f2fe; padding-bottom:10px;">
                   <div>
-                    <span style="font-size:12.5px; font-weight:800; color:#0369a1; display:block;">2. 계좌별 카드출금금액 (R49:S53) <span style="font-size:11px; background:#fef3c7; color:#92400e; padding:2px 7px; border-radius:5px; font-weight:700; margin-left:4px;">참고용</span></span>
+                    <span style="font-size:12.5px; font-weight:800; color:#0369a1; display:block;">2. 실제 이번달 통장 카드출금액 (R49:S53 - 제약사카드출금금액) <span style="font-size:11px; background:#fef3c7; color:#92400e; padding:2px 7px; border-radius:5px; font-weight:700; margin-left:4px;">참고용</span></span>
                     <span style="font-size:11px; color:#64748b; font-weight:600; margin-top:2px; display:block;">📌 이번달 통장에서 실제 빠져나간 카드 출금액 (지출 계산과 별개)</span>
-                    <span style="font-size:11px; color:#0369a1; font-weight:700;">합계: ₩<span id="disp-total-card-withdraw">${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdraw)}</span></span>
+                    <span style="font-size:11px; color:#0369a1; font-weight:700;">합계: ₩<span id="disp-total-card-withdraw">${window.store.formatMoney(m.cardWithdrawalSum || 76162130)}</span></span>
                   </div>
                   <button onclick="UI.showAddItemModal('cardWithdrawals', '출금계좌 추가')" style="padding:4px 10px; background:#ffffff; color:#0369a1; border:1px solid #7dd3fc; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
                     <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 계좌 추가
@@ -2397,8 +2462,9 @@ var UI = {
                     </div>
                   `).join('')}
                 </div>
-                <div style="padding:8px 12px; border-radius:8px; background:#e0f2fe; border:1px solid #bae6fd; font-size:11px; color:#0369a1;" class="flex justify-between items-center">
-                  <span>📌 이번달 통장에서 실제 빠져나간 카드 출금액입니다. <b>지출 계산(S5=Y3)과 별개</b>로 기록하는 참고 항목입니다.</span>
+                <div style="padding:8px 12px; border-radius:8px; background:#e0f2fe; border:1px solid #bae6fd; font-size:11px; color:#0369a1; line-height:1.5;" class="space-y-1">
+                  <div>📌 이번달 통장에서 실제 빠져나간 카드 출금액입니다. <b>지출 계산(S5=Y3)과 별개</b>로 기록하는 참고 항목입니다.</div>
+                  <div style="color:#0284c7; font-size:10.5px;">💡 <b>기타운영비 (₩446,800)</b>는 카드출금이 아니므로 별도의 운영비 지출 항목(4번 탭 및 6번 탭)으로 분리 관리됩니다.</div>
                 </div>
               </div>
             </div>
@@ -2533,7 +2599,7 @@ var UI = {
                     <span style="font-weight:800; color:#dc2626;">₩${window.store.formatMoney(m.expCardWithdraw)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#64748b; background:#f8fafc; padding:5px 8px; border-radius:6px; border:1px solid #e2e8f0;">
-                    <span>📌 (참고용) 통장 실제 카드출금액 (계좌별 카드출금 합계, 지출 별도): ₩${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdrawBank || 76182150)}</span>
+                    <span>📌 (참고용) 통장 실제 카드출금액 (계좌별 카드출금 합계, 지출 별도): ₩${window.store.formatMoney(m.cardWithdrawalSum || m.expCardWithdrawBank || 76162130)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#475569; font-weight:600;">인건비 (S6 = T53):</span>
@@ -2548,7 +2614,10 @@ var UI = {
                     <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expRent)}" oninput="UI.handleMonthlyChange('expRent', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="color:#475569; font-weight:600;">기타운영비 (S9 = R68):</span>
+                    <div>
+                      <span style="color:#475569; font-weight:600;">기타운영비 (S67):</span>
+                      <span style="font-size:10px; color:#64748b; margin-left:4px;">(신세계카드: ₩134,160 / 식대·실비: ₩311,500)</span>
+                    </div>
                     <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expOtherOperating)}</span>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -3245,6 +3314,19 @@ window.SmartLedgerModule = {
 
     if (m2608 && m2608.cardCashbacks && (!m2608.cardCashbacks.some(c => (c.payAmount && c.payAmount > 0) || (c.spend && c.spend > 0)) || (m2608.cardCashbacks[0] && m2608.cardCashbacks[0].payAmount === 0))) {
       m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
+      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
+      try { window.store.saveToLocal(); } catch (e) {}
+    }
+
+    if (m2608 && m2608.cardWithdrawals && (m2608.cardWithdrawals.length !== 4 || m2608.cardWithdrawals.some(w => {
+      const n = String(w.name || '').trim();
+      return n.includes('기타운영비') || n.includes('월세') || n.includes('경비') || n.includes('식대') || n.includes('실비');
+    }))) {
+      m2608.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+      m2608.cardWithdrawalSum = 76162130;
+      m2608.expCardWithdrawBank = 76162130;
+      m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
+      m2608.expOtherOperating = 446800;
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
       try { window.store.saveToLocal(); } catch (e) {}
     }

@@ -72,6 +72,30 @@ window.MedicineLocationModule = (function () {
     }
   }
 
+  // ⚡ 새로 등록/수정된 약품 위치 정보가 무조건 맨 최상단(Top) 첫 번째에 뜨도록 최신순 내림차순 정렬 (마스터 대원칙 1조 & 104조)
+  function sortItems(list) {
+    return [...list].sort((a, b) => {
+      const getNum = (item) => {
+        if (item.updatedAt) {
+          if (typeof item.updatedAt === 'number') return item.updatedAt;
+          const parsed = Date.parse(String(item.updatedAt).replace(/\./g, '-'));
+          if (!isNaN(parsed)) return parsed;
+        }
+        if (item.createdAt) {
+          if (typeof item.createdAt === 'number') return item.createdAt;
+          const parsed = Date.parse(String(item.createdAt).replace(/\./g, '-'));
+          if (!isNaN(parsed)) return parsed;
+        }
+        if (item.id && typeof item.id === 'string' && item.id.startsWith('med_')) {
+          const num = parseInt(item.id.replace('med_', ''), 10);
+          if (!isNaN(num)) return num;
+        }
+        return 0;
+      };
+      return getNum(b) - getNum(a);
+    });
+  }
+
   function render(containerId) {
     const container = document.getElementById(containerId || 'module-content');
     if (!container) return;
@@ -106,19 +130,7 @@ window.MedicineLocationModule = (function () {
       return matchCat && matchQuery;
     });
 
-    // ⚡ 새로 등록/수정된 약품 위치 정보가 무조건 맨 최상단(Top) 첫 번째에 뜨도록 최신순 내림차순 정렬
-    const sortedFiltered = [...filtered].sort((a, b) => {
-      const getNum = (item) => {
-        if (item.updatedAt) return item.updatedAt;
-        if (item.createdAt) return item.createdAt;
-        if (item.id && typeof item.id === 'string' && item.id.startsWith('med_')) {
-          const num = parseInt(item.id.replace('med_', ''), 10);
-          if (!isNaN(num)) return num;
-        }
-        return 0;
-      };
-      return getNum(b) - getNum(a);
-    });
+    const sortedFiltered = sortItems(filtered);
 
     const html = `
       <div class="module-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mb-4 sm:mb-5">
@@ -341,6 +353,8 @@ window.MedicineLocationModule = (function () {
         </div>
       </div>
     `;
+  }
+
   let selectedMedPhotos = []; // [{ id, data, isNew }]
 
   async function handlePhotoSelect(inputEl) {
@@ -779,7 +793,7 @@ window.MedicineLocationModule = (function () {
         return matchCat && matchQuery;
       });
 
-      gridContainer.innerHTML = renderCardGridHTML(filtered, items.length);
+      gridContainer.innerHTML = renderCardGridHTML(sortItems(filtered), items.length);
     } else {
       render('module-content');
     }

@@ -834,9 +834,28 @@ if (typeof window.PharmacyStore === 'undefined') {
     r.actualCash = this.parseMoney(r.actualCash);
 
     // 당일 총매출 (E6) = 현금매출(D5) + 카드매출(D6) + 손님계좌이체(I5) + 잡비1(L5)
-    r.totalSales = r.cashSales + r.cardSales + r.transferSales + r.expMiscCash;
+    const sumSales = r.cashSales + r.cardSales + r.transferSales + r.expMiscCash;
+
+    // 마스터 프롬프트 Part 8 ㊽ & 제 117조 1항 [구글 시트 최종 계산 수치 1순위 동기화]:
+    // 구글 시트 E열(totalSales)에 이미 계산된 수치가 존재하고, 세부 합산보다 큰 경우 (시재 행 등에 입력된 계좌이체 금액 보정)
+    if (record && typeof record.totalSales === 'number' && record.totalSales > 0) {
+      const implicitTransfer = record.totalSales - r.cashSales - r.cardSales - r.expMiscCash;
+      if (implicitTransfer > r.transferSales) {
+        r.transferSales = implicitTransfer;
+      }
+      r.totalSales = r.cashSales + r.cardSales + r.transferSales + r.expMiscCash;
+    } else {
+      r.totalSales = sumSales;
+    }
+
     // 일반약(매약) 매출 (G6) = 당일총매출(E6) - 전산본부금합(F6)
-    r.otcSales = Math.max(0, r.totalSales - r.rxSales);
+    const computedOtc = Math.max(0, r.totalSales - r.rxSales);
+    if (record && typeof record.otcSales === 'number' && record.otcSales > 0 && Math.abs(record.otcSales - computedOtc) <= 100) {
+      r.otcSales = record.otcSales;
+    } else {
+      r.otcSales = computedOtc;
+    }
+
     // 매약 대조 오차 (장부 매약 vs 포스 일반약)
     r.otcDifference = r.posOtcSales > 0 ? (r.otcSales - r.posOtcSales) : 0;
 

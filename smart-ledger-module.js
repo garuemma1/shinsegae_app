@@ -517,7 +517,7 @@ var DEFAULT_DISCOUNTS = [
   { name: '동원에누리', amount: 50000, cell: 'P61' },
   { name: '훼밀리에누리', amount: 720000, cell: 'P62' },
   { name: '훼밀리페이', amount: 318636, cell: 'P63' },
-  { name: '위영관', amount: 0, cell: 'P64' }
+  { name: '허정환', amount: 0, cell: 'P64' }
 ];
 
 var DEFAULT_ONLINE_MALLS = [
@@ -3224,7 +3224,7 @@ window.SmartLedgerModule = {
     }
 
     const m2608 = window.store.monthlyRecords && window.store.monthlyRecords['2608'];
-    if (!m2608 || !m2608.discounts || m2608.discounts.length < 11 || !m2608.discounts.some(d => d.name.includes('훼밀리에누리'))) {
+    if (!m2608 || !m2608.discounts || m2608.discounts.length < 11 || !m2608.discounts.some(d => d.name.includes('훼밀리에누리')) || !m2608.discounts.some(d => d.name.includes('허정환'))) {
       if (!window.store.monthlyRecords) window.store.monthlyRecords = {};
       const targetM = m2608 || window.store.getMonthly('2608');
       targetM.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));

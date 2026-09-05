@@ -555,13 +555,86 @@ function getFullMonthData(ss, yymm) {
   }
 
   var monthly = monthlyRawValues ? getMonthlyRecordFromValues(monthlyRawValues, monthlyDisplayValues, yymm + "결산") : null;
-  var cumulative = { cashSalesTotal: 0, cardSalesTotal: 0, onlineMallTotal: 0 };
+  var cumulative = { cashSalesTotal: 0, cardSalesTotal: 0, onlineMallTotal: 0, totalSalesSum: 0, rxSalesSum: 0, otcSalesSum: 0 };
   
-  if (dailyRawValues) {
-    if (dailyRawValues.length >= 249) cumulative.cashSalesTotal = parseVal(getCellValue(dailyRawValues, 249, 4)) || parseVal(getCellValue(dailyDisplayValues, 249, 4));
-    if (dailyRawValues.length >= 250) {
-      cumulative.cardSalesTotal = parseVal(getCellValue(dailyRawValues, 250, 4)) || parseVal(getCellValue(dailyDisplayValues, 250, 4));
-      cumulative.onlineMallTotal = parseVal(getCellValue(dailyRawValues, 250, 25)) || parseVal(getCellValue(dailyDisplayValues, 250, 25));
+  if (dailyRawValues && dailyRawValues.length) {
+    var maxR = dailyRawValues.length;
+    var dVals = dailyDisplayValues || dailyRawValues;
+    var rVals = dailyRawValues;
+
+    // 1. 하단 요약 영역 스마트 동적 스캔 (240행부터 끝까지 라벨 기반 정밀 탐색)
+    var scanStart = Math.max(0, maxR - 25);
+    for (var r = scanStart; r < maxR; r++) {
+      var rowStr = '';
+      for (var c = 0; c < Math.min(30, (dVals[r] ? dVals[r].length : 0)); c++) {
+        rowStr += ' ' + String(dVals[r][c] || '');
+      }
+      rowStr = rowStr.replace(/\s+/g, '');
+
+      // ① 월현금매출 (B/C열 "월현금매출", D열 금액)
+      if (rowStr.indexOf('월현금매출') !== -1 || (rowStr.indexOf('현금') !== -1 && rowStr.indexOf('매출') !== -1 && rowStr.indexOf('월') !== -1)) {
+        for (var c = 1; c <= 8; c++) {
+          var val = parseVal(getCellValue(dVals, r + 1, c)) || parseVal(getCellValue(rVals, r + 1, c));
+          if (val > 100000) { cumulative.cashSalesTotal = val; break; }
+        }
+      }
+
+      // ② 월카드매출 (B/C열 "월카드매출", D열 금액)
+      if (rowStr.indexOf('월카드매출') !== -1 || (rowStr.indexOf('카드') !== -1 && rowStr.indexOf('매출') !== -1 && rowStr.indexOf('월') !== -1)) {
+        for (var c = 1; c <= 8; c++) {
+          var val = parseVal(getCellValue(dVals, r + 1, c)) || parseVal(getCellValue(rVals, r + 1, c));
+          if (val > 1000000) { cumulative.cardSalesTotal = val; break; }
+        }
+      }
+
+      // ③ 온라인몰즉시결제 (Y/Z열 금액)
+      if (rowStr.indexOf('온라인몰즉시결제') !== -1 || rowStr.indexOf('온라인몰카드') !== -1 || (rowStr.indexOf('온라인몰') !== -1 && rowStr.indexOf('결제') !== -1)) {
+        for (var c = 15; c <= 30; c++) {
+          var val = parseVal(getCellValue(dVals, r + 1, c)) || parseVal(getCellValue(rVals, r + 1, c));
+          if (val > 100000) { cumulative.onlineMallTotal = val; break; }
+        }
+      }
+
+      // ④ 월총합 바 (E열 당월총매출, F열 전산본부금, G열 매약매출)
+      if (rowStr.indexOf('월총합') !== -1 || rowStr.indexOf('월합계') !== -1 || rowStr.indexOf('당월총매출') !== -1) {
+        var totE = parseVal(getCellValue(dVals, r + 1, 5)) || parseVal(getCellValue(rVals, r + 1, 5));
+        var rxF = parseVal(getCellValue(dVals, r + 1, 6)) || parseVal(getCellValue(rVals, r + 1, 6));
+        var otcG = parseVal(getCellValue(dVals, r + 1, 7)) || parseVal(getCellValue(rVals, r + 1, 7));
+        if (totE > 1000000) cumulative.totalSalesSum = totE;
+        if (rxF > 1000000) cumulative.rxSalesSum = rxF;
+        if (otcG > 1000000) cumulative.otcSalesSum = otcG;
+      }
+    }
+
+    // 2. 명시적 셀 좌표 2중 안전 폴백 (D251, D252, Y252 등)
+    if (cumulative.cashSalesTotal === 0 && maxR >= 251) {
+      cumulative.cashSalesTotal = parseVal(getCellValue(dVals, 251, 4)) || parseVal(getCellValue(rVals, 251, 4));
+    }
+    if (cumulative.cardSalesTotal === 0 && maxR >= 252) {
+      cumulative.cardSalesTotal = parseVal(getCellValue(dVals, 252, 4)) || parseVal(getCellValue(rVals, 252, 4));
+    }
+    if (cumulative.onlineMallTotal === 0) {
+      var candidateRows = [252, 251, 250, 253];
+      var candidateCols = [25, 26, 27, 24]; // Y, Z, AA, X
+      for (var cr = 0; cr < candidateRows.length; cr++) {
+        for (var cc = 0; cc < candidateCols.length; cc++) {
+          var v = parseVal(getCellValue(dVals, candidateRows[cr], candidateCols[cc])) || parseVal(getCellValue(rVals, candidateRows[cr], candidateCols[cc]));
+          if (v > 1000000) { cumulative.onlineMallTotal = v; break; }
+        }
+        if (cumulative.onlineMallTotal > 0) break;
+      }
+    }
+    if (cumulative.totalSalesSum === 0 && maxR >= 250) {
+      cumulative.totalSalesSum = parseVal(getCellValue(dVals, 250, 5)) || parseVal(getCellValue(rVals, 250, 5))
+        || parseVal(getCellValue(dVals, 249, 5)) || parseVal(getCellValue(rVals, 249, 5));
+    }
+    if (cumulative.rxSalesSum === 0 && maxR >= 250) {
+      cumulative.rxSalesSum = parseVal(getCellValue(dVals, 250, 6)) || parseVal(getCellValue(rVals, 250, 6))
+        || parseVal(getCellValue(dVals, 249, 6)) || parseVal(getCellValue(rVals, 249, 6));
+    }
+    if (cumulative.otcSalesSum === 0 && maxR >= 250) {
+      cumulative.otcSalesSum = parseVal(getCellValue(dVals, 250, 7)) || parseVal(getCellValue(rVals, 250, 7))
+        || parseVal(getCellValue(dVals, 249, 7)) || parseVal(getCellValue(rVals, 249, 7));
     }
   }
 

@@ -555,10 +555,10 @@ var DEFAULT_PHARM_TRADES = [
 ];
 
 var DEFAULT_CARD_CASHBACKS = [
-  { id: 'samsung', name: '삼성10/농협', payCell: 'AA69', payAmount: 10034407, rate: 1.5, benefitCell: 'P30', benefitAmount: 150516 },
-  { id: 'kb', name: '국민7/부산은행', payCell: 'AA70', payAmount: 68970, rate: 1.5, benefitCell: 'P31', benefitAmount: 1035 },
-  { id: 'shinhan', name: '신한8/부산은행', payCell: 'AA71', payAmount: 400000, rate: 1.5, benefitCell: 'P32', benefitAmount: 6000 },
-  { id: 'woori', name: '우리10/우리은행', payCell: 'AA72', payAmount: 36822174, rate: 1.7, benefitCell: 'P33', benefitAmount: 625977 }
+  { id: 'samsung', name: '삼성10/농협', cardName: '삼성카드', payCell: 'AA70', payAmount: 10034407, amount: 10034407, spend: 10034407, rate: 1.5, benefitCell: 'P30', benefitAmount: 150516 },
+  { id: 'kb', name: '국민7/부산은행', cardName: '국민카드', payCell: 'AA71', payAmount: 68970, amount: 68970, spend: 68970, rate: 1.5, benefitCell: 'P31', benefitAmount: 1035 },
+  { id: 'shinhan', name: '신한8/부산은행', cardName: '신한카드', payCell: 'AA72', payAmount: 2860000, amount: 2860000, spend: 2860000, rate: 1.5, benefitCell: 'P32', benefitAmount: 42900 },
+  { id: 'woori', name: '우리10/우리은행', cardName: '우리카드', payCell: 'AA73', payAmount: 34362174, amount: 34362174, spend: 34362174, rate: 1.7, benefitCell: 'P33', benefitAmount: 584157 }
 ];
 
 var DEFAULT_FINANCES = [
@@ -691,7 +691,7 @@ window.PharmacyStore = class PharmacyStore {
         m2608.incomeNhisClaim = 71969828;
         m2608.incomeNonCovered = 744362.68;
         m2608.incomeDiscount = 472800;
-        m2608.incCardBenefit = 783528;
+        m2608.incCardBenefit = 778608;
         m2608.expRent = 15070000;
         m2608.expOtherOperating = 446800;
         m2608.expCardFee = 1505097;
@@ -1102,16 +1102,17 @@ window.PharmacyStore = class PharmacyStore {
     let cashbackSum = 0;
     if (m.cardCashbacks && Array.isArray(m.cardCashbacks)) {
       m.cardCashbacks.forEach(c => {
-        c.payAmount = this.parseMoney(c.payAmount !== undefined ? c.payAmount : (c.amount !== undefined ? c.amount : 0));
+        c.payAmount = this.parseMoney(c.payAmount !== undefined ? c.payAmount : (c.spend !== undefined ? c.spend : (c.amount !== undefined ? c.amount : 0)));
         c.rate = c.rate !== undefined ? parseFloat(c.rate) : (c.name && c.name.includes('우리') ? 1.7 : 1.5);
-        c.benefitAmount = Math.round(c.payAmount * (c.rate / 100));
-        c.amount = c.benefitAmount;
+        c.benefitAmount = c.benefitAmount !== undefined && c.benefitAmount > 0 ? c.benefitAmount : Math.round(c.payAmount * (c.rate / 100));
+        c.amount = c.payAmount;
+        c.spend = c.payAmount;
         cardPayTotal += c.payAmount;
         cashbackSum += c.benefitAmount;
       });
     }
     m.totalCardPayments = cardPayTotal > 0 ? cardPayTotal : 47325551;
-    m.incCardBenefit = cashbackSum > 0 ? cashbackSum : 783528;
+    m.incCardBenefit = cashbackSum > 0 ? cashbackSum : 778608;
     m.totalCashback = m.incCardBenefit;
 
     m.theoreticalProfit = Math.round((m.incomeRxFee + m.otcProfit + m.totalDiscounts + m.incomeNonCovered + m.totalCashback) * 100) / 100;
@@ -2312,9 +2313,9 @@ var UI = {
                 </div>
                 <div class="space-y-2.5 text-xs max-h-[500px] overflow-y-auto pr-1">
                   ${m.cardCashbacks.map((c, idx) => {
-                    const pay = c.payAmount !== undefined ? c.payAmount : (c.amount || 0);
+                    const pay = c.payAmount !== undefined ? c.payAmount : (c.spend !== undefined ? c.spend : (c.amount || 0));
                     const rate = c.rate !== undefined ? c.rate : (c.name && c.name.includes('우리') ? 1.7 : 1.5);
-                    const benefit = Math.round(pay * (rate / 100));
+                    const benefit = c.benefitAmount !== undefined && c.benefitAmount > 0 ? c.benefitAmount : Math.round(pay * (rate / 100));
                     return `
                       <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px;" class="space-y-2">
                         <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -3238,6 +3239,12 @@ window.SmartLedgerModule = {
     if (m2608 && m2608.employees && (m2608.employees.some(e => e.name === '공과금' || e.name === '월세' || e.name === '기타운영비' || e.name === '카드수수료') || !m2608.employees.some(e => e.name === '이송학11'))) {
       m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
       m2608.expPayroll = 20101550;
+      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
+      try { window.store.saveToLocal(); } catch (e) {}
+    }
+
+    if (m2608 && m2608.cardCashbacks && (!m2608.cardCashbacks.some(c => (c.payAmount && c.payAmount > 0) || (c.spend && c.spend > 0)) || (m2608.cardCashbacks[0] && m2608.cardCashbacks[0].payAmount === 0))) {
+      m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
       try { window.store.saveToLocal(); } catch (e) {}
     }

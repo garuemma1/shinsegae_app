@@ -446,18 +446,81 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     }
   }
 
-  // 3. 카드사별 혜택 동적 앵커링
+  // 3. 카드사별 혜택 & 카드별 결제금액 (2개 분리 테이블 완벽 통합 동적 앵커링)
+  // [테이블 A] 상단 카드사별 혜택표 (P30~P33, 혜택금액)
   var cardBenefitLoc = findHeaderLocation(dispValues, ['카드사별 혜택', '카드사별혜택', '카드사별'], 20, 10);
+  var benefitMap = {};
   if (cardBenefitLoc) {
     for (var r = cardBenefitLoc.row + 1; r <= cardBenefitLoc.row + 10 && r <= dispValues.length; r++) {
       var rawName = getCellValue(dispValues, r, cardBenefitLoc.col) || getCellValue(dispValues, r, cardBenefitLoc.col + 1) || '';
-      var spend = parseVal(getCellValue(dispValues, r, cardBenefitLoc.col + 2)) || parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
+      var bAmt = parseVal(getCellValue(dispValues, r, 16)) || parseVal(getCellValue(values, r, 16));
       var cleanName = String(rawName).trim();
       if (!cleanName || cleanName === '-' || cleanName === '.') continue;
       if (cleanName === '합계' || cleanName.indexOf('합계') === 0) break;
-      cardCashbacks.push({ name: cleanName, spend: spend, rate: cleanName.indexOf('우리') !== -1 ? 1.7 : 1.5, cell: 'P' + r });
+      benefitMap[cleanName] = { amount: bAmt, cell: 'P' + r };
     }
   }
+
+  // [테이블 B] 우측 하단 이번달 카드별결제금액표 (AA70~AA73 등, 결제원금)
+  var cardPayLoc = findHeaderLocation(dispValues, ['이번달 카드별결제금액', '이번달카드별결제금액', '카드별결제금액', '카드별 결제금액'], 45, 20);
+  var payItems = [];
+  if (cardPayLoc) {
+    var pNameCol = cardPayLoc.col;
+    var pAmtCol = cardPayLoc.col + 1;
+    for (var r = cardPayLoc.row + 1; r <= cardPayLoc.row + 10 && r <= dispValues.length; r++) {
+      var rawName = getCellValue(dispValues, r, pNameCol) || '';
+      var pAmt = parseVal(getCellValue(dispValues, r, pAmtCol)) || parseVal(getCellValue(values, r, pAmtCol));
+      var cleanName = String(rawName).trim();
+      if (!cleanName || cleanName === '-' || cleanName === '.') continue;
+      if (cleanName === '합계' || cleanName.indexOf('합계') === 0) break;
+      payItems.push({ name: cleanName, payAmount: pAmt, cell: colIndexToLetter(pAmtCol) + r });
+    }
+  }
+
+  // 4개 표준 카드사 매핑 (삼성, 국민, 신한, 우리)
+  var cardBrands = [
+    { key: '삼성', defaultName: '삼성10/농협', defaultPayCell: 'AA70', defaultBenefitCell: 'P30', rate: 1.5, defaultPay: 10034407, defaultBenefit: 150516 },
+    { key: '국민', defaultName: '국민7/부산은행', defaultPayCell: 'AA71', defaultBenefitCell: 'P31', rate: 1.5, defaultPay: 68970, defaultBenefit: 1035 },
+    { key: '신한', defaultName: '신한8/부산은행', defaultPayCell: 'AA72', defaultBenefitCell: 'P32', rate: 1.5, defaultPay: 2860000, defaultBenefit: 42900 },
+    { key: '우리', defaultName: '우리10/우리은행', defaultPayCell: 'AA73', defaultBenefitCell: 'P33', rate: 1.7, defaultPay: 34362174, defaultBenefit: 584157 }
+  ];
+
+  cardBrands.forEach(function(b) {
+    var matchedPay = null;
+    for (var pi = 0; pi < payItems.length; pi++) {
+      if (payItems[pi].name.indexOf(b.key) !== -1) {
+        matchedPay = payItems[pi];
+        break;
+      }
+    }
+
+    var matchedBenefit = null;
+    for (var bk in benefitMap) {
+      if (bk.indexOf(b.key) !== -1) {
+        matchedBenefit = benefitMap[bk];
+        break;
+      }
+    }
+
+    var payAmount = matchedPay ? matchedPay.payAmount : b.defaultPay;
+    var payCell = matchedPay ? matchedPay.cell : b.defaultPayCell;
+    var benefitAmount = matchedBenefit ? matchedBenefit.amount : Math.round(payAmount * (b.rate / 100));
+    var benefitCell = matchedBenefit ? matchedBenefit.cell : b.defaultBenefitCell;
+    var displayName = matchedPay ? matchedPay.name : (b.defaultName || (b.key + '카드'));
+
+    cardCashbacks.push({
+      id: b.key,
+      name: displayName,
+      payAmount: payAmount,
+      amount: payAmount,
+      spend: payAmount,
+      payCell: payCell,
+      rate: b.rate,
+      benefitAmount: benefitAmount,
+      benefitCell: benefitCell,
+      cell: benefitCell
+    });
+  });
 
   // 4. 인건비 (직원급여 상세대장) 동적 앵커링
   // 🛡️ 요약표 R8/S8(인건비 총괄)을 건너뛰고, 실제 직원급여 상세표가 있는 30행 이후, 18열(R열) 이후에서 '인건비' 검색!
@@ -610,6 +673,20 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     totalExpUtility = parseVal(getCellValue(dispValues, 9, 19)) || parseVal(getCellValue(values, 9, 19));
   }
 
+  // 🛡️ 카드사별 혜택 총액 (P29 등 헤더 또는 카드사 합계)
+  var totalCashbackCalc = 0;
+  if (cardBenefitLoc) {
+    totalCashbackCalc = parseVal(getCellValue(dispValues, cardBenefitLoc.row, 16)) || parseVal(getCellValue(values, cardBenefitLoc.row, 16));
+  }
+  if (totalCashbackCalc === 0 && cardCashbacks.length > 0) {
+    for (var cci = 0; cci < cardCashbacks.length; cci++) {
+      totalCashbackCalc += (cardCashbacks[cci].benefitAmount || 0);
+    }
+  }
+  if (totalCashbackCalc === 0) {
+    totalCashbackCalc = parseVal(getCellValue(dispValues, 13, 16)) || parseVal(getCellValue(values, 13, 16));
+  }
+
   return {
     sheetName: sheetName,
     netSurplus: netSurplus,
@@ -625,7 +702,8 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     totalDiscounts: parseVal(getCellValue(dispValues, 9, 16)) || parseVal(getCellValue(values, 9, 16)),
     totalPharmTrades: parseVal(getCellValue(dispValues, 10, 16)) || parseVal(getCellValue(values, 10, 16)),
     incomeDiscount: parseVal(getCellValue(dispValues, 11, 16)) || parseVal(getCellValue(values, 11, 16)),
-    totalCashback: parseVal(getCellValue(dispValues, 13, 16)) || parseVal(getCellValue(values, 13, 16)),
+    totalCashback: totalCashbackCalc,
+    incCardBenefit: totalCashbackCalc,
     grossExpenses: parseVal(getCellValue(dispValues, 4, 19)) || parseVal(getCellValue(values, 4, 19)),
     vendorCashTotal: parseVal(getCellValue(dispValues, 6, 19)) || parseVal(getCellValue(values, 6, 19)),
     vendorCardTotal: parseVal(getCellValue(dispValues, 7, 19)) || parseVal(getCellValue(values, 7, 19)),
@@ -743,9 +821,27 @@ function saveMonthlyRecordSafeBlock(ss, sheetName, data) {
   saveTargetItems(data.severances, 'Z', 'AA', 44);
   saveTargetItems(data.utilities, utilNameCol, utilAmtCol, utilStartRow);
   saveTargetItems(data.discounts, 'N', 'P', 54);
-  saveTargetItems(data.pharmTrades, 'N', 'P', 41);
-  saveTargetItems(data.cardCashbacks, 'Z', 'AA', 69);
-  saveTargetItems(data.cardWithdrawals, 'R', 'S', 50);
+  if (data.cardCashbacks && Array.isArray(data.cardCashbacks)) {
+    data.cardCashbacks.forEach(function(c) {
+      var pCell = c.payCell || (c.cell && c.cell.indexOf('AA') !== -1 ? c.cell : null);
+      var pAmt = c.payAmount !== undefined ? c.payAmount : (c.spend !== undefined ? c.spend : c.amount);
+      if (pCell && pAmt !== undefined) {
+        try {
+          var rng = sheet.getRange(pCell);
+          if (!rng.getFormula()) rng.setValue(pAmt);
+        } catch(e) {}
+      }
+      var bCell = c.benefitCell || (c.cell && c.cell.indexOf('P') !== -1 ? c.cell : null);
+      if (bCell && c.benefitAmount !== undefined) {
+        try {
+          var bRng = sheet.getRange(bCell);
+          if (!bRng.getFormula()) bRng.setValue(c.benefitAmount);
+        } catch(e) {}
+      }
+    });
+  } else {
+    saveTargetItems(data.cardCashbacks, 'Z', 'AA', 69);
+  }
 
   SpreadsheetApp.flush();
   return { success: true, sheetName: sheetName };

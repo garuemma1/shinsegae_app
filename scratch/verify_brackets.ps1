@@ -22,6 +22,7 @@ function Check-Brackets($filePath) {
 }
 
 @(
+    'c:\Users\win10\Desktop\shinsegae_app\app.js',
     'c:\Users\win10\Desktop\shinsegae_app\building-rental-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\sheets-sync.js',
     'c:\Users\win10\Desktop\shinsegae_app\Code.gs'

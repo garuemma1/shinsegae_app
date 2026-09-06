@@ -21,7 +21,6 @@ window.App = (function () {
     'approval': '🔐 약국장 결재 & 인사승인 센터 (약국장 전용)',
     'staff-directory': '👤 약국 직원 명부 (약국장 전용)',
     'ssg-settlement': '💊 신세계약국 스마트장부 (약국장 전용)',
-    'hoecheon-settlement': '💊 회천메디칼약국 스마트장부 (약국장 전용)',
     'building-rental': '🏢 건물 임대업 대시보드 (약국장 전용)'
   };
 
@@ -39,7 +38,6 @@ window.App = (function () {
     'approval': 'fa-user-check',
     'staff-directory': 'fa-address-book',
     'ssg-settlement': 'fa-coins',
-    'hoecheon-settlement': 'fa-file-invoice-dollar',
     'building-rental': 'fa-building'
   };
 
@@ -719,12 +717,6 @@ window.App = (function () {
           </div>
           <span>신세계약국 스마트장부</span>
         </button>
-        <button class="menu-item ${activeModule === 'hoecheon-settlement' ? 'active' : ''}" data-module="hoecheon-settlement" onclick="App.switchModule('hoecheon-settlement', true)">
-          <div class="menu-icon-wrapper">
-            <i class="fas fa-file-invoice-dollar text-success"></i>
-          </div>
-          <span>회천메디칼 스마트장부</span>
-        </button>
         <button class="menu-item ${activeModule === 'building-rental' ? 'active' : ''}" data-module="building-rental" onclick="App.switchModule('building-rental', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-building text-info"></i>
@@ -1084,9 +1076,6 @@ window.App = (function () {
       case 'ssg-settlement':
         if (window.SmartLedgerModule) window.SmartLedgerModule.render('module-content', 'ssg');
         break;
-      case 'hoecheon-settlement':
-        if (window.SmartLedgerModule) window.SmartLedgerModule.render('module-content', 'hoecheon');
-        break;
       case 'building-rental':
         if (window.BuildingRentalModule) window.BuildingRentalModule.render('module-content');
         break;
@@ -1296,7 +1285,7 @@ window.App = (function () {
     const curr = window.SheetsSync.getCurrentUser();
     const isDirector = curr && curr.role === '약국장';
 
-    if (['approval', 'staff-directory', 'ssg-settlement', 'hoecheon-settlement', 'building-rental'].includes(moduleName) && !isDirector) {
+    if (['approval', 'staff-directory', 'ssg-settlement', 'building-rental'].includes(moduleName) && !isDirector) {
       alert('🔒 보안 안내: 선택하신 메뉴는 약국장 전용 관리 영역입니다.');
       return;
     }

@@ -97,6 +97,10 @@ function handleFastRequest(e) {
       } else if (action === 'getOtcLocations') {
         result.data = getLocationsRecord(ss, '일반약위치');
         result.success = true;
+      } else if (action === 'getBuildingRentalData') {
+        var rentSSId = (postData && postData.spreadsheetId) || params.spreadsheetId || "1glbM8sF0h0Horjs4QBp2Ap13VzlvkI0MHpz_YbTbzdA";
+        result.data = getBuildingRentalDataFast(rentSSId, targetKey);
+        result.success = true;
       }
 
       var strResult = JSON.stringify(result);
@@ -130,6 +134,14 @@ function handleFastRequest(e) {
         result.data = saveMonthlyRecordSafeBlock(ss, saveMSheetName, monthlyData);
         result.success = true;
         invalidateExactCache(cache, saveMSheetName);
+        break;
+
+      case 'createRentalMonthSheet':
+        var rentSSId = (postData && postData.spreadsheetId) || params.spreadsheetId || "1glbM8sF0h0Horjs4QBp2Ap13VzlvkI0MHpz_YbTbzdA";
+        var newYymm = (postData && postData.newYymm) || params.newYymm || '';
+        var sourceYymm = (postData && postData.sourceYymm) || params.sourceYymm || '';
+        result.data = createRentalMonthSheetFast(rentSSId, newYymm, sourceYymm);
+        result.success = true;
         break;
 
       default:
@@ -1063,4 +1075,237 @@ function saveLocationsRecord(ss, sheetName, items) {
   }
   SpreadsheetApp.flush();
   return true;
+}
+
+// 🏢 건물임대업 대시보드 전용 고속 데이터 로더 (getDisplayValues First)
+function getBuildingRentalDataFast(rentSSId, targetKey) {
+  var ss = null;
+  try {
+    ss = SpreadsheetApp.openById(rentSSId);
+  } catch (e) {
+    return { success: false, error: '스프레드시트를 열 수 없습니다: ' + e.toString() };
+  }
+
+  // 1. 전체 시트 탭 목록 중 YYMM 형식(4자리 숫자) 탭 자동 탐색
+  var allSheets = ss.getSheets();
+  var availableTabs = [];
+  var hasGrimHouseSheet = false;
+
+  for (var i = 0; i < allSheets.length; i++) {
+    var sName = allSheets[i].getName().trim();
+    if (/^\d{4}$/.test(sName)) {
+      availableTabs.push(sName);
+    }
+    if (sName.indexOf('그림같은집') !== -1) {
+      hasGrimHouseSheet = true;
+    }
+  }
+
+  // 연월 정렬 (내림차순: 최신 월 우선)
+  availableTabs.sort(function(a, b) { return b.localeCompare(a); });
+
+  // 조회할 연월 결정 (지정된 targetKey가 없거나 목록에 없으면 최신 탭)
+  var currentYymm = (targetKey && /^\d{4}$/.test(targetKey)) ? targetKey : (availableTabs[0] || '2609');
+
+  // 2. 월별 시트 데이터 로드
+  var targetSheet = ss.getSheetByName(currentYymm);
+  var items = [];
+  var summary = {
+    totalDeposit: 0,
+    totalRentWithVat: 0,
+    totalRentWithoutVat: 0,
+    totalInterest: 0,
+    totalIncome: 0,
+    totalMyNetProfit: 0
+  };
+
+  function cleanNum(val) {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return Math.round(val);
+    var str = String(val).replace(/[^0-9.-]/g, '');
+    var n = parseFloat(str);
+    return isNaN(n) ? 0 : Math.round(n);
+  }
+
+  if (targetSheet) {
+    var dVals = targetSheet.getDataRange().getDisplayValues();
+    var rVals = targetSheet.getDataRange().getValues();
+
+    for (var r = 1; r < dVals.length; r++) { // 0행은 헤더
+      var name = (dVals[r][0] || '').trim();
+      if (!name) continue;
+
+      var dep = cleanNum(dVals[r][1]) || cleanNum(rVals[r][1]);
+      var rentWithVat = cleanNum(dVals[r][2]) || cleanNum(rVals[r][2]);
+      var rentWithoutVat = cleanNum(dVals[r][3]) || cleanNum(rVals[r][3]);
+      var interest = cleanNum(dVals[r][4]) || cleanNum(rVals[r][4]);
+      var income = cleanNum(dVals[r][5]) || cleanNum(rVals[r][5]);
+      var myNet = cleanNum(dVals[r][6]) || cleanNum(rVals[r][6]);
+      var memo = (dVals[r][7] || '').trim();
+
+      if (name === '합계' || name.indexOf('합계') !== -1) {
+        summary.totalDeposit = dep;
+        summary.totalRentWithVat = rentWithVat;
+        summary.totalRentWithoutVat = rentWithoutVat;
+        summary.totalInterest = interest;
+        summary.totalIncome = income;
+        summary.totalMyNetProfit = myNet;
+      } else {
+        // 지분율 계산 (내순수익 / 이자제외수입 비율 또는 기본 매핑)
+        var shareRate = 100;
+        if (income > 0 && myNet > 0) {
+          shareRate = Math.round((myNet / income) * 100);
+        } else if (name.indexOf('보광프라자') !== -1 || name.indexOf('범계') !== -1 || name.indexOf('오산') !== -1 || name.indexOf('다산') !== -1 || name.indexOf('희천') !== -1) {
+          shareRate = 50;
+        } else if (name.indexOf('옥정') !== -1) {
+          shareRate = 25;
+        } else if (name.indexOf('그림같은집') !== -1) {
+          shareRate = 100;
+        }
+
+        items.push({
+          id: 'rent_' + r + '_' + currentYymm,
+          name: name,
+          deposit: dep,
+          rentWithVat: rentWithVat,
+          rentWithoutVat: rentWithoutVat,
+          interest: interest,
+          income: income,
+          myNetProfit: myNet,
+          memo: memo,
+          shareRate: shareRate
+        });
+      }
+    }
+  }
+
+  // 3. 그림같은집 현황 시트 로드
+  var grimHouseSheet = ss.getSheetByName('그림같은집 현황') || ss.getSheetByName('그림같은집');
+  var grimHouse = {
+    units: [],
+    summary: {
+      salePrice: 610000000,
+      totalDeposit: 89000000,
+      totalRent: 3960000,
+      maintenanceFee: 300000,
+      loan: 220000000,
+      loanInterest: 1000000,
+      actualInvestment: 301000000,
+      acquisitionTax: 7825610,
+      totalActualInvestment: 308825610,
+      monthlyNetProfit: 2660000,
+      returnRate: 10.5302
+    }
+  };
+
+  if (grimHouseSheet) {
+    var gDisp = grimHouseSheet.getDataRange().getDisplayValues();
+    var gRaw = grimHouseSheet.getDataRange().getValues();
+
+    // 10개 세대 파싱 (행 1~10)
+    for (var gr = 1; gr < Math.min(12, gDisp.length); gr++) {
+      var unit = (gDisp[gr][0] || '').trim();
+      if (!unit || unit.indexOf('매매가') !== -1 || unit.indexOf('합') !== -1) continue;
+
+      grimHouse.units.push({
+        unit: unit,
+        deposit: cleanNum(gDisp[gr][1]) || cleanNum(gRaw[gr][1]),
+        rent: cleanNum(gDisp[gr][2]) || cleanNum(gRaw[gr][2]),
+        endDate: (gDisp[gr][3] || '').trim(),
+        specialNote: (gDisp[gr][4] || '').trim(),
+        tenantName: (gDisp[gr][5] || '').trim(),
+        phone: (gDisp[gr][6] || '').trim(),
+        needChange: (gDisp[gr][7] || '').trim() !== '0' && (gDisp[gr][7] || '').trim() !== ''
+      });
+    }
+
+    // 하단 요약 지표 파싱
+    for (var sr = 10; sr < gDisp.length; sr++) {
+      var label = (gDisp[sr][0] || '').trim();
+      if (label === '매매가') grimHouse.summary.salePrice = cleanNum(gDisp[sr][1]) || cleanNum(gRaw[sr][1]);
+      if (label === '매월관리비용') grimHouse.summary.maintenanceFee = cleanNum(gDisp[sr][2]) || cleanNum(gRaw[sr][2]);
+      if (label === '대출') {
+        grimHouse.summary.loan = cleanNum(gDisp[sr][1]) || cleanNum(gRaw[sr][1]);
+        grimHouse.summary.loanInterest = cleanNum(gDisp[sr][2]) || cleanNum(gRaw[sr][2]);
+      }
+      if (label === '취등록세') grimHouse.summary.acquisitionTax = cleanNum(gDisp[sr][1]) || cleanNum(gRaw[sr][1]);
+      if (label === '실투자금') {
+        grimHouse.summary.totalActualInvestment = cleanNum(gDisp[sr][1]) || cleanNum(gRaw[sr][1]);
+        grimHouse.summary.monthlyNetProfit = cleanNum(gDisp[sr][2]) || cleanNum(gRaw[sr][2]);
+        var rateStr = String(gDisp[sr][3] || '').replace(/[^0-9.]/g, '');
+        if (rateStr) grimHouse.summary.returnRate = parseFloat(rateStr);
+      }
+    }
+  }
+
+  return {
+    currentYymm: currentYymm,
+    availableTabs: availableTabs,
+    items: items,
+    summary: summary,
+    grimHouse: grimHouse,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+// 🏢 다음달 새 월 시트 원클릭 자동 복제 생성기
+function createRentalMonthSheetFast(rentSSId, newYymm, sourceYymm) {
+  var ss = null;
+  try {
+    ss = SpreadsheetApp.openById(rentSSId);
+  } catch (e) {
+    return { success: false, error: '스프레드시트를 열 수 없습니다: ' + e.toString() };
+  }
+
+  if (!newYymm || !/^\d{4}$/.test(newYymm)) {
+    return { success: false, error: '유효한 4자리 연월(YYMM, 예: 2611)을 입력해 주세요.' };
+  }
+
+  // 1. 이미 존재하는 탭인지 검사
+  var existing = ss.getSheetByName(newYymm);
+  if (existing) {
+    return { success: true, alreadyExists: true, message: '시트 [' + newYymm + ']가 이미 존재합니다.', yymm: newYymm };
+  }
+
+  // 2. 복제할 원본 시트 결정 (sourceYymm 또는 가장 최근 연월 시트)
+  var sourceSheet = null;
+  if (sourceYymm) {
+    sourceSheet = ss.getSheetByName(sourceYymm);
+  }
+  if (!sourceSheet) {
+    var allSheets = ss.getSheets();
+    var yymmTabs = [];
+    for (var i = 0; i < allSheets.length; i++) {
+      var name = allSheets[i].getName().trim();
+      if (/^\d{4}$/.test(name)) yymmTabs.push(name);
+    }
+    yymmTabs.sort(function(a, b) { return b.localeCompare(a); });
+    if (yymmTabs.length > 0) {
+      sourceSheet = ss.getSheetByName(yymmTabs[0]);
+    }
+  }
+
+  if (!sourceSheet) {
+    return { success: false, error: '복제할 기준 월 시트를 찾을 수 없습니다.' };
+  }
+
+  // 3. 시트 통째로 복제 (서식, 수식, 연동 수식 100% 보존)
+  var copiedSheet = sourceSheet.copyTo(ss);
+  copiedSheet.setName(newYymm);
+
+  // 4. 시트 순서 조정 (가능한 경우 알맞은 위치로 이동)
+  try {
+    ss.setActiveSheet(copiedSheet);
+    ss.moveActiveSheet(sourceSheet.getIndex() + 1);
+  } catch (mErr) {}
+
+  SpreadsheetApp.flush();
+
+  return {
+    success: true,
+    created: true,
+    newYymm: newYymm,
+    sourceYymm: sourceSheet.getName(),
+    message: '새로운 [' + newYymm + '] 정산 시트가 전월 탭을 복제하여 100% 수식 그대로 안전하게 생성되었습니다!'
+  };
 }

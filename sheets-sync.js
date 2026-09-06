@@ -15,6 +15,7 @@ window.SheetsSync = (function () {
     EMERGENCY_CONTACTS: 'ssg_emergency_contacts_v1',
     PHARMACY_SETTLEMENT: 'ssg_pharmacy_settlement_v1',
     BUILDING_RENTAL: 'ssg_building_rental_v1',
+    BUILDING_RENTAL_DASHBOARD: 'ssg_building_rental_dashboard_v1',
     PAYSTUBS: 'ssg_paystubs_v1',
     OVERTIME_ADJUSTMENTS: 'ssg_overtime_adjustments_v1',
     MEDICINE_LOCATIONS: 'ssg_medicine_locations_v1',
@@ -709,6 +710,63 @@ window.SheetsSync = (function () {
     ]
   };
 
+  // 🏢 건물임대업 대시보드 2026.09 구글 시트 1:1 실데이터 시드 (오차 0%)
+  const INITIAL_RENTAL_DASHBOARD_2609 = {
+    currentYymm: '2609',
+    availableTabs: ['2610', '2609', '2608'],
+    items: [
+      { id: 'rent_1', name: '보광프라자107호', deposit: 150000000, rentWithVat: 11000000, rentWithoutVat: 10000000, interest: 1150000, income: 8850000, myNetProfit: 4425000, shareRate: 50, memo: '민메' },
+      { id: 'rent_2', name: '보광프라자108호', deposit: 150000000, rentWithVat: 11000000, rentWithoutVat: 10000000, interest: 1150000, income: 8850000, myNetProfit: 4425000, shareRate: 50, memo: '민메' },
+      { id: 'rent_3', name: 'MC민락109', deposit: 0, rentWithVat: 0, rentWithoutVat: 0, interest: 0, income: 0, myNetProfit: 0, shareRate: 50, memo: '' },
+      { id: 'rent_4', name: 'MC민락110', deposit: 0, rentWithVat: 0, rentWithoutVat: 0, interest: 0, income: 0, myNetProfit: 0, shareRate: 50, memo: '' },
+      { id: 'rent_5', name: 'MC범계1', deposit: 100000000, rentWithVat: 5500000, rentWithoutVat: 5000000, interest: 8600000, income: -3600000, myNetProfit: -1800000, shareRate: 50, memo: '15일입금, 26년3월530/28년3월만료 알라딘' },
+      { id: 'rent_6', name: 'MC범계2', deposit: 50000000, rentWithVat: 4950000, rentWithoutVat: 4500000, interest: 0, income: 4500000, myNetProfit: 2250000, shareRate: 50, memo: '27년10월만료 블럭짐' },
+      { id: 'rent_7', name: 'MC오산 101', deposit: 0, rentWithVat: 0, rentWithoutVat: 0, interest: 0, income: 0, myNetProfit: 0, shareRate: 50, memo: '' },
+      { id: 'rent_8', name: 'MC오산 102', deposit: 30000000, rentWithVat: 2970000, rentWithoutVat: 2700000, interest: 0, income: 2700000, myNetProfit: 1350000, shareRate: 50, memo: '' },
+      { id: 'rent_9', name: 'MC오산 201', deposit: 70000000, rentWithVat: 6270000, rentWithoutVat: 5700000, interest: 6380000, income: -680000, myNetProfit: -340000, shareRate: 50, memo: '23.5월부터101호합쳐서 전액 201오산' },
+      { id: 'rent_10', name: '다산메디칼', deposit: 100000000, rentWithVat: 1100000, rentWithoutVat: 1000000, interest: 2800000, income: -1800000, myNetProfit: -900000, shareRate: 50, memo: '다메' },
+      { id: 'rent_11', name: 'MK희천', deposit: 100000000, rentWithVat: 4730000, rentWithoutVat: 4300000, interest: 1800000, income: 2500000, myNetProfit: 1250000, shareRate: 50, memo: '희메' },
+      { id: 'rent_12', name: 'MK2옥정', deposit: 100000000, rentWithVat: 10497719, rentWithoutVat: 9543380, interest: 2250000, income: 7293380, myNetProfit: 1823345, shareRate: 25, memo: '연푸른(보증금1억권리금4억)' },
+      { id: 'rent_13', name: '그림같은집(면세)', deposit: 89000000, rentWithVat: 3960000, rentWithoutVat: 3960000, interest: 1000000, income: 2960000, myNetProfit: 2960000, shareRate: 100, memo: '오창 주택(관리비용 있음30만내외)' }
+    ],
+    summary: {
+      totalDeposit: 939000000,
+      totalRentWithVat: 61977719,
+      totalRentWithoutVat: 56703380,
+      totalInterest: 25130000,
+      totalIncome: 31573380,
+      totalMyNetProfit: 15443345
+    },
+    grimHouse: {
+      units: [
+        { unit: '101호', deposit: 50000000, rent: 70000, endDate: '260801', specialNote: '', tenantName: '홍봉유', phone: '010-2416-2347', needChange: false },
+        { unit: '103호', deposit: 2000000, rent: 300000, endDate: '270228', specialNote: '', tenantName: '강노윤', phone: '010-5502-5222', needChange: false },
+        { unit: '104호', deposit: 2000000, rent: 300000, endDate: '270105', specialNote: '', tenantName: '이동영', phone: '010-2535-0227', needChange: false },
+        { unit: '201호', deposit: 2000000, rent: 500000, endDate: '260630', specialNote: '', tenantName: '동신패널(주)', phone: '010-8401-0309', needChange: false },
+        { unit: '202호', deposit: 2000000, rent: 350000, endDate: '260321', specialNote: '', tenantName: '이윤희 녹십자', phone: '010-4939-5764', needChange: false },
+        { unit: '203호', deposit: 5000000, rent: 550000, endDate: '270320', specialNote: '', tenantName: '현인숙', phone: '010-3300-9765', needChange: false },
+        { unit: '204호', deposit: 2000000, rent: 350000, endDate: '270119', specialNote: '', tenantName: '고치승', phone: '010-6800-5678', needChange: false },
+        { unit: '301호', deposit: 2000000, rent: 290000, endDate: '270521', specialNote: '', tenantName: '김대진', phone: '010-5570-6829', needChange: false },
+        { unit: '302호', deposit: 20000000, rent: 800000, endDate: '270217', specialNote: '', tenantName: '권용경', phone: '010-6402-4438', needChange: false },
+        { unit: '401호', deposit: 2000000, rent: 450000, endDate: '260918', specialNote: '', tenantName: '전중현', phone: '010-8879-6433', needChange: false }
+      ],
+      summary: {
+        salePrice: 610000000,
+        totalDeposit: 89000000,
+        totalRent: 3960000,
+        maintenanceFee: 300000,
+        loan: 220000000,
+        loanInterest: 1000000,
+        actualInvestment: 301000000,
+        acquisitionTax: 7825610,
+        totalActualInvestment: 308825610,
+        monthlyNetProfit: 2660000,
+        returnRate: 10.5302
+      }
+    },
+    updatedAt: Date.now()
+  };
+
   function generateScheduleForMonth(year, month) {
     const list = [];
     const empIds = ['emp_1', 'emp_2', 'emp_3', 'emp_4', 'emp_5', 'emp_6', 'emp_7', 'emp_8', 'emp_9'];
@@ -1084,6 +1142,215 @@ window.SheetsSync = (function () {
   function saveBuildingRental(data) {
     safeSetItem(STORAGE_KEYS.BUILDING_RENTAL, JSON.stringify(data));
     pushToCloud();
+  }
+
+  // 🏢 건물임대업 대시보드 전용 스프레드시트 ID & 신규 동기화 엔진
+  const BUILDING_RENTAL_SPREADSHEET_ID = "1glbM8sF0h0Horjs4QBp2Ap13VzlvkI0MHpz_YbTbzdA";
+
+  function getBuildingRentalDashboard(yymm) {
+    if (!yymm || typeof yymm !== 'string' || yymm.length < 4) yymm = '2609';
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed[yymm]) return parsed[yymm];
+        if (yymm === '2609' && parsed['2609']) return parsed['2609'];
+      }
+      return INITIAL_RENTAL_DASHBOARD_2609;
+    } catch(e) {
+      return INITIAL_RENTAL_DASHBOARD_2609;
+    }
+  }
+
+  function getBuildingRentalTabs() {
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k));
+        if (keys.length > 0) {
+          keys.sort((a, b) => b.localeCompare(a));
+          return keys;
+        }
+      }
+    } catch(e) {}
+    return ['2610', '2609', '2608'];
+  }
+
+  function saveBuildingRentalDashboard(data, yymm) {
+    if (!data) return;
+    const targetYymm = yymm || data.currentYymm || '2609';
+    try {
+      let store = {};
+      const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
+      if (raw) {
+        try { store = JSON.parse(raw) || {}; } catch(e) {}
+      }
+      store[targetYymm] = {
+        ...data,
+        currentYymm: targetYymm,
+        updatedAt: Date.now()
+      };
+      safeSetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD, JSON.stringify(store));
+      pushToCloud();
+    } catch(e) {
+      console.warn('saveBuildingRentalDashboard error:', e);
+    }
+  }
+
+  // 🌐 구글 스프레드시트 1:1 실시간 연동 (GAS 1순위 -> GVIZ 2순위 -> 로컬 캐시 3순위 -> 시드 4순위)
+  async function fetchBuildingRentalFromCloud(yymm, force = false) {
+    if (!yymm || typeof yymm !== 'string' || yymm.length < 4) yymm = '2609';
+
+    // 1단계: GAS 백엔드 고속 통신 시도 (Direct Web App)
+    try {
+      const gasUrl = getGasUrl('ssg') || DIRECT_GAS_URL;
+      if (gasUrl) {
+        const targetUrl = `${gasUrl}?action=getBuildingRentalData&spreadsheetId=${encodeURIComponent(BUILDING_RENTAL_SPREADSHEET_ID)}&yymm=${encodeURIComponent(yymm)}${force ? '&bypassCache=true' : ''}`;
+        
+        let response = null;
+        try {
+          response = await fetch(targetUrl, { method: 'GET' });
+        } catch(netErr) {
+          // POST 우회 (규칙 18)
+          try {
+            response = await fetch(gasUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'getBuildingRentalData',
+                spreadsheetId: BUILDING_RENTAL_SPREADSHEET_ID,
+                yymm: yymm,
+                bypassCache: force
+              })
+            });
+          } catch(pErr) {}
+        }
+
+        if (response && response.ok) {
+          const json = await response.json();
+          if (json && json.success && json.data && json.data.items) {
+            saveBuildingRentalDashboard(json.data, yymm);
+            return { success: true, data: json.data, source: 'GAS' };
+          }
+        }
+      }
+    } catch(gasEx) {
+      console.warn('Building rental GAS sync exception:', gasEx);
+    }
+
+    // 2단계: GVIZ JSONP 직접 통신 (규칙 ㊽ getDisplayValues First)
+    try {
+      const rows = await fetchSheetGvizJsonp(BUILDING_RENTAL_SPREADSHEET_ID, yymm);
+      if (rows && rows.length > 0) {
+        const cleanNum = val => {
+          if (val === null || val === undefined) return 0;
+          if (typeof val === 'number') return Math.round(val);
+          const s = String(val).replace(/[^0-9.-]/g, '');
+          const n = parseFloat(s);
+          return isNaN(n) ? 0 : Math.round(n);
+        };
+
+        const items = [];
+        const summary = { totalDeposit: 0, totalRentWithVat: 0, totalRentWithoutVat: 0, totalInterest: 0, totalIncome: 0, totalMyNetProfit: 0 };
+
+        rows.forEach((r, idx) => {
+          const name = String(r[0] || '').trim();
+          if (!name || name === '사업자') return;
+
+          const dep = cleanNum(r[1]);
+          const rVat = cleanNum(r[2]);
+          const rNoVat = cleanNum(r[3]);
+          const interest = cleanNum(r[4]);
+          const income = cleanNum(r[5]);
+          const myNet = cleanNum(r[6]);
+          const memo = String(r[7] || '').trim();
+
+          if (name.includes('합계')) {
+            summary.totalDeposit = dep;
+            summary.totalRentWithVat = rVat;
+            summary.totalRentWithoutVat = rNoVat;
+            summary.totalInterest = interest;
+            summary.totalIncome = income;
+            summary.totalMyNetProfit = myNet;
+          } else {
+            let shareRate = 100;
+            if (income > 0 && myNet > 0) shareRate = Math.round((myNet / income) * 100);
+            else if (name.includes('보광프라자') || name.includes('범계') || name.includes('오산') || name.includes('다산') || name.includes('희천')) shareRate = 50;
+            else if (name.includes('옥정')) shareRate = 25;
+
+            items.push({
+              id: `rent_${idx}_${yymm}`,
+              name, deposit: dep, rentWithVat: rVat, rentWithoutVat: rNoVat,
+              interest, income, myNetProfit: myNet, memo, shareRate
+            });
+          }
+        });
+
+        if (items.length > 0) {
+          const currentCached = getBuildingRentalDashboard(yymm) || INITIAL_RENTAL_DASHBOARD_2609;
+          const freshData = {
+            currentYymm: yymm,
+            availableTabs: getBuildingRentalTabs(),
+            items,
+            summary,
+            grimHouse: currentCached.grimHouse || INITIAL_RENTAL_DASHBOARD_2609.grimHouse,
+            updatedAt: Date.now()
+          };
+          saveBuildingRentalDashboard(freshData, yymm);
+          return { success: true, data: freshData, source: 'GVIZ' };
+        }
+      }
+    } catch(gvizEx) {
+      console.warn('Building rental GVIZ sync exception:', gvizEx);
+    }
+
+    // 3단계: 로컬 캐시 또는 시드 데이터 반환 (오프라인 상태 100% 가동)
+    const cached = getBuildingRentalDashboard(yymm);
+    return { success: true, data: cached, source: 'CACHE' };
+  }
+
+  // 🏢 다음달 새 월 시트 원클릭 자동 복제 생성기 (Apps Script 연동)
+  async function createNextRentalMonthSheet(newYymm, sourceYymm) {
+    if (!newYymm || !/^\d{4}$/.test(newYymm)) {
+      return { success: false, message: '유효한 4자리 연월(YYMM, 예: 2611)을 입력해 주세요.' };
+    }
+    const gasUrl = getGasUrl('ssg') || DIRECT_GAS_URL;
+    if (!gasUrl) {
+      return { success: false, message: 'Apps Script URL이 설정되지 않았습니다.' };
+    }
+
+    try {
+      const response = await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'createRentalMonthSheet',
+          spreadsheetId: BUILDING_RENTAL_SPREADSHEET_ID,
+          newYymm: newYymm,
+          sourceYymm: sourceYymm || ''
+        })
+      });
+
+      if (response && response.ok) {
+        const json = await response.json();
+        if (json && json.success) {
+          // 생성 성공 시 탭 목록에 즉시 반영
+          const tabs = getBuildingRentalTabs();
+          if (!tabs.includes(newYymm)) {
+            tabs.unshift(newYymm);
+            tabs.sort((a, b) => b.localeCompare(a));
+          }
+          return { success: true, message: json.data ? json.data.message : '새 시트가 자동 생성되었습니다!', newYymm };
+        } else {
+          return { success: false, message: (json && json.error) || '시트 생성 실패' };
+        }
+      }
+    } catch(e) {
+      return { success: false, message: '네트워크 통신 오류: ' + e.message };
+    }
+
+    return { success: false, message: '응답 수신 실패' };
   }
 
   function getSchedule() {
@@ -2125,7 +2392,13 @@ window.SheetsSync = (function () {
           rxMedicineLocations: getRxMedicineLocations(),
           supplies: getSupplies(),
           supplyPresets: getSupplyPresets(),
-          gasUrls: getGasUrls()
+          gasUrls: getGasUrls(),
+          buildingRentalDashboard: (() => {
+            try {
+              const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
+              return raw ? JSON.parse(raw) : null;
+            } catch(e) { return null; }
+          })()
         }
       };
 
@@ -2301,6 +2574,7 @@ window.SheetsSync = (function () {
       if (targetData.emergencyContacts) safeSetItem(STORAGE_KEYS.EMERGENCY_CONTACTS, JSON.stringify(targetData.emergencyContacts));
       if (targetData.pharmacySettlement) safeSetItem(STORAGE_KEYS.PHARMACY_SETTLEMENT, JSON.stringify(targetData.pharmacySettlement));
       if (targetData.buildingRental) safeSetItem(STORAGE_KEYS.BUILDING_RENTAL, JSON.stringify(targetData.buildingRental));
+      if (targetData.buildingRentalDashboard) safeSetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD, JSON.stringify(targetData.buildingRentalDashboard));
       if (targetData.paystubs) safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(targetData.paystubs));
       if (targetData.overtimeAdjustments) safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(targetData.overtimeAdjustments));
       if (targetData.pharmacistRates) safeSetItem('ssg_pharmacist_rates_v1', JSON.stringify(targetData.pharmacistRates));
@@ -2342,7 +2616,8 @@ window.SheetsSync = (function () {
       window[callbackName] = function(json) {
         cleanup();
         if (json && json.table && json.table.rows) {
-          const rows = json.table.rows.map(r => (r.c || []).map(cell => (cell ? (cell.v !== undefined ? cell.v : (cell.f || '')) : '')));
+          // 🛡️ 규칙 ㊽ getDisplayValues First: 눈에 보이는 수식/서식 최종 계산값(cell.f) 1순위 채택!
+          const rows = json.table.rows.map(r => (r.c || []).map(cell => (cell ? (cell.f !== undefined && cell.f !== null && cell.f !== '' ? cell.f : (cell.v !== undefined ? cell.v : '')) : '')));
           resolve(rows);
         } else {
           resolve([]);
@@ -2601,6 +2876,11 @@ window.SheetsSync = (function () {
     savePharmacySettlement,
     getBuildingRental,
     saveBuildingRental,
+    getBuildingRentalDashboard,
+    saveBuildingRentalDashboard,
+    getBuildingRentalTabs,
+    fetchBuildingRentalFromCloud,
+    createNextRentalMonthSheet,
     getSchedule,
     saveSchedule,
     getNotices,

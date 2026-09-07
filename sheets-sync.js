@@ -22,6 +22,7 @@ window.SheetsSync = (function () {
     RX_MEDICINE_LOCATIONS: 'ssg_rx_medicine_locations_v1',
     SUPPLIES: 'ssg_supplies_v1',
     SUPPLY_PRESETS: 'ssg_supply_presets_v1',
+    EXPIRY_RETURNS: 'ssg_expiry_returns_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -37,6 +38,7 @@ window.SheetsSync = (function () {
     'supplies-module',
     'medicine-location-module',
     'rx-medicine-location-module',
+    'expiry-returns-module',
     'schedule-module',
     'annual-leave-module',
     'discount-purchase-module',
@@ -226,6 +228,82 @@ window.SheetsSync = (function () {
     { id: 'pre_6', itemName: '투약병 (100cc / 50cc 세트)', category: '조제용품', defaultUnit: '상자', defaultVendor: '백제약품', estimatedPrice: 65000, memo: '어린이 시럽용 투약병' },
     { id: 'pre_7', itemName: '약포지 (자동조제기용 열전사지)', category: '조제용품', defaultUnit: '박스', defaultVendor: 'JVM몰', estimatedPrice: 180000, memo: 'ATDPS 자동조제기용 파우치' },
     { id: 'pre_8', itemName: '크린백 비닐봉투 (손잡이형)', category: '약봉투/비닐', defaultUnit: '박스', defaultVendor: '쿠팡/도매몰', estimatedPrice: 22000, memo: '매장 대형 비닐 봉투' }
+  ];
+
+  // ⏳ 유효기간 임박 & 제약사/도매상 반품 대장 초기 시드 데이터
+  const INITIAL_EXPIRY_RETURNS = [
+    {
+      id: 'exp_1787150000001',
+      drugName: '탁센연질캡슐 250mg',
+      drugType: 'OTC',
+      spec: '10C/상자',
+      expiryDate: '2026-10-31',
+      qty: 15,
+      unit: '상자',
+      vendor: '백제약품',
+      manufacturer: '유한양행',
+      costPrice: 1800,
+      estimatedReturnAmount: 27000,
+      actualSettledAmount: 0,
+      status: 'PENDING_RETURN',
+      registeredBy: '권명주',
+      registeredByRole: '근무약사',
+      photos: [],
+      memo: '매약 매대 전면 진열분 정리 중 발견. 백제약품 담당자 방문 시 반품 인계 예정.',
+      returnHandoverDate: '',
+      returnCollector: '',
+      settledDate: '',
+      createdAt: '2026-09-01 11:30',
+      updatedAt: 1787150000001
+    },
+    {
+      id: 'exp_1787150000002',
+      drugName: '세레브렉스캡슐 200mg',
+      drugType: 'ETC',
+      spec: '30C/병',
+      expiryDate: '2026-11-30',
+      qty: 2,
+      unit: '병',
+      vendor: '지오영',
+      manufacturer: '한국비아트리스',
+      costPrice: 28500,
+      estimatedReturnAmount: 57000,
+      actualSettledAmount: 0,
+      status: 'PROCESSING_RETURN',
+      registeredBy: '문성도',
+      registeredByRole: '약국장',
+      photos: [],
+      memo: '조제실 선반 정리분. 지오영 영업담당자 수거 접수 완료.',
+      returnHandoverDate: '2026-09-05 14:20',
+      returnCollector: '지오영 박담당',
+      settledDate: '',
+      createdAt: '2026-09-02 09:15',
+      updatedAt: 1787150000002
+    },
+    {
+      id: 'exp_1787150000003',
+      drugName: '베아제정',
+      drugType: 'OTC',
+      spec: '10T/상자',
+      expiryDate: '2026-08-31',
+      qty: 10,
+      unit: '상자',
+      vendor: '훼밀리팜',
+      manufacturer: '대웅제약',
+      costPrice: 2400,
+      estimatedReturnAmount: 24000,
+      actualSettledAmount: 24000,
+      status: 'COMPLETED',
+      registeredBy: '김배영',
+      registeredByRole: '일반직원',
+      photos: [],
+      memo: '8월분 반품 거래명세서 마이너스 정산 100% 반영 확인 완료.',
+      returnHandoverDate: '2026-08-25 10:00',
+      returnCollector: '훼밀리팜 최담당',
+      settledDate: '2026-09-01',
+      createdAt: '2026-08-20 16:40',
+      updatedAt: 1787150000003
+    }
   ];
 
   // 신규: 약국 업무일지 & 교대 인수인계 초기 데이터 (10인 전원 실시간 통합 마스터)
@@ -1552,6 +1630,118 @@ window.SheetsSync = (function () {
     pushToCloud();
   }
 
+  // ============================================================
+  // ⏳ 유효기간 임박 & 제약사/도매상 반품 대장 CRUD 엔진
+  // ============================================================
+  function getExpiryReturns() {
+    const deletedIds = getDeletedIds();
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.EXPIRY_RETURNS);
+      const list = (raw !== null && raw !== undefined) ? JSON.parse(raw) : INITIAL_EXPIRY_RETURNS;
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch(e) {
+      return INITIAL_EXPIRY_RETURNS.filter(item => item && !deletedIds.includes(item.id));
+    }
+  }
+
+  function saveExpiryReturns(data) {
+    const deletedIds = getDeletedIds();
+    const now = Date.now();
+    const cleanList = (data || [])
+      .filter(item => item && !deletedIds.includes(item.id))
+      .map(item => ({
+        ...item,
+        updatedAt: item.updatedAt || now
+      }));
+    safeSetItem(STORAGE_KEYS.EXPIRY_RETURNS, JSON.stringify(cleanList));
+    pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
+  }
+
+  function addExpiryReturn(item) {
+    const list = getExpiryReturns();
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const qty = Math.max(1, Number(item.qty) || 1);
+    const costPrice = Math.max(0, Number(item.costPrice) || 0);
+    const estimatedReturnAmount = Math.round(qty * costPrice);
+
+    const newItem = {
+      id: 'exp_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      drugName: (item.drugName || '미지정 의약품').trim(),
+      drugType: item.drugType === 'ETC' ? 'ETC' : 'OTC',
+      spec: (item.spec || '').trim(),
+      expiryDate: (item.expiryDate || '').trim(),
+      qty: qty,
+      unit: item.unit || '개',
+      vendor: (item.vendor || '기타').trim(),
+      manufacturer: (item.manufacturer || '').trim(),
+      costPrice: costPrice,
+      estimatedReturnAmount: estimatedReturnAmount,
+      actualSettledAmount: Number(item.actualSettledAmount) || 0,
+      status: item.status || 'PENDING_RETURN',
+      registeredBy: item.registeredBy || '직원',
+      registeredByRole: item.registeredByRole || '직원',
+      photos: Array.isArray(item.photos) ? item.photos : (item.photoUrl ? [item.photoUrl] : []),
+      memo: (item.memo || '').trim(),
+      returnHandoverDate: item.returnHandoverDate || '',
+      returnCollector: item.returnCollector || '',
+      settledDate: item.settledDate || '',
+      createdAt: dateStr,
+      updatedAt: Date.now()
+    };
+    list.unshift(newItem);
+    saveExpiryReturns(list);
+    return newItem;
+  }
+
+  function updateExpiryReturnStatus(id, newStatus, extraData = {}) {
+    const list = getExpiryReturns();
+    const target = list.find(s => s.id === id);
+    if (!target) return false;
+
+    target.status = newStatus;
+    target.updatedAt = Date.now();
+    
+    if (extraData.vendor !== undefined) target.vendor = extraData.vendor;
+    if (extraData.costPrice !== undefined) {
+      target.costPrice = Math.max(0, Number(extraData.costPrice) || 0);
+      target.estimatedReturnAmount = Math.round(target.qty * target.costPrice);
+    }
+    if (extraData.qty !== undefined) {
+      target.qty = Math.max(1, Number(extraData.qty) || 1);
+      target.estimatedReturnAmount = Math.round(target.qty * target.costPrice);
+    }
+    if (extraData.memo !== undefined) target.memo = extraData.memo;
+    if (extraData.photos !== undefined) target.photos = extraData.photos;
+    
+    if (newStatus === 'PROCESSING_RETURN') {
+      const now = new Date();
+      target.returnHandoverDate = extraData.returnHandoverDate || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      if (extraData.returnCollector) target.returnCollector = extraData.returnCollector;
+    } else if (newStatus === 'COMPLETED') {
+      const now = new Date();
+      target.settledDate = extraData.settledDate || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      if (extraData.actualSettledAmount !== undefined) {
+        target.actualSettledAmount = Math.max(0, Number(extraData.actualSettledAmount) || 0);
+      } else if (!target.actualSettledAmount) {
+        target.actualSettledAmount = target.estimatedReturnAmount;
+      }
+    }
+
+    saveExpiryReturns(list);
+    return target;
+  }
+
+  function deleteExpiryReturn(id) {
+    addDeletedId(id);
+    const list = getExpiryReturns().filter(s => s.id !== id);
+    saveExpiryReturns(list);
+  }
+
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
 
@@ -1852,14 +2042,14 @@ window.SheetsSync = (function () {
           item.updatedAt || '',
           item.createdAt || '',
           item.date || item.dateStr || '',
-          item.title || item.name || item.content || item.text || '',
-          item.locationDetail || item.zoneId || item.zoneName || '',
-          item.status || item.shift || '',
-          item.photoUrl || item.imageUrl || '',
-          item.notes || '',
-          item.updatedBy || '',
+          item.title || item.name || item.drugName || item.content || item.text || '',
+          item.locationDetail || item.zoneId || item.zoneName || item.vendor || '',
+          item.status || item.shift || item.expiryDate || '',
+          item.photoUrl || item.imageUrl || (Array.isArray(item.photos) ? item.photos.length : ''),
+          item.notes || item.memo || '',
+          item.updatedBy || item.registeredBy || '',
           item.isPaid ? 'paid' : 'unpaid',
-          item.totalPrice || '',
+          item.totalPrice || item.estimatedReturnAmount || item.actualSettledAmount || '',
           Array.isArray(item.history) ? item.history.length : 0,
           Array.isArray(item.checkedBy) ? item.checkedBy.join(',') : String(item.checkedBy || '')
         ].join('|');
@@ -1894,6 +2084,7 @@ window.SheetsSync = (function () {
       let empsChanged = false;
       let ratesChanged = false;
       let suppliesChanged = false;
+      let expiryReturnsChanged = false;
 
       // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.notices && Array.isArray(cloudData.notices)) {
@@ -1983,6 +2174,17 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.SUPPLY_PRESETS, JSON.stringify(cloudData.supplyPresets));
           updated = true;
           suppliesChanged = true;
+        }
+      }
+
+      // 4-3. ⏳ 유효기간 임박 & 제약사/도매상 반품 대장 스마트 비파괴 양방향 융합
+      if (cloudData.expiryReturns && Array.isArray(cloudData.expiryReturns)) {
+        const localExpiryReturns = getExpiryReturns() || [];
+        const mergedExpiryReturns = mergeById(localExpiryReturns, cloudData.expiryReturns, 'updatedAt');
+        if (isListDifferent(localExpiryReturns, mergedExpiryReturns)) {
+          safeSetItem(STORAGE_KEYS.EXPIRY_RETURNS, JSON.stringify(mergedExpiryReturns));
+          updated = true;
+          expiryReturnsChanged = true;
         }
       }
 
@@ -2392,6 +2594,7 @@ window.SheetsSync = (function () {
           rxMedicineLocations: getRxMedicineLocations(),
           supplies: getSupplies(),
           supplyPresets: getSupplyPresets(),
+          expiryReturns: getExpiryReturns(),
           gasUrls: getGasUrls(),
           buildingRentalDashboard: (() => {
             try {
@@ -2872,6 +3075,11 @@ window.SheetsSync = (function () {
     deleteSupplyRequest,
     getSupplyPresets,
     saveSupplyPresets,
+    getExpiryReturns,
+    saveExpiryReturns,
+    addExpiryReturn,
+    updateExpiryReturnStatus,
+    deleteExpiryReturn,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

@@ -13,6 +13,7 @@ window.App = (function () {
     'supplies': '📦 약국 소모품 관리 & 주문 시스템',
     'medicine-location': '💊 일반약 위치 관리 & 위치 검색',
     'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
+    'expiry-returns': '⏳ 유효기간 & 제약사 반품 대장',
     'schedule': '📅 월간 근무 스케줄',
     'annual-leave': '🌴 연차대장 & 연차 전용 달력',
     'discount-purchase': '🛍️ 직원할인구매대장',
@@ -30,6 +31,7 @@ window.App = (function () {
     'supplies': 'fa-boxes-stacked',
     'medicine-location': 'fa-boxes-packing',
     'rx-medicine-location': 'fa-pills',
+    'expiry-returns': 'fa-hourglass-half',
     'schedule': 'fa-calendar-alt',
     'annual-leave': 'fa-umbrella-beach',
     'discount-purchase': 'fa-shopping-bag',
@@ -340,6 +342,44 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
+  // ─── ⏳ 유효기간 & 제약사 반품 대장 읽음 상태 관리 헬퍼 ────────────────────────
+  function _expiryReturnFingerprint(item) {
+    if (!item) return '';
+    return [
+      item.id || '',
+      item.updatedAt || '',
+      item.status || '',
+      item.vendor || '',
+      item.qty || '',
+      item.costPrice || '',
+      item.actualSettledAmount || '',
+      item.expiryDate || '',
+      Array.isArray(item.photos) ? item.photos.length : 0
+    ].join('|');
+  }
+
+  function markExpiryReturnsRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const items = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : []) || [];
+    const fingerprints = items.map(_expiryReturnFingerprint);
+    try {
+      localStorage.setItem('ssg_read_expiry_ret_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+    updateSidebarBadgesOnly();
+  }
+
+  function _hasUnreadExpiryReturns(currUser, items) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_expiry_ret_' + currUser.id);
+      if (raw === null) return false; // 📌 앱 재실행/최초 세션 시 억지 N 방어 (규칙 73)
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return items.some(item => !savedSet.has(_expiryReturnFingerprint(item)));
+    } catch(e) { return false; }
+  }
+
   // ─── 직원할인구매대장 읽음 상태 관리 헬퍼 ─────────────────────────────────────
   function _discountPurchaseFingerprint(item) {
     if (!item) return '';
@@ -444,12 +484,18 @@ window.App = (function () {
       const suppliesList = (window.SheetsSync.getSupplies ? window.SheetsSync.getSupplies() : data.supplies) || [];
       const pendingSupplies = suppliesList.filter(s => s.status === 'PENDING');
 
+      // ⏳ 유효기간 & 제약사 반품 대장 (expiry-returns)
+      const expiryReturnsList = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : data.expiryReturns) || [];
+      const hasUnreadExpiryReturns = _hasUnreadExpiryReturns(currUser, expiryReturnsList);
+      const pendingOrProcessingReturns = expiryReturnsList.filter(r => r.status === 'PENDING_RETURN' || r.status === 'PROCESSING_RETURN');
+
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
         supplies: pendingSupplies.length > 0 ? pendingSupplies.length : null,
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
+        'expiry-returns': hasUnreadExpiryReturns ? 'N' : (pendingOrProcessingReturns.length > 0 && isDirector ? pendingOrProcessingReturns.length : null),
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
         discountPurchase: (unpaidPurchases.length > 0 && hasUnreadDiscount) ? (isDirector ? unpaidPurchases.length : 'N') : (hasUnreadDiscount ? 'N' : null),
@@ -619,6 +665,18 @@ window.App = (function () {
             ${badges['rx-medicine-location'] ? `<span class="menu-item-badge">${badges['rx-medicine-location']}</span>` : ''}
           </div>
           <span>전문약(조제실) 위치 관리</span>
+        </button>
+      `;
+    }
+
+    if (true || isDirector || allowed.includes('expiry-returns-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'expiry-returns' ? 'active' : ''}" data-module="expiry-returns" onclick="App.switchModule('expiry-returns', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-hourglass-half" style="color:#d97706;"></i>
+            ${badges['expiry-returns'] ? `<span class="menu-item-badge">${badges['expiry-returns']}</span>` : ''}
+          </div>
+          <span>유효기간 & 반품 대장</span>
         </button>
       `;
     }
@@ -1055,6 +1113,9 @@ window.App = (function () {
       case 'rx-medicine-location':
         if (window.RxMedicineLocationModule) window.RxMedicineLocationModule.render('module-content');
         break;
+      case 'expiry-returns':
+        if (window.ExpiryReturnsModule) window.ExpiryReturnsModule.render('module-content');
+        break;
       case 'schedule':
         if (window.ScheduleModule) window.ScheduleModule.render('module-content');
         break;
@@ -1318,6 +1379,9 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'rx-medicine-location') {
         markRxMedicineLocationRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'expiry-returns') {
+        markExpiryReturnsRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'approval') {
         markApprovalRead();
@@ -2270,6 +2334,7 @@ function writeSheetData(sheet, dataList) {
     markNoticesRead,
     markWorklogRead,
     markMedicineLocationRead,
+    markExpiryReturnsRead,
     markApprovalRead,
     quickSelectLogin,
     showLoginModal,

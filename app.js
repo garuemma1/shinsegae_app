@@ -2257,8 +2257,8 @@ function writeSheetData(sheet, dataList) {
 
     // 🌥️ 1단계: Cloudinary 업로드 (25GB 무료 영구 저장 - 신용카드 불필요)
     try {
-      const CLOUD_NAME = 'n9hlellu';
-      const UPLOAD_PRESET = 'ivyyfanrv';
+      const CLOUD_NAME = 'nl5hat8p';
+      const UPLOAD_PRESET = 'hxyfannv';
       const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
       const formData = new FormData();
       formData.append('file', base64);

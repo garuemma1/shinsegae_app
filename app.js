@@ -2114,13 +2114,29 @@ function writeSheetData(sheet, dataList) {
   let currentLightboxIndex = 0;
   let currentLightboxTitle = '';
 
-  function openImageLightbox(urlsOrUrl, title, initialIndex = 0) {
+  function openImageLightbox(urlsOrUrl, title, initialIndexOrUrls = 0) {
     if (!urlsOrUrl) return;
-    const urls = Array.isArray(urlsOrUrl) ? urlsOrUrl.filter(Boolean) : [urlsOrUrl];
+
+    let urls = [];
+    let initialIndex = 0;
+
+    if (Array.isArray(initialIndexOrUrls)) {
+      // 3번째 인자로 전체 사진 배열이 전달된 경우 자동 융합
+      urls = initialIndexOrUrls.filter(Boolean);
+      initialIndex = 0;
+    } else if (Array.isArray(urlsOrUrl)) {
+      urls = urlsOrUrl.filter(Boolean);
+      initialIndex = typeof initialIndexOrUrls === 'number' ? initialIndexOrUrls : 0;
+    } else {
+      urls = [urlsOrUrl].filter(Boolean);
+      initialIndex = typeof initialIndexOrUrls === 'number' ? initialIndexOrUrls : 0;
+    }
+
     if (urls.length === 0) return;
 
     currentLightboxImages = urls;
-    currentLightboxIndex = Math.max(0, Math.min(initialIndex, urls.length - 1));
+    const safeIdx = (typeof initialIndex === 'number' && !isNaN(initialIndex)) ? Math.floor(initialIndex) : 0;
+    currentLightboxIndex = Math.max(0, Math.min(safeIdx, urls.length - 1));
     currentLightboxTitle = title || '사진 원본 크게보기';
 
     renderLightboxContent();

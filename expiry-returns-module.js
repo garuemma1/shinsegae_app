@@ -1710,7 +1710,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       if (!item || !item.photos || item.photos.length === 0) return;
 
       if (window.App && typeof window.App.openImageLightbox === 'function') {
-        window.App.openImageLightbox(item.photos[startIndex] || item.photos[0], item.drugName + ' (유효기간 사진)', item.photos);
+        window.App.openImageLightbox(item.photos, item.drugName + ' (유효기간 사진)', startIndex);
       } else {
         window.open(item.photos[startIndex], '_blank');
       }

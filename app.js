@@ -581,22 +581,11 @@ window.App = (function () {
     const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
     const badges = computeNotificationBadges();
 
-    // 맞춤 허용 탭 목록 (개인별 권한)
-    let allowed = currUser.allowedTabs || [
-      'notices-module', 'worklog-module', 'medicine-location-module', 'schedule-module',
-      'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+    // 맞춤 허용 탭 목록 (개인별 권한) - 약국장 수동 설정 100% 보존
+    let allowed = Array.isArray(currUser.allowedTabs) ? currUser.allowedTabs : [
+      'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module',
+      'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
-
-    // 🛡️ 기존 기기 및 개별 직원 레거시 권한 호환 보장: medicine-location & rx-medicine-location 전 직원 강제 허용
-    if (!allowed.includes('medicine-location-module')) {
-      allowed.push('medicine-location-module');
-    }
-    if (!allowed.includes('rx-medicine-location-module')) {
-      allowed.push('rx-medicine-location-module');
-    }
-    if (!allowed.includes('supplies-module')) {
-      allowed.push('supplies-module');
-    }
 
     let html = '';
 
@@ -633,7 +622,7 @@ window.App = (function () {
       `;
     }
 
-    // 📦 약국 소모품 관리 (신규 추가)
+    // 📦 약국 소모품 관리
     if (isDirector || allowed.includes('supplies-module')) {
       html += `
         <button class="menu-item ${activeModule === 'supplies' ? 'active' : ''}" data-module="supplies" onclick="App.switchModule('supplies', true)">
@@ -646,7 +635,7 @@ window.App = (function () {
       `;
     }
 
-    if (true || isDirector || allowed.includes('medicine-location-module')) {
+    if (isDirector || allowed.includes('medicine-location-module')) {
       html += `
         <button class="menu-item ${activeModule === 'medicine-location' ? 'active' : ''}" data-module="medicine-location" onclick="App.switchModule('medicine-location', true)">
           <div class="menu-icon-wrapper">
@@ -657,7 +646,7 @@ window.App = (function () {
       `;
     }
 
-    if (true || isDirector || allowed.includes('rx-medicine-location-module')) {
+    if (isDirector || allowed.includes('rx-medicine-location-module')) {
       html += `
         <button class="menu-item ${activeModule === 'rx-medicine-location' ? 'active' : ''}" data-module="rx-medicine-location" onclick="App.switchModule('rx-medicine-location', true)">
           <div class="menu-icon-wrapper">
@@ -669,7 +658,7 @@ window.App = (function () {
       `;
     }
 
-    if (true || isDirector || allowed.includes('expiry-returns-module')) {
+    if (isDirector || allowed.includes('expiry-returns-module')) {
       html += `
         <button class="menu-item ${activeModule === 'expiry-returns' ? 'active' : ''}" data-module="expiry-returns" onclick="App.switchModule('expiry-returns', true)">
           <div class="menu-icon-wrapper">
@@ -1342,13 +1331,22 @@ window.App = (function () {
   function switchModule(moduleName, isUserAction = false) {
     if (!MODULE_TITLES[moduleName]) return;
 
-    // 보안 접근 가드 (약국장 전용 4대 모듈)
+    // 보안 접근 가드 (약국장 전용 4대 모듈 및 맞춤형 탭 권한)
     const curr = window.SheetsSync.getCurrentUser();
-    const isDirector = curr && curr.role === '약국장';
+    const isDirector = curr && (curr.role === '약국장' || curr.id === 'emp_1');
 
     if (['approval', 'staff-directory', 'ssg-settlement', 'building-rental'].includes(moduleName) && !isDirector) {
       alert('🔒 보안 안내: 선택하신 메뉴는 약국장 전용 관리 영역입니다.');
       return;
+    }
+
+    if (!isDirector && curr) {
+      const allowed = Array.isArray(curr.allowedTabs) ? curr.allowedTabs : [];
+      const targetTabId = moduleName + '-module';
+      if (!allowed.includes(targetTabId)) {
+        alert('🔒 접근 권한 안내: 약국장님에 의해 접근 권한이 부여되지 않은 메뉴입니다.');
+        return;
+      }
     }
 
     activeModule = moduleName;

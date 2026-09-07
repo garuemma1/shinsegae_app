@@ -797,12 +797,13 @@ window.StaffDirectoryModule = (function () {
       if (pRaw) permMap = JSON.parse(pRaw);
     } catch(e) {}
 
-    const allowed = Array.isArray(target.allowedTabs)
-      ? target.allowedTabs
-      : ((permMap && Array.isArray(permMap[target.id]))
-          ? permMap[target.id]
+    // 🛡️ permMap이 존재하면 항상 permMap 우선 (가장 최신 약국장 수동 저장 상태 반영)
+    const allowed = (permMap && Array.isArray(permMap[target.id]))
+      ? permMap[target.id]
+      : (Array.isArray(target.allowedTabs)
+          ? target.allowedTabs
           : [
-              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
+              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'expiry-returns-module', 'schedule-module',
               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
             ]);
 

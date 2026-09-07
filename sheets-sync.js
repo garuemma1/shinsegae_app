@@ -928,10 +928,11 @@ window.SheetsSync = (function () {
             if (pRaw) permMap = JSON.parse(pRaw);
           } catch(e) {}
 
-          const currentAllowed = (permMap && permMap[u.id]) || (liveEmp && liveEmp.allowedTabs) || u.allowedTabs || [
-            'notices-module', 'worklog-module', 'medicine-location-module', 'rx-medicine-location-module', 'schedule-module',
-            'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
-          ];
+          const currentAllowed = (permMap && Array.isArray(permMap[u.id]))
+            ? permMap[u.id]
+            : ((liveEmp && Array.isArray(liveEmp.allowedTabs))
+                ? liveEmp.allowedTabs
+                : (Array.isArray(u.allowedTabs) ? u.allowedTabs : [...ALL_COMMON_TABS]));
 
           if (liveEmp) {
             return { ...u, ...liveEmp, allowedTabs: currentAllowed };
@@ -1118,7 +1119,7 @@ window.SheetsSync = (function () {
       if (isDirector) {
         return { ...e, role: '약국장', allowedTabs: [...ALL_SYSTEM_TABS] };
       }
-      if (permMap && permMap[e.id]) {
+      if (permMap && Array.isArray(permMap[e.id])) {
         return { ...e, allowedTabs: permMap[e.id] };
       }
       return e;

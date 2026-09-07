@@ -1,0 +1,146 @@
+﻿[
+    {
+        "Key":  "ssg_worklogs_v1",
+        "Count":  36,
+        "SizeBytes":  378132,
+        "SizeKB":  369.27,
+        "Characters":  373106,
+        "Percent":  39.3
+    },
+    {
+        "Key":  "ssg_paystubs_v1",
+        "Count":  1,
+        "SizeBytes":  370273,
+        "SizeKB":  361.59,
+        "Characters":  369717,
+        "Percent":  38.48
+    },
+    {
+        "Key":  "ssg_schedule_v1",
+        "Count":  1098,
+        "SizeBytes":  124350,
+        "SizeKB":  121.44,
+        "Characters":  124350,
+        "Percent":  12.92
+    },
+    {
+        "Key":  "ssg_medicine_locations_v1",
+        "Count":  54,
+        "SizeBytes":  20308,
+        "SizeKB":  19.83,
+        "Characters":  17214,
+        "Percent":  2.11
+    },
+    {
+        "Key":  "ssg_rx_medicine_locations_v1",
+        "Count":  2,
+        "SizeBytes":  34513,
+        "SizeKB":  33.7,
+        "Characters":  34195,
+        "Percent":  3.59
+    },
+    {
+        "Key":  "ssg_notices_v1",
+        "Count":  16,
+        "SizeBytes":  7326,
+        "SizeKB":  7.15,
+        "Characters":  4206,
+        "Percent":  0.76
+    },
+    {
+        "Key":  "ssg_employees_v1",
+        "Count":  11,
+        "SizeBytes":  7229,
+        "SizeKB":  7.06,
+        "Characters":  6621,
+        "Percent":  0.75
+    },
+    {
+        "Key":  "ssg_building_rental_dashboard_v1",
+        "Count":  1,
+        "SizeBytes":  4808,
+        "SizeKB":  4.7,
+        "Characters":  4510,
+        "Percent":  0.5
+    },
+    {
+        "Key":  "ssg_emp_permissions_v1",
+        "Count":  1,
+        "SizeBytes":  2877,
+        "SizeKB":  2.81,
+        "Characters":  2877,
+        "Percent":  0.3
+    },
+    {
+        "Key":  "ssg_deleted_ids",
+        "Count":  117,
+        "SizeBytes":  2238,
+        "SizeKB":  2.19,
+        "Characters":  2238,
+        "Percent":  0.23
+    },
+    {
+        "Key":  "ssg_discount_purchases_v1",
+        "Count":  4,
+        "SizeBytes":  2073,
+        "SizeKB":  2.02,
+        "Characters":  1871,
+        "Percent":  0.22
+    },
+    {
+        "Key":  "ssg_expiry_returns_v1",
+        "Count":  3,
+        "SizeBytes":  1762,
+        "SizeKB":  1.72,
+        "Characters":  1504,
+        "Percent":  0.18
+    },
+    {
+        "Key":  "ssg_supply_presets_v1",
+        "Count":  8,
+        "SizeBytes":  1660,
+        "SizeKB":  1.62,
+        "Characters":  1240,
+        "Percent":  0.17
+    },
+    {
+        "Key":  "ssg_schedule_status_v1",
+        "Count":  1,
+        "SizeBytes":  1352,
+        "SizeKB":  1.32,
+        "Characters":  1186,
+        "Percent":  0.14
+    },
+    {
+        "Key":  "ssg_supplies_v1",
+        "Count":  3,
+        "SizeBytes":  1327,
+        "SizeKB":  1.3,
+        "Characters":  1125,
+        "Percent":  0.14
+    },
+    {
+        "Key":  "ssg_leave_requests_v1",
+        "Count":  4,
+        "SizeBytes":  1172,
+        "SizeKB":  1.14,
+        "Characters":  1050,
+        "Percent":  0.12
+    },
+    {
+        "Key":  "ssg_overtime_adjustments_v1",
+        "Count":  1,
+        "SizeBytes":  509,
+        "SizeKB":  0.5,
+        "Characters":  509,
+        "Percent":  0.05
+    },
+    {
+        "Key":  "ssg_pharmacist_rates_v1",
+        "Count":  1,
+        "SizeBytes":  284,
+        "SizeKB":  0.28,
+        "Characters":  284,
+        "Percent":  0.03
+    }
+]

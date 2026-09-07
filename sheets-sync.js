@@ -892,6 +892,15 @@ window.SheetsSync = (function () {
       localStorage.setItem(key, val);
     } catch (e) {
       console.warn("Storage save warning:", e);
+      try {
+        // QuotaExceeded 대응: 구형 레거시 중복 키 정리 후 1회 재시도
+        ['ssg_medicine_locations', 'ssg_rx_medicine_locations', 'ssg_discount_purchases'].forEach(k => {
+          if (k !== key) localStorage.removeItem(k);
+        });
+        localStorage.setItem(key, val);
+      } catch (retryErr) {
+        console.error("Storage save failed after cleanup:", retryErr);
+      }
     }
   }
 
@@ -1156,12 +1165,19 @@ window.SheetsSync = (function () {
     pushToCloud();
   }
 
+  let cachedMedicineLocations = null;
+
   function getMedicineLocations() {
+    if (cachedMedicineLocations && Array.isArray(cachedMedicineLocations) && cachedMedicineLocations.length > 0) {
+      return cachedMedicineLocations;
+    }
     const deletedIds = getDeletedIds();
     try {
       const raw = safeGetItem(STORAGE_KEYS.MEDICINE_LOCATIONS) || safeGetItem('ssg_medicine_locations');
       const list = raw ? JSON.parse(raw) : [];
-      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+      const filtered = (list || []).filter(item => item && !deletedIds.includes(item.id));
+      if (filtered.length > 0) cachedMedicineLocations = filtered;
+      return filtered;
     } catch(e) {
       return [];
     }
@@ -1170,8 +1186,9 @@ window.SheetsSync = (function () {
   function saveMedicineLocations(data) {
     const deletedIds = getDeletedIds();
     const cleanList = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    cachedMedicineLocations = cleanList;
     safeSetItem(STORAGE_KEYS.MEDICINE_LOCATIONS, JSON.stringify(cleanList));
-    safeSetItem('ssg_medicine_locations', JSON.stringify(cleanList));
+    try { localStorage.removeItem('ssg_medicine_locations'); } catch(e) {}
     pushToCloud();
   }
 
@@ -2113,9 +2130,10 @@ window.SheetsSync = (function () {
       if (cloudData.medicineLocations && Array.isArray(cloudData.medicineLocations)) {
         const localMeds = getMedicineLocations() || [];
         const mergedMeds = mergeById(localMeds, cloudData.medicineLocations, 'updatedAt');
+        cachedMedicineLocations = mergedMeds;
         if (isListDifferent(localMeds, mergedMeds)) {
           safeSetItem(STORAGE_KEYS.MEDICINE_LOCATIONS, JSON.stringify(mergedMeds));
-          safeSetItem('ssg_medicine_locations', JSON.stringify(mergedMeds));
+          try { localStorage.removeItem('ssg_medicine_locations'); } catch(e) {}
           updated = true;
           medLocationsChanged = true;
         }
@@ -2692,7 +2710,7 @@ window.SheetsSync = (function () {
         const res = await fetch(`${FIREBASE_REST_URL}?t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
-          if (json && (json.worklogs || json.employees || json.notices || json.schedule || json.supplies)) {
+          if (json && (json.worklogs || json.employees || json.notices || json.schedule || json.supplies || json.medicineLocations || json.rxMedicineLocations || json.expiryReturns)) {
             cloudData = json;
           }
         }

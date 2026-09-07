@@ -61,7 +61,7 @@ window.MedicineLocationModule = (function () {
     try {
       const json = JSON.stringify(list || []);
       localStorage.setItem('ssg_medicine_locations_v1', json);
-      localStorage.setItem('ssg_medicine_locations', json);
+      try { localStorage.removeItem('ssg_medicine_locations'); } catch (e) {}
     } catch (e) {}
 
     if (window.SheetsSync && typeof window.SheetsSync.saveMedicineLocations === 'function') {
@@ -550,7 +550,7 @@ window.MedicineLocationModule = (function () {
       let uploadedUrls = [];
       if (selectedMedPhotos && selectedMedPhotos.length > 0) {
         uploadedUrls = await Promise.all(selectedMedPhotos.map(async (p) => {
-          if (!p.isNew && p.data && p.data.startsWith('http')) {
+          if (!p.isNew && p.data && (p.data.startsWith('http') || p.data.startsWith('assets/'))) {
             return p.data;
           }
           if (window.App && typeof window.App.processAndUploadPhoto === 'function') {

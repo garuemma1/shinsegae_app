@@ -1259,19 +1259,28 @@ window.SheetsSync = (function () {
   }
 
   function getBuildingRentalTabs() {
-    const defaultTabs = ['2610', '2609', '2608'];
+    const validTabs = ['2610', '2609', '2608'];
     try {
       const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
-      let keys = [];
       if (raw) {
         const parsed = JSON.parse(raw);
-        keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k) && k !== '2611');
+        let cleaned = false;
+        Object.keys(parsed).forEach(k => {
+          if (!validTabs.includes(k) && (!parsed[k] || !parsed[k].items || parsed[k].items.length === 0)) {
+            delete parsed[k];
+            cleaned = true;
+          }
+        });
+        if (cleaned) {
+          safeSetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD, JSON.stringify(parsed));
+        }
+        const keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k) && (validTabs.includes(k) || (parsed[k] && parsed[k].items && parsed[k].items.length > 0)));
+        const combined = Array.from(new Set([...validTabs, ...keys]));
+        combined.sort((a, b) => b.localeCompare(a));
+        return combined;
       }
-      const combined = Array.from(new Set([...defaultTabs, ...keys]));
-      combined.sort((a, b) => b.localeCompare(a));
-      return combined;
     } catch(e) {}
-    return defaultTabs;
+    return validTabs;
   }
 
   function saveBuildingRentalDashboard(data, yymm) {

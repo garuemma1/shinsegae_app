@@ -1259,14 +1259,24 @@ window.SheetsSync = (function () {
   }
 
   function getBuildingRentalTabs() {
-    const validTabs = ['2610', '2609', '2608'];
     try {
+      const saved = safeGetItem('ssg_building_rental_tabs_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(k => /^\d{4}$/.test(k) && k !== '2611' && k !== '2612' && k !== '2607');
+          if (valid.length > 0) {
+            valid.sort((a, b) => b.localeCompare(a));
+            return valid;
+          }
+        }
+      }
       const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
       if (raw) {
         const parsed = JSON.parse(raw);
         let cleaned = false;
         Object.keys(parsed).forEach(k => {
-          if (!validTabs.includes(k) && (!parsed[k] || !parsed[k].items || parsed[k].items.length === 0)) {
+          if (k === '2607' || k === '2611' || k === '2612') {
             delete parsed[k];
             cleaned = true;
           }
@@ -1274,13 +1284,14 @@ window.SheetsSync = (function () {
         if (cleaned) {
           safeSetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD, JSON.stringify(parsed));
         }
-        const keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k) && (validTabs.includes(k) || (parsed[k] && parsed[k].items && parsed[k].items.length > 0)));
-        const combined = Array.from(new Set([...validTabs, ...keys]));
-        combined.sort((a, b) => b.localeCompare(a));
-        return combined;
+        const keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k) && k !== '2611' && k !== '2612' && k !== '2607' && parsed[k] && parsed[k].items && parsed[k].items.length > 0);
+        if (keys.length > 0) {
+          keys.sort((a, b) => b.localeCompare(a));
+          return keys;
+        }
       }
     } catch(e) {}
-    return validTabs;
+    return ['2608'];
   }
 
   function saveBuildingRentalDashboard(data, yymm) {
@@ -1336,6 +1347,12 @@ window.SheetsSync = (function () {
         if (response && response.ok) {
           const json = await response.json();
           if (json && json.success && json.data && json.data.items) {
+            if (json.data.availableTabs && Array.isArray(json.data.availableTabs) && json.data.availableTabs.length > 0) {
+              const cleanTabs = json.data.availableTabs.filter(k => /^\d{4}$/.test(k) && k !== '2611' && k !== '2612' && k !== '2607');
+              if (cleanTabs.length > 0) {
+                safeSetItem('ssg_building_rental_tabs_v1', JSON.stringify(cleanTabs));
+              }
+            }
             saveBuildingRentalDashboard(json.data, yymm);
             return { success: true, data: json.data, source: 'GAS' };
           }
@@ -1447,6 +1464,7 @@ window.SheetsSync = (function () {
             tabs.unshift(newYymm);
             tabs.sort((a, b) => b.localeCompare(a));
           }
+          safeSetItem('ssg_building_rental_tabs_v1', JSON.stringify(tabs));
           return { success: true, message: json.data ? json.data.message : '새 시트가 자동 생성되었습니다!', newYymm };
         } else {
           return { success: false, message: (json && json.error) || '시트 생성 실패' };

@@ -3054,7 +3054,14 @@ window.SheetsSync = (function () {
     }
     if (!urls.ssg) urls.ssg = safeGetItem('ssg_gas_webapp_url') || '';
     if (!urls.hoecheon) urls.hoecheon = safeGetItem('hoecheon_gas_webapp_url') || '';
+    if (!urls.ssg) urls.ssg = (typeof DIRECT_GAS_URL !== 'undefined' ? DIRECT_GAS_URL : '');
     return urls;
+  }
+
+  function getGasUrl(pharmKey = 'ssg') {
+    const urls = getGasUrls();
+    const fallback = (typeof DIRECT_GAS_URL !== 'undefined' ? DIRECT_GAS_URL : '');
+    return (urls && urls[pharmKey]) || (pharmKey === 'ssg' ? fallback : '');
   }
 
   function saveGasUrl(pharmKey, url) {
@@ -3125,6 +3132,7 @@ window.SheetsSync = (function () {
     getPharmacistRates,
     savePharmacistRates,
     getGasUrls,
+    getGasUrl,
     saveGasUrl,
     initFirebase,
     pushToCloud,

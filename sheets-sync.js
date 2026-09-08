@@ -1259,18 +1259,19 @@ window.SheetsSync = (function () {
   }
 
   function getBuildingRentalTabs() {
+    const defaultTabs = ['2611', '2610', '2609', '2608'];
     try {
       const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
+      let keys = [];
       if (raw) {
         const parsed = JSON.parse(raw);
-        const keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k));
-        if (keys.length > 0) {
-          keys.sort((a, b) => b.localeCompare(a));
-          return keys;
-        }
+        keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k));
       }
+      const combined = Array.from(new Set([...defaultTabs, ...keys]));
+      combined.sort((a, b) => b.localeCompare(a));
+      return combined;
     } catch(e) {}
-    return ['2610', '2609', '2608'];
+    return defaultTabs;
   }
 
   function saveBuildingRentalDashboard(data, yymm) {

@@ -1404,6 +1404,12 @@ window.App = (function () {
       }
     }
 
+    if (moduleName === 'building-rental' && isUserAction) {
+      if (window.BuildingRentalModule && typeof window.BuildingRentalModule.setCurrentToNow === 'function') {
+        window.BuildingRentalModule.setCurrentToNow();
+      }
+    }
+
     renderActiveModule(false);
 
     if (isUserAction && window.innerWidth <= 900) {

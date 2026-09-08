@@ -15,7 +15,14 @@ if (typeof window.BuildingRentalModule === 'undefined') {
     let activeSubTab = 'monthly'; // 'monthly' | 'grimHouse' | 'yearly'
     let currentYYMM = '2609'; // 기본 조회 연월
     let isSyncing = false;
-    let localTabs = ['2610', '2609', '2608'];
+    let localTabs = ['2611', '2610', '2609', '2608'];
+
+    function setCurrentToNow() {
+      const now = new Date();
+      const curYY = String(now.getFullYear()).slice(-2);
+      const curMM = String(now.getMonth() + 1).padStart(2, '0');
+      currentYYMM = `${curYY}${curMM}`;
+    }
 
     // 🛡️ XSS 방어 헬퍼 (규칙 61)
     function escapeHTML(str) {
@@ -768,6 +775,7 @@ if (typeof window.BuildingRentalModule === 'undefined') {
 
     return {
       render,
+      setCurrentToNow,
       setSubTab,
       changeYYMM,
       moveMonth,

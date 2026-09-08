@@ -1398,6 +1398,12 @@ window.App = (function () {
       }
     }
 
+    if (moduleName === 'ssg-settlement' && isUserAction) {
+      if (window.SmartLedgerModule && typeof window.SmartLedgerModule.setCurrentToNow === 'function') {
+        window.SmartLedgerModule.setCurrentToNow();
+      }
+    }
+
     renderActiveModule(false);
 
     if (isUserAction && window.innerWidth <= 900) {

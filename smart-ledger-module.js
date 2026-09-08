@@ -593,8 +593,16 @@ window.PharmacyStore = class PharmacyStore {
     this.pharmacyName = '신세계약국';
     this.pharmacyBadge = '신세계';
     this.pharmacySubtitle = '신세계약국 스마트 일일정산 & 월말결제 시스템';
-    this.currentYYMM = '2608';
+    const now = new Date();
+    const curYY = String(now.getFullYear()).slice(-2);
+    const curMM = String(now.getMonth() + 1).padStart(2, '0');
+    const nowYYMM = `${curYY}${curMM}`;
+    this.currentYYMM = nowYYMM;
     this.availableMonths = [...AVAILABLE_MONTHS];
+    if (!this.availableMonths.includes(nowYYMM)) {
+      this.availableMonths.push(nowYYMM);
+      this.availableMonths.sort();
+    }
     this.onlineMalls = [...DEFAULT_ONLINE_MALLS];
     this.dailyRecords = {};
     this.monthlyRecords = {};
@@ -653,10 +661,15 @@ window.PharmacyStore = class PharmacyStore {
         };
       }
 
+      const now = new Date();
+      const curYY = String(now.getFullYear()).slice(-2);
+      const curMM = String(now.getMonth() + 1).padStart(2, '0');
+      const nowYYMM = `${curYY}${curMM}`;
+
       if (savedYYMM && (AVAILABLE_MONTHS.includes(savedYYMM) || /^[0-9]{4}$/.test(savedYYMM))) {
         this.currentYYMM = savedYYMM;
       } else {
-        this.currentYYMM = '2608';
+        this.currentYYMM = nowYYMM;
       }
       if (months) {
         const parsedM = JSON.parse(months);
@@ -668,7 +681,8 @@ window.PharmacyStore = class PharmacyStore {
         this.availableMonths = [...AVAILABLE_MONTHS];
       }
       if (!this.availableMonths.includes(this.currentYYMM)) {
-        this.currentYYMM = this.availableMonths[0] || '2608';
+        this.availableMonths.push(this.currentYYMM);
+        this.availableMonths.sort();
       }
       if (savedMalls) {
         try {
@@ -3283,6 +3297,18 @@ window.UI = UI;
 // 5. Smart Ledger Module Wrapper (신세계 / 회천 마운트)
 // ==========================================
 window.SmartLedgerModule = {
+  setCurrentToNow: function () {
+    const now = new Date();
+    const curYY = String(now.getFullYear()).slice(-2);
+    const curMM = String(now.getMonth() + 1).padStart(2, '0');
+    const nowYYMM = `${curYY}${curMM}`;
+    if (window.store && typeof window.store.setCurrentYYMM === 'function') {
+      window.store.setCurrentYYMM(nowYYMM);
+    }
+    if (typeof UI !== 'undefined' && UI) {
+      UI.selectedDay = now.getDate();
+    }
+  },
   render: function (containerId, pharmacyKey = 'ssg') {
     const container = document.getElementById(containerId);
     if (!container) return;

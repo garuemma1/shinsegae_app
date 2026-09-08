@@ -187,6 +187,14 @@ function parseVal(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   var str = String(val).trim();
   if (!/[0-9]/.test(str)) return 0;
+
+  // 🛡️ 한글 라벨 텍스트(예: "잡비 1현금", "1일", "식대" 등)가 포함된 셀은 금액이 아니므로 0 반환
+  // 단, "1,000원", "₩50,000" 처럼 순수 금액 표기는 허용
+  if (/[가-힣]/.test(str)) {
+    var stripped = str.replace(/[0-9,.\s원₩\\-]/g, '');
+    if (stripped.length > 0) return 0;
+  }
+
   var match = str.match(/-?[0-9,.]+/);
   if (!match) return 0;
   var clean = match[0].replace(/,/g, '');
@@ -292,8 +300,15 @@ function getDailyRecordFromValues(rawValues, displayValues, sheetName, day) {
     var colB = String(dispRowVals[1] || '').trim();
     var colC = String(dispRowVals[2] || '').trim();
 
-    // 날짜 헤더 행(예: "31일" 단독 표시 행)만 건너뛰고, 데이터가 기재된 행은 '시재'/'이월' 여부와 무관하게 전수 파싱!
-    if (colA.indexOf('일') !== -1 && !colB && !colC && !rowVals[8] && !rowVals[9] && !rowVals[12]) continue;
+    // 🛡️ 날짜 헤더 행(열 제목 행) 완벽 차단:
+    // [1] 블록의 첫 행(i === startIdx)은 날짜 라벨과 열 제목(당일총매출, 잡비 1현금 등)이 적힌 헤더 행이므로 무조건 제외!
+    if (i === startIdx) continue;
+    // [2] A열에 '일'이 있거나 열 제목 텍스트가 있는 헤더 행 추가 방어
+    if (colA.indexOf('일') !== -1) continue;
+    var rowE = String(dispRowVals[4] || '').trim();
+    var rowI = String(dispRowVals[8] || '').trim();
+    var rowL = String(dispRowVals[11] || '').trim();
+    if (rowE === '당일총매출' || rowE === '총매출' || rowI === '손님계좌이체' || rowL.indexOf('잡비') !== -1) continue;
 
     var bNum = parseVal(rowVals[1]) || parseVal(dispRowVals[1]); 
     if (bNum > 0 && data.prevCash === 600000) data.prevCash = bNum;

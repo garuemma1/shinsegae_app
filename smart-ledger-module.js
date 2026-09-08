@@ -639,8 +639,21 @@ window.PharmacyStore = class PharmacyStore {
       const savedMalls = localStorage.getItem(`${prefix}online_malls`);
       const savedCumulative = localStorage.getItem(`${prefix}cumulative_cache`);
 
-      if (savedDaily) this.dailyRecords = JSON.parse(savedDaily);
-      else this.dailyRecords = {};
+      if (savedDaily) {
+        this.dailyRecords = JSON.parse(savedDaily);
+        // 🛡️ 과거 구글 시트 헤더("잡비 1현금") 오작동으로 1원이 들어갔던 오염 데이터 즉시 0원 자동 정화
+        if (this.dailyRecords && typeof this.dailyRecords === 'object') {
+          Object.keys(this.dailyRecords).forEach(k => {
+            const r = this.dailyRecords[k];
+            if (r && r.expMiscCash === 1) {
+              r.expMiscCash = 0;
+              this.dailyRecords[k] = this.calculateDaily(r);
+            }
+          });
+        }
+      } else {
+        this.dailyRecords = {};
+      }
 
       if (savedMonthly) this.monthlyRecords = JSON.parse(savedMonthly);
       else this.monthlyRecords = {};
@@ -781,9 +794,14 @@ window.PharmacyStore = class PharmacyStore {
   }
 
   parseMoney(val) {
-    if (typeof val === 'number') return val;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
     if (!val) return 0;
-    const clean = String(val).replace(/[^0-9.-]+/g, '');
+    const str = String(val).trim();
+    if (/[가-힣]/.test(str)) {
+      const stripped = str.replace(/[0-9,.\s원₩\\-]/g, '');
+      if (stripped.length > 0) return 0;
+    }
+    const clean = str.replace(/[^0-9.-]+/g, '');
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : num;
   }
@@ -1288,11 +1306,14 @@ window.PharmacyStore = class PharmacyStore {
         if (dailyObj && typeof dailyObj === 'object' && Object.keys(dailyObj).length > 0) {
           Object.keys(dailyObj).forEach(dayNum => {
             const key = this.getDailyKey(yymm, parseInt(dayNum, 10));
-            this.dailyRecords[key] = this.calculateDaily(dailyObj[dayNum]);
+            const dayRec = dailyObj[dayNum];
+            if (dayRec && dayRec.expMiscCash === 1) dayRec.expMiscCash = 0;
+            this.dailyRecords[key] = this.calculateDaily(dayRec);
           });
         } else if (result.data.dailyList && Array.isArray(result.data.dailyList)) {
           result.data.dailyList.forEach(daily => {
             if (daily && daily.day) {
+              if (daily.expMiscCash === 1) daily.expMiscCash = 0;
               const key = this.getDailyKey(yymm, daily.day);
               this.dailyRecords[key] = this.calculateDaily(daily);
             }

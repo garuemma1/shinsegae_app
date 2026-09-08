@@ -1259,13 +1259,13 @@ window.SheetsSync = (function () {
   }
 
   function getBuildingRentalTabs() {
-    const defaultTabs = ['2611', '2610', '2609', '2608'];
+    const defaultTabs = ['2610', '2609', '2608'];
     try {
       const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
       let keys = [];
       if (raw) {
         const parsed = JSON.parse(raw);
-        keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k));
+        keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k) && k !== '2611');
       }
       const combined = Array.from(new Set([...defaultTabs, ...keys]));
       combined.sort((a, b) => b.localeCompare(a));

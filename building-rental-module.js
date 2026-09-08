@@ -15,7 +15,7 @@ if (typeof window.BuildingRentalModule === 'undefined') {
     let activeSubTab = 'monthly'; // 'monthly' | 'grimHouse' | 'yearly'
     let currentYYMM = '2609'; // 기본 조회 연월
     let isSyncing = false;
-    let localTabs = ['2611', '2610', '2609', '2608'];
+    let localTabs = ['2610', '2609', '2608'];
 
     function setCurrentToNow() {
       const now = new Date();
@@ -110,16 +110,19 @@ if (typeof window.BuildingRentalModule === 'undefined') {
         if (newIdx >= 0 && newIdx < tabs.length) {
           changeYYMM(tabs[newIdx]);
           return;
+        } else {
+          if (direction > 0) {
+            alert(`가장 최신 정산 월(20${tabs[0].substring(0,2)}년 ${tabs[0].substring(2,4)}월)입니다.\n새로운 월 시트 생성이 필요하시면 [새 월 시트 자동 생성]을 눌러주세요.`);
+          } else {
+            alert(`가장 이전 정산 월(20${tabs[tabs.length-1].substring(0,2)}년 ${tabs[tabs.length-1].substring(2,4)}월)입니다.`);
+          }
+          return;
         }
       }
 
-      let year = parseInt(currentYYMM.substring(0, 2), 10);
-      let month = parseInt(currentYYMM.substring(2, 4), 10);
-      month += direction;
-      if (month > 12) { month = 1; year += 1; }
-      if (month < 1) { month = 12; year -= 1; }
-      const newYymm = String(year).padStart(2, '0') + String(month).padStart(2, '0');
-      changeYYMM(newYymm);
+      if (tabs.length > 0) {
+        changeYYMM(tabs[0]);
+      }
     }
 
     // 🔄 구글 시트 실시간 최신 동기화 실행 (force=true)

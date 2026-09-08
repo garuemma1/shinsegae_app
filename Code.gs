@@ -776,6 +776,8 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     totalCashbackCalc = parseVal(getCellValue(dispValues, 13, 16)) || parseVal(getCellValue(values, 13, 16));
   }
 
+  var is2608 = (sheetName === '2608결산' || sheetName === '2608');
+
   return {
     sheetName: sheetName,
     netSurplus: netSurplus,
@@ -796,16 +798,16 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     grossExpenses: parseVal(getCellValue(dispValues, 4, 19)) || parseVal(getCellValue(values, 4, 19)),
     vendorCashTotal: parseVal(getCellValue(dispValues, 6, 19)) || parseVal(getCellValue(values, 6, 19)),
     vendorCardTotal: parseVal(getCellValue(dispValues, 7, 19)) || parseVal(getCellValue(values, 7, 19)),
-    expCardWithdraw: totalCardWithdrawBank || parseVal(getCellValue(values, 49, 19)) || 76162130,
+    expCardWithdraw: totalCardWithdrawBank || parseVal(getCellValue(values, 49, 19)) || (is2608 ? 76162130 : 0),
     expPayroll: totalEmpPayroll,
     expUtility: totalExpUtility,
-    expRent: parseVal(getCellValue(values, 10, 19)) || 15070000,
-    expOtherOperating: totalOtherOperating || parseVal(getCellValue(dispValues, 11, 19)) || parseVal(getCellValue(values, 11, 19)) || 446800,
+    expRent: parseVal(getCellValue(values, 10, 19)) || (is2608 ? 15070000 : 0),
+    expOtherOperating: totalOtherOperating || parseVal(getCellValue(dispValues, 11, 19)) || parseVal(getCellValue(values, 11, 19)) || (is2608 ? 446800 : 0),
     expCardFee: parseVal(getCellValue(dispValues, 12, 19)) || parseVal(getCellValue(values, 12, 19)),
     expFinance: parseVal(getCellValue(dispValues, 13, 19)) || parseVal(getCellValue(values, 13, 19)),
-    expPension: parseVal(getCellValue(values, 14, 19)) || 340000,
-    expSaving: parseVal(getCellValue(values, 15, 19)) || 1000000,
-    expYellowUmbrella: parseVal(getCellValue(values, 16, 19)) || 400000,
+    expPension: parseVal(getCellValue(values, 14, 19)) || (is2608 ? 340000 : 0),
+    expSaving: parseVal(getCellValue(values, 15, 19)) || (is2608 ? 1000000 : 0),
+    expYellowUmbrella: parseVal(getCellValue(values, 16, 19)) || (is2608 ? 400000 : 0),
     expSeverance: parseVal(getCellValue(dispValues, 17, 19)) || parseVal(getCellValue(values, 17, 19)),
     expDining: parseVal(getCellValue(dispValues, 38, 19)) || parseVal(getCellValue(values, 38, 19)),
     discounts: discounts,

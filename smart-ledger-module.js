@@ -739,6 +739,18 @@ window.PharmacyStore = class PharmacyStore {
 
         this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
       }
+
+      // 🛡️ 2608 이외의 신규 월(2609 등)에서 과거 2608 기본값으로 오염된 결산 캐시 자동 정화
+      if (this.monthlyRecords && typeof this.monthlyRecords === 'object') {
+        Object.keys(this.monthlyRecords).forEach(ym => {
+          if (ym !== '2608') {
+            const ymRec = this.monthlyRecords[ym];
+            if (ymRec && (ymRec.incomeRxFee === 32849250 || ymRec.expRent === 15070000)) {
+              delete this.monthlyRecords[ym];
+            }
+          }
+        });
+      }
     } catch (e) {
       console.error('Local Storage load error:', e);
     }
@@ -1044,64 +1056,94 @@ window.PharmacyStore = class PharmacyStore {
     if (!yymm || typeof yymm !== 'string' || yymm.length < 4) {
       yymm = this.currentYYMM || '2608';
     }
+    const is2608 = (yymm === '2608');
     const summary = this.getMonthSummary(yymm);
 
     let rec = this.monthlyRecords[yymm];
     if (!rec) {
-      rec = {
-        yymm: yymm,
-        incomeRxFee: 32849250,
-        incomeCopay: 30349850,
-        incomeNhisClaim: 71969828,
-        incomeNonCovered: 744362.68,
-        incomeDiscount: 472800,
-        incCardBenefit: 785528,
-        vendorCashTotal: 42404182,
-        vendorCardTotal: 47325551,
-        expCardWithdraw: 47325551,
-        expPayroll: 20421710,
-        expUtility: 8393852,
-        expRent: 15070000,
-        expOtherOperating: 446800,
-        expCardFee: 1505097,
-        expFinance: 1737611,
-        expPension: 400000,
-        expSaving: 1000000,
-        expYellowUmbrella: 400000,
-        expSeverance: 4231066,
-        notes: ''
-      };
+      if (is2608) {
+        rec = {
+          yymm: '2608',
+          incomeRxFee: 32849250,
+          incomeCopay: 30349850,
+          incomeNhisClaim: 71969828,
+          incomeNonCovered: 744362.68,
+          incomeDiscount: 472800,
+          incCardBenefit: 785528,
+          vendorCashTotal: 42404182,
+          vendorCardTotal: 47325551,
+          expCardWithdraw: 47325551,
+          expPayroll: 20421710,
+          expUtility: 8393852,
+          expRent: 15070000,
+          expOtherOperating: 446800,
+          expCardFee: 1505097,
+          expFinance: 1737611,
+          expPension: 400000,
+          expSaving: 1000000,
+          expYellowUmbrella: 400000,
+          expSeverance: 4231066,
+          notes: ''
+        };
+      } else {
+        rec = {
+          yymm: yymm,
+          incomeRxFee: 0,
+          incomeCopay: summary.rxSalesSum || 0,
+          incomeNhisClaim: 0,
+          incomeNonCovered: 0,
+          incomeDiscount: 0,
+          incCardBenefit: 0,
+          vendorCashTotal: 0,
+          vendorCardTotal: 0,
+          expCardWithdraw: 0,
+          expPayroll: 0,
+          expUtility: 0,
+          expRent: 0,
+          expOtherOperating: 0,
+          expCardFee: 0,
+          expFinance: 0,
+          expPension: 0,
+          expSaving: 0,
+          expYellowUmbrella: 0,
+          expSeverance: 0,
+          notes: ''
+        };
+      }
     }
 
     if (!rec.cashVendors || !Array.isArray(rec.cashVendors) || rec.cashVendors.length === 0) {
-      rec.cashVendors = DEFAULT_CASH_VENDORS.map(v => ({ ...v }));
+      rec.cashVendors = DEFAULT_CASH_VENDORS.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.cardVendors || !Array.isArray(rec.cardVendors) || rec.cardVendors.length === 0) {
-      rec.cardVendors = DEFAULT_CARD_VENDORS.map(v => ({ ...v }));
+      rec.cardVendors = DEFAULT_CARD_VENDORS.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.employees || !Array.isArray(rec.employees) || rec.employees.length === 0) {
-      rec.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
+      rec.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.utilities || !Array.isArray(rec.utilities) || rec.utilities.length === 0) {
-      rec.utilities = DEFAULT_UTILITIES.map(v => ({ ...v }));
+      rec.utilities = DEFAULT_UTILITIES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.discounts || !Array.isArray(rec.discounts) || rec.discounts.length === 0) {
-      rec.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
+      rec.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.pharmTrades || !Array.isArray(rec.pharmTrades) || rec.pharmTrades.length === 0) {
-      rec.pharmTrades = DEFAULT_PHARM_TRADES.map(v => ({ ...v }));
+      rec.pharmTrades = DEFAULT_PHARM_TRADES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.severances || !Array.isArray(rec.severances) || rec.severances.length === 0) {
-      rec.severances = DEFAULT_SEVERANCES.map(v => ({ ...v }));
+      rec.severances = DEFAULT_SEVERANCES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.cardCashbacks || !Array.isArray(rec.cardCashbacks) || rec.cardCashbacks.length === 0) {
-      rec.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
+      rec.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v, payAmount: is2608 ? v.payAmount : 0, spend: is2608 ? v.spend : 0, amount: is2608 ? v.amount : 0, benefitAmount: is2608 ? v.benefitAmount : 0 }));
     }
     if (!rec.finances || !Array.isArray(rec.finances) || rec.finances.length === 0) {
-      rec.finances = DEFAULT_FINANCES.map(v => ({ ...v }));
+      rec.finances = DEFAULT_FINANCES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     if (!rec.cardWithdrawals || !Array.isArray(rec.cardWithdrawals) || rec.cardWithdrawals.length === 0) {
-      rec.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+      rec.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
+    }
+    if (!rec.otherExpenses || !Array.isArray(rec.otherExpenses) || rec.otherExpenses.length === 0) {
+      rec.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
 
     return this.calculateMonthly(rec, summary);
@@ -1110,33 +1152,34 @@ window.PharmacyStore = class PharmacyStore {
   calculateMonthly(record, summary = null) {
     const m = { ...record };
     if (!m.yymm) m.yymm = this.currentYYMM || '2608';
+    const is2608 = (m.yymm === '2608');
     const s = summary || this.getMonthSummary(m.yymm);
 
     // 1. 이론적 총수익 분석 (B4:C13)
     m.otcMarginRate = m.otcMarginRate !== undefined ? parseFloat(m.otcMarginRate) : 40;
-    m.otcTotalSales = this.parseMoney(m.otcTotalSales) || (s.otcSalesSum > 0 ? s.otcSalesSum : 62354650);
+    m.otcTotalSales = this.parseMoney(m.otcTotalSales) || (s.otcSalesSum > 0 ? s.otcSalesSum : (is2608 ? 62354650 : 0));
     m.otcProfit = Math.round(m.otcTotalSales * (m.otcMarginRate / 100));
     m.otcDailyAvg = Math.round(m.otcTotalSales / 31);
-    m.incomeRxFee = this.parseMoney(m.incomeRxFee) || 32849250;
-    m.incomeNonCovered = (typeof m.incomeNonCovered === 'number') ? m.incomeNonCovered : (parseFloat(m.incomeNonCovered) || 744362.68);
+    m.incomeRxFee = this.parseMoney(m.incomeRxFee) || (is2608 ? 32849250 : 0);
+    m.incomeNonCovered = (typeof m.incomeNonCovered === 'number') ? m.incomeNonCovered : (parseFloat(m.incomeNonCovered) || (is2608 ? 744362.68 : 0));
 
-    // 2. 수입 부문 (P3:Q12) - 구글 시트 2608 결산 100% 일치
+    // 2. 수입 부문 (P3:Q12) - 구글 시트 실제 기장 데이터 100% 일치
     m.incomeOtcRaw = m.otcTotalSales;
-    m.incomeCopay = this.parseMoney(m.incomeCopay) || (s.rxSalesSum > 0 ? s.rxSalesSum : 30349850);
-    m.incomeNhisClaim = this.parseMoney(m.incomeNhisClaim) || 71969828;
-    m.incomeDiscount = this.parseMoney(m.incomeDiscount) || 472800;
+    m.incomeCopay = this.parseMoney(m.incomeCopay) || (s.rxSalesSum > 0 ? s.rxSalesSum : (is2608 ? 30349850 : 0));
+    m.incomeNhisClaim = this.parseMoney(m.incomeNhisClaim) || (is2608 ? 71969828 : 0);
+    m.incomeDiscount = this.parseMoney(m.incomeDiscount) || (is2608 ? 472800 : 0);
 
     let discountSum = 0;
     if (m.discounts && Array.isArray(m.discounts)) {
       m.discounts.forEach(v => { discountSum += this.parseMoney(v.amount); });
     }
-    m.totalDiscounts = discountSum > 0 ? discountSum : 2350701;
+    m.totalDiscounts = discountSum > 0 ? discountSum : (is2608 ? 2350701 : 0);
 
     let pharmTradeSum = 0;
     if (m.pharmTrades && Array.isArray(m.pharmTrades)) {
       m.pharmTrades.forEach(v => { pharmTradeSum += this.parseMoney(v.amount); });
     }
-    m.totalPharmTrades = pharmTradeSum > 0 ? pharmTradeSum : 5908800;
+    m.totalPharmTrades = pharmTradeSum > 0 ? pharmTradeSum : (is2608 ? 5908800 : 0);
 
     let cardPayTotal = 0;
     let cashbackSum = 0;
@@ -1151,72 +1194,72 @@ window.PharmacyStore = class PharmacyStore {
         cashbackSum += c.benefitAmount;
       });
     }
-    m.totalCardPayments = cardPayTotal > 0 ? cardPayTotal : 47325551;
-    m.incCardBenefit = cashbackSum > 0 ? cashbackSum : 778608;
+    m.totalCardPayments = cardPayTotal > 0 ? cardPayTotal : (is2608 ? 47325551 : 0);
+    m.incCardBenefit = cashbackSum > 0 ? cashbackSum : (is2608 ? 778608 : 0);
     m.totalCashback = m.incCardBenefit;
 
     m.theoreticalProfit = Math.round((m.incomeRxFee + m.otcProfit + m.totalDiscounts + m.incomeNonCovered + m.totalCashback) * 100) / 100;
     m.grossIncome = m.incomeOtcRaw + m.incomeCopay + m.incomeNhisClaim + m.totalDiscounts + m.totalPharmTrades + m.incomeDiscount + m.incCardBenefit;
 
-    // 3. 지출 부문 (S3:U18) - 구글 시트 2608 결산 100% 일치
+    // 3. 지출 부문 (S3:U18) - 구글 시트 실제 기장 데이터 100% 일치
     let cashVendorSum = 0;
     if (m.cashVendors && Array.isArray(m.cashVendors)) {
       m.cashVendors.forEach((v, i) => {
         if (i === 9 || (v.name && v.name.includes('현매'))) {
-          v.amount = (m.yymm === '2608' ? 3060000 : (s.cashBuySum || v.amount || 3060000));
+          v.amount = (is2608 ? 3060000 : (s.cashBuySum || 0));
         }
         cashVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : 42406182;
+    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : (is2608 ? 42406182 : 0);
 
     let cardVendorSum = 0;
     if (m.cardVendors && Array.isArray(m.cardVendors)) {
       m.cardVendors.forEach((v) => {
         if (v.name && v.name.includes('온라인몰결제총합')) {
           v.cell = 'Y22';
-          v.amount = (m.yymm === '2608' ? 10034407 : (v.amount || s.onlineMallCardTotal || 10034407));
+          v.amount = (is2608 ? 10034407 : (s.onlineMallCardTotal || 0));
         }
         cardVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : 47325551;
+    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : (is2608 ? 47325551 : 0);
     m.expCardWithdraw = m.vendorCardTotal;
 
     let payrollSum = 0;
     if (m.employees && Array.isArray(m.employees)) {
       m.employees.forEach(v => { payrollSum += this.parseMoney(v.amount); });
     }
-    m.expPayroll = payrollSum > 0 ? payrollSum : 20421710;
+    m.expPayroll = payrollSum > 0 ? payrollSum : (is2608 ? 20421710 : 0);
 
     let utilitySum = 0;
     if (m.utilities && Array.isArray(m.utilities)) {
       m.utilities.forEach(v => { utilitySum += this.parseMoney(v.amount); });
     }
-    m.expUtility = utilitySum > 0 ? utilitySum : 8393852;
+    m.expUtility = utilitySum > 0 ? utilitySum : (is2608 ? 8393852 : 0);
 
     let severanceSum = 0;
     if (m.severances && Array.isArray(m.severances)) {
       m.severances.forEach(v => { severanceSum += this.parseMoney(v.amount); });
     }
-    m.expSeverance = severanceSum > 0 ? severanceSum : 4231066;
+    m.expSeverance = severanceSum > 0 ? severanceSum : (is2608 ? 4231066 : 0);
 
-    m.expRent = this.parseMoney(m.expRent) || 15070000;
-    m.expCardFee = this.parseMoney(m.expCardFee) || 1505097;
-    m.expPension = this.parseMoney(m.expPension) || 400000;
-    m.expSaving = this.parseMoney(m.expSaving) || 1000000;
-    m.expYellowUmbrella = this.parseMoney(m.expYellowUmbrella) || 400000;
-    m.expOtherOperating = this.parseMoney(m.expOtherOperating) || 446800;
+    m.expRent = this.parseMoney(m.expRent) || (is2608 ? 15070000 : 0);
+    m.expCardFee = this.parseMoney(m.expCardFee) || (is2608 ? 1505097 : 0);
+    m.expPension = this.parseMoney(m.expPension) || (is2608 ? 400000 : 0);
+    m.expSaving = this.parseMoney(m.expSaving) || (is2608 ? 1000000 : 0);
+    m.expYellowUmbrella = this.parseMoney(m.expYellowUmbrella) || (is2608 ? 400000 : 0);
+    m.expOtherOperating = this.parseMoney(m.expOtherOperating) || (is2608 ? 446800 : 0);
 
     let financeSum = 0;
     if (m.finances && Array.isArray(m.finances)) {
       m.finances.forEach(f => { financeSum += this.parseMoney(f.amount); });
     }
-    m.expFinance = financeSum > 0 ? financeSum : 1737611;
+    m.expFinance = financeSum > 0 ? financeSum : (is2608 ? 1737611 : 0);
 
     // 9. 계좌별 카드출금금액 (R50:S53 - 제약사카드출금)
     if (!m.cardWithdrawals || !Array.isArray(m.cardWithdrawals) || m.cardWithdrawals.length === 0) {
-      m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+      m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     // 🛡️ 기타운영비(신세계카드, 식대실비 등)가 카드출금에 섞이지 않도록 엄격히 분리 필터링
     m.cardWithdrawals = m.cardWithdrawals.filter(w => {
@@ -1224,26 +1267,26 @@ window.PharmacyStore = class PharmacyStore {
       return !n.includes('기타운영비') && !n.includes('월세') && !n.includes('경비') && !n.includes('식대') && !n.includes('실비');
     });
     if (m.cardWithdrawals.length === 0) {
-      m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
+      m.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     let cardWithdrawalSum = 0;
     m.cardWithdrawals.forEach(w => {
       w.amount = this.parseMoney(w.amount);
       cardWithdrawalSum += w.amount;
     });
-    m.cardWithdrawalSum = cardWithdrawalSum > 0 ? cardWithdrawalSum : 76162130;
+    m.cardWithdrawalSum = cardWithdrawalSum > 0 ? cardWithdrawalSum : (is2608 ? 76162130 : 0);
     m.expCardWithdrawBank = m.cardWithdrawalSum;
 
     // 10. 기타운영비 상세 (R67:S72 - 별도 운영비 지출)
     if (!m.otherExpenses || !Array.isArray(m.otherExpenses) || m.otherExpenses.length === 0) {
-      m.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
+      m.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
     }
     let otherExpSum = 0;
     m.otherExpenses.forEach(oe => {
       oe.amount = this.parseMoney(oe.amount);
       otherExpSum += oe.amount;
     });
-    m.expOtherOperating = otherExpSum > 0 ? otherExpSum : (this.parseMoney(m.expOtherOperating) || 446800);
+    m.expOtherOperating = otherExpSum > 0 ? otherExpSum : (this.parseMoney(m.expOtherOperating) || (is2608 ? 446800 : 0));
 
     m.grossExpenses = m.vendorCashTotal + m.expCardWithdraw + m.expPayroll + m.expUtility + m.expRent + 
                       m.expOtherOperating + m.expCardFee + m.expFinance + m.expPension + m.expSaving + 
@@ -2013,12 +2056,12 @@ var UI = {
         <!-- 상단 원본 리셋 & 동기화 바 -->
         <div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; padding:12px 18px; border-radius:14px; border:1.5px solid #e2e8f0; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:14px; font-weight:900; color:#0f172a;">📊 ${yymm === '2608' ? '2026년 08월' : yymm} 월말 결산 총괄 대장</span>
-            <span style="font-size:11px; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:6px; font-weight:800;">구글시트 2608결산 1:1 매칭</span>
+            <span style="font-size:14px; font-weight:900; color:#0f172a;">📊 20${yymm.substring(0,2)}년 ${yymm.substring(2,4)}월 (${yymm}) 월말 결산 총괄 대장</span>
+            <span style="font-size:11px; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:6px; font-weight:800;">구글시트 ${yymm}결산 1:1 매칭</span>
           </div>
           <button onclick="UI.resetMonthlyToMaster('${yymm}')" style="padding:6px 14px; background:#fef2f2; color:#dc2626; border:1.5px solid #fca5a5; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
             <i data-lucide="rotate-ccw" style="width:14px; height:14px;"></i>
-            <span>🔄 구글 시트 2608 기준 원본 전체 초기화 (Clean Reset)</span>
+            <span>🔄 ${yymm === '2608' ? '구글 시트 2608 기준 원본 전체 초기화 (Clean Reset)' : `구글 시트 ${yymm}결산 동기화 / 미기장 0원 정리`}</span>
           </button>
         </div>
 
@@ -2800,41 +2843,57 @@ var UI = {
     if (profitEl) profitEl.textContent = `₩${window.store.formatMoney(m.otcProfit)}`;
   },
 
-  resetMonthlyToMaster(yymm = '2608') {
-    if (confirm(`구글 시트 ${yymm}결산 탭의 원본 마스터 데이터(11대 대장 100% 일치)로 전체 초기화하시겠습니까?`)) {
-      const rec = {
-        yymm: yymm,
-        cashVendors: DEFAULT_CASH_VENDORS.map(v => ({ ...v })),
-        cardVendors: DEFAULT_CARD_VENDORS.map(v => ({ ...v })),
-        employees: DEFAULT_EMPLOYEES.map(v => ({ ...v })),
-        utilities: DEFAULT_UTILITIES.map(v => ({ ...v })),
-        discounts: DEFAULT_DISCOUNTS.map(v => ({ ...v })),
-        pharmTrades: DEFAULT_PHARM_TRADES.map(v => ({ ...v })),
-        cardCashbacks: DEFAULT_CARD_CASHBACKS.map(v => ({ ...v })),
-        finances: DEFAULT_FINANCES.map(v => ({ ...v })),
-        cardWithdrawals: DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v })),
-        otherExpenses: DEFAULT_OTHER_EXPENSES.map(v => ({ ...v })),
-        severances: DEFAULT_SEVERANCES.map(v => ({ ...v })),
-        incomeRxFee: 32849250,
-        incomeCopay: 30349850,
-        incomeNhisClaim: 71969828,
-        incomeNonCovered: 744362.68,
-        incomeDiscount: 472800,
-        incCardBenefit: 778608,
-        expRent: 15070000,
-        expOtherOperating: 446800,
-        expCardFee: 1505097,
-        expFinance: 1737611,
-        expPension: 400000,
-        expSaving: 1000000,
-        expYellowUmbrella: 400000,
-        expSeverance: 4231066
-      };
-      window.store.monthlyRecords[yymm] = window.store.calculateMonthly(rec);
-      window.store.saveToLocal();
-      this.renderCurrentView();
-      this.renderHeader();
-      this.showToast(`🎉 구글 시트 ${yymm}결산 원본 데이터로 100% 클린 초기화 완료!`);
+  async resetMonthlyToMaster(yymm = '2608') {
+    if (yymm === '2608') {
+      if (confirm(`구글 시트 2608결산 탭의 원본 마스터 데이터(11대 대장 100% 일치)로 전체 초기화하시겠습니까?`)) {
+        const rec = {
+          yymm: '2608',
+          cashVendors: DEFAULT_CASH_VENDORS.map(v => ({ ...v })),
+          cardVendors: DEFAULT_CARD_VENDORS.map(v => ({ ...v })),
+          employees: DEFAULT_EMPLOYEES.map(v => ({ ...v })),
+          utilities: DEFAULT_UTILITIES.map(v => ({ ...v })),
+          discounts: DEFAULT_DISCOUNTS.map(v => ({ ...v })),
+          pharmTrades: DEFAULT_PHARM_TRADES.map(v => ({ ...v })),
+          cardCashbacks: DEFAULT_CARD_CASHBACKS.map(v => ({ ...v })),
+          finances: DEFAULT_FINANCES.map(v => ({ ...v })),
+          cardWithdrawals: DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v })),
+          otherExpenses: DEFAULT_OTHER_EXPENSES.map(v => ({ ...v })),
+          severances: DEFAULT_SEVERANCES.map(v => ({ ...v })),
+          incomeRxFee: 32849250,
+          incomeCopay: 30349850,
+          incomeNhisClaim: 71969828,
+          incomeNonCovered: 744362.68,
+          incomeDiscount: 472800,
+          incCardBenefit: 778608,
+          expRent: 15070000,
+          expOtherOperating: 446800,
+          expCardFee: 1505097,
+          expFinance: 1737611,
+          expPension: 400000,
+          expSaving: 1000000,
+          expYellowUmbrella: 400000,
+          expSeverance: 4231066
+        };
+        window.store.monthlyRecords['2608'] = window.store.calculateMonthly(rec);
+        window.store.saveToLocal();
+        this.renderCurrentView();
+        this.renderHeader();
+        this.showToast('🎉 구글 시트 2608결산 원본 데이터로 100% 클린 초기화 완료!');
+      }
+    } else {
+      if (confirm(`구글 시트 ${yymm}결산 탭의 실제 기장 데이터와 최신 동기화하고, 미기장 항목을 0원으로 정리하시겠습니까?`)) {
+        delete window.store.monthlyRecords[yymm];
+        if (window.store.loadMonthFromSheets) {
+          await window.store.loadMonthFromSheets(yymm, true);
+        }
+        if (!window.store.monthlyRecords[yymm]) {
+          window.store.monthlyRecords[yymm] = window.store.getMonthly(yymm);
+        }
+        window.store.saveToLocal();
+        this.renderCurrentView();
+        this.renderHeader();
+        this.showToast(`🎉 ${yymm}결산 구글 시트 실데이터 동기화 및 미기장 0원 정리 완료!`);
+      }
     }
   },
 

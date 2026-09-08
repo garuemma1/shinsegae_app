@@ -13,15 +13,24 @@ if (typeof window.BuildingRentalModule === 'undefined') {
 
     // 🔒 내부 상태 관리
     let activeSubTab = 'monthly'; // 'monthly' | 'grimHouse' | 'yearly'
-    let currentYYMM = '2609'; // 기본 조회 연월
+    let currentYYMM = '2608'; // 기본 조회 연월: 구글 시트 실존 월 1순위
     let isSyncing = false;
-    let localTabs = ['2610', '2609', '2608'];
+    let localTabs = ['2608'];
 
     function setCurrentToNow() {
+      const tabs = (window.SheetsSync && typeof window.SheetsSync.getBuildingRentalTabs === 'function')
+        ? window.SheetsSync.getBuildingRentalTabs()
+        : ['2608'];
       const now = new Date();
       const curYY = String(now.getFullYear()).slice(-2);
       const curMM = String(now.getMonth() + 1).padStart(2, '0');
-      currentYYMM = `${curYY}${curMM}`;
+      const nowYYMM = `${curYY}${curMM}`;
+      // 구글 시트에 실제로 탭이 생성되어 존재하는 경우에만 당월로 선택, 아직 미생성 시 실존 최신 탭(2608) 선택!
+      if (tabs.includes(nowYYMM)) {
+        currentYYMM = nowYYMM;
+      } else {
+        currentYYMM = tabs[0] || '2608';
+      }
     }
 
     // 🛡️ XSS 방어 헬퍼 (규칙 61)

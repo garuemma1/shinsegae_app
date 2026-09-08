@@ -1244,13 +1244,13 @@ window.SheetsSync = (function () {
   const BUILDING_RENTAL_SPREADSHEET_ID = "1glbM8sF0h0Horjs4QBp2Ap13VzlvkI0MHpz_YbTbzdA";
 
   function getBuildingRentalDashboard(yymm) {
-    if (!yymm || typeof yymm !== 'string' || yymm.length < 4) yymm = '2609';
+    if (!yymm || typeof yymm !== 'string' || yymm.length < 4) yymm = '2608';
     try {
       const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed[yymm]) return parsed[yymm];
-        if (yymm === '2609' && parsed['2609']) return parsed['2609'];
+        if (parsed['2608']) return parsed['2608'];
       }
       return INITIAL_RENTAL_DASHBOARD_2609;
     } catch(e) {
@@ -1271,23 +1271,19 @@ window.SheetsSync = (function () {
           }
         }
       }
+      // 구글 시트에 2608만 있는 초기 상태에서는 가상 2609를 제거하고 2608만 반환
       const raw = safeGetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD);
       if (raw) {
         const parsed = JSON.parse(raw);
         let cleaned = false;
         Object.keys(parsed).forEach(k => {
-          if (k === '2607' || k === '2611' || k === '2612') {
+          if (k !== '2608') {
             delete parsed[k];
             cleaned = true;
           }
         });
         if (cleaned) {
           safeSetItem(STORAGE_KEYS.BUILDING_RENTAL_DASHBOARD, JSON.stringify(parsed));
-        }
-        const keys = Object.keys(parsed).filter(k => /^\d{4}$/.test(k) && k !== '2611' && k !== '2612' && k !== '2607' && parsed[k] && parsed[k].items && parsed[k].items.length > 0);
-        if (keys.length > 0) {
-          keys.sort((a, b) => b.localeCompare(a));
-          return keys;
         }
       }
     } catch(e) {}

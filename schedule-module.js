@@ -1799,7 +1799,7 @@ window.ScheduleModule = (function () {
 
     let report = `<${currentMonth}월 급여>\n\n정규직\n\n`;
 
-    // 🏆 대표님 지정 정확한 순서 배열: 이승학 -> 양윤지 -> 권명주 -> 간영자 -> 김배영 -> 김동완 -> 윤세라 (유호종은 맨 마지막 멘트 아래!)
+    // 🏆 대표님 지정 정확한 순서 배열: 이승학 -> 양윤지 -> 권명주 -> 간영자 -> 김배영 -> 김동완 -> 윤세라 -> 박주영 (유호종은 맨 마지막 멘트 아래!)
     const ORDER_MAP = {
       '이승학': 1,
       '양윤지': 2,
@@ -1808,7 +1808,8 @@ window.ScheduleModule = (function () {
       '간명자': 4,
       '김배영': 6,
       '김동완': 7,
-      '윤세라': 8
+      '윤세라': 8,
+      '박주영': 9
     };
 
     const mainEmployees = employees.filter(e => e.name !== '유호종').sort((a, b) => {

@@ -114,7 +114,7 @@ function handleFastRequest(e) {
     switch (action) {
       case 'ping':
         result.success = true;
-        result.message = '365메가스타약국 스마트정산 Web App 정상 작동 중';
+        result.message = '신세계약국 스마트정산 Web App 정상 작동 중';
         result.spreadsheetName = ss.getName();
         result.sheets = ss.getSheets().map(function(s) { return s.getName(); });
         break;
@@ -1332,6 +1332,22 @@ function createRentalMonthSheetFast(rentSSId, newYymm, sourceYymm) {
   };
 }
 
+// 🔤 안전한 텍스트 디코더 (한글 깨짐 100% 방지)
+function safeDecode(val) {
+  if (!val) return '';
+  var s = String(val);
+  try {
+    if (s.indexOf('%') !== -1) {
+      try {
+        s = decodeURIComponent(s);
+      } catch(e) {
+        try { s = decodeURIComponent(escape(s)); } catch(e2) {}
+      }
+    }
+  } catch(e3) {}
+  return s;
+}
+
 // 📧 직원 개인 이메일 1:1 정식 급여명세서 안전 발송 핸들러 (제119조 수칙)
 function sendPaystubEmailFast(postData, params) {
   var p = postData || params || {};
@@ -1340,14 +1356,14 @@ function sendPaystubEmailFast(postData, params) {
     return { success: false, error: '유효한 수신자 이메일 주소가 없습니다.' };
   }
 
-  var name = String(p.name || '직원');
+  var name = safeDecode(p.name || '직원');
   var year = p.year || new Date().getFullYear();
   var month = p.month || (new Date().getMonth() + 1);
   var netSalary = parseInt(p.netSalary || 0, 10);
   var preTax = parseInt(p.preTax || 0, 10);
   var totalDeduction = parseInt(p.totalDeduction || 0, 10);
   var fileUrl = String(p.fileUrl || p.pdfUrl || p.fileData || '').trim();
-  var note = String(p.note || (month + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!'));
+  var note = safeDecode(p.note || (month + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!'));
   var appUrl = String(p.url || 'https://garuemma1.github.io/shinsegae_app/');
 
   var subject = '[신세계약국] ' + year + '년 ' + month + '월 ' + name + ' 님 급여명세서 (세후 실수령액 확정 교부)';
@@ -1374,7 +1390,7 @@ function sendPaystubEmailFast(postData, params) {
     '</style></head><body>' +
     '<div class="container">' +
     '  <div class="header">' +
-    '    <span class="badge">🏥 365메가스타 신세계약국 HR/OPS</span>' +
+    '    <span class="badge">🏥  신세계약국 HR/OPS</span>' +
     '    <h1 class="title">' + year + '년 ' + month + '월 정식 급여명세서</h1>' +
     '  </div>' +
     '  <div class="content">' +

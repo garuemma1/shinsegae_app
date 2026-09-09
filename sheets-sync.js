@@ -66,8 +66,10 @@ window.SheetsSync = (function () {
     { id: 'emp_6', username: 'sshak6871@naver.com', email: 'sshak6871@naver.com', passcode: '4293', name: '이승학', role: '일반직원', position: '조제실 및 전산 업무총괄', payType: 'MONTHLY', joinDate: '2023-06-12', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 2490000, phone: '010-4399-4293', usedLeave: 0, pendingLeave: 0, memo: '조제실 및 전산 전반 업무 총괄관리', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_8', username: 'ysr7979@nate.com', email: 'ysr7979@nate.com', passcode: '4079', name: '윤세라', role: '일반직원', position: '조제실서포트및전산', payType: 'MONTHLY', joinDate: '2026-03-01', weekdayRate: 13000, holidayRate: 13000, hourlyRate: 13000, baseMonthlySalary: 1720810, phone: '010-6371-4079', usedLeave: 1, pendingLeave: 0, memo: '조제실재고관리및서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_9', username: 'short0338@naver.com', email: 'short0338@naver.com', passcode: '3257', name: '김배영', role: '일반직원', position: '매장재고관리및 전산서포트', payType: 'MONTHLY', joinDate: '2025-11-18', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 1106700, phone: '010-2711-3257', usedLeave: 0, pendingLeave: 0, memo: '매장 안내 및 전산 서포트', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_10', username: 'mikii1123@naver.com', email: 'mikii1123@naver.com', passcode: '1817', name: '이정은', role: '예비인력', position: '부상', payType: 'MONTHLY', joinDate: '2026-08-18', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-7765-1817', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_11', username: 'inihaach@naver.com', email: 'inihaach@naver.com', passcode: '7807', name: '간영자', role: '예비인력', position: '매장관리', payType: 'MONTHLY', joinDate: '2024-09-09', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 3000000, phone: '010-4164-7807', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 }
+    { id: 'emp_10', username: 'miki1123@naver.com', email: 'miki1123@naver.com', passcode: '1817', name: '이정은', role: '예비인력', position: '부상', payType: 'MONTHLY', joinDate: '2026-01-01', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-7765-1817', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_11', username: 'inihaach@naver.com', email: 'inihaach@naver.com', passcode: '7807', name: '간영자', role: '예비인력', position: '매장관리', payType: 'MONTHLY', joinDate: '2024-09-09', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 3000000, phone: '010-4164-7807', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_12', username: 'dkmedical007@naver.com', email: 'dkmedical007@naver.com', passcode: '7979', name: '주찬양', role: '약정직원', position: '외국인환자', payType: 'MONTHLY', joinDate: '2026-04-20', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-4168-3605', usedLeave: 0, pendingLeave: 0, memo: '비번 7979', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
+    { id: 'emp_13', username: 'tudgnsl1909@naver.com', email: 'tudgnsl1909@naver.com', passcode: '1031', name: '박주영', role: '일반직원', position: '조제팀', payType: 'MONTHLY', joinDate: '2026-09-14', weekdayRate: 12000, holidayRate: 12000, hourlyRate: 12000, baseMonthlySalary: 2083200, phone: '010-7590-1031', usedLeave: 0, pendingLeave: 0, memo: '조제실보조인', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 }
   ];
 
   const INITIAL_DISCOUNT_PURCHASES = [
@@ -1804,7 +1806,9 @@ window.SheetsSync = (function () {
     saveExpiryReturns(list);
   }
 
-  const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
+  // ⚡ 신세계약국-일일결산26 정식 배포 Apps Script 웹앱 URL (메일 발송, 일일결산, 스마트정산 전용)
+  const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbyhPnLdy53ExpzHW66U0m7hqmcBksBfKpFYkILQTUjxtng30FLevf9cdMSbqbeYQ97x/exec";
+  const CLOUD_SYNC_RELAY_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
   let isSyncing = false;
 
   // 🔥 구글 파이어베이스 실시간 데이터베이스 (초고속 0.05초 웹소켓 동기화)
@@ -1875,18 +1879,18 @@ window.SheetsSync = (function () {
     if (!paystubData || !paystubData.email) return;
     setTimeout(() => {
       try {
-        const gasUrl = DIRECT_GAS_URL;
+        const gasUrl = getGasUrl('ssg') || DIRECT_GAS_URL;
         const payload = {
           action: 'sendPaystubEmail',
           email: paystubData.email,
-          name: paystubData.name || '직원',
+          name: encodeURIComponent(paystubData.name || '직원'),
           year: paystubData.year || 2026,
           month: paystubData.month || 8,
           netSalary: paystubData.netSalary || 0,
           preTax: paystubData.preTax || 0,
           totalDeduction: paystubData.totalDeduction || 0,
           fileUrl: paystubData.fileUrl || paystubData.pdfUrl || paystubData.fileData || '',
-          note: paystubData.note || '',
+          note: encodeURIComponent(paystubData.note || ''),
           url: "https://garuemma1.github.io/shinsegae_app/"
         };
 
@@ -1895,7 +1899,7 @@ window.SheetsSync = (function () {
             method: 'POST',
             mode: 'no-cors',
             keepalive: true,
-            headers: { 'Content-Type': 'text/plain' },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
           }).catch(() => {});
         }
@@ -2751,8 +2755,8 @@ window.SheetsSync = (function () {
         cleanup();
         resolve(null);
       };
-      const sep = DIRECT_GAS_URL.includes('?') ? '&' : '?';
-      script.src = `${DIRECT_GAS_URL}${sep}callback=${cbName}&t=${Date.now()}`;
+      const sep = CLOUD_SYNC_RELAY_URL.includes('?') ? '&' : '?';
+      script.src = `${CLOUD_SYNC_RELAY_URL}${sep}callback=${cbName}&t=${Date.now()}`;
       document.body.appendChild(script);
     });
   }

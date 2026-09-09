@@ -1236,16 +1236,16 @@ window.ScheduleModule = (function () {
                     </td>
                     <td style="text-align:right; padding:10px 10px; white-space:nowrap;">
                       <div>
-                        <strong class="${isPublished ? 'text-muted' : 'text-success'}" style="font-size:15px; font-family:'Outfit', sans-serif;">${activeUnsettledPretax.toLocaleString()}</strong>
-                        <span style="font-size:12px; color:${isPublished ? '#64748b' : '#15803d'}; margin-left:1px; font-weight:600;">원</span>
+                        <strong class="${isPublished ? 'text-primary' : 'text-success'}" style="font-size:15px; font-family:'Outfit', sans-serif;">${pharmacistPretaxTotal.toLocaleString()}</strong>
+                        <span style="font-size:12px; color:${isPublished ? '#2563eb' : '#15803d'}; margin-left:1px; font-weight:600;">원</span>
                       </div>
                       ${isPublished ? `
                         <div style="font-size:11px; background:#d1fae5; color:#047857; border:1px solid #6ee7b7; padding:2px 6px; border-radius:6px; margin-top:3px; font-weight:700; text-align:right; display:inline-block;">
-                          <i class="fas fa-check-double me-1"></i> 교부완료 (미정산 0원 정산)
+                          <i class="fas fa-check-double me-1"></i> 교부완료
                         </div>
                       ` : `
                         <div style="font-size:11px; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:2px 6px; border-radius:6px; margin-top:3px; font-weight:700; text-align:right; display:inline-block;">
-                          <i class="fas fa-clock me-1"></i> 미교부 잔액: ${pharmacistPretaxTotal.toLocaleString()}원 (등록대기)
+                          <i class="fas fa-clock me-1"></i> 등록대기
                         </div>
                       `}
                     </td>
@@ -1358,16 +1358,16 @@ window.ScheduleModule = (function () {
                     </td>
                     <td style="text-align:right; padding:10px 12px; white-space:nowrap;">
                       <div>
-                        <strong class="${isPublished ? 'text-muted' : 'text-success'}" style="font-size:15px; font-family:'Outfit', sans-serif;">${activeUnsettledPretaxStaff.toLocaleString()}</strong>
-                        <span style="font-size:12px; color:${isPublished ? '#64748b' : '#15803d'}; margin-left:1px; font-weight:600;">원</span>
+                        <strong class="${isPublished ? 'text-primary' : 'text-success'}" style="font-size:15px; font-family:'Outfit', sans-serif;">${adjustedPretaxTotal.toLocaleString()}</strong>
+                        <span style="font-size:12px; color:${isPublished ? '#2563eb' : '#15803d'}; margin-left:1px; font-weight:600;">원</span>
                       </div>
                       ${isPublished ? `
                         <div style="font-size:11px; background:#d1fae5; color:#047857; border:1px solid #6ee7b7; padding:2px 6px; border-radius:6px; margin-top:3px; font-weight:700; text-align:right; display:inline-block;">
-                          <i class="fas fa-check-double me-1"></i> 교부완료 (미정산 0원 정산)
+                          <i class="fas fa-check-double me-1"></i> 교부완료
                         </div>
                       ` : `
                         <div style="font-size:11px; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:2px 6px; border-radius:6px; margin-top:3px; font-weight:700; text-align:right; display:inline-block;">
-                          <i class="fas fa-clock me-1"></i> 미교부 잔액: ${adjustedPretaxTotal.toLocaleString()}원 (등록대기)
+                          <i class="fas fa-clock me-1"></i> 등록대기
                         </div>
                       `}
                     </td>
@@ -2152,8 +2152,19 @@ window.ScheduleModule = (function () {
     let pretaxTotal = 0;
 
     if (isPharmacist) {
-      const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, emp.hourlyRate || 35000);
-      pretaxTotal = calc.totalPayroll;
+      // 💡 근무약사 급여 정산표(테이블)의 '월 세전 총급여액'과 100% 일치하도록 시급, 휴일수당, 식대, 추가수당, 공제삭감 완전 합산
+      const pRatesMap = window.SheetsSync.getPharmacistRates ? window.SheetsSync.getPharmacistRates() : {};
+      const rateObj = pRatesMap[emp.id] || {};
+      const currentWeekdayRate = Number(emp.weekdayRate) || Number(emp.hourlyRate) || Number(rateObj.weekdayRate) || 40000;
+      const currentHolidayRate = Number(emp.holidayRate) || Number(rateObj.holidayRate) || 40000;
+      const currentBreakHours = Number(rateObj.breakHours) || 1.0;
+      const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, currentWeekdayRate, currentHolidayRate, currentBreakHours);
+
+      const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
+      const overtimePay = Number(empAdj.overtimePay || 0);
+      const deductionPay = Number(empAdj.deductionPay || 0);
+
+      pretaxTotal = calc.totalPayroll + mealAlw + overtimePay - deductionPay;
     } else {
       const isKan = emp.name.includes('간영자') || emp.name.includes('간명자');
       let baseSal = Number(emp.baseMonthlySalary) || 2717000;
@@ -2163,7 +2174,12 @@ window.ScheduleModule = (function () {
         const kwonEmpObj = (employees || []).find(e => e.name === '권명주');
         if (kwonEmpObj) {
           const kwonShifts = scheduleRecords.filter(r => r.empId === kwonEmpObj.id && r.date && r.date.startsWith(monthKey));
-          const kwonCalc = window.LaborCalculator.calculatePharmacistPayroll(kwonShifts, kwonEmpObj.hourlyRate || 40000);
+          const pRatesMap = window.SheetsSync.getPharmacistRates ? window.SheetsSync.getPharmacistRates() : {};
+          const kwonRateObj = pRatesMap[kwonEmpObj.id] || {};
+          const kwonWkRate = Number(kwonEmpObj.weekdayRate) || Number(kwonEmpObj.hourlyRate) || Number(kwonRateObj.weekdayRate) || 40000;
+          const kwonHolRate = Number(kwonEmpObj.holidayRate) || Number(kwonRateObj.holidayRate) || 40000;
+          const kwonBreak = Number(kwonRateObj.breakHours) || 1.0;
+          const kwonCalc = window.LaborCalculator.calculatePharmacistPayroll(kwonShifts, kwonWkRate, kwonHolRate, kwonBreak);
           const kanTotalWithMeal = Math.max(0, kwonCalc.totalPayroll - 1650000);
           baseSal = Math.max(0, kanTotalWithMeal - 100000);
           mealAlw = 100000;
@@ -2173,8 +2189,10 @@ window.ScheduleModule = (function () {
       pretaxTotal = baseSal + mealAlw + (empAdj.overtimePay || 0) - (empAdj.deductionPay || 0);
     }
 
-    const defaultNetSalary = existing.netSalary || Math.round(pretaxTotal * 0.91);
-    const defaultDeduction = existing.totalDeduction || (pretaxTotal - defaultNetSalary);
+    const isKwon = emp.name === '권명주';
+    // 세무사 공제액 연동: 기존 등록된 값이 있으면 우선 적용, 없으면 기본값 (권명주는 165만 - 세무사 공제액 = 실수령액)
+    const defaultDeduction = existing.totalDeduction !== undefined ? existing.totalDeduction : (isKwon ? 160510 : Math.round(pretaxTotal * 0.09));
+    const defaultNetSalary = existing.netSalary !== undefined ? existing.netSalary : (isKwon ? Math.max(0, 1650000 - defaultDeduction) : (pretaxTotal - defaultDeduction));
 
     let html = '';
     html += '<div id="inline-panel-container" class="card-section mb-5" style="background:#ffffff; border:2.5px solid #059669; border-radius:22px; padding:30px; box-shadow:0 20px 45px -10px rgba(5,150,105,0.25);">';
@@ -2199,7 +2217,17 @@ window.ScheduleModule = (function () {
     html += '    <div class="row g-2">';
     html += '      <div class="col-6"><strong>성명:</strong> ' + emp.name + ' (' + (emp.position || '직원') + ')</div>';
     html += '      <div class="col-6"><strong>계정 이메일:</strong> ' + (emp.email || '-') + '</div>';
-    html += '      <div class="col-12"><strong>당월 계산 세전 총급여액:</strong> <strong class="text-success" style="font-size:16px;">' + pretaxTotal.toLocaleString() + ' 원</strong></div>';
+    html += '      <div class="col-12">';
+    html += '        <strong>당월 정산표 월 세전 총급여액:</strong> <strong class="text-success" style="font-size:16px;">' + pretaxTotal.toLocaleString() + ' 원</strong>';
+    if (isKwon) {
+      html += '        <div class="mt-2 p-2" style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; font-size:12.5px; color:#6b21a8;">';
+      html += '          📌 <strong>[세무 서류 및 간영자 님 연동 안내]</strong><br>';
+      html += '          - 권명주 약사 세무 서류상 신고 세전액: <strong>1,650,000 원</strong> (세무사 PDF 기장액)<br>';
+      html += '          - 세무사 공제액이 연동/입력되면 세후 실수령액은 <strong>(165만원 - 세무사 공제액)</strong>으로 자동 산출됩니다.<br>';
+      html += '          - 실제 총급여 차액(<strong>' + (pretaxTotal - 1650000).toLocaleString() + ' 원</strong>)은 간영자 님 급여로 정확히 자동 연동 계산됩니다.';
+      html += '        </div>';
+    }
+    html += '      </div>';
     html += '    </div>';
     html += '  </div>';
 
@@ -2210,7 +2238,7 @@ window.ScheduleModule = (function () {
     html += '    </div>';
     html += '    <div class="mb-3">';
     html += '      <label class="form-label font-bold" style="font-size:13.5px; color:#0f172a;">🛡️ 4대보험 및 세금 공제 총액 (원)</label>';
-    html += '      <input type="text" id="ps-total-deduction" class="form-control font-bold" style="color:#dc2626; font-size:15px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 14px;" value="' + (defaultDeduction ? defaultDeduction.toLocaleString() : '0') + '" placeholder="예: 341,000" oninput="let v = this.value.replace(/[^0-9-]/g, \'\'); this.value = v ? Number(v).toLocaleString() : \'\';">';
+    html += '      <input type="text" id="ps-total-deduction" class="form-control font-bold" style="color:#dc2626; font-size:15px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 14px;" value="' + (defaultDeduction ? defaultDeduction.toLocaleString() : '0') + '" placeholder="예: 341,000" oninput="let v = this.value.replace(/[^0-9-]/g, \'\'); this.value = v ? Number(v).toLocaleString() : \'\'; const netEl = document.getElementById(\'ps-net-salary\'); if (netEl) { const targetPre = ' + (isKwon ? '1650000' : pretaxTotal) + '; const ded = Number(v) || 0; netEl.value = Math.max(0, targetPre - ded).toLocaleString(); }">';
     html += '    </div>';
 
     html += '    <div class="mb-3 p-3" style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px;">';
@@ -2723,7 +2751,7 @@ window.ScheduleModule = (function () {
             </div>
             <div class="col-md-4">
               <label class="form-label font-bold text-danger" style="font-size:13px;">4대보험/세금 공제총액 (원)</label>
-              <input type="text" id="inspect-deduction" class="form-control font-bold text-danger" style="font-size:16px; border:1.5px solid #cbd5e1; border-radius:10px;" value="${(match.deduction || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():'';">
+              <input type="text" id="inspect-deduction" class="form-control font-bold text-danger" style="font-size:16px; border:1.5px solid #cbd5e1; border-radius:10px;" value="${(match.deduction || 0).toLocaleString()}" oninput="let v=this.value.replace(/[^0-9-]/g,''); this.value=v?Number(v).toLocaleString():''; const netEl = document.getElementById('inspect-net'); const preEl = document.getElementById('inspect-pretax'); if (netEl && preEl) { const p = parseInt(preEl.value.replace(/,/g,'')) || 0; const d = Number(v) || 0; netEl.value = Math.max(0, p - d).toLocaleString(); }">
             </div>
           </div>
         </div>
@@ -2834,6 +2862,21 @@ window.ScheduleModule = (function () {
 
           if (preTax <= net || preTax <= deduction) {
             preTax = net + deduction;
+          }
+
+          // 🔒 대표님 공식 지침: 권명주 약사는 세무 서류상 세전 금액이 항상 1,650,000원 고정
+          if (matchedEmp.name === '권명주') {
+            preTax = 1650000;
+            // 세무사 명세서에서 추출된 공제액이 있으면 그 공제액을 연동, 없으면 세전-실수령액 또는 기본 160,510원
+            if (!deduction || deduction === 0) {
+              if (net && net < 1650000) {
+                deduction = 1650000 - net;
+              } else {
+                deduction = 160510;
+              }
+            }
+            // 세후 실수령액은 세무사 세전 165만원 - 세무사 공제액으로 자동 연동
+            net = Math.max(0, preTax - deduction);
           }
 
           matches.push({

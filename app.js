@@ -1134,6 +1134,11 @@ window.App = (function () {
         break;
     }
 
+    // 📰 상단 데일리 3초 브리핑 위젯 자동 최신 렌더링
+    if (window.DailyBriefingWidget && typeof window.DailyBriefingWidget.renderWidget === 'function') {
+      window.DailyBriefingWidget.renderWidget();
+    }
+
     // 🎯 모듈 이동 시에는 최상단으로, 동일 모듈 새로고침 시 스크롤 위치 복원
     if (preserveScroll && (savedWindowScrollY > 0 || savedContainerScrollTop > 0)) {
       requestAnimationFrame(() => {
@@ -1147,6 +1152,9 @@ window.App = (function () {
   }
 
   function renderLoginGateway() {
+    const mountEl = document.getElementById('daily-briefing-widget-mount');
+    if (mountEl) mountEl.innerHTML = '';
+
     const container = document.getElementById('module-content');
     if (!container) return;
 

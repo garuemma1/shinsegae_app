@@ -35,8 +35,96 @@ window.DailyBriefingWidget = (function () {
     const expiryReturns = data.expiryReturns || [];
     const notices = data.notices || [];
     const leaveRequests = data.leaveRequests || [];
-    const medicineLocations = data.medicineLocations || [];
-    const rxMedicineLocations = data.rxMedicineLocations || [];
+    const getLocalOrCloudData = (key, sheetsGetter, fallbackArr) => {
+      if (typeof sheetsGetter === 'function') {
+        const list = sheetsGetter();
+        if (Array.isArray(list) && list.length > 0) return list;
+      }
+      if (Array.isArray(fallbackArr) && fallbackArr.length > 0) return fallbackArr;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) return JSON.parse(raw);
+      } catch(e) {}
+      return [];
+    };
+
+    const medicineLocations = getLocalOrCloudData('ssg_medicine_locations_v1', window.SheetsSync ? window.SheetsSync.getMedicineLocations : null, data.medicineLocations);
+    const rxMedicineLocations = getLocalOrCloudData('ssg_rx_medicine_locations_v1', window.SheetsSync ? window.SheetsSync.getRxMedicineLocations : null, data.rxMedicineLocations);
+
+    // 🌟 타임스탬프(숫자 ms), YYYY-MM-DD, ISO 문자열, id(med_1788...) 모든 날짜 형식을 'YYYY-MM-DD'로 안전 변환
+    function getEntityDateStr(item) {
+      if (!item) return '';
+      // 1. displayDate (예: "2026-09-09 14:30")
+      if (item.displayDate) {
+        const s = String(item.displayDate).trim().replace(/\./g, '-');
+        const p = s.split(' ')[0];
+        if (p && p.includes('-')) return p;
+      }
+      // 2. date (예: "2026-09-09")
+      if (item.date) {
+        const s = String(item.date).trim().replace(/\./g, '-');
+        const p = s.split(' ')[0];
+        if (p && p.includes('-')) return p;
+      }
+      // 3. updatedAt (ms 숫자 타임스탬프 또는 문자열)
+      if (item.updatedAt) {
+        if (typeof item.updatedAt === 'number') {
+          const d = new Date(item.updatedAt);
+          if (!isNaN(d.getTime())) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          }
+        } else {
+          const str = String(item.updatedAt).trim().replace(/\./g, '-');
+          if (str.includes('-')) return str.split(' ')[0].split('T')[0];
+          const num = parseInt(str, 10);
+          if (!isNaN(num) && num > 1000000000000) {
+            const d = new Date(num);
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          }
+        }
+      }
+      // 4. createdAt
+      if (item.createdAt) {
+        if (typeof item.createdAt === 'number') {
+          const d = new Date(item.createdAt);
+          if (!isNaN(d.getTime())) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          }
+        } else {
+          const str = String(item.createdAt).trim().replace(/\./g, '-');
+          if (str.includes('-')) return str.split(' ')[0].split('T')[0];
+          const num = parseInt(str, 10);
+          if (!isNaN(num) && num > 1000000000000) {
+            const d = new Date(num);
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          }
+        }
+      }
+      // 5. id에 타임스탬프가 포함된 경우 ('med_1788...' 또는 'rx_1788...')
+      if (item.id && typeof item.id === 'string') {
+        const num = parseInt(item.id.replace(/^med_|^rx_|^task_|^sup_|^ret_/, ''), 10);
+        if (!isNaN(num) && num > 1000000000000) {
+          const d = new Date(num);
+          if (!isNaN(d.getTime())) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          }
+        }
+      }
+      return '';
+    }
+
+    function checkMedDateMatch(m, targetDate) {
+      if (getEntityDateStr(m) === targetDate) return true;
+      if (m.history && Array.isArray(m.history)) {
+        return m.history.some(h => getEntityDateStr(h) === targetDate);
+      }
+      return false;
+    }
 
     // 1. 월간 근무 스케줄 & 출근 인원
     const dayShifts = scheduleRecords.filter(r => r.date === targetDateStr && r.shift && r.shift !== 'OFF');
@@ -70,7 +158,7 @@ window.DailyBriefingWidget = (function () {
 
     // 2. 업무일지 & 인수인계
     const dayLogs = worklogs.filter(w => {
-      const wDate = w.date || (w.createdAt ? String(w.createdAt).split(' ')[0] : '');
+      const wDate = getEntityDateStr(w) || w.date || (w.createdAt ? String(w.createdAt).split(' ')[0] : '');
       return wDate === targetDateStr;
     });
     // 특이사항/긴급/중요/품절/주의/인수인계 공유 필터링
@@ -87,32 +175,26 @@ window.DailyBriefingWidget = (function () {
 
     // 3. 약국 소모품 관리
     const daySupplies = supplies.filter(s => {
-      const sDate = s.requestDate || (s.createdAt ? String(s.createdAt).split(' ')[0] : '');
+      const sDate = getEntityDateStr(s) || s.requestDate || (s.createdAt ? String(s.createdAt).split(' ')[0] : '');
       return sDate === targetDateStr;
     });
     const pendingSuppliesCount = supplies.filter(s => s.status === 'PENDING').length;
 
     // 4. 일반의약품 위치 관리 (해당 날짜 신규 등록/수정)
-    const dayOtcMeds = medicineLocations.filter(m => {
-      const mDate = m.updatedAt ? String(m.updatedAt).split(' ')[0].replace(/\./g, '-') : (m.date || '');
-      return mDate === targetDateStr;
-    });
+    const dayOtcMeds = medicineLocations.filter(m => checkMedDateMatch(m, targetDateStr));
 
     // 5. 전문의약품 위치 관리 (해당 날짜 신규 등록/수정)
-    const dayRxMeds = rxMedicineLocations.filter(m => {
-      const mDate = m.updatedAt ? String(m.updatedAt).split(' ')[0].replace(/\./g, '-') : (m.date || '');
-      return mDate === targetDateStr;
-    });
+    const dayRxMeds = rxMedicineLocations.filter(m => checkMedDateMatch(m, targetDateStr));
 
     // 6. 유효기간 & 반품 대장
     const dayReturns = expiryReturns.filter(e => {
-      const eDate = e.date || (e.registeredAt ? String(e.registeredAt).split(' ')[0] : (e.createdAt ? String(e.createdAt).split(' ')[0] : ''));
+      const eDate = getEntityDateStr(e) || e.date || (e.registeredAt ? String(e.registeredAt).split(' ')[0] : (e.createdAt ? String(e.createdAt).split(' ')[0] : ''));
       return eDate === targetDateStr;
     });
 
     // 7. 공지사항 & 업무 SOP
     const dayNotices = notices.filter(n => {
-      const nDate = n.date || (n.createdAt ? String(n.createdAt).split(' ')[0] : '');
+      const nDate = getEntityDateStr(n) || n.date || (n.createdAt ? String(n.createdAt).split(' ')[0] : '');
       return nDate === targetDateStr;
     });
 

@@ -1799,14 +1799,13 @@ window.ScheduleModule = (function () {
 
     let report = `<${currentMonth}월 급여>\n\n정규직\n\n`;
 
-    // 🏆 대표님 지정 정확한 순서 배열: 이승학 -> 양윤지 -> 권명주 -> 간영자 -> 김제희 -> 김배영 -> 김동완 -> 윤세라 (유호종은 맨 마지막 멘트 아래!)
+    // 🏆 대표님 지정 정확한 순서 배열: 이승학 -> 양윤지 -> 권명주 -> 간영자 -> 김배영 -> 김동완 -> 윤세라 (유호종은 맨 마지막 멘트 아래!)
     const ORDER_MAP = {
       '이승학': 1,
       '양윤지': 2,
       '권명주': 3,
       '간영자': 4,
       '간명자': 4,
-      '김제희': 5,
       '김배영': 6,
       '김동완': 7,
       '윤세라': 8
@@ -2068,7 +2067,6 @@ window.ScheduleModule = (function () {
       { empId: 'emp_6', empName: '이승학', role: '일반직원', preTax: 2795540, deduction: 305540, net: 2490000, pageNum: 1, matched: true },
       { empId: 'emp_3', empName: '양윤지', role: '근무약사', preTax: 4532000, deduction: 449980, net: 4082020, pageNum: 2, matched: true },
       { empId: 'emp_2', empName: '권명주', role: '근무약사', preTax: 1650000, deduction: 160510, net: 1489490, pageNum: 3, matched: true },
-      { empId: 'emp_7', empName: '김제희', role: '일반직원', preTax: 2320000, deduction: 236300, net: 2083700, pageNum: 5, matched: true },
       { empId: 'emp_9', empName: '김배영', role: '일반직원', preTax: 1106700, deduction: 108130, net: 998570, pageNum: 6, matched: true },
       { empId: 'emp_4', empName: '김동완', role: '근무약사', preTax: 3329000, deduction: 310080, net: 3018920, pageNum: 7, matched: true },
       { empId: 'emp_8', empName: '윤세라', role: '일반직원', preTax: 1870810, deduction: 175690, net: 1695120, pageNum: 8, matched: true },

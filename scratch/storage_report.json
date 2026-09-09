@@ -1,19 +1,19 @@
 ﻿[
     {
         "Key":  "ssg_worklogs_v1",
-        "Count":  36,
-        "SizeBytes":  378132,
-        "SizeKB":  369.27,
-        "Characters":  373106,
-        "Percent":  39.3
+        "Count":  44,
+        "SizeBytes":  382438,
+        "SizeKB":  373.47,
+        "Characters":  376224,
+        "Percent":  39.19
     },
     {
         "Key":  "ssg_paystubs_v1",
         "Count":  1,
-        "SizeBytes":  370273,
-        "SizeKB":  361.59,
-        "Characters":  369717,
-        "Percent":  38.48
+        "SizeBytes":  370556,
+        "SizeKB":  361.87,
+        "Characters":  369960,
+        "Percent":  37.97
     },
     {
         "Key":  "ssg_schedule_v1",
@@ -21,15 +21,15 @@
         "SizeBytes":  124350,
         "SizeKB":  121.44,
         "Characters":  124350,
-        "Percent":  12.92
+        "Percent":  12.74
     },
     {
         "Key":  "ssg_medicine_locations_v1",
-        "Count":  54,
-        "SizeBytes":  20308,
-        "SizeKB":  19.83,
-        "Characters":  17214,
-        "Percent":  2.11
+        "Count":  65,
+        "SizeBytes":  25823,
+        "SizeKB":  25.22,
+        "Characters":  22131,
+        "Percent":  2.65
     },
     {
         "Key":  "ssg_rx_medicine_locations_v1",
@@ -37,7 +37,7 @@
         "SizeBytes":  34513,
         "SizeKB":  33.7,
         "Characters":  34195,
-        "Percent":  3.59
+        "Percent":  3.54
     },
     {
         "Key":  "ssg_notices_v1",
@@ -45,39 +45,39 @@
         "SizeBytes":  7326,
         "SizeKB":  7.15,
         "Characters":  4206,
-        "Percent":  0.76
+        "Percent":  0.75
     },
     {
         "Key":  "ssg_employees_v1",
-        "Count":  11,
-        "SizeBytes":  7229,
-        "SizeKB":  7.06,
-        "Characters":  6621,
-        "Percent":  0.75
+        "Count":  14,
+        "SizeBytes":  9509,
+        "SizeKB":  9.29,
+        "Characters":  8809,
+        "Percent":  0.97
     },
     {
         "Key":  "ssg_building_rental_dashboard_v1",
         "Count":  1,
-        "SizeBytes":  4808,
-        "SizeKB":  4.7,
-        "Characters":  4510,
-        "Percent":  0.5
+        "SizeBytes":  4794,
+        "SizeKB":  4.68,
+        "Characters":  4496,
+        "Percent":  0.49
     },
     {
         "Key":  "ssg_emp_permissions_v1",
         "Count":  1,
-        "SizeBytes":  2877,
-        "SizeKB":  2.81,
-        "Characters":  2877,
-        "Percent":  0.3
+        "SizeBytes":  4065,
+        "SizeKB":  3.97,
+        "Characters":  4065,
+        "Percent":  0.42
     },
     {
         "Key":  "ssg_deleted_ids",
-        "Count":  117,
-        "SizeBytes":  2238,
-        "SizeKB":  2.19,
-        "Characters":  2238,
-        "Percent":  0.23
+        "Count":  121,
+        "SizeBytes":  2318,
+        "SizeKB":  2.26,
+        "Characters":  2318,
+        "Percent":  0.24
     },
     {
         "Key":  "ssg_discount_purchases_v1",
@@ -85,15 +85,15 @@
         "SizeBytes":  2073,
         "SizeKB":  2.02,
         "Characters":  1871,
-        "Percent":  0.22
+        "Percent":  0.21
     },
     {
         "Key":  "ssg_expiry_returns_v1",
-        "Count":  3,
-        "SizeBytes":  1762,
-        "SizeKB":  1.72,
-        "Characters":  1504,
-        "Percent":  0.18
+        "Count":  1,
+        "SizeBytes":  633,
+        "SizeKB":  0.62,
+        "Characters":  571,
+        "Percent":  0.06
     },
     {
         "Key":  "ssg_supply_presets_v1",
@@ -106,18 +106,18 @@
     {
         "Key":  "ssg_schedule_status_v1",
         "Count":  1,
-        "SizeBytes":  1352,
-        "SizeKB":  1.32,
-        "Characters":  1186,
-        "Percent":  0.14
+        "SizeBytes":  1679,
+        "SizeKB":  1.64,
+        "Characters":  1509,
+        "Percent":  0.17
     },
     {
         "Key":  "ssg_supplies_v1",
-        "Count":  3,
-        "SizeBytes":  1327,
-        "SizeKB":  1.3,
-        "Characters":  1125,
-        "Percent":  0.14
+        "Count":  4,
+        "SizeBytes":  1759,
+        "SizeKB":  1.72,
+        "Characters":  1455,
+        "Percent":  0.18
     },
     {
         "Key":  "ssg_leave_requests_v1",
@@ -130,10 +130,10 @@
     {
         "Key":  "ssg_overtime_adjustments_v1",
         "Count":  1,
-        "SizeBytes":  509,
-        "SizeKB":  0.5,
-        "Characters":  509,
-        "Percent":  0.05
+        "SizeBytes":  973,
+        "SizeKB":  0.95,
+        "Characters":  973,
+        "Percent":  0.1
     },
     {
         "Key":  "ssg_pharmacist_rates_v1",

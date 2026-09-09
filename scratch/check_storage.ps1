@@ -20,3 +20,9 @@ foreach ($k in $subKeys) {
 }
 
 $results | Sort-Object -Property SizeBytes -Descending | Format-Table -AutoSize
+
+$cMatches = [regex]::Matches($raw, 'https://res\.cloudinary\.com[^"]+')
+$urls = @($cMatches | ForEach-Object { $_.Value } | Select-Object -Unique)
+Write-Host "Cloudinary Total Photos Count: $($urls.Count)"
+
+

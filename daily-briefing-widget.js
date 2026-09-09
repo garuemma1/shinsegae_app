@@ -32,12 +32,21 @@ window.DailyBriefingWidget = (function () {
   function aggregateBriefingData(targetDateStr) {
     const data = window.SheetsSync.getData ? window.SheetsSync.getData() : {};
     const employees = data.employees || [];
-    const scheduleRecords = data.schedule || [];
-    const worklogs = data.worklogs || [];
-    const supplies = data.supplies || [];
-    const expiryReturns = data.expiryReturns || [];
-    const notices = data.notices || [];
-    const leaveRequests = data.leaveRequests || [];
+    const worklogs = (window.SheetsSync && typeof window.SheetsSync.getWorklogs === 'function')
+      ? window.SheetsSync.getWorklogs()
+      : (data.worklogs || []);
+    const supplies = (window.SheetsSync && typeof window.SheetsSync.getSupplies === 'function')
+      ? window.SheetsSync.getSupplies()
+      : (data.supplies || []);
+    const expiryReturns = (window.SheetsSync && typeof window.SheetsSync.getExpiryReturns === 'function')
+      ? window.SheetsSync.getExpiryReturns()
+      : (data.expiryReturns || []);
+    const notices = (window.SheetsSync && typeof window.SheetsSync.getNotices === 'function')
+      ? window.SheetsSync.getNotices()
+      : (data.notices || []);
+    const leaveRequests = (window.SheetsSync && typeof window.SheetsSync.getLeaveRequests === 'function')
+      ? window.SheetsSync.getLeaveRequests()
+      : (data.leaveRequests || []);
     const getLocalOrCloudData = (key, sheetsGetter, fallbackArr) => {
       if (typeof sheetsGetter === 'function') {
         const list = sheetsGetter();
@@ -192,7 +201,10 @@ window.DailyBriefingWidget = (function () {
     // 6. 유효기간 & 반품 대장
     const dayReturns = expiryReturns.filter(e => {
       const eDate = getEntityDateStr(e) || e.date || (e.registeredAt ? String(e.registeredAt).split(' ')[0] : (e.createdAt ? String(e.createdAt).split(' ')[0] : ''));
-      return eDate === targetDateStr;
+      if (eDate === targetDateStr) return true;
+      if (e.returnHandoverDate && String(e.returnHandoverDate).split(' ')[0] === targetDateStr) return true;
+      if (e.settledDate && String(e.settledDate).split(' ')[0] === targetDateStr) return true;
+      return false;
     });
 
     // 7. 공지사항 & 업무 SOP
@@ -316,7 +328,7 @@ window.DailyBriefingWidget = (function () {
       `);
     }
 
-    // 카드 5: 유효기간 & 반품 대장 (당일 등록이 있을 때만)
+    // 카드 5: 유효기간 & 반품 대장 (당일 등록 또는 인계 변동이 있을 때만)
     if (b.dayReturns.length > 0) {
       activeCards.push(`
         <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(0,0,0,0.02);">
@@ -324,7 +336,7 @@ window.DailyBriefingWidget = (function () {
             <strong style="font-size:13px; color:#0f172a;"><i class="fas fa-undo-alt text-rose-500 me-1"></i> 유효기간 반품/폐기 (${b.dayReturns.length}건)</strong>
           </div>
           <div style="font-size:12px; color:#334155; line-height:1.6; word-break:break-word;">
-            <div>▪️ 반품 품목: ${b.dayReturns.map(r => `<strong>${r.name || r.medName || '약품'}</strong>`).join(', ')}</div>
+            <div>▪️ 반품 품목: ${b.dayReturns.map(r => `<strong>${r.drugName || r.name || r.medName || '약품'}</strong> (${r.qty || 1}${r.unit || '개'}${r.vendor ? ` · ${r.vendor}` : ''})`).join(', ')}</div>
           </div>
         </div>
       `);

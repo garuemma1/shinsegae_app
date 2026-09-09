@@ -22,7 +22,10 @@ window.DailyBriefingWidget = (function () {
     const month = d.getMonth() + 1;
     const date = d.getDate();
     const dayName = days[d.getDay()];
-    const tag = offset === 0 ? '오늘' : (offset === -1 ? '어제' : '내일');
+    let tag = '오늘';
+    if (offset === -1) tag = '어제';
+    else if (offset === -2) tag = '그제';
+    else if (offset === 1) tag = '내일';
     return `${month}월 ${date}일(${dayName}) · ${tag}`;
   }
 
@@ -535,12 +538,12 @@ window.DailyBriefingWidget = (function () {
               </div>
             </div>
 
-            <!-- 우측 어제/오늘/내일 전환 및 자세히 보기 토글 -->
+            <!-- 우측 그제/어제/오늘 전환 및 자세히 보기 토글 -->
             <div class="briefing-actions-group">
               <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn ${targetDayOffset === -1 ? 'btn-primary' : 'btn-outline-secondary'} briefing-day-btn" style="border-radius:6px 0 0 6px;" onclick="DailyBriefingWidget.setDayOffset(-1)">어제</button>
-                <button type="button" class="btn ${targetDayOffset === 0 ? 'btn-primary' : 'btn-outline-secondary'} briefing-day-btn" onclick="DailyBriefingWidget.setDayOffset(0)">오늘</button>
-                <button type="button" class="btn ${targetDayOffset === 1 ? 'btn-primary' : 'btn-outline-secondary'} briefing-day-btn" style="border-radius:0 6px 6px 0;" onclick="DailyBriefingWidget.setDayOffset(1)">내일</button>
+                <button type="button" class="btn ${targetDayOffset === -2 ? 'btn-primary' : 'btn-outline-secondary'} briefing-day-btn" style="border-radius:6px 0 0 6px;" onclick="DailyBriefingWidget.setDayOffset(-2)">그제</button>
+                <button type="button" class="btn ${targetDayOffset === -1 ? 'btn-primary' : 'btn-outline-secondary'} briefing-day-btn" onclick="DailyBriefingWidget.setDayOffset(-1)">어제</button>
+                <button type="button" class="btn ${targetDayOffset === 0 ? 'btn-primary' : 'btn-outline-secondary'} briefing-day-btn" style="border-radius:0 6px 6px 0;" onclick="DailyBriefingWidget.setDayOffset(0)">오늘</button>
               </div>
               <button type="button" class="briefing-toggle-btn" onclick="DailyBriefingWidget.toggleExpand()">
                 <i class="fas ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} me-1"></i>${isExpanded ? '간략히' : '자세히'}

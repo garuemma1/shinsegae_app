@@ -2155,8 +2155,22 @@ window.ScheduleModule = (function () {
       const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, emp.hourlyRate || 35000);
       pretaxTotal = calc.totalPayroll;
     } else {
-      const baseSal = emp.baseMonthlySalary || 2621500;
-      pretaxTotal = baseSal + 200000 + (empAdj.overtimePay || 0) - (empAdj.deductionPay || 0);
+      const isKan = emp.name.includes('간영자') || emp.name.includes('간명자');
+      let baseSal = Number(emp.baseMonthlySalary) || 2717000;
+      let mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
+
+      if (isKan) {
+        const kwonEmpObj = (employees || []).find(e => e.name === '권명주');
+        if (kwonEmpObj) {
+          const kwonShifts = scheduleRecords.filter(r => r.empId === kwonEmpObj.id && r.date && r.date.startsWith(monthKey));
+          const kwonCalc = window.LaborCalculator.calculatePharmacistPayroll(kwonShifts, kwonEmpObj.hourlyRate || 40000);
+          const kanTotalWithMeal = Math.max(0, kwonCalc.totalPayroll - 1650000);
+          baseSal = Math.max(0, kanTotalWithMeal - 100000);
+          mealAlw = 100000;
+        }
+      }
+
+      pretaxTotal = baseSal + mealAlw + (empAdj.overtimePay || 0) - (empAdj.deductionPay || 0);
     }
 
     const defaultNetSalary = existing.netSalary || Math.round(pretaxTotal * 0.91);

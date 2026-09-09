@@ -2190,6 +2190,9 @@ window.ScheduleModule = (function () {
     }
 
     const isKwon = emp.name === '권명주';
+    // 🔒 권명주 약사는 세무 서류 및 명세서상 세전 신고금액이 형식상 항상 1,650,000원으로 교부 및 메일 발송되어야 함!
+    const officialPretax = isKwon ? 1650000 : pretaxTotal;
+
     // 세무사 공제액 연동: 기존 등록된 값이 있으면 우선 적용, 없으면 기본값 (권명주는 165만 - 세무사 공제액 = 실수령액)
     const defaultDeduction = existing.totalDeduction !== undefined ? existing.totalDeduction : (isKwon ? 160510 : Math.round(pretaxTotal * 0.09));
     const defaultNetSalary = existing.netSalary !== undefined ? existing.netSalary : (isKwon ? Math.max(0, 1650000 - defaultDeduction) : (pretaxTotal - defaultDeduction));
@@ -2218,13 +2221,11 @@ window.ScheduleModule = (function () {
     html += '      <div class="col-6"><strong>성명:</strong> ' + emp.name + ' (' + (emp.position || '직원') + ')</div>';
     html += '      <div class="col-6"><strong>계정 이메일:</strong> ' + (emp.email || '-') + '</div>';
     html += '      <div class="col-12">';
-    html += '        <strong>당월 정산표 월 세전 총급여액:</strong> <strong class="text-success" style="font-size:16px;">' + pretaxTotal.toLocaleString() + ' 원</strong>';
+    html += '        <strong>당월 서류상 세전 총급여액:</strong> <strong class="text-success" style="font-size:16px;">' + officialPretax.toLocaleString() + ' 원</strong>';
     if (isKwon) {
-      html += '        <div class="mt-2 p-2" style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; font-size:12.5px; color:#6b21a8;">';
-      html += '          📌 <strong>[세무 서류 및 간영자 님 연동 안내]</strong><br>';
-      html += '          - 권명주 약사 세무 서류상 신고 세전액: <strong>1,650,000 원</strong> (세무사 PDF 기장액)<br>';
-      html += '          - 세무사 공제액이 연동/입력되면 세후 실수령액은 <strong>(165만원 - 세무사 공제액)</strong>으로 자동 산출됩니다.<br>';
-      html += '          - 실제 총급여 차액(<strong>' + (pretaxTotal - 1650000).toLocaleString() + ' 원</strong>)은 간영자 님 급여로 정확히 자동 연동 계산됩니다.';
+      html += '        <span class="badge ms-2" style="background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; font-size:12px; padding:4px 8px; border-radius:6px;">📄 세무 서류/이메일 교부용 165만원 고정</span>';
+      html += '        <div class="mt-2 p-2" style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; font-size:12px; color:#6b21a8;">';
+      html += '          💡 <strong>[내부 정산표 및 간영자 님 연동]</strong> 실제 근무시수 산출 총액은 <strong>' + pretaxTotal.toLocaleString() + '원</strong>이며, 165만원을 제외한 잔여 차액(<strong>' + (pretaxTotal - 1650000).toLocaleString() + '원</strong>)은 간영자 님 급여로 정상 연동 지급됩니다.';
       html += '        </div>';
     }
     html += '      </div>';
@@ -2238,7 +2239,7 @@ window.ScheduleModule = (function () {
     html += '    </div>';
     html += '    <div class="mb-3">';
     html += '      <label class="form-label font-bold" style="font-size:13.5px; color:#0f172a;">🛡️ 4대보험 및 세금 공제 총액 (원)</label>';
-    html += '      <input type="text" id="ps-total-deduction" class="form-control font-bold" style="color:#dc2626; font-size:15px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 14px;" value="' + (defaultDeduction ? defaultDeduction.toLocaleString() : '0') + '" placeholder="예: 341,000" oninput="let v = this.value.replace(/[^0-9-]/g, \'\'); this.value = v ? Number(v).toLocaleString() : \'\'; const netEl = document.getElementById(\'ps-net-salary\'); if (netEl) { const targetPre = ' + (isKwon ? '1650000' : pretaxTotal) + '; const ded = Number(v) || 0; netEl.value = Math.max(0, targetPre - ded).toLocaleString(); }">';
+    html += '      <input type="text" id="ps-total-deduction" class="form-control font-bold" style="color:#dc2626; font-size:15px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 14px;" value="' + (defaultDeduction ? defaultDeduction.toLocaleString() : '0') + '" placeholder="예: 341,000" oninput="let v = this.value.replace(/[^0-9-]/g, \'\'); this.value = v ? Number(v).toLocaleString() : \'\'; const netEl = document.getElementById(\'ps-net-salary\'); if (netEl) { const targetPre = ' + officialPretax + '; const ded = Number(v) || 0; netEl.value = Math.max(0, targetPre - ded).toLocaleString(); }">';
     html += '    </div>';
 
     html += '    <div class="mb-3 p-3" style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px;">';
@@ -2255,7 +2256,7 @@ window.ScheduleModule = (function () {
     html += '      <textarea id="ps-note" class="form-control" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 14px; font-weight:600;" rows="2" placeholder="예: 8월 노고 많으셨습니다. 세무사 검토 완료분입니다.">' + (existing.note || '8월 확정 급여명세서입니다. 노고에 감사드립니다.') + '</textarea>';
     html += '    </div>';
 
-    html += '    <input type="hidden" id="ps-pretax" value="' + pretaxTotal + '">';
+    html += '    <input type="hidden" id="ps-pretax" value="' + officialPretax + '">';
     html += '    <input type="hidden" id="ps-published" value="true">';
 
     html += '    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">';

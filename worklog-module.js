@@ -718,11 +718,12 @@ window.WorklogModule = (function () {
     }
 
     const logs = window.SheetsSync.getWorklogs() || [];
-    const target = logs.find(l => l.id === id);
+    const target = logs.find(l => String(l.id) === String(id));
     if (target) {
       target.status = 'COMPLETED';
       target.completedBy = curr.name;
       target.completedAt = new Date().toISOString().replace('T', ' ').substring(0, 16);
+      target.updatedAt = Date.now();
       window.SheetsSync.saveWorklogs(logs);
       render('module-content');
     }
@@ -734,13 +735,14 @@ window.WorklogModule = (function () {
     if (!curr) { alert("로그인이 필요합니다."); return; }
 
     const logs = window.SheetsSync.getWorklogs() || [];
-    const target = logs.find(l => l.id === id);
+    const target = logs.find(l => String(l.id) === String(id));
     if (target) {
       if (!target.checkedBy) target.checkedBy = []; // 배열이 없으면 생성
       
       // 내 이름이 아직 없다면 추가
       if (!target.checkedBy.includes(curr.name)) {
         target.checkedBy.push(curr.name);
+        target.updatedAt = Date.now();
         window.SheetsSync.saveWorklogs(logs);
         if (window.App && typeof window.App.markWorklogRead === 'function') {
           window.App.markWorklogRead();
@@ -758,7 +760,7 @@ window.WorklogModule = (function () {
     if (!curr) { alert("로그인이 필요합니다."); return; }
 
     const logs = window.SheetsSync.getWorklogs() || [];
-    const target = logs.find(l => l.id === id);
+    const target = logs.find(l => String(l.id) === String(id));
     if (!target) return;
 
     const isDirector = curr.role === '약국장' || curr.id === 'emp_1';
@@ -776,7 +778,7 @@ window.WorklogModule = (function () {
     if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
       window.SheetsSync.addDeletedId(id);
     }
-    const cleanLogs = logs.filter(l => l.id !== id);
+    const cleanLogs = logs.filter(l => String(l.id) !== String(id));
     window.SheetsSync.saveWorklogs(cleanLogs);
     render('module-content');
     alert("업무일지가 성공적으로 삭제되었습니다.");

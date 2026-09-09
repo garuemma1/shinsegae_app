@@ -1145,7 +1145,27 @@ window.SheetsSync = (function () {
   function getWorklogs() {
     try {
       const raw = safeGetItem(STORAGE_KEYS.WORKLOGS);
-      return raw ? JSON.parse(raw) : INITIAL_WORKLOGS;
+      const list = raw ? JSON.parse(raw) : INITIAL_WORKLOGS;
+      if (Array.isArray(list)) {
+        let healed = false;
+        list.forEach(item => {
+          if (item && (String(item.id) === 'task_1788521535677' || (String(item.content || '').includes('홍기표') && String(item.content || '').includes('테넬리아')))) {
+            if (item.status !== 'COMPLETED') {
+              item.status = 'COMPLETED';
+              item.completedBy = item.completedBy || '윤성도';
+              item.completedAt = item.completedAt || '2026-09-04 20:32';
+              item.updatedAt = Date.now();
+              healed = true;
+            }
+          }
+        });
+        if (healed) {
+          safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(list));
+          pushToCloud();
+        }
+        return list;
+      }
+      return INITIAL_WORKLOGS;
     } catch(e) { return INITIAL_WORKLOGS; }
   }
 
@@ -2141,8 +2161,21 @@ window.SheetsSync = (function () {
 
       // 2. 업무일지 스마트 비파괴 양방향 융합 (핸드폰 글 + PC 글 완전 통합)
       if (cloudData.worklogs && Array.isArray(cloudData.worklogs)) {
+        const sanitizedCloudWorklogs = cloudData.worklogs.map(item => {
+          if (item && (String(item.id) === 'task_1788521535677' || (String(item.content || '').includes('홍기표') && String(item.content || '').includes('테넬리아')))) {
+            return {
+              ...item,
+              status: 'COMPLETED',
+              completedBy: item.completedBy || '윤성도',
+              completedAt: item.completedAt || '2026-09-04 20:32',
+              updatedAt: typeof item.updatedAt === 'number' && item.updatedAt > 1788521535677 ? item.updatedAt : Date.now()
+            };
+          }
+          return item;
+        });
+
         const localLogs = getWorklogs() || [];
-        const mergedLogs = mergeById(localLogs, cloudData.worklogs, 'createdAt');
+        const mergedLogs = mergeById(localLogs, sanitizedCloudWorklogs, 'updatedAt');
         if (isListDifferent(localLogs, mergedLogs)) {
           safeSetItem(STORAGE_KEYS.WORKLOGS, JSON.stringify(mergedLogs));
           updated = true;

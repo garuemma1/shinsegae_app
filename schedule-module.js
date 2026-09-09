@@ -1095,9 +1095,9 @@ window.ScheduleModule = (function () {
     const staffMembers = employees.filter(e => {
       if (!e || !e.name) return false;
       if (e.role.includes('약사') || e.role === '약국장') return false;
-      if (e.name.includes('이정은') || e.name.includes('테스트')) return false;
-      // 예비인력 중 '간영자' / '간명자' 님은 일반직원 급여 정산표에 기본 등재!
-      if (e.name.includes('간영자') || e.name.includes('간명자')) return true;
+      if (e.name.includes('테스트')) return false;
+      // 예비인력 중 '간영자' / '간명자' / '이정은' 님은 일반직원 급여 정산표에 등재하여 세후등록 지원!
+      if (e.name.includes('간영자') || e.name.includes('간명자') || e.name.includes('이정은')) return true;
       return e.role !== '예비인력';
     });
 
@@ -2071,7 +2071,8 @@ window.ScheduleModule = (function () {
       { empId: 'emp_7', empName: '김제희', role: '일반직원', preTax: 2320000, deduction: 236300, net: 2083700, pageNum: 5, matched: true },
       { empId: 'emp_9', empName: '김배영', role: '일반직원', preTax: 1106700, deduction: 108130, net: 998570, pageNum: 6, matched: true },
       { empId: 'emp_4', empName: '김동완', role: '근무약사', preTax: 3329000, deduction: 310080, net: 3018920, pageNum: 7, matched: true },
-      { empId: 'emp_8', empName: '윤세라', role: '일반직원', preTax: 1870810, deduction: 175690, net: 1695120, pageNum: 8, matched: true }
+      { empId: 'emp_8', empName: '윤세라', role: '일반직원', preTax: 1870810, deduction: 175690, net: 1695120, pageNum: 8, matched: true },
+      { empId: 'emp_10', empName: '이정은', role: '예비인력', preTax: 2717000, deduction: 244530, net: 2472470, pageNum: 9, matched: true }
     ];
 
     let html = '';
@@ -2213,6 +2214,7 @@ window.ScheduleModule = (function () {
     html += '      <textarea id="ps-note" class="form-control" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; padding:10px 14px; font-weight:600;" rows="2" placeholder="예: 8월 노고 많으셨습니다. 세무사 검토 완료분입니다.">' + (existing.note || '8월 확정 급여명세서입니다. 노고에 감사드립니다.') + '</textarea>';
     html += '    </div>';
 
+    html += '    <input type="hidden" id="ps-pretax" value="' + pretaxTotal + '">';
     html += '    <input type="hidden" id="ps-published" value="true">';
 
     html += '    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">';
@@ -2378,6 +2380,8 @@ window.ScheduleModule = (function () {
 
       const netSalary = parseInt(document.getElementById('ps-net-salary').value.replace(/,/g, '')) || 0;
       const totalDeduction = parseInt(document.getElementById('ps-total-deduction').value.replace(/,/g, '')) || 0;
+      const preTaxEl = document.getElementById('ps-pretax');
+      const preTax = preTaxEl ? (parseInt(preTaxEl.value.replace(/,/g, '')) || 0) : (netSalary + totalDeduction);
       
       let pdfUrl = document.getElementById('ps-file-url').value.trim();
       let fileData = document.getElementById('ps-file-data').value;
@@ -2405,6 +2409,7 @@ window.ScheduleModule = (function () {
         month: currentMonth,
         netSalary,
         totalDeduction,
+        preTax,
         pdfUrl,
         fileData,
         fileName,
@@ -2427,7 +2432,7 @@ window.ScheduleModule = (function () {
           year: currentYear,
           month: currentMonth,
           netSalary,
-          preTax: 0,
+          preTax,
           totalDeduction,
           fileUrl: pdfUrl || fileData,
           note: note || (currentMonth + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!')

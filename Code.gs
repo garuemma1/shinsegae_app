@@ -144,6 +144,11 @@ function handleFastRequest(e) {
         result.success = true;
         break;
 
+      case 'sendPaystubEmail':
+        result.data = sendPaystubEmailFast(postData, params);
+        result.success = true;
+        break;
+
       default:
         result.error = '알 수 없는 요청 (Action: ' + action + ')';
     }
@@ -1325,4 +1330,97 @@ function createRentalMonthSheetFast(rentSSId, newYymm, sourceYymm) {
     sourceYymm: sourceSheet.getName(),
     message: '새로운 [' + newYymm + '] 정산 시트가 전월 탭을 복제하여 100% 수식 그대로 안전하게 생성되었습니다!'
   };
+}
+
+// 📧 직원 개인 이메일 1:1 정식 급여명세서 안전 발송 핸들러 (제119조 수칙)
+function sendPaystubEmailFast(postData, params) {
+  var p = postData || params || {};
+  var email = String(p.email || '').trim();
+  if (!email || email.indexOf('@') === -1) {
+    return { success: false, error: '유효한 수신자 이메일 주소가 없습니다.' };
+  }
+
+  var name = String(p.name || '직원');
+  var year = p.year || new Date().getFullYear();
+  var month = p.month || (new Date().getMonth() + 1);
+  var netSalary = parseInt(p.netSalary || 0, 10);
+  var preTax = parseInt(p.preTax || 0, 10);
+  var totalDeduction = parseInt(p.totalDeduction || 0, 10);
+  var fileUrl = String(p.fileUrl || p.pdfUrl || p.fileData || '').trim();
+  var note = String(p.note || (month + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!'));
+  var appUrl = String(p.url || 'https://garuemma1.github.io/shinsegae_app/');
+
+  var subject = '[신세계약국] ' + year + '년 ' + month + '월 ' + name + ' 님 급여명세서 (세후 실수령액 확정 교부)';
+
+  var htmlBody = '<!DOCTYPE html>' +
+    '<html><head><meta charset="utf-8">' +
+    '<style>' +
+    'body { font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif; background-color:#f1f5f9; margin:0; padding:24px; color:#1e293b; }' +
+    '.container { max-width:600px; margin:0 auto; background:#ffffff; border-radius:20px; border:1.5px solid #cbd5e1; box-shadow:0 10px 25px rgba(0,0,0,0.06); overflow:hidden; }' +
+    '.header { background:linear-gradient(135deg, #059669 0%, #047857 100%); color:#ffffff; padding:28px 24px; text-align:center; }' +
+    '.content { padding:28px 24px; }' +
+    '.badge { display:inline-block; background:rgba(255,255,255,0.22); color:#ffffff; font-size:12px; font-weight:700; padding:4px 12px; border-radius:9999px; margin-bottom:8px; }' +
+    '.title { font-size:22px; font-weight:900; margin:0; letter-spacing:-0.5px; }' +
+    '.box { background:#f8fafc; border-radius:14px; border:1px solid #e2e8f0; padding:18px 20px; margin-bottom:20px; }' +
+    '.table { width:100%; border-collapse:collapse; }' +
+    '.table td { padding:10px 0; border-bottom:1px solid #f1f5f9; font-size:14px; }' +
+    '.table tr:last-child td { border-bottom:none; }' +
+    '.label { color:#64748b; font-weight:600; width:45%; }' +
+    '.val { text-align:right; font-weight:700; color:#0f172a; }' +
+    '.highlight-box { background:#ecfdf5; border:2px solid #10b981; border-radius:16px; padding:20px; text-align:center; margin-bottom:24px; }' +
+    '.highlight-val { font-size:26px; font-weight:900; color:#047857; margin-top:4px; font-family:"Outfit",sans-serif; }' +
+    '.btn { display:inline-block; background:#059669; color:#ffffff !important; text-decoration:none; padding:14px 28px; border-radius:12px; font-weight:800; font-size:15px; box-shadow:0 4px 12px rgba(5,150,105,0.3); margin:6px 4px; }' +
+    '.footer { padding:20px 24px; background:#f8fafc; border-top:1px solid #e2e8f0; font-size:12px; color:#64748b; text-align:center; line-height:1.6; }' +
+    '</style></head><body>' +
+    '<div class="container">' +
+    '  <div class="header">' +
+    '    <span class="badge">🏥 365메가스타 신세계약국 HR/OPS</span>' +
+    '    <h1 class="title">' + year + '년 ' + month + '월 정식 급여명세서</h1>' +
+    '  </div>' +
+    '  <div class="content">' +
+    '    <div class="box">' +
+    '      <table class="table">' +
+    '        <tr><td class="label">성명</td><td class="val">' + name + ' 님</td></tr>' +
+    '        <tr><td class="label">지급 연월</td><td class="val">' + year + '년 ' + month + '월</td></tr>' +
+    (preTax > 0 ? '        <tr><td class="label">세전 총급여액</td><td class="val">' + preTax.toLocaleString() + ' 원</td></tr>' : '') +
+    (totalDeduction > 0 ? '        <tr><td class="label">4대보험 및 세금 공제액</td><td class="val" style="color:#dc2626;">- ' + totalDeduction.toLocaleString() + ' 원</td></tr>' : '') +
+    '      </table>' +
+    '    </div>' +
+    '    <div class="highlight-box">' +
+    '      <div style="font-size:13px; font-weight:700; color:#065f46;">💰 통장 입금 실수령액 (세후 확정)</div>' +
+    '      <div class="highlight-val">' + netSalary.toLocaleString() + ' 원</div>' +
+    '    </div>' +
+    (note ? '    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 16px; margin-bottom:20px; font-size:13.5px; color:#1e40af; line-height:1.6;">💬 <strong>약국장 전달 메시지:</strong><br>' + note.replace(/\n/g, '<br>') + '</div>' : '') +
+    (fileUrl ? '    <div style="text-align:center; margin-bottom:24px;">' +
+      (fileUrl.startsWith('http') ? '      <a href="' + fileUrl + '" class="btn" target="_blank">📄 세무사 원본 명세서 고화질 열람 / 다운로드</a>' : '') +
+      '    </div>' : '') +
+    '    <div style="text-align:center; margin-bottom:12px;">' +
+    '      <a href="' + appUrl + '" style="color:#059669; font-size:13px; font-weight:700; text-decoration:none;">🔗 신세계약국 HR/OPS 플랫폼 바로가기</a>' +
+    '    </div>' +
+    '  </div>' +
+    '  <div class="footer">' +
+    '    본 메일은 신세계약국 급여 시스템(근로기준법 제48조)에 따라 개인 금융정보 보안을 위해 등록된 개인 이메일로 1:1 자동 발송되었습니다.<br>' +
+    '    문의사항은 약국장(문성도)에게 문의해 주시기 바랍니다.' +
+    '  </div>' +
+    '</div></body></html>';
+
+  try {
+    MailApp.sendEmail({
+      to: email,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+    return {
+      success: true,
+      email: email,
+      name: name,
+      netSalary: netSalary,
+      message: name + ' 님의 급여명세서가 [' + email + '] 주소로 정상 발송되었습니다.'
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: '이메일 전송 실패: ' + err.toString()
+    };
+  }
 }

@@ -69,7 +69,7 @@ window.SheetsSync = (function () {
     { id: 'emp_10', username: 'miki1123@naver.com', email: 'miki1123@naver.com', passcode: '1817', name: '이정은', role: '예비인력', position: '부상', payType: 'MONTHLY', joinDate: '2026-01-01', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-7765-1817', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_11', username: 'inihaach@naver.com', email: 'inihaach@naver.com', passcode: '7807', name: '간영자', role: '예비인력', position: '매장관리', payType: 'MONTHLY', joinDate: '2024-09-09', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 3000000, phone: '010-4164-7807', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_12', username: 'dkmedical007@naver.com', email: 'dkmedical007@naver.com', passcode: '7979', name: '주찬양', role: '약정직원', position: '외국인환자', payType: 'MONTHLY', joinDate: '2026-04-20', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-4168-3605', usedLeave: 0, pendingLeave: 0, memo: '비번 7979', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_13', username: 'tudgnsl1909@naver.com', email: 'tudgnsl1909@naver.com', passcode: '1031', name: '박주영', role: '일반직원', position: '조제팀', payType: 'MONTHLY', joinDate: '2026-09-14', weekdayRate: 12000, holidayRate: 12000, hourlyRate: 12000, baseMonthlySalary: 2083200, phone: '010-7590-1031', usedLeave: 0, pendingLeave: 0, memo: '조제실보조인', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 }
+    { id: 'emp_13', username: 'tudgnsl1909@naver.com', email: 'tudgnsl1909@naver.com', passcode: '1031', name: '박주영', role: '일반직원', position: '조제팀', payType: 'MONTHLY', joinDate: '2026-09-14', weekdayRate: 12000, holidayRate: 12000, hourlyRate: 12000, baseMonthlySalary: 2083200, phone: '010-7590-1031', usedLeave: 0, pendingLeave: 0, memo: '조제실보조인', allowedTabs: ['notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'expiry-returns-module', 'schedule-module', 'discount-purchase-module', 'emergency-contacts-module'], updatedAt: 0 }
   ];
 
   const INITIAL_DISCOUNT_PURCHASES = [
@@ -1514,11 +1514,17 @@ window.SheetsSync = (function () {
     pushToCloud();
   }
 
+  const HARDCODED_DELETED_IDS = ['emp_12_1787220319217', 'emp_12_1788939756469'];
+
   function getDeletedIds() {
     try {
       const raw = safeGetItem('ssg_deleted_ids_v1');
-      return raw ? JSON.parse(raw) : [];
-    } catch(e) { return []; }
+      const list = raw ? JSON.parse(raw) : [];
+      HARDCODED_DELETED_IDS.forEach(id => {
+        if (!list.includes(id)) list.push(id);
+      });
+      return list;
+    } catch(e) { return [...HARDCODED_DELETED_IDS]; }
   }
 
   function addDeletedId(id) {

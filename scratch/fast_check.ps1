@@ -3,7 +3,8 @@ $targetFiles = @(
     'c:\Users\win10\Desktop\shinsegae_app\Code.gs',
     'c:\Users\win10\Desktop\shinsegae_app\sheets-sync.js',
     'c:\Users\win10\Desktop\shinsegae_app\daily-briefing-widget.js',
-    'c:\Users\win10\Desktop\shinsegae_app\app.js'
+    'c:\Users\win10\Desktop\shinsegae_app\app.js',
+    'c:\Users\win10\Desktop\shinsegae_app\staff-directory-module.js'
 )
 
 foreach ($file in $targetFiles) {

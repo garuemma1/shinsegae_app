@@ -1135,8 +1135,12 @@ window.App = (function () {
     }
 
     // 📰 상단 데일리 3초 브리핑 위젯 자동 최신 렌더링
-    if (window.DailyBriefingWidget && typeof window.DailyBriefingWidget.renderWidget === 'function') {
-      window.DailyBriefingWidget.renderWidget();
+    try {
+      if (window.DailyBriefingWidget && typeof window.DailyBriefingWidget.renderWidget === 'function') {
+        window.DailyBriefingWidget.renderWidget();
+      }
+    } catch (widgetErr) {
+      console.error("DailyBriefingWidget render error in app.js:", widgetErr);
     }
 
     // 🎯 모듈 이동 시에는 최상단으로, 동일 모듈 새로고침 시 스크롤 위치 복원
@@ -1418,10 +1422,14 @@ window.App = (function () {
       }
     }
 
-    renderActiveModule(false);
-
-    if (isUserAction && window.innerWidth <= 900) {
-      closeDrawer();
+    try {
+      renderActiveModule(false);
+    } catch (err) {
+      console.error("Error during switchModule renderActiveModule:", err);
+    } finally {
+      if (isUserAction && window.innerWidth <= 900) {
+        closeDrawer();
+      }
     }
   }
 

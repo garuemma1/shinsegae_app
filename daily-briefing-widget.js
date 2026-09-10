@@ -31,7 +31,12 @@ window.DailyBriefingWidget = (function () {
 
   function aggregateBriefingData(targetDateStr) {
     const data = window.SheetsSync.getData ? window.SheetsSync.getData() : {};
-    const employees = data.employees || [];
+    const employees = (window.SheetsSync && typeof window.SheetsSync.getEmployees === 'function')
+      ? window.SheetsSync.getEmployees()
+      : (data.employees || []);
+    const scheduleRecords = (window.SheetsSync && typeof window.SheetsSync.getSchedule === 'function')
+      ? window.SheetsSync.getSchedule()
+      : (data.schedule || []);
     const worklogs = (window.SheetsSync && typeof window.SheetsSync.getWorklogs === 'function')
       ? window.SheetsSync.getWorklogs()
       : (data.worklogs || []);
@@ -233,8 +238,9 @@ window.DailyBriefingWidget = (function () {
   }
 
   function renderWidget() {
-    const container = document.getElementById('daily-briefing-widget-mount');
-    if (!container) return;
+    try {
+      const container = document.getElementById('daily-briefing-widget-mount');
+      if (!container) return;
 
     const currUser = window.SheetsSync.getCurrentUser ? window.SheetsSync.getCurrentUser() : null;
     if (!currUser) {
@@ -670,6 +676,9 @@ window.DailyBriefingWidget = (function () {
     `;
 
     container.innerHTML = html;
+    } catch (err) {
+      console.error("DailyBriefingWidget.renderWidget caught error:", err);
+    }
   }
 
   function toggleExpand() {

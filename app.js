@@ -484,10 +484,9 @@ window.App = (function () {
       const suppliesList = (window.SheetsSync.getSupplies ? window.SheetsSync.getSupplies() : data.supplies) || [];
       const pendingSupplies = suppliesList.filter(s => s.status === 'PENDING');
 
-      // ⏳ 유효기간 & 제약사 반품 대장 (expiry-returns)
+      // ⏳ 유효기간 & 제약사 반품 대장 (expiry-returns: 신규/변동 시 N 뱃지, 확인 시 즉시 소멸)
       const expiryReturnsList = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : data.expiryReturns) || [];
       const hasUnreadExpiryReturns = _hasUnreadExpiryReturns(currUser, expiryReturnsList);
-      const pendingOrProcessingReturns = expiryReturnsList.filter(r => r.status === 'PENDING_RETURN' || r.status === 'PROCESSING_RETURN');
 
       return {
         notices: hasNewNotice ? 'N' : null,
@@ -495,7 +494,7 @@ window.App = (function () {
         supplies: pendingSupplies.length > 0 ? pendingSupplies.length : null,
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
-        'expiry-returns': hasUnreadExpiryReturns ? 'N' : (pendingOrProcessingReturns.length > 0 && isDirector ? pendingOrProcessingReturns.length : null),
+        'expiry-returns': hasUnreadExpiryReturns ? 'N' : null,
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
         discountPurchase: (unpaidPurchases.length > 0 && hasUnreadDiscount) ? (isDirector ? unpaidPurchases.length : 'N') : (hasUnreadDiscount ? 'N' : null),

@@ -2324,14 +2324,10 @@ window.SheetsSync = (function () {
         }
       }
 
-      // 6. 스케줄 상태 및 반려 코멘트 병합 (APPROVED 상태 절대 보호 - 역행 방지)
+      // 6. 스케줄 상태 및 반려 코멘트 병합 (타임스탬프 기반 Last-Write-Wins 정밀 동기화)
       if (cloudData.scheduleStatus) {
         const localStatus = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {};
 
-        // 상태 우선순위: APPROVED(3) > SUBMITTED(2) > DRAFT(1) > 미제출(0)
-        const STATUS_LEVEL = { 'APPROVED': 3, 'SUBMITTED': 2, 'DRAFT': 1 };
-
-        // monthKey 단위로 스마트 병합 (높은 상태값이 항상 승리)
         const mergedStatus = {};
         const allMonthKeys = new Set([...Object.keys(localStatus), ...Object.keys(cloudData.scheduleStatus)]);
 
@@ -2343,33 +2339,26 @@ window.SheetsSync = (function () {
           if (localMonth && !cloudMonth) { mergedStatus[monthKey] = localMonth; return; }
           if (!localMonth && !cloudMonth) return;
 
-          // 두 쪽 다 있으면 항목별로 높은 상태 보존
-          const merged = { ...cloudMonth, ...localMonth }; // 기본은 로컬 우선
+          const lTime = Number(localMonth.updatedAt || localMonth.rejectedTimestamp || localMonth.approvedTimestamp || localMonth.lastSubmittedAt) || 0;
+          const cTime = Number(cloudMonth.updatedAt || cloudMonth.rejectedTimestamp || cloudMonth.approvedTimestamp || cloudMonth.lastSubmittedAt) || 0;
 
-          // directorApproved가 어느 한쪽이라도 true면 무조건 true 보호
-          if (cloudMonth.directorApproved === true || localMonth.directorApproved === true) {
-            merged.directorApproved = true;
-            merged.pharmacistStatus = 'APPROVED';
-            merged.staffStatus = 'APPROVED';
-          }
+          // 전체 월별 마스터 객체: 더 최근에 액션(승인/반려/제출)을 취한 쪽을 1순위 기반으로 채택
+          const base = (cTime > lTime) ? { ...localMonth, ...cloudMonth } : { ...cloudMonth, ...localMonth };
 
-          // 각 직원 상태: 더 높은 단계를 항상 보존
-          Object.keys(merged).forEach(k => {
-            if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed')) {
-              const localLevel = STATUS_LEVEL[localMonth[k]] || 0;
-              const cloudLevel = STATUS_LEVEL[cloudMonth ? cloudMonth[k] : null] || 0;
-              // 둘 중 더 높은 상태 채택
-              merged[k] = localLevel >= cloudLevel
-                ? (localMonth[k] || cloudMonth[k])
-                : (cloudMonth[k] || localMonth[k]);
-              // directorApproved=true인 월이면 모든 직원 APPROVED 강제 유지
-              if (merged.directorApproved === true && merged[k] !== 'APPROVED') {
-                merged[k] = 'APPROVED';
+          // 개별 직원 상태 타임스탬프 정밀 병합 (약국장의 반려 DRAFT 상태가 과거 APPROVED에 덮어써지지 않도록 보호)
+          Object.keys(base).forEach(k => {
+            if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed') && !k.includes('_updatedAt') && !k.includes('_lastSubmittedAt')) {
+              const lEmpTime = Number(localMonth[k + '_updatedAt'] || localMonth[k + '_lastSubmittedAt']) || lTime;
+              const cEmpTime = Number(cloudMonth[k + '_updatedAt'] || cloudMonth[k + '_lastSubmittedAt']) || cTime;
+              if (cEmpTime > lEmpTime) {
+                base[k] = cloudMonth[k] || localMonth[k];
+              } else {
+                base[k] = localMonth[k] || cloudMonth[k];
               }
             }
           });
 
-          mergedStatus[monthKey] = merged;
+          mergedStatus[monthKey] = base;
         });
 
         const cur = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS);
@@ -2651,23 +2640,7 @@ window.SheetsSync = (function () {
           deletedIds: getDeletedIds(),
           employees: cleanEmps,
           empPermissions: safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS) ? JSON.parse(safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS)) : {},
-          scheduleStatus: (() => {
-            const raw = safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {};
-            // 🛡️ 업로드 전 APPROVED 상태 무결성 보호: directorApproved=true인 월은 모든 직원 APPROVED 강제 유지
-            Object.keys(raw).forEach(mKey => {
-              const mo = raw[mKey];
-              if (mo && mo.directorApproved === true) {
-                Object.keys(mo).forEach(k => {
-                  if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed')) {
-                    mo[k] = 'APPROVED';
-                  }
-                });
-                mo.pharmacistStatus = 'APPROVED';
-                mo.staffStatus = 'APPROVED';
-              }
-            });
-            return raw;
-          })(),
+          scheduleStatus: safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS) ? JSON.parse(safeGetItem(STORAGE_KEYS.SCHEDULE_STATUS)) : {},
           pharmacistRates: getPharmacistRates(),
           overtimeAdjustments: getOvertimeAdjustments(),
           discountPurchases: getDiscountPurchases(),

@@ -1910,10 +1910,13 @@ window.ScheduleModule = (function () {
     let statusObj = scheduleStatus[monthKey] || {};
     
     // 내 상태를 '제출 완료(SUBMITTED)'로 변경 및 제출 시각/직원 기록
+    const now = Date.now();
     statusObj[currUser.id] = 'SUBMITTED';
-    statusObj[currUser.id + '_lastSubmittedAt'] = Date.now();
+    statusObj[currUser.id + '_lastSubmittedAt'] = now;
+    statusObj[currUser.id + '_updatedAt'] = now;
     statusObj.lastSubmittedEmpName = currUser.name;
-    statusObj.lastSubmittedAt = Date.now();
+    statusObj.lastSubmittedAt = now;
+    statusObj.updatedAt = now;
     statusObj.hasNewSubmission = true; // 약국장 알림 뱃지 트리가용
 
     scheduleStatus[monthKey] = statusObj;
@@ -2029,13 +2032,30 @@ window.ScheduleModule = (function () {
     let statusObj = scheduleStatus[monthKey] || {};
 
     // 해당 직원을 DRAFT로 전환하고 개별 피드백 저장
+    const now = Date.now();
     statusObj[targetEmp.id] = 'DRAFT';
     statusObj[targetEmp.id + '_comment'] = note;
     statusObj[targetEmp.id + '_dismissed'] = false;
+    statusObj[targetEmp.id + '_updatedAt'] = now;
     statusObj.directorComment = `[${targetEmp.name}님 지정 피드백] ${note}`;
     statusObj.directorApproved = false;
+    statusObj.rejectedTimestamp = now;
+    statusObj.updatedAt = now;
+
+    // 직원/약사 그룹 제출 상태 보정
+    const empIsPharmacist = targetEmp.role && targetEmp.role.includes('약사');
+    if (empIsPharmacist) {
+      statusObj.pharmacistStatus = 'SUBMITTED';
+    } else {
+      statusObj.staffStatus = 'SUBMITTED';
+    }
 
     scheduleStatus[monthKey] = statusObj;
+
+    try {
+      localStorage.setItem(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(scheduleStatus));
+    } catch(e) {}
+
     window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
     render('module-content');
     alert(`↩️ ${targetEmp.name} 님의 스케줄이 반려(재조율 요청) 처리되었습니다.`);

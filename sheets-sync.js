@@ -2339,18 +2339,22 @@ window.SheetsSync = (function () {
           if (localMonth && !cloudMonth) { mergedStatus[monthKey] = localMonth; return; }
           if (!localMonth && !cloudMonth) return;
 
-          const lTime = Number(localMonth.updatedAt || localMonth.rejectedTimestamp || localMonth.approvedTimestamp || localMonth.lastSubmittedAt) || 0;
-          const cTime = Number(cloudMonth.updatedAt || cloudMonth.rejectedTimestamp || cloudMonth.approvedTimestamp || cloudMonth.lastSubmittedAt) || 0;
+          const parseTime = (val) => {
+            const n = Number(val);
+            return (!isNaN(n) && n > 1000000000000) ? n : 0;
+          };
+          const lTime = parseTime(localMonth.updatedAt) || parseTime(localMonth.rejectedTimestamp) || parseTime(localMonth.approvedTimestamp) || parseTime(localMonth.lastSubmittedAt);
+          const cTime = parseTime(cloudMonth.updatedAt) || parseTime(cloudMonth.rejectedTimestamp) || parseTime(cloudMonth.approvedTimestamp) || parseTime(cloudMonth.lastSubmittedAt);
 
-          // 전체 월별 마스터 객체: 더 최근에 액션(승인/반려/제출)을 취한 쪽을 1순위 기반으로 채택
-          const base = (cTime > lTime) ? { ...localMonth, ...cloudMonth } : { ...cloudMonth, ...localMonth };
+          // 전체 월별 마스터 객체: 더 최근에 액션(승인/반려/제출)을 취한 쪽을 1순위 기반으로 채택 (동일 시 클라우드 1순위)
+          const base = (cTime >= lTime) ? { ...localMonth, ...cloudMonth } : { ...cloudMonth, ...localMonth };
 
           // 개별 직원 상태 타임스탬프 정밀 병합 (약국장의 반려 DRAFT 상태가 과거 APPROVED에 덮어써지지 않도록 보호)
           Object.keys(base).forEach(k => {
             if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed') && !k.includes('_updatedAt') && !k.includes('_lastSubmittedAt')) {
-              const lEmpTime = Number(localMonth[k + '_updatedAt'] || localMonth[k + '_lastSubmittedAt']) || lTime;
-              const cEmpTime = Number(cloudMonth[k + '_updatedAt'] || cloudMonth[k + '_lastSubmittedAt']) || cTime;
-              if (cEmpTime > lEmpTime) {
+              const lEmpTime = parseTime(localMonth[k + '_updatedAt']) || parseTime(localMonth[k + '_lastSubmittedAt']) || lTime;
+              const cEmpTime = parseTime(cloudMonth[k + '_updatedAt']) || parseTime(cloudMonth[k + '_lastSubmittedAt']) || cTime;
+              if (cEmpTime >= lEmpTime) {
                 base[k] = cloudMonth[k] || localMonth[k];
               } else {
                 base[k] = localMonth[k] || cloudMonth[k];

@@ -190,8 +190,9 @@ window.ScheduleModule = (function () {
                       '<span class="badge bg-warning text-dark py-2 px-3" style="font-size:14px;">📝 작성 및 조율 중</span>')}
                   </div>
                   ${myStatus !== 'APPROVED' ? `
-                    <button type="button" class="btn btn-primary font-bold shadow-sm" onclick="ScheduleModule.submitMySchedule()" style="border-radius:12px; padding:10px 24px;">
-                      📤 내 스케줄 최종 제출하기
+                    <button type="button" class="btn btn-primary font-bold shadow-sm" onclick="ScheduleModule.openSubmitConfirmModal()" style="border-radius:12px; padding:10px 22px; font-size:14px; display:inline-flex; align-items:center; gap:8px;">
+                      <i class="fas fa-paper-plane"></i>
+                      ${myStatus === 'SUBMITTED' ? '🔄 스케줄 다시 제출하기' : '📤 내 스케줄 최종 제출하기'}
                     </button>
                   ` : ''}
                 </div>
@@ -377,7 +378,26 @@ window.ScheduleModule = (function () {
 <!-- 💰 [순서 변경 1] 급여 정산표 영역: 스크롤 최소화를 위해 달력 위로 배치 (고급형 UI) -->
       ${(currUser && currUser.role === '약국장') ? renderSettlementDashboard(employees, scheduleRecords) : renderStaffPersonalPaystubSection(currUser)}
 
-    
+      <!-- 🛡️ [실수 방지 2중 안전망] 직원 근무스케줄 최종 제출 확인 팝업 모달 -->
+      <div class="modal-overlay" id="schedule-submit-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.65); z-index:999999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
+        <div class="modal-card" style="background:#ffffff; border-radius:20px; max-width:520px; width:92%; padding:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); position:relative;">
+          <div class="d-flex justify-content-between align-items-center pb-3 border-bottom mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:36px; height:36px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; justify-content:center; align-items:center; font-size:18px;">
+                <i class="fas fa-paper-plane"></i>
+              </div>
+              <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">
+                📅 ${currentMonth}월 근무 스케줄 최종 제출 확인
+              </h3>
+            </div>
+            <button type="button" class="close-btn" onclick="ScheduleModule.closeSubmitConfirmModal()" style="background:none; border:none; font-size:24px; color:#64748b; cursor:pointer; line-height:1;">&times;</button>
+          </div>
+
+          <div id="schedule-submit-confirm-content">
+            <!-- JS 동적 렌더링 -->
+          </div>
+        </div>
+      </div>
      
       <!-- 자율 출퇴근 시간 및 OFF(휴무) 설정 모달 -->
       <div class="modal-overlay" id="shift-modal" style="display:none;">
@@ -688,7 +708,7 @@ window.ScheduleModule = (function () {
             </h3>
           </div>
           <div class="d-flex align-items-center gap-3">
-            <span style="font-size:12.5px; color:#cbd5e1;" class="d-none d-md-inline">전체 ${employees.length}인 자율 제출 상세 명단</span>
+            <span style="font-size:12.5px; color:#cbd5e1;" class="d-none d-md-inline">전체 ${employees.length}인 근무 신청 및 제출 현황 상세</span>
             <button type="button" class="btn btn-sm btn-outline-light font-bold" onclick="ScheduleModule.toggleSubmittedDetails()" style="border-radius:10px; padding:6px 16px; font-size:13px;">
               <i class="fas fa-chevron-up me-1"></i> 상세 내역 접기 ▲
             </button>
@@ -697,13 +717,26 @@ window.ScheduleModule = (function () {
 
         <div class="card-body" style="padding:20px;">
           <div class="accordion" id="directorSubmittedScheduleAccordion">
-            ${employeeDetails.map((item, idx) => {
+            ${(() => {
+              const data = window.SheetsSync.getData();
+              const statusObj = ((data.scheduleStatus || {})[monthKey]) || {};
+              return employeeDetails.map((item, idx) => {
               const emp = item.emp;
               const isPharmacist = emp.role.includes('약사') || emp.role === '약국장';
               const roleBadge = isPharmacist ? '💊 근무약사' : '💻 일반직원';
               const roleBg = isPharmacist ? '#dbeafe' : '#dcfce7';
               const roleColor = isPharmacist ? '#1e40af' : '#15803d';
               const hasRecords = item.records.length > 0;
+
+              const empStatus = statusObj[emp.id] || 'DRAFT';
+              let statusBadge = '';
+              if (empStatus === 'APPROVED') {
+                statusBadge = '<span class="badge bg-success" style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-check-circle me-1"></i> 확정(APPROVED)</span>';
+              } else if (empStatus === 'SUBMITTED') {
+                statusBadge = '<span class="badge bg-info text-white" style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-clock me-1"></i> 제출완료(대기)</span>';
+              } else {
+                statusBadge = '<span class="badge bg-warning text-dark" style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-edit me-1"></i> 미제출·작성중</span>';
+              }
 
               return `
                 <div class="accordion-item mb-3" style="border:1.5px solid #e2e8f0; border-radius:14px; overflow:hidden; background:#ffffff;">
@@ -713,6 +746,7 @@ window.ScheduleModule = (function () {
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                           <span style="font-size:15px; font-weight:800; color:#0f172a; white-space:nowrap;">👤 ${emp.name} (${emp.position || emp.role})</span>
                           <span style="background:${roleBg}; color:${roleColor}; font-size:11.5px; padding:3px 8px; border-radius:6px; font-weight:700; white-space:nowrap;">${roleBadge}</span>
+                          ${statusBadge}
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
                           <span style="font-size:13px; color:#475569; white-space:nowrap;">신청 근무일수: <strong style="color:#0f172a;">${item.records.length}일</strong></span>
@@ -764,7 +798,8 @@ window.ScheduleModule = (function () {
                   </div>
                 </div>
               `;
-            }).join('')}
+            }).join('');
+          })()}
           </div>
         </div>
       </div>
@@ -1892,8 +1927,111 @@ window.ScheduleModule = (function () {
 
  
 // 1. 개인 자율 스케줄 제출 함수
-  // 1. 개인 자율 스케줄 제출 함수
-  function submitMySchedule() {
+  // 1-1. 개인 자율 스케줄 제출 확인 모달 오픈 (실수 제출 방지 2중 안전망)
+  function openSubmitConfirmModal() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) {
+      alert("⚠️ 스케줄 제출을 위해 먼저 로그인해 주세요.");
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
+
+    const data = window.SheetsSync.getData();
+    const scheduleRecords = data.schedule || [];
+    const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+
+    const empRecords = scheduleRecords.filter(r => r.empId === currUser.id && r.date && r.date.startsWith(monthKey) && r.shift !== 'OFF');
+    
+    let totalNetHours = 0;
+    let weekdayHours = 0;
+    let holidayHours = 0;
+
+    empRecords.forEach(rec => {
+      const d = new Date(rec.date);
+      const multInfo = window.LaborCalculator ? window.LaborCalculator.getDateMultiplierInfo(rec.date) : { isHoliday: false };
+      const isSun = d.getDay() === 0;
+      const isSat = d.getDay() === 6;
+      const isWeekendOrHoliday = isSun || isSat || multInfo.isHoliday;
+
+      const recBreak = (rec.breakHours !== undefined && rec.breakHours !== null && !isNaN(rec.breakHours)) ? Number(rec.breakHours) : 1.0;
+      const netH = window.LaborCalculator ? window.LaborCalculator.calculateShiftNetHours(rec.startTime, rec.endTime, rec.shift, recBreak) : 8;
+      totalNetHours += netH;
+      if (isWeekendOrHoliday) {
+        holidayHours += netH;
+      } else {
+        weekdayHours += netH;
+      }
+    });
+
+    totalNetHours = Math.round(totalNetHours * 10) / 10;
+    weekdayHours = Math.round(weekdayHours * 10) / 10;
+    holidayHours = Math.round(holidayHours * 10) / 10;
+
+    const content = document.getElementById('schedule-submit-confirm-content');
+    if (content) {
+      content.innerHTML = `
+        <div class="card p-3 mb-3" style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span style="font-size:13.5px; font-weight:700; color:#475569;">작성자</span>
+            <span style="font-size:14px; font-weight:800; color:#0f172a;">👤 ${currUser.name} (${currUser.position || currUser.role})</span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span style="font-size:13.5px; font-weight:700; color:#475569;">신청 근무 일수</span>
+            <span style="font-size:14px; font-weight:800; color:#2563eb;">총 ${empRecords.length}일 근무</span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+            <span style="font-size:13.5px; font-weight:700; color:#475569;">총 신청 실근무시수</span>
+            <span style="font-size:15.5px; font-weight:800; color:#15803d;">
+              ⏱️ ${totalNetHours}시간
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-left:4px;">(평일: ${weekdayHours}h / 주말·공휴: ${holidayHours}h)</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="alert p-3 mb-4" style="background:#fffbeb; border:1.5px solid #fef08a; border-radius:14px; color:#854d0e; font-size:13px; line-height:1.6;">
+          <div class="d-flex align-items-center gap-2 mb-1" style="font-weight:800; font-size:13.5px; color:#b45309;">
+            <i class="fas fa-exclamation-triangle"></i> 제출 전 필수 확인 안내
+          </div>
+          <div>
+            1. 약국장님께 최종 제출하신 후에는, 약국장님의 <strong>[개별 재수정 요청(반려)]</strong>이 있기 전까지 본인이 스케줄을 임의로 변경할 수 없습니다.<br>
+            2. 신청하신 <strong>근무 일자, 출퇴근 시간 및 휴게시간</strong>이 모두 맞는지 다시 한번 확인해 주세요.
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 flex-wrap">
+          <button type="button" class="btn btn-secondary font-bold" onclick="ScheduleModule.closeSubmitConfirmModal()" style="border-radius:10px; padding:10px 18px; font-size:13.5px;">
+            ✕ 취소 및 계속 작성
+          </button>
+          <button type="button" class="btn btn-primary font-bold shadow-sm" onclick="ScheduleModule.confirmAndSubmitMySchedule()" style="border-radius:10px; padding:10px 22px; font-size:13.5px; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
+            <i class="fas fa-paper-plane me-1"></i> 📤 약국장님께 최종 제출 확정
+          </button>
+        </div>
+      `;
+    }
+
+    const modal = document.getElementById('schedule-submit-confirm-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  }
+
+  // 1-2. 제출 확인 모달 닫기
+  function closeSubmitConfirmModal() {
+    const modal = document.getElementById('schedule-submit-confirm-modal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  // 1-3. 모달에서 [최종 제출 확정] 클릭 시 실제 제출 실행 함수
+  function confirmAndSubmitMySchedule() {
+    closeSubmitConfirmModal();
+    executeSubmitMySchedule();
+  }
+
+  function executeSubmitMySchedule() {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) {
       alert("⚠️ 스케줄 제출을 위해 먼저 로그인해 주세요.");
@@ -1917,13 +2055,32 @@ window.ScheduleModule = (function () {
     statusObj.lastSubmittedEmpName = currUser.name;
     statusObj.lastSubmittedAt = now;
     statusObj.updatedAt = now;
-    statusObj.hasNewSubmission = true; // 약국장 알림 뱃지 트리가용
+    statusObj.hasNewSubmission = true; // 약국장 알림 뱃지 트리거용
+
+    // 역할에 따른 그룹 상태 보정
+    if (currUser.role && currUser.role.includes('약사')) {
+      statusObj.pharmacistStatus = 'SUBMITTED';
+    } else {
+      statusObj.staffStatus = 'SUBMITTED';
+    }
 
     scheduleStatus[monthKey] = statusObj;
+
+    // 🛡️ 1단계: localStorage 즉시 저장
+    try {
+      localStorage.setItem(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, JSON.stringify(scheduleStatus));
+    } catch(e) {}
+
+    // 🛡️ 2단계: SheetsSync 저장 및 클라우드 업로드
     window.SheetsSync.saveData(window.SheetsSync.STORAGE_KEYS.SCHEDULE_STATUS, scheduleStatus);
 
     render('module-content');
     alert("📤 " + currentMonth + "월 스케줄이 약국장님께 성공적으로 제출되었습니다!\n(약국장님 화면에 실시간 알림 뱃지와 제출자 알림 카드가 즉시 생성됩니다)");
+  }
+
+  // 1-4. 기존 submitMySchedule 호환 (외부 호출 시에도 확인창 우선 오픈)
+  function submitMySchedule() {
+    openSubmitConfirmModal();
   }
 
   // 2. 약국장 통합 마스터 승인 함수
@@ -3056,6 +3213,9 @@ window.ScheduleModule = (function () {
   window.openMatchInspectionModal = openMatchInspectionModal;
   window.confirmMatchInspection = confirmMatchInspection;
   window.toggleEmployeeAccordion = toggleEmployeeAccordion;
+  window.openSubmitConfirmModal = openSubmitConfirmModal;
+  window.closeSubmitConfirmModal = closeSubmitConfirmModal;
+  window.confirmAndSubmitMySchedule = confirmAndSubmitMySchedule;
 
   const exportedModule = {
     render,
@@ -3091,6 +3251,9 @@ window.ScheduleModule = (function () {
     setPresetTime,
     saveCustomShift,
     showPaystubModal,
+    openSubmitConfirmModal,
+    closeSubmitConfirmModal,
+    confirmAndSubmitMySchedule,
     submitMySchedule,
     approveMasterSchedule,
     rejectMasterSchedule,

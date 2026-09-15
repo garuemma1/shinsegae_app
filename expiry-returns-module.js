@@ -150,6 +150,30 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       const processingList = allReturns.filter(r => r.status === 'PROCESSING_RETURN');
       const completedList = allReturns.filter(r => r.status === 'COMPLETED');
 
+      // 🚨 3단계 조기경보 통계 연산 (미완료 대상: PENDING_RETURN, PROCESSING_RETURN)
+      const activeReturns = allReturns.filter(r => r.status !== 'COMPLETED');
+
+      // 1단계: D-30 초긴급 & 만료
+      const criticalList = activeReturns.filter(r => {
+        const d = calculateExpiryDDay(r.expiryDate);
+        return d.status === 'EXPIRED' || d.status === 'CRITICAL';
+      });
+      const totalCriticalAmount = criticalList.reduce((sum, r) => sum + parseVal(r.estimatedReturnAmount), 0);
+
+      // 2단계: D-90 경고 (3개월 이내)
+      const urgentList = activeReturns.filter(r => {
+        const d = calculateExpiryDDay(r.expiryDate);
+        return d.status === 'URGENT';
+      });
+      const totalUrgentAmount = urgentList.reduce((sum, r) => sum + parseVal(r.estimatedReturnAmount), 0);
+
+      // 3단계: D-180 주의 (6개월 이내)
+      const warningList = activeReturns.filter(r => {
+        const d = calculateExpiryDDay(r.expiryDate);
+        return d.status === 'WARNING';
+      });
+      const totalWarningAmount = warningList.reduce((sum, r) => sum + parseVal(r.estimatedReturnAmount), 0);
+
       const expiredCount = allReturns.filter(r => {
         const d = calculateExpiryDDay(r.expiryDate);
         return d.status === 'EXPIRED';
@@ -183,11 +207,15 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                 <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300 whitespace-nowrap">
                   실시간 반품 파이프라인
                 </span>
-                ${urgent3MCount > 0 ? `
-                  <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-black border border-red-300 animate-pulse">
-                    🚨 3개월 임박 ${urgent3MCount}건
+                ${criticalList.length > 0 ? `
+                  <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black border border-red-700 animate-pulse shadow-sm">
+                    🚨 1단계 초긴급 ${criticalList.length}건
                   </span>
-                ` : ''}
+                ` : (urgentList.length > 0 ? `
+                  <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-bold border border-amber-600">
+                    ⚠️ 2단계 경고 ${urgentList.length}건
+                  </span>
+                ` : '')}
               </div>
               <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed break-keep">
                 조제실/매대 3~6개월 전 유효기간 임박약 등록 ➔ 각 도매상·제약사별 반품 요청서 자동 집계 ➔ 약국장 최종 정산 승인
@@ -214,6 +242,99 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                 <i class="fas fa-file-invoice text-blue-600"></i>
                 <span>반품명세서 추출</span>
               </button>
+            </div>
+          </div>
+
+          <!-- 🚨 D-Day 3단계 조기경보 대시보드 (Early Warning Center) -->
+          <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-md border border-indigo-900/50 space-y-3">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-indigo-800/40 pb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="text-base sm:text-lg">⚠️</span>
+                <span class="text-sm sm:text-base font-extrabold tracking-tight">유효기간 D-Day 3단계 조기경보 센터</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40">
+                  실시간 재고 손실 방어
+                </span>
+              </div>
+              <div class="flex items-center gap-2 text-xs flex-wrap">
+                ${criticalList.length > 0 ? `
+                  <span class="text-rose-400 font-bold flex items-center gap-1">
+                    <i class="fas fa-exclamation-triangle animate-pulse"></i> 초긴급 반품 요망 (${criticalList.length}건)
+                  </span>
+                  <button type="button" onclick="ExpiryReturnsModule.copyCriticalReturnSms()" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] shadow transition flex items-center gap-1">
+                    <i class="fas fa-comment-dots"></i> <span>도매상 수거요청 문자복사</span>
+                  </button>
+                ` : `
+                  <span class="text-emerald-400 font-bold flex items-center gap-1">
+                    <i class="fas fa-shield-alt"></i> 초긴급 만료약 없음 (안전)
+                  </span>
+                `}
+              </div>
+            </div>
+
+            <!-- 3단계 위험도 원터치 필터 카드 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+              <!-- 1단계: 초긴급 -->
+              <div 
+                onclick="ExpiryReturnsModule.setPeriodFilter('CRITICAL')"
+                class="cursor-pointer bg-red-950/40 hover:bg-red-900/50 p-3 rounded-xl border border-red-500/40 transition group ${periodFilter === 'CRITICAL' ? 'ring-2 ring-red-400 bg-red-900/60' : ''}"
+              >
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <span class="font-extrabold text-red-300 flex items-center gap-1">
+                    <i class="fas fa-skull-crossbones text-red-400"></i> 🔴 1단계: D-30 초긴급
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/30 text-red-200 font-bold">즉시반품</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-1">
+                  <span class="text-2xl font-black text-red-200">
+                    ${criticalList.length}<span class="text-xs font-normal ml-0.5 text-red-300/80">건</span>
+                  </span>
+                  <span class="text-xs font-semibold text-red-300">
+                    ${formatKRW(totalCriticalAmount)}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 2단계: 경고 (3개월 이내) -->
+              <div 
+                onclick="ExpiryReturnsModule.setPeriodFilter('URGENT')"
+                class="cursor-pointer bg-amber-950/40 hover:bg-amber-900/50 p-3 rounded-xl border border-amber-500/40 transition group ${periodFilter === 'URGENT' ? 'ring-2 ring-amber-400 bg-amber-900/60' : ''}"
+              >
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <span class="font-extrabold text-amber-300 flex items-center gap-1">
+                    <i class="fas fa-exclamation-circle text-amber-400"></i> 🟠 2단계: D-90 경고 (3개월)
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 font-bold">소진·반품준비</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-1">
+                  <span class="text-2xl font-black text-amber-200">
+                    ${urgentList.length}<span class="text-xs font-normal ml-0.5 text-amber-300/80">건</span>
+                  </span>
+                  <span class="text-xs font-semibold text-amber-300">
+                    ${formatKRW(totalUrgentAmount)}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 3단계: 주의 (6개월 이내) -->
+              <div 
+                onclick="ExpiryReturnsModule.setPeriodFilter('WARNING')"
+                class="cursor-pointer bg-yellow-950/40 hover:bg-yellow-900/50 p-3 rounded-xl border border-yellow-500/40 transition group ${periodFilter === 'WARNING' ? 'ring-2 ring-yellow-400 bg-yellow-900/60' : ''}"
+              >
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <span class="font-extrabold text-yellow-300 flex items-center gap-1">
+                    <i class="fas fa-eye text-yellow-400"></i> 🟡 3단계: D-180 주의 (6개월)
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/30 text-yellow-200 font-bold">처방동향 점검</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-1">
+                  <span class="text-2xl font-black text-yellow-200">
+                    ${warningList.length}<span class="text-xs font-normal ml-0.5 text-yellow-300/80">건</span>
+                  </span>
+                  <span class="text-xs font-semibold text-yellow-300">
+                    ${formatKRW(totalWarningAmount)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -351,19 +472,22 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
               <span class="text-slate-300">|</span>
 
-              <!-- 유효기간 잔여 기간 필터 -->
-              <span class="text-[11px] font-bold text-slate-400">유효기간:</span>
+              <!-- 유효기간 3단계 조기경보 필터 -->
+              <span class="text-[11px] font-bold text-slate-400">D-Day 조기경보:</span>
               <button onclick="ExpiryReturnsModule.setPeriodFilter('ALL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'ALL' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-600 border-slate-200'}">
                 전체기한
               </button>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('EXPIRED')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'EXPIRED' ? 'bg-red-600 text-white border-red-600' : 'bg-slate-50 text-red-600 border-slate-200'}">
-                🔴 만료초과 (${expiredCount})
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('CRITICAL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'CRITICAL' ? 'bg-red-600 text-white border-red-600' : 'bg-slate-50 text-red-600 border-slate-200'}">
+                🔴 1단계: D-30 초긴급 (${criticalList.length})
               </button>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('3M')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === '3M' ? 'bg-rose-500 text-white border-rose-500' : 'bg-slate-50 text-rose-600 border-slate-200'}">
-                ⚠️ 3개월 이내 (${urgent3MCount})
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('URGENT')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'URGENT' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-amber-700 border-slate-200'}">
+                🟠 2단계: D-90 경고 (${urgentList.length})
               </button>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('6M')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === '6M' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-amber-700 border-slate-200'}">
-                💡 6개월 이내
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('WARNING')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'WARNING' ? 'bg-yellow-500 text-yellow-950 border-yellow-500' : 'bg-slate-50 text-yellow-800 border-slate-200'}">
+                🟡 3단계: D-180 주의 (${warningList.length})
+              </button>
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('EXPIRED')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'EXPIRED' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-700 border-slate-200'}">
+                만료초과 (${expiredCount})
               </button>
 
               <span class="text-slate-300">|</span>
@@ -425,9 +549,12 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
         // 거래처 필터
         if (vendorFilter !== 'ALL' && item.vendor !== vendorFilter) return false;
 
-        // 유효기간 기간 필터
+        // 유효기간 기간 필터 (3단계 조기경보 지원)
         if (periodFilter !== 'ALL') {
           const dday = calculateExpiryDDay(item.expiryDate);
+          if (periodFilter === 'CRITICAL' && dday.status !== 'CRITICAL' && dday.status !== 'EXPIRED') return false;
+          if (periodFilter === 'URGENT' && dday.status !== 'URGENT') return false;
+          if (periodFilter === 'WARNING' && dday.status !== 'WARNING') return false;
           if (periodFilter === 'EXPIRED' && dday.status !== 'EXPIRED') return false;
           if (periodFilter === '3M' && dday.status !== 'CRITICAL' && dday.status !== 'URGENT' && dday.status !== 'EXPIRED') return false;
           if (periodFilter === '6M' && dday.days > 180) return false;
@@ -1799,6 +1926,56 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       selectedPhotos = [];
     }
 
+    // 🚨 [조기경보] 도매상 초긴급 반품 수거 요청 문자 템플릿 복사
+    function copyCriticalReturnSms(vendorName = null) {
+      const allReturns = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : []) || [];
+      const activeReturns = allReturns.filter(r => r.status !== 'COMPLETED');
+      let targets = activeReturns.filter(r => {
+        const d = calculateExpiryDDay(r.expiryDate);
+        return d.status === 'EXPIRED' || d.status === 'CRITICAL';
+      });
+
+      if (vendorName) {
+        targets = targets.filter(r => r.vendor === vendorName);
+      }
+
+      if (targets.length === 0) {
+        alert('현재 초긴급(D-30 이내) 또는 만료된 반품 대상 약품이 없습니다.');
+        return;
+      }
+
+      const vendorGroup = {};
+      targets.forEach(t => {
+        const v = t.vendor || '기타 도매상';
+        if (!vendorGroup[v]) vendorGroup[v] = [];
+        vendorGroup[v].push(t);
+      });
+
+      let text = `[신세계약국] 🚨 유효기간 임박 반품 수거 요청\n`;
+      text += `담당자님 안녕하십니까, 신세계약국입니다.\n아래 품목의 유효기간이 임박(D-30 이내)하여 빠른 수거 및 반품 전표 발행 요청드립니다.\n\n`;
+
+      Object.keys(vendorGroup).forEach(v => {
+        text += `■ [${v}] (${vendorGroup[v].length}개 품목)\n`;
+        vendorGroup[v].forEach((item, idx) => {
+          const specStr = item.spec ? ` (${item.spec})` : '';
+          text += `  ${idx + 1}. ${item.drugName}${specStr} ${item.qty || 1}${item.unit || '개'} (유효: ${item.expiryDate})\n`;
+        });
+        text += `\n`;
+      });
+
+      text += `방문 시 반품 수거 부탁드립니다. 감사합니다.`;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('📋 도매상 반품 요청 문자 양식이 클립보드에 복사되었습니다!\n카카오톡 또는 문자에 붙여넣기(Ctrl+V)하여 전송하세요.');
+        }).catch(() => {
+          prompt('아래 텍스트를 복사하세요:', text);
+        });
+      } else {
+        prompt('아래 텍스트를 복사하세요:', text);
+      }
+    }
+
     // ────────────────────────────────────────────────────────────
     // 🚀 외부 공개 API 리턴
     // ────────────────────────────────────────────────────────────
@@ -1838,7 +2015,8 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       handleVendorSelect,
       copyVendorStatement,
       copyStatementText,
-      updateStatementContent
+      updateStatementContent,
+      copyCriticalReturnSms
     };
 
   })();

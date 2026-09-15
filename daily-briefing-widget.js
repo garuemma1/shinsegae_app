@@ -221,6 +221,30 @@ window.DailyBriefingWidget = (function () {
     // 결재 대기 건수 (연차/휴가 미결재)
     const pendingLeavesCount = leaveRequests.filter(l => l.status === 'PENDING').length;
 
+    // 🚨 유효기간 3단계 조기경보 실시간 집계 (미정산 건 대상)
+    const activeReturns = expiryReturns.filter(e => e.status !== 'COMPLETED');
+    const nowTime = Date.now();
+    const criticalReturns = [];
+    const urgentReturns = [];
+    activeReturns.forEach(e => {
+      if (!e.expiryDate) return;
+      const clean = String(e.expiryDate).trim().replace(/\./g, '-').replace(/\//g, '-');
+      let target;
+      if (/^\d{4}-\d{2}$/.test(clean)) {
+        const parts = clean.split('-');
+        target = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 23, 59, 59);
+      } else {
+        target = new Date(clean + 'T23:59:59');
+      }
+      if (isNaN(target.getTime())) return;
+      const diffDays = Math.ceil((target.getTime() - nowTime) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 30) {
+        criticalReturns.push(e);
+      } else if (diffDays <= 90) {
+        urgentReturns.push(e);
+      }
+    });
+
     return {
       targetDateStr,
       onDutyStaff,
@@ -233,7 +257,9 @@ window.DailyBriefingWidget = (function () {
       dayRxMeds,
       dayReturns,
       dayNotices,
-      pendingLeavesCount
+      pendingLeavesCount,
+      criticalReturns,
+      urgentReturns
     };
   }
 
@@ -594,9 +620,15 @@ window.DailyBriefingWidget = (function () {
               💊 약품위치 <strong style="color:#15803d;">${b.dayOtcMeds.length + b.dayRxMeds.length}건</strong>
             </div>
 
-            <div class="briefing-chip" style="background:#fef2f2; color:#991b1b; border:1px solid #fecaca;">
-              ⚠️ 반품 <strong style="color:#dc2626;">${b.dayReturns.length}건</strong>
-            </div>
+            ${b.criticalReturns.length > 0 ? `
+              <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fee2e2; color:#b91c1c; border:1.5px solid #ef4444; cursor:pointer;">
+                🚨 초긴급반품 <strong style="color:#dc2626;">${b.criticalReturns.length}건</strong>
+              </div>
+            ` : `
+              <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fef2f2; color:#991b1b; border:1px solid #fecaca; cursor:pointer;">
+                ⚠️ 반품 <strong style="color:#dc2626;">${b.dayReturns.length}건</strong>
+              </div>
+            `}
 
             ${b.dayNotices.length > 0 ? `
               <div class="briefing-chip" style="background:#faf5ff; color:#6b21a8; border:1px solid #e9d5ff;">
@@ -610,6 +642,26 @@ window.DailyBriefingWidget = (function () {
               </div>
             ` : ''}
           </div>
+
+          <!-- 🚨 유효기간 3단계 초긴급 조기경보 알림 배너 (전 직원 즉각 인지) -->
+          ${b.criticalReturns.length > 0 ? `
+            <div onclick="App.switchModule('expiry-returns', true)" style="margin-top:10px; padding:10px 14px; background:linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius:10px; color:#ffffff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(185,28,28,0.25);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:16px;">🚨</span>
+                <div>
+                  <div style="font-size:12.5px; font-weight:800; letter-spacing:-0.2px;">
+                    유효기간 D-30 초긴급 반품 대상 약품 ${b.criticalReturns.length}건 발생!
+                  </div>
+                  <div style="font-size:11px; opacity:0.85; margin-top:2px;">
+                    ${b.criticalReturns.slice(0, 3).map(c => `${c.drugName}(${c.vendor || '도매상'})`).join(', ')}${b.criticalReturns.length > 3 ? ' 외' : ''} ➔ 지금 바로 확인 및 인계하기
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-light font-bold" style="font-size:11px; padding:3px 8px; border-radius:6px; flex-shrink:0;">
+                반품대장 ➔
+              </button>
+            </div>
+          ` : ''}
 
           <!-- 3단: 🌟 업무일지 특이사항 & 인수인계 전 직원 실시간 공유 배너 (글자 짤림 완전 제거 & 전문 표시) -->
           ${b.importantLogs.length > 0 ? `

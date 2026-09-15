@@ -546,9 +546,25 @@ window.App = (function () {
       const suppliesList = (window.SheetsSync.getSupplies ? window.SheetsSync.getSupplies() : data.supplies) || [];
       const pendingSupplies = suppliesList.filter(s => s.status === 'PENDING');
 
-      // ⏳ 유효기간 & 제약사 반품 대장 (expiry-returns: 신규/변동 시 N 뱃지, 확인 시 즉시 소멸)
+      // ⏳ 유효기간 & 제약사 반품 대장 (3단계 조기경보: D-30 초긴급/만료 건수 숫자 뱃지, 미확인 시 N 뱃지)
       const expiryReturnsList = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : data.expiryReturns) || [];
       const hasUnreadExpiryReturns = _hasUnreadExpiryReturns(currUser, expiryReturnsList);
+      const activeExpiryList = expiryReturnsList.filter(r => r.status !== 'COMPLETED');
+      const nowTime = Date.now();
+      const criticalExpiryList = activeExpiryList.filter(r => {
+        if (!r.expiryDate) return false;
+        const clean = String(r.expiryDate).trim().replace(/\./g, '-').replace(/\//g, '-');
+        let target;
+        if (/^\d{4}-\d{2}$/.test(clean)) {
+          const parts = clean.split('-');
+          target = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 23, 59, 59);
+        } else {
+          target = new Date(clean + 'T23:59:59');
+        }
+        if (isNaN(target.getTime())) return false;
+        const diffDays = Math.ceil((target.getTime() - nowTime) / (1000 * 60 * 60 * 24));
+        return diffDays <= 30;
+      });
 
       // 💊 인근약국 교품 & 불용재고 대장 (pharmacy-exchange: 미정산 교품 건수 또는 신규/변동 시 N 뱃지)
       const peData = (window.SheetsSync.getPharmacyExchange ? window.SheetsSync.getPharmacyExchange() : (data.pharmacyExchange || { exchanges: [], deadStocks: [] })) || { exchanges: [], deadStocks: [] };
@@ -568,7 +584,7 @@ window.App = (function () {
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
         'pharmacy-exchange': pendingExchanges.length > 0 ? pendingExchanges.length : (hasUnreadPE ? 'N' : null),
-        'expiry-returns': hasUnreadExpiryReturns ? 'N' : null,
+        'expiry-returns': criticalExpiryList.length > 0 ? criticalExpiryList.length : (hasUnreadExpiryReturns ? 'N' : null),
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
         discountPurchase: (unpaidPurchases.length > 0 && hasUnreadDiscount) ? (isDirector ? unpaidPurchases.length : 'N') : (hasUnreadDiscount ? 'N' : null),

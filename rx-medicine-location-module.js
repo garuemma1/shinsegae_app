@@ -488,7 +488,8 @@ window.RxMedicineLocationModule = (function () {
 
   function renderItemCard(item) {
     const zoneObj = DEFAULT_ZONES.find(z => z.id === item.zoneId) || DEFAULT_ZONES[0];
-    const historyCount = item.history ? item.history.length : 1;
+    const historyList = (item.history && Array.isArray(item.history)) ? item.history : [];
+    const historyCount = historyList.length + 1;
     const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || {};
     const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
     const allPhotos = (item.photos && Array.isArray(item.photos) && item.photos.length > 0)
@@ -801,7 +802,7 @@ window.RxMedicineLocationModule = (function () {
     const target = items.find(i => i.id === id);
     if (!target) return;
 
-    const history = target.history || [];
+    const history = (target.history && Array.isArray(target.history)) ? target.history : [];
     const zoneObj = DEFAULT_ZONES.find(z => z.id === target.zoneId) || DEFAULT_ZONES[0];
     const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || {};
     const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';

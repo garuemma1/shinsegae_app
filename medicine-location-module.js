@@ -281,7 +281,8 @@ window.MedicineLocationModule = (function () {
 
   function renderMedicineCard(item) {
     const zone = DEFAULT_ZONES.find(z => z.id === item.zoneId) || { name: item.zoneName || '일반구역', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: 'fa-box' };
-    const historyCount = item.history ? item.history.length : 1;
+    const historyList = (item.history && Array.isArray(item.history)) ? item.history : [];
+    const historyCount = historyList.length + 1;
     const allPhotos = (item.photos && Array.isArray(item.photos) && item.photos.length > 0)
       ? item.photos
       : (item.photoUrl ? [item.photoUrl] : []);
@@ -645,7 +646,7 @@ window.MedicineLocationModule = (function () {
     const target = items.find(i => i.id === id);
     if (!target) return;
 
-    const history = target.history || [];
+    const history = (target.history && Array.isArray(target.history)) ? target.history : [];
     const zone = DEFAULT_ZONES.find(z => z.id === target.zoneId) || { name: target.zoneName, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' };
     const allPhotos = (target.photos && Array.isArray(target.photos) && target.photos.length > 0)
       ? target.photos

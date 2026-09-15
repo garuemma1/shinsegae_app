@@ -24,6 +24,7 @@ window.SheetsSync = (function () {
     SUPPLY_PRESETS: 'ssg_supply_presets_v1',
     EXPIRY_RETURNS: 'ssg_expiry_returns_v1',
     PHARMACY_EXCHANGE: 'ssg_pharmacy_exchange_v1',
+    PATIENT_ORDERS: 'ssg_patient_orders_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -40,6 +41,7 @@ window.SheetsSync = (function () {
     'medicine-location-module',
     'rx-medicine-location-module',
     'pharmacy-exchange-module',
+    'patient-orders-module',
     'expiry-returns-module',
     'schedule-module',
     'annual-leave-module',
@@ -1824,6 +1826,16 @@ window.SheetsSync = (function () {
     pushToCloud();
   }
 
+  function getPatientOrders() {
+    const raw = safeGetItem(STORAGE_KEYS.PATIENT_ORDERS);
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  function savePatientOrders(data) {
+    safeSetItem(STORAGE_KEYS.PATIENT_ORDERS, JSON.stringify(data));
+    pushToCloud();
+  }
+
   // ⚡ 신세계약국-일일결산26 정식 배포 Apps Script 웹앱 URL (메일 발송, 일일결산, 스마트정산 전용)
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbyhPnLdy53ExpzHW66U0m7hqmcBksBfKpFYkILQTUjxtng30FLevf9cdMSbqbeYQ97x/exec";
   const CLOUD_SYNC_RELAY_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
@@ -2170,6 +2182,7 @@ window.SheetsSync = (function () {
       let suppliesChanged = false;
       let expiryReturnsChanged = false;
       let pharmacyExchangeChanged = false;
+      let patientOrdersChanged = false;
 
       // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.notices && Array.isArray(cloudData.notices)) {
@@ -2300,6 +2313,17 @@ window.SheetsSync = (function () {
           }));
           updated = true;
           pharmacyExchangeChanged = true;
+        }
+      }
+
+      // 4-5. 📋 환자 예약 주문 & 선결제 관리 스마트 비파괴 양방향 융합
+      if (cloudData.patientOrders && Array.isArray(cloudData.patientOrders)) {
+        const localOrders = getPatientOrders() || [];
+        const mergedOrders = mergeById(localOrders, cloudData.patientOrders, 'updatedAt');
+        if (isListDifferent(localOrders, mergedOrders)) {
+          safeSetItem(STORAGE_KEYS.PATIENT_ORDERS, JSON.stringify(mergedOrders));
+          updated = true;
+          patientOrdersChanged = true;
         }
       }
 
@@ -2594,6 +2618,7 @@ window.SheetsSync = (function () {
           else if (currMod === 'rx-medicine-location' && rxMedLocationsChanged) activeModChanged = true;
           else if (currMod === 'supplies' && suppliesChanged) activeModChanged = true;
           else if (currMod === 'pharmacy-exchange' && pharmacyExchangeChanged) activeModChanged = true;
+          else if (currMod === 'patient-orders' && patientOrdersChanged) activeModChanged = true;
           else if (currMod === 'pharmacy-settlement' && (scheduleChanged || paystubsChanged || ratesChanged)) activeModChanged = true;
 
           if (activeModChanged && window.App && typeof window.App.renderActiveModule === 'function') {
@@ -2689,6 +2714,7 @@ window.SheetsSync = (function () {
           supplyPresets: getSupplyPresets(),
           expiryReturns: getExpiryReturns(),
           pharmacyExchange: getPharmacyExchange(),
+          patientOrders: getPatientOrders(),
           gasUrls: getGasUrls(),
           buildingRentalDashboard: (() => {
             try {
@@ -2875,6 +2901,8 @@ window.SheetsSync = (function () {
       if (targetData.paystubs) safeSetItem(STORAGE_KEYS.PAYSTUBS, JSON.stringify(targetData.paystubs));
       if (targetData.overtimeAdjustments) safeSetItem(STORAGE_KEYS.OVERTIME_ADJUSTMENTS, JSON.stringify(targetData.overtimeAdjustments));
       if (targetData.pharmacistRates) safeSetItem('ssg_pharmacist_rates_v1', JSON.stringify(targetData.pharmacistRates));
+      if (targetData.pharmacyExchange) safeSetItem(STORAGE_KEYS.PHARMACY_EXCHANGE, JSON.stringify(targetData.pharmacyExchange));
+      if (targetData.patientOrders) safeSetItem(STORAGE_KEYS.PATIENT_ORDERS, JSON.stringify(targetData.patientOrders));
 
       // 클라우드에도 즉시 전송
       pushToCloud();
@@ -3081,7 +3109,9 @@ window.SheetsSync = (function () {
       pharmacySettlement: getPharmacySettlement(),
       buildingRental: getBuildingRental(),
       paystubs: getPaystubs(),
-      overtimeAdjustments: getOvertimeAdjustments()
+      overtimeAdjustments: getOvertimeAdjustments(),
+      pharmacyExchange: getPharmacyExchange(),
+      patientOrders: getPatientOrders()
     };
   }
 
@@ -3183,6 +3213,8 @@ window.SheetsSync = (function () {
     deleteExpiryReturn,
     getPharmacyExchange,
     savePharmacyExchange,
+    getPatientOrders,
+    savePatientOrders,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

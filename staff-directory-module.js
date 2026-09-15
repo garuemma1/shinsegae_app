@@ -407,7 +407,7 @@ window.StaffDirectoryModule = (function () {
                       : (Array.isArray(emp.allowedTabs)
                           ? emp.allowedTabs
                           : [
-                              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
+                              'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
                               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
                             ]);
 
@@ -415,6 +415,7 @@ window.StaffDirectoryModule = (function () {
                       { id: 'notices-module', name: '📢 공지사항' },
                       { id: 'worklog-module', name: '📝 업무일지' },
                       { id: 'supplies-module', name: '📦 약국 소모품' },
+                      { id: 'patient-orders-module', name: '📋 환자 예약 주문' },
                       { id: 'medicine-location-module', name: '💊 일반약 위치' },
                       { id: 'rx-medicine-location-module', name: '💉 전문약 위치' },
                       { id: 'pharmacy-exchange-module', name: '🤝 교품 & 불용재고' },
@@ -804,7 +805,7 @@ window.StaffDirectoryModule = (function () {
       : (Array.isArray(target.allowedTabs)
           ? target.allowedTabs
           : [
-              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
+              'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
             ]);
 

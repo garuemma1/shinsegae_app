@@ -11,6 +11,7 @@ window.App = (function () {
     'notices': '📢 공지사항 & 업무 SOP',
     'worklog': '📝 약국 업무일지 & 인수인계',
     'supplies': '📦 약국 소모품 관리 & 주문 시스템',
+    'patient-orders': '📋 환자 예약 주문 & 선결제 관리',
     'medicine-location': '💊 일반약 위치 관리 & 위치 검색',
     'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
     'pharmacy-exchange': '💊 인근약국 교품 & 불용재고 대장',
@@ -30,6 +31,7 @@ window.App = (function () {
     'notices': 'fa-bullhorn',
     'worklog': 'fa-pen-fancy',
     'supplies': 'fa-boxes-stacked',
+    'patient-orders': 'fa-clipboard-list',
     'medicine-location': 'fa-boxes-packing',
     'rx-medicine-location': 'fa-pills',
     'pharmacy-exchange': 'fa-handshake',
@@ -412,6 +414,34 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
+  // ─── 환자 예약 주문 & 선결제 관리 읽음 상태 관리 헬퍼 ─────────────────────────────
+  function _patientOrderFingerprint(item) {
+    if (!item) return '';
+    const dateClean = String(item.updatedAt || item.createdAt || '').trim();
+    return [item.id || '', dateClean, item.status || '', item.paymentStatus || '', item.patientName || '', item.drugName || ''].join('|');
+  }
+
+  function markPatientOrdersRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const orders = (window.SheetsSync.getPatientOrders ? window.SheetsSync.getPatientOrders() : (window.SheetsSync.getData().patientOrders || [])) || [];
+    const fingerprints = orders.map(_patientOrderFingerprint);
+    try {
+      localStorage.setItem('ssg_read_patient_orders_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadPatientOrders(currUser, orders) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_patient_orders_' + currUser.id);
+      if (raw === null) return false;
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return (orders || []).some(item => !savedSet.has(_patientOrderFingerprint(item)));
+    } catch(e) { return false; }
+  }
+
   // ─── 직원할인구매대장 읽음 상태 관리 헬퍼 ─────────────────────────────────────
   function _discountPurchaseFingerprint(item) {
     if (!item) return '';
@@ -525,10 +555,16 @@ window.App = (function () {
       const pendingExchanges = (peData.exchanges || []).filter(e => e.status !== 'SETTLED_RETURN' && e.status !== 'SETTLED_MONEY');
       const hasUnreadPE = _hasUnreadPharmacyExchange(currUser, peData);
 
+      // 📋 환자 예약 주문 & 선결제 관리 (patient-orders: 미수령 입고약/주문접수 건수 또는 신규/변동 시 N 뱃지)
+      const patientOrdersList = (window.SheetsSync.getPatientOrders ? window.SheetsSync.getPatientOrders() : (data.patientOrders || [])) || [];
+      const pendingPatientOrders = patientOrdersList.filter(o => o.status === 'ARRIVED' || o.status === 'PENDING_ORDER');
+      const hasUnreadPatientOrders = _hasUnreadPatientOrders(currUser, patientOrdersList);
+
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
         supplies: pendingSupplies.length > 0 ? pendingSupplies.length : null,
+        'patient-orders': pendingPatientOrders.length > 0 ? pendingPatientOrders.length : (hasUnreadPatientOrders ? 'N' : null),
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
         'pharmacy-exchange': pendingExchanges.length > 0 ? pendingExchanges.length : (hasUnreadPE ? 'N' : null),
@@ -620,7 +656,7 @@ window.App = (function () {
 
     // 맞춤 허용 탭 목록 (개인별 권한) - 약국장 수동 설정 100% 보존
     let allowed = Array.isArray(currUser.allowedTabs) ? currUser.allowedTabs : [
-      'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module',
+      'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module',
       'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
 
@@ -639,10 +675,10 @@ window.App = (function () {
       html += `
         <button class="menu-item ${activeModule === 'notices' ? 'active' : ''}" data-module="notices" onclick="App.switchModule('notices', true)">
           <div class="menu-icon-wrapper">
-            <i class="fas fa-bullhorn"></i>
+            <i class="fas fa-bullhorn text-primary"></i>
             ${badges.notices ? `<span class="menu-item-badge">${badges.notices}</span>` : ''}
           </div>
-          <span>공지사항 & SOP</span>
+          <span>공지사항 & 업무 SOP</span>
         </button>
       `;
     }
@@ -651,10 +687,10 @@ window.App = (function () {
       html += `
         <button class="menu-item ${activeModule === 'worklog' ? 'active' : ''}" data-module="worklog" onclick="App.switchModule('worklog', true)">
           <div class="menu-icon-wrapper">
-            <i class="fas fa-pen-fancy"></i>
+            <i class="fas fa-pen-fancy text-primary"></i>
             ${badges.worklog ? `<span class="menu-item-badge">${badges.worklog}</span>` : ''}
           </div>
-          <span>업무일지 & 인수인계</span>
+          <span>약국 업무일지</span>
         </button>
       `;
     }
@@ -668,6 +704,19 @@ window.App = (function () {
             ${badges.supplies ? `<span class="menu-item-badge">${badges.supplies}</span>` : ''}
           </div>
           <span>약국 소모품 관리</span>
+        </button>
+      `;
+    }
+
+    // 📋 환자 예약 주문 & 선결제 관리
+    if (isDirector || allowed.includes('patient-orders-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'patient-orders' ? 'active' : ''}" data-module="patient-orders" onclick="App.switchModule('patient-orders', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-clipboard-list" style="color:#0284c7;"></i>
+            ${badges['patient-orders'] ? `<span class="menu-item-badge">${badges['patient-orders']}</span>` : ''}
+          </div>
+          <span>환자 예약 주문 & 선결제</span>
         </button>
       `;
     }
@@ -1145,6 +1194,9 @@ window.App = (function () {
           if (el) el.innerHTML = window.SuppliesModule.renderHTML();
         }
         break;
+      case 'patient-orders':
+        if (window.PatientOrdersModule) window.PatientOrdersModule.render('module-content');
+        break;
       case 'medicine-location':
         if (window.MedicineLocationModule) window.MedicineLocationModule.render('module-content');
         break;
@@ -1441,6 +1493,9 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'rx-medicine-location') {
         markRxMedicineLocationRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'patient-orders') {
+        markPatientOrdersRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'pharmacy-exchange') {
         markPharmacyExchangeRead();

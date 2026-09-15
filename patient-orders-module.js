@@ -173,12 +173,39 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       renderPhotoPreviews();
     }
 
+    // 천연자 님 초기 결제 및 상태 데이터 자동 1회 정상화
+    function repairInitialDataIfNeeded() {
+      try {
+        const list = getStorageData();
+        let changed = false;
+        list.forEach(item => {
+          if (item.patientName === '천연자' && (item.status === 'COMPLETED' || item.payType === 'PAID_FULL')) {
+            item.status = 'PENDING_ORDER';
+            item.payType = 'UNPAID';
+            item.totalPrice = 270000;
+            item.paidAmount = 0;
+            item.unpaidBalance = 270000;
+            item.updatedAt = Date.now();
+            changed = true;
+          }
+        });
+        if (changed) {
+          saveStorageData(list);
+        }
+      } catch (e) {
+        console.warn('repairInitialDataIfNeeded error:', e);
+      }
+    }
+
     // ==========================================
     // 🎨 메인 뷰 렌더링
     // ==========================================
     function render(containerId) {
       const container = document.getElementById(containerId || 'module-content');
       if (!container) return;
+
+      // 천연자 님 초기 결제/상태 데이터 자동 1회 정상화
+      repairInitialDataIfNeeded();
 
       const items = getStorageData() || [];
 
@@ -198,7 +225,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               <span>📋 환자 예약 주문 & 선결제 관리</span>
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed break-keep">
-              손님 맞춤 의약품/영양제 예약 접수, 선결제 정산, 입고 시 원터치 문자 안내 발송
+              전화/구두 예약 접수 및 도매상 발주 ➔ 약국 입고 시 원터치 문자 안내 ➔ 손님 수령 및 잔액 결제 완결
             </p>
           </div>
           <button type="button" class="w-full sm:w-auto flex-1 sm:flex-initial btn btn-primary font-bold text-xs px-3.5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white shadow-md transition flex items-center justify-center gap-1.5 whitespace-nowrap" onclick="PatientOrdersModule.openCreateModal()">
@@ -215,12 +242,12 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">총 누적 예약</span>
               <span class="text-lg font-black text-slate-800 dark:text-slate-200 mt-1">${items.length}건</span>
             </div>
-            <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-xl p-3 flex flex-col justify-between">
-              <span class="text-[11px] font-bold text-amber-700 dark:text-amber-400">⏳ 주문 대기</span>
+            <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-xl p-3 flex flex-col justify-between cursor-pointer" onclick="PatientOrdersModule.setFilter('PENDING_ORDER')">
+              <span class="text-[11px] font-bold text-amber-700 dark:text-amber-400">⏳ 1단계: 주문 접수/발주 대기</span>
               <span class="text-lg font-black text-amber-900 dark:text-amber-200 mt-1">${pendingOrderCount}건</span>
             </div>
-            <div class="bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 rounded-xl p-3 flex flex-col justify-between ${arrivedCount > 0 ? 'ring-2 ring-teal-500 ring-offset-1' : ''}">
-              <span class="text-[11px] font-bold text-teal-700 dark:text-teal-400">📦 입고 완료 (미수령)</span>
+            <div class="bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 rounded-xl p-3 flex flex-col justify-between cursor-pointer ${arrivedCount > 0 ? 'ring-2 ring-teal-500 ring-offset-1' : ''}" onclick="PatientOrdersModule.setFilter('ARRIVED')">
+              <span class="text-[11px] font-bold text-teal-700 dark:text-teal-400">📦 2단계: 약국 입고 (미수령)</span>
               <span class="text-lg font-black text-teal-900 dark:text-teal-200 mt-1">${arrivedCount}건</span>
             </div>
             <div class="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 rounded-xl p-3 flex flex-col justify-between">
@@ -242,13 +269,13 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               전체 보기 (${items.length})
             </button>
             <button type="button" onclick="PatientOrdersModule.setFilter('PENDING_ORDER')" class="px-3 py-1.5 rounded-full text-xs font-black transition ${activeFilter === 'PENDING_ORDER' ? 'bg-amber-600 text-white shadow' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">
-              ⏳ 주문 접수/대기 (${pendingOrderCount})
+              ⏳ 1단계: 주문 접수/발주 대기 (${pendingOrderCount})
             </button>
             <button type="button" onclick="PatientOrdersModule.setFilter('ARRIVED')" class="px-3 py-1.5 rounded-full text-xs font-black transition ${activeFilter === 'ARRIVED' ? 'bg-teal-600 text-white shadow' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">
-              📦 입고 완료 (미수령) (${arrivedCount})
+              📦 2단계: 약국 입고 (미수령) (${arrivedCount})
             </button>
             <button type="button" onclick="PatientOrdersModule.setFilter('COMPLETED')" class="px-3 py-1.5 rounded-full text-xs font-black transition ${activeFilter === 'COMPLETED' ? 'bg-slate-700 text-white shadow' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">
-              ✅ 수령 완료 (${completedCount})
+              ✅ 3단계: 고객 수령 완료 (${completedCount})
             </button>
           </div>
         </div>
@@ -260,6 +287,9 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 
         <!-- 📝 신규 예약 등록 모달창 -->
         ${renderModalHTML()}
+
+        <!-- ✏️ 예약 주문 수정 모달창 -->
+        ${renderEditModalHTML()}
 
         <!-- 💬 입고 안내 문자 전송 팝업 모달창 -->
         ${renderSmsModalHTML()}
@@ -312,6 +342,16 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               : (item.photoUrl ? [item.photoUrl] : []);
             const mainPhoto = allPhotos[0] || '';
 
+            // 상태별 배지
+            let statusBadge = '';
+            if (status === 'ARRIVED') {
+              statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-teal-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-box"></i> 📦 2단계: 약국 입고 완료 (미수령)</span>';
+            } else if (status === 'COMPLETED') {
+              statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-check-circle"></i> ✅ 3단계: 고객 수령 완료</span>';
+            } else {
+              statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-hourglass-half"></i> ⏳ 1단계: 주문 접수 & 도매상 발주</span>';
+            }
+
             // 선결제 상태 레이블 및 색상
             let payBadge = '';
             if (item.payType === 'PAID_FULL') {
@@ -323,14 +363,19 @@ if (typeof window.PatientOrdersModule === 'undefined') {
             }
 
             return `
-              <div class="bg-white dark:bg-slate-900 border ${isArrived ? 'border-teal-400 dark:border-teal-700 shadow-md ring-2 ring-teal-500/20' : (isCompleted ? 'border-slate-200 dark:border-slate-800 opacity-75' : 'border-amber-200 dark:border-amber-900')} rounded-2xl overflow-hidden flex flex-col justify-between transition relative">
+              <div class="bg-white dark:bg-slate-900 border ${isArrived ? 'border-teal-400 dark:border-teal-700 shadow-md ring-2 ring-teal-500/20' : (isCompleted ? 'border-slate-200 dark:border-slate-800 opacity-80' : 'border-amber-200 dark:border-amber-900')} rounded-2xl overflow-hidden flex flex-col justify-between transition relative">
                 <div>
+                  <!-- 카드 상단 상태 바 -->
+                  <div class="px-4 pt-3.5 pb-2 flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40">
+                    <div>${statusBadge}</div>
+                    <button type="button" onclick="PatientOrdersModule.openEditModal('${item.id}')" class="px-2 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 transition flex items-center gap-1 shadow-sm">
+                      <i class="fas fa-edit text-teal-600"></i> <span>수정</span>
+                    </button>
+                  </div>
+
                   ${mainPhoto ? `
                     <div class="relative w-full h-36 bg-slate-100 dark:bg-slate-950 overflow-hidden border-b border-slate-100 dark:border-slate-800 cursor-pointer" onclick="PatientOrdersModule.openPhoto('${item.id}', 0)">
                       <img src="${mainPhoto}" alt="${escapeHTML(item.patientName)}" class="w-full h-full object-cover" />
-                      <span class="absolute top-2.5 left-2.5 text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-sm ${status === 'ARRIVED' ? 'bg-teal-600 text-white' : (status === 'COMPLETED' ? 'bg-slate-600 text-white' : 'bg-amber-600 text-white')}">
-                        ${status === 'ARRIVED' ? '📦 입고 완료 (미수령)' : (status === 'COMPLETED' ? '✅ 수령 완료' : '⏳ 주문 접수')}
-                      </span>
                       ${allPhotos.length > 1 ? `
                         <span class="absolute top-2.5 right-2.5 text-[11px] font-black px-2 py-0.5 rounded-full shadow-md bg-black/75 text-white">
                           📷 ${allPhotos.length}장
@@ -342,7 +387,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
                   <div class="p-4 space-y-3">
                     <div class="flex items-center justify-between gap-2">
                       <div class="flex items-center gap-1.5">
-                        <span class="text-sm font-black text-slate-900 dark:text-white">
+                        <span class="text-base font-black text-slate-900 dark:text-white">
                           👤 ${escapeHTML(item.patientName)}
                         </span>
                         <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
@@ -358,7 +403,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
                       </div>
                       <div class="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mt-1.5">
                         <span>수량: <strong class="text-sm font-black text-teal-600">${escapeHTML(item.quantity)}</strong> ${escapeHTML(item.unit || '개')}</span>
-                        <span>총액: <strong class="text-slate-800 dark:text-slate-200">₩ ${Math.round(Number(item.totalPrice) || 0).toLocaleString()}원</strong></span>
+                        <span>총 예정액: <strong class="text-slate-800 dark:text-slate-200">₩ ${Math.round(Number(item.totalPrice) || 0).toLocaleString()}원</strong></span>
                       </div>
                     </div>
 
@@ -384,19 +429,25 @@ if (typeof window.PatientOrdersModule === 'undefined') {
                   <!-- 원터치 상태 전환 버튼 군 -->
                   <div class="grid grid-cols-2 gap-1.5 pt-1 border-t border-slate-200 dark:border-slate-800">
                     ${status === 'PENDING_ORDER' ? `
-                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'ARRIVED')" class="w-full col-span-2 px-2.5 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white shadow-sm">
-                        <i class="fas fa-box-open"></i> 📦 약품 입고 완료 (문자 발송)
+                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'ARRIVED')" class="w-full col-span-2 px-2.5 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white shadow-sm">
+                        <i class="fas fa-box-open"></i> 📦 약국에 약 도착 ➔ 입고 완료 처리 (문자 발송)
                       </button>
                     ` : (status === 'ARRIVED' ? `
-                      <button type="button" onclick="PatientOrdersModule.openSmsModal('${item.id}')" class="px-2 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-white dark:bg-slate-800 border border-teal-400 text-teal-700 dark:text-teal-300 hover:bg-teal-50">
-                        <i class="fas fa-comment-dots text-xs"></i> 💬 문자 전송
+                      <button type="button" onclick="PatientOrdersModule.openSmsModal('${item.id}')" class="px-2 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 bg-white dark:bg-slate-800 border border-teal-400 text-teal-700 dark:text-teal-300 hover:bg-teal-50">
+                        <i class="fas fa-comment-dots text-xs"></i> 💬 도착 문자
                       </button>
-                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'COMPLETED')" class="px-2 py-1.5 rounded-lg text-xs font-black transition flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
-                        <i class="fas fa-check-circle text-xs"></i> ✅ 수령 완료
+                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'COMPLETED')" class="px-2 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
+                        <i class="fas fa-check-circle text-xs"></i> ✅ 손님 수령 완료
+                      </button>
+                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'PENDING_ORDER')" class="w-full col-span-2 px-2 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200">
+                        <i class="fas fa-rotate-left text-xs"></i> ↩️ 1단계(주문접수/도매상발주)로 되돌리기
                       </button>
                     ` : `
-                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'ARRIVED')" class="w-full col-span-2 px-2 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200">
-                        <i class="fas fa-rotate-left text-xs"></i> ↩️ 입고 대기 상태로 되돌리기
+                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'ARRIVED')" class="w-full col-span-2 px-2 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 bg-teal-50 border border-teal-300 text-teal-800 hover:bg-teal-100">
+                        <i class="fas fa-rotate-left text-xs"></i> ↩️ 2단계: 약국 입고완료(미수령) 상태로 되돌리기
+                      </button>
+                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'PENDING_ORDER')" class="w-full col-span-2 px-2 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100">
+                        <i class="fas fa-rotate-left text-xs"></i> ↩️ 1단계: 주문 접수 & 도매상 발주 상태로 되돌리기
                       </button>
                     `)}
                   </div>
@@ -464,17 +515,17 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               <div>
                 <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">선결제 여부 구분 <span style="color:#ef4444;">*</span></label>
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #10b981; background:#f0fdf4; color:#047857; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
-                    <input type="radio" name="ord-paytype" value="PAID_FULL" checked onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#059669;">
-                    <span>💰 전액 완납</span>
+                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #ef4444; background:#fef2f2; color:#b91c1c; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-paytype" value="UNPAID" checked onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#dc2626;">
+                    <span>⏳ 수령시 결제</span>
                   </label>
                   <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
                     <input type="radio" name="ord-paytype" value="PAID_PARTIAL" onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#2563eb;">
                     <span>💳 계약금</span>
                   </label>
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #ef4444; background:#fef2f2; color:#b91c1c; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
-                    <input type="radio" name="ord-paytype" value="UNPAID" onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#dc2626;">
-                    <span>⏳ 수령시 결제</span>
+                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #10b981; background:#f0fdf4; color:#047857; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-paytype" value="PAID_FULL" onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#059669;">
+                    <span>💰 전액 완납</span>
                   </label>
                 </div>
               </div>
@@ -544,6 +595,127 @@ if (typeof window.PatientOrdersModule === 'undefined') {
     }
 
     // ==========================================
+    // ✏️ 예약 주문 수정 모달 HTML
+    // ==========================================
+    function renderEditModalHTML() {
+      return `
+        <div id="ord-edit-modal-overlay" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); backdrop-filter:blur(5px); z-index:99999; justify-content:center; align-items:center; padding:16px;">
+          <div class="modal-card shadow-2xl" style="background:#ffffff; border-radius:24px; max-width:540px; width:100%; max-height:90vh; overflow-y:auto; padding:28px; position:relative; box-sizing:border-box;">
+            <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:20px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:40px; height:40px; border-radius:12px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:20px; border:1px solid #bfdbfe;">
+                  <i class="fas fa-edit"></i>
+                </div>
+                <div>
+                  <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">예약 주문 정보 수정</h3>
+                  <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">진행 단계, 결제 상태, 수량, 약품명, 메모를 수정합니다.</p>
+                </div>
+              </div>
+              <button type="button" onclick="PatientOrdersModule.closeEditModal()" style="background:#f1f5f9; border:none; width:32px; height:32px; border-radius:50%; font-size:16px; color:#64748b; cursor:pointer;">&times;</button>
+            </div>
+
+            <form onsubmit="PatientOrdersModule.handleEditSubmit(event)" style="display:flex; flex-direction:column; gap:14px;">
+              <input type="hidden" id="ord-edit-id">
+
+              <!-- 진행 상태 변경 셀렉트 -->
+              <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:12px;">
+                <label style="display:block; font-size:13px; font-weight:800; color:#0f172a; margin-bottom:6px;">
+                  🚩 현재 진행 단계 상태 <span style="color:#ef4444;">*</span>
+                </label>
+                <select id="ord-edit-status" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 12px; font-size:13.5px; font-weight:800; background:#ffffff; color:#0f172a; box-sizing:border-box;">
+                  <option value="PENDING_ORDER">⏳ 1단계: 주문 접수 & 도매상 발주 (입고 대기)</option>
+                  <option value="ARRIVED">📦 2단계: 약국 입고 완료 (손님 미수령)</option>
+                  <option value="COMPLETED">✅ 3단계: 고객 수령 & 결제 완료</option>
+                </select>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">환자 성함 <span style="color:#ef4444;">*</span></label>
+                  <input type="text" id="ord-edit-patient-name" required style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:700; box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">휴대폰 연락처 <span style="color:#ef4444;">*</span></label>
+                  <input type="text" id="ord-edit-phone" required style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:700; box-sizing:border-box;">
+                </div>
+              </div>
+
+              <div>
+                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">주문 약품명 및 규격 <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="ord-edit-drug-name" required style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:700; box-sizing:border-box;">
+              </div>
+
+              <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px;">
+                <div>
+                  <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">수량 <span style="color:#ef4444;">*</span></label>
+                  <input type="number" id="ord-edit-quantity" required min="1" oninput="PatientOrdersModule.calcEditTotal()" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:700; box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">단위</label>
+                  <select id="ord-edit-unit" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 8px; font-size:13.5px; font-weight:700; background:#ffffff; box-sizing:border-box;">
+                    <option value="통/병">통/병 (Btl)</option>
+                    <option value="박스">박스 (Box)</option>
+                    <option value="포/포장">포/포장 (PTP)</option>
+                    <option value="정">정 (T)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">선결제 여부 구분 <span style="color:#ef4444;">*</span></label>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #ef4444; background:#fef2f2; color:#b91c1c; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-edit-paytype" value="UNPAID" onchange="PatientOrdersModule.updateEditPayFields()" style="accent-color:#dc2626;">
+                    <span>⏳ 수령시 결제</span>
+                  </label>
+                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-edit-paytype" value="PAID_PARTIAL" onchange="PatientOrdersModule.updateEditPayFields()" style="accent-color:#2563eb;">
+                    <span>💳 계약금</span>
+                  </label>
+                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #10b981; background:#f0fdf4; color:#047857; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-edit-paytype" value="PAID_FULL" onchange="PatientOrdersModule.updateEditPayFields()" style="accent-color:#059669;">
+                    <span>💰 전액 완납</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 금액 입력 섹션 -->
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; background:#f8fafc; padding:12px; border-radius:12px; border:1px solid #e2e8f0;">
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">총 결제 예정 금액 (원)</label>
+                  <input type="number" id="ord-edit-total-price" oninput="PatientOrdersModule.calcEditTotal()" style="width:100%; border:1.5px solid #cbd5e1; border-radius:8px; padding:8px 10px; font-size:13.5px; font-weight:800; box-sizing:border-box;">
+                </div>
+                <div id="ord-edit-paid-amount-box">
+                  <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">선결제(지불) 금액 (원)</label>
+                  <input type="number" id="ord-edit-paid-amount" oninput="PatientOrdersModule.calcEditTotal()" style="width:100%; border:1.5px solid #cbd5e1; border-radius:8px; padding:8px 10px; font-size:13.5px; font-weight:800; box-sizing:border-box;">
+                </div>
+              </div>
+
+              <!-- 잔액 요약 바 -->
+              <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; font-weight:800; color:#1e40af;">남은 수령 시 결제 잔액</span>
+                <span id="ord-edit-balance-text" style="font-size:15px; font-weight:900; color:#1d4ed8;">₩ 0원</span>
+              </div>
+
+              <div>
+                <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:4px;">참고 메모 / 전달 사항</label>
+                <input type="text" id="ord-edit-notes" placeholder="예: 금요일 저녁 방문 예정, 본인 외 가족 수령 가능" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px; font-size:13px; box-sizing:border-box;">
+              </div>
+
+              <!-- 하단 버튼 바 -->
+              <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+                <button type="button" class="btn btn-secondary" onclick="PatientOrdersModule.closeEditModal()" style="border-radius:10px; padding:10px 18px; font-weight:700;">취소</button>
+                <button type="submit" id="ord-edit-submit-btn" class="btn btn-primary" style="background:#2563eb; border-color:#2563eb; border-radius:10px; padding:10px 24px; font-weight:800; color:#fff;">
+                  <i class="fas fa-check me-1"></i> 수정 저장 완료
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
     // 💬 입고 안내 문자 전송 팝업 모달 HTML
     // ==========================================
     function renderSmsModalHTML() {
@@ -586,7 +758,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 
     function updatePayFields() {
       const typeRadio = document.querySelector('input[name="ord-paytype"]:checked');
-      const payType = typeRadio ? typeRadio.value : 'PAID_FULL';
+      const payType = typeRadio ? typeRadio.value : 'UNPAID';
       const totalInput = document.getElementById('ord-total-price');
       const paidInput = document.getElementById('ord-paid-amount');
       const paidBox = document.getElementById('ord-paid-amount-box');
@@ -606,7 +778,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
     function calcTotal() {
       const total = Number(document.getElementById('ord-total-price')?.value) || 0;
       const typeRadio = document.querySelector('input[name="ord-paytype"]:checked');
-      const payType = typeRadio ? typeRadio.value : 'PAID_FULL';
+      const payType = typeRadio ? typeRadio.value : 'UNPAID';
       const paidInput = document.getElementById('ord-paid-amount');
       
       let paid = 0;
@@ -624,6 +796,170 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const balanceEl = document.getElementById('ord-balance-text');
       if (balanceEl) {
         balanceEl.innerText = `₩ ${balance.toLocaleString()}원`;
+      }
+    }
+
+    // 예약 수정 모달 결제구분 필드 제어
+    function updateEditPayFields() {
+      const typeRadio = document.querySelector('input[name="ord-edit-paytype"]:checked');
+      const payType = typeRadio ? typeRadio.value : 'UNPAID';
+      const totalInput = document.getElementById('ord-edit-total-price');
+      const paidInput = document.getElementById('ord-edit-paid-amount');
+      const paidBox = document.getElementById('ord-edit-paid-amount-box');
+
+      if (payType === 'PAID_FULL') {
+        if (paidBox) paidBox.style.display = 'none';
+        if (paidInput && totalInput) paidInput.value = totalInput.value;
+      } else if (payType === 'PAID_PARTIAL') {
+        if (paidBox) paidBox.style.display = 'block';
+      } else {
+        if (paidBox) paidBox.style.display = 'none';
+        if (paidInput) paidInput.value = '0';
+      }
+      calcEditTotal();
+    }
+
+    // 예약 수정 모달 잔액 계산
+    function calcEditTotal() {
+      const total = Number(document.getElementById('ord-edit-total-price')?.value) || 0;
+      const typeRadio = document.querySelector('input[name="ord-edit-paytype"]:checked');
+      const payType = typeRadio ? typeRadio.value : 'UNPAID';
+      const paidInput = document.getElementById('ord-edit-paid-amount');
+
+      let paid = 0;
+      if (payType === 'PAID_FULL') {
+        paid = total;
+        if (paidInput) paidInput.value = total;
+      } else if (payType === 'PAID_PARTIAL') {
+        paid = Number(paidInput?.value) || 0;
+      } else {
+        paid = 0;
+        if (paidInput) paidInput.value = 0;
+      }
+
+      const balance = Math.max(0, total - paid);
+      const balanceEl = document.getElementById('ord-edit-balance-text');
+      if (balanceEl) {
+        balanceEl.innerText = `₩ ${balance.toLocaleString()}원`;
+      }
+    }
+
+    // 예약 수정 모달 열기
+    function openEditModal(id) {
+      const list = getStorageData();
+      const target = list.find(i => String(i.id) === String(id));
+      if (!target) return;
+
+      const overlay = document.getElementById('ord-edit-modal-overlay');
+      if (!overlay) return;
+
+      const idEl = document.getElementById('ord-edit-id');
+      const statusEl = document.getElementById('ord-edit-status');
+      const nameEl = document.getElementById('ord-edit-patient-name');
+      const phoneEl = document.getElementById('ord-edit-phone');
+      const drugEl = document.getElementById('ord-edit-drug-name');
+      const qtyEl = document.getElementById('ord-edit-quantity');
+      const unitEl = document.getElementById('ord-edit-unit');
+      const totEl = document.getElementById('ord-edit-total-price');
+      const paidEl = document.getElementById('ord-edit-paid-amount');
+      const notesEl = document.getElementById('ord-edit-notes');
+
+      if (idEl) idEl.value = target.id;
+      if (statusEl) statusEl.value = target.status || 'PENDING_ORDER';
+      if (nameEl) nameEl.value = target.patientName || '';
+      if (phoneEl) phoneEl.value = target.phone || '';
+      if (drugEl) drugEl.value = target.drugName || '';
+      if (qtyEl) qtyEl.value = target.quantity || 1;
+      if (unitEl) unitEl.value = target.unit || '통/병';
+      if (totEl) totEl.value = target.totalPrice || 0;
+      if (paidEl) paidEl.value = target.paidAmount || 0;
+      if (notesEl) notesEl.value = target.notes || '';
+
+      const pType = target.payType || 'UNPAID';
+      const targetRadio = document.querySelector(`input[name="ord-edit-paytype"][value="${pType}"]`);
+      if (targetRadio) {
+        targetRadio.checked = true;
+      }
+
+      updateEditPayFields();
+      overlay.style.display = 'flex';
+    }
+
+    // 예약 수정 모달 닫기
+    function closeEditModal() {
+      const overlay = document.getElementById('ord-edit-modal-overlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    // 예약 수정 제출 처리
+    async function handleEditSubmit(e) {
+      if (e) e.preventDefault();
+
+      const editBtn = document.getElementById('ord-edit-submit-btn');
+      if (editBtn) {
+        editBtn.disabled = true;
+        editBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 저장 중...';
+      }
+
+      try {
+        const id = document.getElementById('ord-edit-id')?.value;
+        const list = getStorageData();
+        const target = list.find(i => String(i.id) === String(id));
+        if (!target) {
+          alert('수정 대상을 찾을 수 없습니다.');
+          return;
+        }
+
+        const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || { name: '약국' };
+
+        const newStatus = document.getElementById('ord-edit-status')?.value || 'PENDING_ORDER';
+        const patientName = (document.getElementById('ord-edit-patient-name')?.value || '').trim();
+        const phone = (document.getElementById('ord-edit-phone')?.value || '').trim();
+        const drugName = (document.getElementById('ord-edit-drug-name')?.value || '').trim();
+        const quantity = Number(document.getElementById('ord-edit-quantity')?.value) || 1;
+        const unit = document.getElementById('ord-edit-unit')?.value || '통/병';
+        const typeRadio = document.querySelector('input[name="ord-edit-paytype"]:checked');
+        const payType = typeRadio ? typeRadio.value : 'UNPAID';
+        const totalPrice = Number(document.getElementById('ord-edit-total-price')?.value) || 0;
+        let paidAmount = Number(document.getElementById('ord-edit-paid-amount')?.value) || 0;
+        if (payType === 'PAID_FULL') paidAmount = totalPrice;
+        if (payType === 'UNPAID') paidAmount = 0;
+        const unpaidBalance = Math.max(0, totalPrice - paidAmount);
+        const notes = (document.getElementById('ord-edit-notes')?.value || '').trim();
+
+        const prevStatus = target.status;
+
+        target.status = newStatus;
+        target.patientName = patientName;
+        target.phone = phone;
+        target.drugName = drugName;
+        target.quantity = quantity;
+        target.unit = unit;
+        target.payType = payType;
+        target.totalPrice = totalPrice;
+        target.paidAmount = paidAmount;
+        target.unpaidBalance = unpaidBalance;
+        target.notes = notes;
+        target.updatedBy = currUser.name;
+        target.updatedAt = Date.now();
+
+        saveStorageData(list);
+        closeEditModal();
+        alert(`✅ [${patientName}] 님의 예약 주문 정보가 성공적으로 수정되었습니다!`);
+        render('module-content');
+
+        // 만약 이번 수정으로 상태가 ARRIVED 로 바뀌었다면 안내 문자 모달 자동 노출
+        if (prevStatus !== 'ARRIVED' && newStatus === 'ARRIVED') {
+          openSmsModal(id);
+        }
+      } catch (err) {
+        console.error('handleEditSubmit error:', err);
+        alert('⚠️ 수정 저장 중 오류가 발생했습니다: ' + err.message);
+      } finally {
+        if (editBtn) {
+          editBtn.disabled = false;
+          editBtn.innerHTML = '<i class="fas fa-check me-1"></i> 수정 저장 완료';
+        }
       }
     }
 
@@ -673,7 +1009,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         const quantity = Number(document.getElementById('ord-quantity')?.value) || 1;
         const unit = document.getElementById('ord-unit')?.value || '통/병';
         const typeRadio = document.querySelector('input[name="ord-paytype"]:checked');
-        const payType = typeRadio ? typeRadio.value : 'PAID_FULL';
+        const payType = typeRadio ? typeRadio.value : 'UNPAID';
         const totalPrice = Number(document.getElementById('ord-total-price')?.value) || 0;
         let paidAmount = Number(document.getElementById('ord-paid-amount')?.value) || 0;
         if (payType === 'PAID_FULL') paidAmount = totalPrice;
@@ -846,9 +1182,31 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 
     function openCreateModal() {
       selectedPhotos = [];
+
+      const nameInp = document.getElementById('ord-patient-name');
+      if (nameInp) nameInp.value = '';
+      const phoneInp = document.getElementById('ord-phone');
+      if (phoneInp) phoneInp.value = '';
+      const drugInp = document.getElementById('ord-drug-name');
+      if (drugInp) drugInp.value = '';
+      const qtyInp = document.getElementById('ord-quantity');
+      if (qtyInp) qtyInp.value = '1';
+      const unitInp = document.getElementById('ord-unit');
+      if (unitInp) unitInp.value = '통/병';
+      const totInp = document.getElementById('ord-total-price');
+      if (totInp) totInp.value = '';
+      const paidInp = document.getElementById('ord-paid-amount');
+      if (paidInp) paidInp.value = '0';
+      const notesInp = document.getElementById('ord-notes');
+      if (notesInp) notesInp.value = '';
+
+      const unpaidRadio = document.querySelector('input[name="ord-paytype"][value="UNPAID"]');
+      if (unpaidRadio) unpaidRadio.checked = true;
+
       const overlay = document.getElementById('ord-modal-overlay');
       if (overlay) overlay.style.display = 'flex';
       updatePayFields();
+      resetPhoto();
     }
 
     function closeModal() {
@@ -908,7 +1266,12 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       closeSmsModal,
       copySmsText,
       deleteItem,
-      openPhoto
+      openPhoto,
+      openEditModal,
+      closeEditModal,
+      updateEditPayFields,
+      calcEditTotal,
+      handleEditSubmit
     };
   })();
 }

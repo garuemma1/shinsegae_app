@@ -29,6 +29,7 @@ function Check-Brackets($filePath) {
     'c:\Users\win10\Desktop\shinsegae_app\building-rental-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\medicine-location-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\rx-medicine-location-module.js',
+    'c:\Users\win10\Desktop\shinsegae_app\pharmacy-exchange-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\smart-ledger-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\Code.gs'
 ) | ForEach-Object { Check-Brackets $_ } | Format-Table -AutoSize

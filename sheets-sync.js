@@ -23,6 +23,7 @@ window.SheetsSync = (function () {
     SUPPLIES: 'ssg_supplies_v1',
     SUPPLY_PRESETS: 'ssg_supply_presets_v1',
     EXPIRY_RETURNS: 'ssg_expiry_returns_v1',
+    PHARMACY_EXCHANGE: 'ssg_pharmacy_exchange_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -38,6 +39,7 @@ window.SheetsSync = (function () {
     'supplies-module',
     'medicine-location-module',
     'rx-medicine-location-module',
+    'pharmacy-exchange-module',
     'expiry-returns-module',
     'schedule-module',
     'annual-leave-module',
@@ -1812,6 +1814,16 @@ window.SheetsSync = (function () {
     saveExpiryReturns(list);
   }
 
+  function getPharmacyExchange() {
+    const raw = safeGetItem(STORAGE_KEYS.PHARMACY_EXCHANGE);
+    return raw ? JSON.parse(raw) : { exchanges: [], deadStocks: [] };
+  }
+
+  function savePharmacyExchange(data) {
+    safeSetItem(STORAGE_KEYS.PHARMACY_EXCHANGE, JSON.stringify(data));
+    pushToCloud();
+  }
+
   // ⚡ 신세계약국-일일결산26 정식 배포 Apps Script 웹앱 URL (메일 발송, 일일결산, 스마트정산 전용)
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbyhPnLdy53ExpzHW66U0m7hqmcBksBfKpFYkILQTUjxtng30FLevf9cdMSbqbeYQ97x/exec";
   const CLOUD_SYNC_RELAY_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
@@ -2157,6 +2169,7 @@ window.SheetsSync = (function () {
       let ratesChanged = false;
       let suppliesChanged = false;
       let expiryReturnsChanged = false;
+      let pharmacyExchangeChanged = false;
 
       // 1. 공지사항 & SOP 스마트 비파괴 병합 (삭제된 글 제외)
       if (cloudData.notices && Array.isArray(cloudData.notices)) {
@@ -2271,6 +2284,22 @@ window.SheetsSync = (function () {
           safeSetItem(STORAGE_KEYS.EXPIRY_RETURNS, JSON.stringify(mergedExpiryReturns));
           updated = true;
           expiryReturnsChanged = true;
+        }
+      }
+
+      // 4-4. 💊 인근약국 교품 & 불용재고 대장 스마트 비파괴 양방향 융합
+      if (cloudData.pharmacyExchange && typeof cloudData.pharmacyExchange === 'object') {
+        const localPE = getPharmacyExchange();
+        const mergedExchanges = mergeById(localPE.exchanges || [], cloudData.pharmacyExchange.exchanges || [], 'updatedAt');
+        const mergedDeadStocks = mergeById(localPE.deadStocks || [], cloudData.pharmacyExchange.deadStocks || [], 'updatedAt');
+        
+        if (isListDifferent(localPE.exchanges || [], mergedExchanges) || isListDifferent(localPE.deadStocks || [], mergedDeadStocks)) {
+          safeSetItem(STORAGE_KEYS.PHARMACY_EXCHANGE, JSON.stringify({
+            exchanges: mergedExchanges,
+            deadStocks: mergedDeadStocks
+          }));
+          updated = true;
+          pharmacyExchangeChanged = true;
         }
       }
 
@@ -2564,6 +2593,7 @@ window.SheetsSync = (function () {
           else if (currMod === 'medicine-location' && medLocationsChanged) activeModChanged = true;
           else if (currMod === 'rx-medicine-location' && rxMedLocationsChanged) activeModChanged = true;
           else if (currMod === 'supplies' && suppliesChanged) activeModChanged = true;
+          else if (currMod === 'pharmacy-exchange' && pharmacyExchangeChanged) activeModChanged = true;
           else if (currMod === 'pharmacy-settlement' && (scheduleChanged || paystubsChanged || ratesChanged)) activeModChanged = true;
 
           if (activeModChanged && window.App && typeof window.App.renderActiveModule === 'function') {
@@ -2658,6 +2688,7 @@ window.SheetsSync = (function () {
           supplies: getSupplies(),
           supplyPresets: getSupplyPresets(),
           expiryReturns: getExpiryReturns(),
+          pharmacyExchange: getPharmacyExchange(),
           gasUrls: getGasUrls(),
           buildingRentalDashboard: (() => {
             try {
@@ -3150,6 +3181,8 @@ window.SheetsSync = (function () {
     addExpiryReturn,
     updateExpiryReturnStatus,
     deleteExpiryReturn,
+    getPharmacyExchange,
+    savePharmacyExchange,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

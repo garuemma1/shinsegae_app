@@ -407,7 +407,7 @@ window.StaffDirectoryModule = (function () {
                       : (Array.isArray(emp.allowedTabs)
                           ? emp.allowedTabs
                           : [
-                              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'expiry-returns-module', 'schedule-module',
+                              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
                               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
                             ]);
 
@@ -417,6 +417,7 @@ window.StaffDirectoryModule = (function () {
                       { id: 'supplies-module', name: '📦 약국 소모품' },
                       { id: 'medicine-location-module', name: '💊 일반약 위치' },
                       { id: 'rx-medicine-location-module', name: '💉 전문약 위치' },
+                      { id: 'pharmacy-exchange-module', name: '🤝 교품 & 불용재고' },
                       { id: 'expiry-returns-module', name: '⏳ 유효기간 & 반품' },
                       { id: 'schedule-module', name: '📅 근무 스케줄 & 급여' },
                       { id: 'annual-leave-module', name: '🌴 연차대장' },
@@ -803,7 +804,7 @@ window.StaffDirectoryModule = (function () {
       : (Array.isArray(target.allowedTabs)
           ? target.allowedTabs
           : [
-              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'expiry-returns-module', 'schedule-module',
+              'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
             ]);
 

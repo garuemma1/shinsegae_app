@@ -13,6 +13,7 @@ window.App = (function () {
     'supplies': '📦 약국 소모품 관리 & 주문 시스템',
     'medicine-location': '💊 일반약 위치 관리 & 위치 검색',
     'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
+    'pharmacy-exchange': '💊 인근약국 교품 & 불용재고 대장',
     'expiry-returns': '⏳ 유효기간 & 제약사 반품 대장',
     'schedule': '📅 월간 근무 스케줄',
     'annual-leave': '🌴 연차대장 & 연차 전용 달력',
@@ -31,6 +32,7 @@ window.App = (function () {
     'supplies': 'fa-boxes-stacked',
     'medicine-location': 'fa-boxes-packing',
     'rx-medicine-location': 'fa-pills',
+    'pharmacy-exchange': 'fa-handshake',
     'expiry-returns': 'fa-hourglass-half',
     'schedule': 'fa-calendar-alt',
     'annual-leave': 'fa-umbrella-beach',
@@ -380,6 +382,36 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
+  // ─── 인근약국 교품 & 불용재고 읽음 상태 관리 헬퍼 ─────────────────────────────
+  function _pharmacyExchangeFingerprint(item) {
+    if (!item) return '';
+    const dateClean = String(item.updatedAt || item.createdAt || '').trim();
+    return [item.id || '', dateClean, item.status || '', item.drugName || '', item.quantity || ''].join('|');
+  }
+
+  function markPharmacyExchangeRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const peData = (window.SheetsSync.getPharmacyExchange ? window.SheetsSync.getPharmacyExchange() : (window.SheetsSync.getData().pharmacyExchange || { exchanges: [], deadStocks: [] })) || { exchanges: [], deadStocks: [] };
+    const allItems = [...(peData.exchanges || []), ...(peData.deadStocks || [])];
+    const fingerprints = allItems.map(_pharmacyExchangeFingerprint);
+    try {
+      localStorage.setItem('ssg_read_pharmacy_ex_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadPharmacyExchange(currUser, peData) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_pharmacy_ex_' + currUser.id);
+      if (raw === null) return false;
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      const allItems = [...(peData.exchanges || []), ...(peData.deadStocks || [])];
+      return allItems.some(item => !savedSet.has(_pharmacyExchangeFingerprint(item)));
+    } catch(e) { return false; }
+  }
+
   // ─── 직원할인구매대장 읽음 상태 관리 헬퍼 ─────────────────────────────────────
   function _discountPurchaseFingerprint(item) {
     if (!item) return '';
@@ -488,12 +520,18 @@ window.App = (function () {
       const expiryReturnsList = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : data.expiryReturns) || [];
       const hasUnreadExpiryReturns = _hasUnreadExpiryReturns(currUser, expiryReturnsList);
 
+      // 💊 인근약국 교품 & 불용재고 대장 (pharmacy-exchange: 미정산 교품 건수 또는 신규/변동 시 N 뱃지)
+      const peData = (window.SheetsSync.getPharmacyExchange ? window.SheetsSync.getPharmacyExchange() : (data.pharmacyExchange || { exchanges: [], deadStocks: [] })) || { exchanges: [], deadStocks: [] };
+      const pendingExchanges = (peData.exchanges || []).filter(e => e.status !== 'SETTLED_RETURN' && e.status !== 'SETTLED_MONEY');
+      const hasUnreadPE = _hasUnreadPharmacyExchange(currUser, peData);
+
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
         supplies: pendingSupplies.length > 0 ? pendingSupplies.length : null,
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
+        'pharmacy-exchange': pendingExchanges.length > 0 ? pendingExchanges.length : (hasUnreadPE ? 'N' : null),
         'expiry-returns': hasUnreadExpiryReturns ? 'N' : null,
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
@@ -583,7 +621,7 @@ window.App = (function () {
     // 맞춤 허용 탭 목록 (개인별 권한) - 약국장 수동 설정 100% 보존
     let allowed = Array.isArray(currUser.allowedTabs) ? currUser.allowedTabs : [
       'notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module',
-      'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+      'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
 
     let html = '';
@@ -653,6 +691,18 @@ window.App = (function () {
             ${badges['rx-medicine-location'] ? `<span class="menu-item-badge">${badges['rx-medicine-location']}</span>` : ''}
           </div>
           <span>전문약(조제실) 위치 관리</span>
+        </button>
+      `;
+    }
+
+    if (isDirector || allowed.includes('pharmacy-exchange-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'pharmacy-exchange' ? 'active' : ''}" data-module="pharmacy-exchange" onclick="App.switchModule('pharmacy-exchange', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-handshake" style="color:#4f46e5;"></i>
+            ${badges['pharmacy-exchange'] ? `<span class="menu-item-badge">${badges['pharmacy-exchange']}</span>` : ''}
+          </div>
+          <span>인근약국 교품 & 불용재고</span>
         </button>
       `;
     }
@@ -1101,6 +1151,9 @@ window.App = (function () {
       case 'rx-medicine-location':
         if (window.RxMedicineLocationModule) window.RxMedicineLocationModule.render('module-content');
         break;
+      case 'pharmacy-exchange':
+        if (window.PharmacyExchangeModule) window.PharmacyExchangeModule.render('module-content');
+        break;
       case 'expiry-returns':
         if (window.ExpiryReturnsModule) window.ExpiryReturnsModule.render('module-content');
         break;
@@ -1388,6 +1441,9 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'rx-medicine-location') {
         markRxMedicineLocationRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'pharmacy-exchange') {
+        markPharmacyExchangeRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'expiry-returns') {
         markExpiryReturnsRead();

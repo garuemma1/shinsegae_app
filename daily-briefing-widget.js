@@ -68,6 +68,26 @@ window.DailyBriefingWidget = (function () {
     const medicineLocations = getLocalOrCloudData('ssg_medicine_locations_v1', window.SheetsSync ? window.SheetsSync.getMedicineLocations : null, data.medicineLocations);
     const rxMedicineLocations = getLocalOrCloudData('ssg_rx_medicine_locations_v1', window.SheetsSync ? window.SheetsSync.getRxMedicineLocations : null, data.rxMedicineLocations);
 
+    // 🌟 환자 예약 주문 & 선결제 데이터 로드
+    const patientOrders = getLocalOrCloudData('ssg_patient_orders_v1', window.SheetsSync ? window.SheetsSync.getPatientOrders : null, data.patientOrders);
+
+    // 🌟 인근약국 교품 & 불용재고 데이터 로드
+    let pharmacyExchangeRaw = null;
+    if (window.SheetsSync && typeof window.SheetsSync.getPharmacyExchange === 'function') {
+      pharmacyExchangeRaw = window.SheetsSync.getPharmacyExchange();
+    }
+    if (!pharmacyExchangeRaw && data.pharmacyExchange) {
+      pharmacyExchangeRaw = data.pharmacyExchange;
+    }
+    if (!pharmacyExchangeRaw) {
+      try {
+        const rawPE = localStorage.getItem('ssg_pharmacy_exchange_v1');
+        if (rawPE) pharmacyExchangeRaw = JSON.parse(rawPE);
+      } catch (e) {}
+    }
+    const pharmacyExchanges = (pharmacyExchangeRaw && Array.isArray(pharmacyExchangeRaw.exchanges)) ? pharmacyExchangeRaw.exchanges : [];
+    const deadStocks = (pharmacyExchangeRaw && Array.isArray(pharmacyExchangeRaw.deadStocks)) ? pharmacyExchangeRaw.deadStocks : [];
+
     // 🌟 타임스탬프(숫자 ms), YYYY-MM-DD, ISO 문자열, id(med_1788...) 모든 날짜 형식을 'YYYY-MM-DD'로 안전 변환
     function getEntityDateStr(item) {
       if (!item) return '';
@@ -121,9 +141,9 @@ window.DailyBriefingWidget = (function () {
           }
         }
       }
-      // 5. id에 타임스탬프가 포함된 경우 ('med_1788...' 또는 'rx_1788...')
+      // 5. id에 타임스탬프가 포함된 경우 ('med_1788...', 'ord_1788...', 'exc_1788...' 등)
       if (item.id && typeof item.id === 'string') {
-        const num = parseInt(item.id.replace(/^med_|^rx_|^task_|^sup_|^ret_/, ''), 10);
+        const num = parseInt(item.id.replace(/^med_|^rx_|^task_|^sup_|^ret_|^ord_|^exc_/, ''), 10);
         if (!isNaN(num) && num > 1000000000000) {
           const d = new Date(num);
           if (!isNaN(d.getTime())) {
@@ -245,6 +265,28 @@ window.DailyBriefingWidget = (function () {
       }
     });
 
+    // 8. 📋 환자 예약 주문 & 선결제 관리
+    // 당일 접수 또는 당일 상태 변경된 주문
+    const dayOrders = patientOrders.filter(o => {
+      const oDate = getEntityDateStr(o) || (o.registeredAt ? String(o.registeredAt).split(' ')[0] : '');
+      return oDate === targetDateStr;
+    });
+    // 현재 진행 중인 환자 주문 (입고대기 or 입고완료/발송준비)
+    const pendingOrders = patientOrders.filter(o => o.status === 'PENDING_ORDER');
+    const arrivedOrders = patientOrders.filter(o => o.status === 'ARRIVED');
+    const unpaidOrders = patientOrders.filter(o => o.paymentStatus === 'PENDING' || (o.paymentStatus === 'BANK_TRANSFER' && !o.isBankTransferred));
+
+    // 9. 🤝 인근약국 교품 & 불용재고 대장
+    // 당일 등록된 교품 내역
+    const dayExchanges = pharmacyExchanges.filter(x => {
+      const xDate = getEntityDateStr(x) || (x.date ? String(x.date).split(' ')[0] : '');
+      return xDate === targetDateStr;
+    });
+    // 미정산(빌려줌/빌려옴) 교품 내역
+    const pendingExchanges = pharmacyExchanges.filter(x => x.status !== 'SETTLED');
+    const lendExchanges = pendingExchanges.filter(x => x.type === 'LEND');
+    const borrowExchanges = pendingExchanges.filter(x => x.type === 'BORROW');
+
     return {
       targetDateStr,
       onDutyStaff,
@@ -259,7 +301,15 @@ window.DailyBriefingWidget = (function () {
       dayNotices,
       pendingLeavesCount,
       criticalReturns,
-      urgentReturns
+      urgentReturns,
+      dayOrders,
+      pendingOrders,
+      arrivedOrders,
+      unpaidOrders,
+      dayExchanges,
+      pendingExchanges,
+      lendExchanges,
+      borrowExchanges
     };
   }
 
@@ -384,6 +434,64 @@ window.DailyBriefingWidget = (function () {
           <div style="font-size:12px; color:#334155; line-height:1.6;">
             ${b.dayNotices.length > 0 ? b.dayNotices.map(n => `<div>📌 <strong>${n.title}</strong></div>`).join('') : ''}
             ${b.pendingLeavesCount > 0 ? `<div style="color:#dc2626; margin-top:3px;">• 결재 대기: <strong>${b.pendingLeavesCount}건</strong></div>` : ''}
+          </div>
+        </div>
+      `);
+    }
+
+    // 카드 7: 환자 예약 주문 & 선결제 관리 (당일 접수 또는 현재 미수령/대기 건이 있을 때만)
+    if (b.dayOrders.length > 0 || b.pendingOrders.length > 0 || b.arrivedOrders.length > 0) {
+      activeCards.push(`
+        <div onclick="App.switchModule('patient-orders', true)" style="background:#ffffff; border:1.5px solid #c7d2fe; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(99,102,241,0.08); cursor:pointer; transition:transform 0.15s ease;">
+          <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:13px; color:#3730a3;"><i class="fas fa-clipboard-check text-indigo-600 me-1"></i> 환자 예약 주문 (${b.dayOrders.length > 0 ? `오늘 +${b.dayOrders.length}건` : `진행중 ${b.pendingOrders.length + b.arrivedOrders.length}건`})</strong>
+            <span style="font-size:11px; color:#4f46e5; font-weight:700;">대장 이동 ➔</span>
+          </div>
+          <div style="font-size:12px; color:#334155; line-height:1.6;">
+            ${b.arrivedOrders.length > 0 ? `
+              <div style="color:#15803d; font-weight:700; background:#f0fdf4; padding:4px 8px; border-radius:6px; margin-bottom:4px;">
+                📦 <strong>약 입고 완료 (손님 수령/배송 대기):</strong> ${b.arrivedOrders.length}건
+                <div style="font-size:11px; font-weight:normal; color:#166534; margin-top:2px;">
+                  ${b.arrivedOrders.slice(0, 3).map(o => `• ${o.patientName || '환자'}(${o.itemSummary || o.medName || '품목'}${o.receiveMethod === 'PARCEL' ? ' · 택배' : ' · 방문'})`).join('<br>')}
+                  ${b.arrivedOrders.length > 3 ? `<br>외 ${b.arrivedOrders.length - 3}건` : ''}
+                </div>
+              </div>
+            ` : ''}
+            ${b.pendingOrders.length > 0 ? `
+              <div style="color:#b45309; margin-top:3px;">
+                ⏳ <strong>도매상 발주/입고 대기:</strong> ${b.pendingOrders.length}건 (${b.pendingOrders.slice(0, 3).map(o => o.patientName).join(', ')}${b.pendingOrders.length > 3 ? ' 외' : ''})
+              </div>
+            ` : ''}
+            ${b.unpaidOrders.length > 0 ? `
+              <div style="color:#dc2626; font-size:11px; margin-top:3px;">
+                ⚠️ <strong>미결제/계좌입금 확인필요:</strong> ${b.unpaidOrders.length}건
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `);
+    }
+
+    // 카드 8: 인근약국 교품 & 불용재고 대장 (당일 등록 또는 미정산 교품이 있을 때만)
+    if (b.dayExchanges.length > 0 || b.pendingExchanges.length > 0) {
+      activeCards.push(`
+        <div onclick="App.switchModule('pharmacy-exchange', true)" style="background:#ffffff; border:1.5px solid #fed7aa; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(249,115,22,0.08); cursor:pointer; transition:transform 0.15s ease;">
+          <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:13px; color:#9a3412;"><i class="fas fa-handshake text-amber-600 me-1"></i> 인근약국 교품 (${b.dayExchanges.length > 0 ? `오늘 +${b.dayExchanges.length}건` : `미정산 ${b.pendingExchanges.length}건`})</strong>
+            <span style="font-size:11px; color:#c2410c; font-weight:700;">대장 이동 ➔</span>
+          </div>
+          <div style="font-size:12px; color:#334155; line-height:1.6;">
+            <div>
+              ▪️ <strong>미정산 교품:</strong> 총 <strong class="text-danger">${b.pendingExchanges.length}건</strong>
+              ${b.lendExchanges.length > 0 ? `<span class="badge bg-warning text-dark ms-1">빌려줌 ${b.lendExchanges.length}</span>` : ''}
+              ${b.borrowExchanges.length > 0 ? `<span class="badge bg-info text-dark ms-1">빌려옴 ${b.borrowExchanges.length}</span>` : ''}
+            </div>
+            ${b.pendingExchanges.length > 0 ? `
+              <div style="font-size:11.5px; color:#475569; margin-top:4px; line-height:1.5;">
+                ${b.pendingExchanges.slice(0, 3).map(x => `• [${x.type === 'LEND' ? '대여' : '차용'}] ${x.targetPharmacy || '약국'}: ${x.drugName || '약품'}(${x.qty || 1}개)`).join('<br>')}
+                ${b.pendingExchanges.length > 3 ? `<br>외 ${b.pendingExchanges.length - 3}건` : ''}
+              </div>
+            ` : '<div style="color:#16a34a; font-size:11px; margin-top:3px;">✨ 모든 교품 정산이 완료되었습니다.</div>'}
           </div>
         </div>
       `);
@@ -620,6 +728,23 @@ window.DailyBriefingWidget = (function () {
               💊 약품위치 <strong style="color:#15803d;">${b.dayOtcMeds.length + b.dayRxMeds.length}건</strong>
             </div>
 
+            <!-- 📋 환자 예약 주문 브리핑 칩 -->
+            ${(b.dayOrders.length > 0 || b.pendingOrders.length > 0 || b.arrivedOrders.length > 0) ? `
+              <div class="briefing-chip" onclick="App.switchModule('patient-orders', true)" style="background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; cursor:pointer;">
+                📋 예약주문 <strong style="color:#4338ca;">${b.dayOrders.length > 0 ? `+${b.dayOrders.length}` : (b.pendingOrders.length + b.arrivedOrders.length)}건</strong>
+                ${b.arrivedOrders.length > 0 ? `<span style="background:#16a34a; color:#fff; font-size:10px; padding:1px 5px; border-radius:10px; margin-left:2px;">도착 ${b.arrivedOrders.length}</span>` : ''}
+              </div>
+            ` : ''}
+
+            <!-- 🤝 인근약국 교품 브리핑 칩 -->
+            ${(b.dayExchanges.length > 0 || b.pendingExchanges.length > 0) ? `
+              <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true)" style="background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; cursor:pointer;">
+                🤝 교품 <strong style="color:#ea580c;">${b.pendingExchanges.length}건</strong>
+                ${b.lendExchanges.length > 0 ? `<span style="background:#eab308; color:#000; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">줌${b.lendExchanges.length}</span>` : ''}
+                ${b.borrowExchanges.length > 0 ? `<span style="background:#06b6d4; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">옴${b.borrowExchanges.length}</span>` : ''}
+              </div>
+            ` : ''}
+
             ${b.criticalReturns.length > 0 ? `
               <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fee2e2; color:#b91c1c; border:1.5px solid #ef4444; cursor:pointer;">
                 🚨 초긴급반품 <strong style="color:#dc2626;">${b.criticalReturns.length}건</strong>
@@ -659,6 +784,26 @@ window.DailyBriefingWidget = (function () {
               </div>
               <button type="button" class="btn btn-sm btn-light font-bold" style="font-size:11px; padding:3px 8px; border-radius:6px; flex-shrink:0;">
                 반품대장 ➔
+              </button>
+            </div>
+          ` : ''}
+
+          <!-- 📦 환자 예약약 입고완료(수령/발송 대기) 알림 배너 (전달 누락 0건 방어) -->
+          ${b.arrivedOrders.length > 0 ? `
+            <div onclick="App.switchModule('patient-orders', true)" style="margin-top:10px; padding:10px 14px; background:linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); border-radius:10px; color:#ffffff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(37,99,235,0.25);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:16px;">📦</span>
+                <div>
+                  <div style="font-size:12.5px; font-weight:800; letter-spacing:-0.2px;">
+                    약 입고 완료! 손님 수령/배송 대기 ${b.arrivedOrders.length}건
+                  </div>
+                  <div style="font-size:11px; opacity:0.9; margin-top:2px;">
+                    ${b.arrivedOrders.slice(0, 2).map(o => `${o.patientName} 님 (${o.itemSummary || o.medName || '품목'})`).join(', ')}${b.arrivedOrders.length > 2 ? ` 외 ${b.arrivedOrders.length - 2}건` : ''} ➔ 지금 바로 확인 및 약 전달하기
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-light font-bold" style="font-size:11px; padding:3px 8px; border-radius:6px; flex-shrink:0; color:#1e40af;">
+                예약대장 ➔
               </button>
             </div>
           ` : ''}

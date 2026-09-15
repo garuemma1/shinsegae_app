@@ -11,6 +11,13 @@ if (typeof window.PatientOrdersModule === 'undefined') {
     let searchQuery = '';
     let selectedPhotos = [];   // [{ id, data, isNew }]
 
+    // 약국 공식 입금 계좌 정보 (문자 발송 및 안내용)
+    const PHARMACY_BANK_INFO = {
+      bank: '기업은행',
+      accountNumber: '01-0648-34342',
+      holder: '문성도'
+    };
+
     function escapeHTML(str) {
       if (!str) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -173,7 +180,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       renderPhotoPreviews();
     }
 
-    // 천연자 님 초기 결제 및 상태 데이터 자동 1회 정상화
+    // 초기 결제 및 상태 데이터 자동 1회 정상화 (천연자 님, 권민지 님 건)
     function repairInitialDataIfNeeded() {
       try {
         const list = getStorageData();
@@ -181,7 +188,20 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         list.forEach(item => {
           if (item.patientName === '천연자' && (item.status === 'COMPLETED' || item.payType === 'PAID_FULL')) {
             item.status = 'PENDING_ORDER';
+            item.deliveryType = 'PICKUP';
             item.payType = 'UNPAID';
+            item.isDepositConfirmed = false;
+            item.totalPrice = 270000;
+            item.paidAmount = 0;
+            item.unpaidBalance = 270000;
+            item.updatedAt = Date.now();
+            changed = true;
+          }
+          if (item.patientName === '권민지' && (!item.deliveryType || item.deliveryType !== 'PARCEL' || item.payType !== 'BANK_TRANSFER')) {
+            item.deliveryType = 'PARCEL';
+            item.payType = 'BANK_TRANSFER';
+            item.isDepositConfirmed = false;
+            item.status = 'ARRIVED';
             item.totalPrice = 270000;
             item.paidAmount = 0;
             item.unpaidBalance = 270000;
@@ -342,20 +362,41 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               : (item.photoUrl ? [item.photoUrl] : []);
             const mainPhoto = allPhotos[0] || '';
 
+            const isParcel = item.deliveryType === 'PARCEL';
+
             // 상태별 배지
             let statusBadge = '';
             if (status === 'ARRIVED') {
-              statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-teal-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-box"></i> 📦 2단계: 약국 입고 완료 (미수령)</span>';
+              if (isParcel) {
+                if (item.payType === 'BANK_TRANSFER' && !item.isDepositConfirmed) {
+                  statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-teal-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-box"></i> 📦 2단계: 약 도착 (입금 확인 & 택배 대기)</span>';
+                } else {
+                  statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-teal-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-box"></i> 📦 2단계: 약 도착 (택배 발송 대기)</span>';
+                }
+              } else {
+                statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-teal-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-box"></i> 📦 2단계: 약 도착 (손님 방문 대기중)</span>';
+              }
             } else if (status === 'COMPLETED') {
-              statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-check-circle"></i> ✅ 3단계: 고객 수령 완료</span>';
+              statusBadge = `<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-check-circle"></i> ✅ 3단계: ${isParcel ? '택배 발송 완료' : '고객 수령 완료'}</span>`;
             } else {
               statusBadge = '<span class="text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-600 text-white shadow-sm flex items-center gap-1"><i class="fas fa-hourglass-half"></i> ⏳ 1단계: 주문 접수 & 도매상 발주</span>';
             }
+
+            // 전달 방식 배지
+            let deliveryBadge = isParcel
+              ? '<span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">📦 택배 발송</span>'
+              : '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">🚶 방문 수령</span>';
 
             // 선결제 상태 레이블 및 색상
             let payBadge = '';
             if (item.payType === 'PAID_FULL') {
               payBadge = '<span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">💰 전액 완납</span>';
+            } else if (item.payType === 'BANK_TRANSFER') {
+              if (item.isDepositConfirmed) {
+                payBadge = '<span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">🏦 계좌이체 완납</span>';
+              } else {
+                payBadge = `<span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">🏦 계좌이체 (입금 대기: ₩${Number(item.unpaidBalance || item.totalPrice || 0).toLocaleString()})</span>`;
+              }
             } else if (item.payType === 'PAID_PARTIAL') {
               payBadge = `<span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">💳 계약금 (잔액 ₩${Number(item.unpaidBalance || 0).toLocaleString()})</span>`;
             } else {
@@ -385,14 +426,15 @@ if (typeof window.PatientOrdersModule === 'undefined') {
                   ` : ''}
 
                   <div class="p-4 space-y-3">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                      <div class="flex items-center gap-1.5 flex-wrap">
                         <span class="text-base font-black text-slate-900 dark:text-white">
                           👤 ${escapeHTML(item.patientName)}
                         </span>
                         <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
                           (${escapeHTML(item.phone || '연락처 없음')})
                         </span>
+                        ${deliveryBadge}
                       </div>
                       ${payBadge}
                     </div>
@@ -433,18 +475,23 @@ if (typeof window.PatientOrdersModule === 'undefined') {
                         <i class="fas fa-box-open"></i> 📦 약국에 약 도착 ➔ 입고 완료 처리 (문자 발송)
                       </button>
                     ` : (status === 'ARRIVED' ? `
-                      <button type="button" onclick="PatientOrdersModule.openSmsModal('${item.id}')" class="px-2 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 bg-white dark:bg-slate-800 border border-teal-400 text-teal-700 dark:text-teal-300 hover:bg-teal-50">
+                      <button type="button" onclick="PatientOrdersModule.openSmsModal('${item.id}')" class="px-2 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 bg-white dark:bg-slate-800 border border-teal-400 text-teal-700 dark:text-teal-300 hover:bg-teal-50 shadow-sm">
                         <i class="fas fa-comment-dots text-xs"></i> 💬 도착 문자
                       </button>
-                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'COMPLETED')" class="px-2 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
-                        <i class="fas fa-check-circle text-xs"></i> ✅ 손님 수령 완료
+                      <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'COMPLETED')" class="px-2 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-500 text-white shadow-md">
+                        <i class="${isParcel ? 'fas fa-truck' : 'fas fa-hand-holding-medical'} text-xs"></i> <span>${isParcel ? '📦 택배 발송 완료' : '👉 손님 방문 시 ➔ 약 전달 완료'}</span>
                       </button>
+                      ${item.payType === 'BANK_TRANSFER' && !item.isDepositConfirmed ? `
+                        <button type="button" onclick="PatientOrdersModule.confirmBankDeposit('${item.id}')" class="w-full col-span-2 px-2 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white shadow-sm">
+                          <i class="fas fa-check-double text-xs"></i> <span>🏦 계좌 입금 확인 완료 (선결제 완납 처리)</span>
+                        </button>
+                      ` : ''}
                       <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'PENDING_ORDER')" class="w-full col-span-2 px-2 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200">
                         <i class="fas fa-rotate-left text-xs"></i> ↩️ 1단계(주문접수/도매상발주)로 되돌리기
                       </button>
                     ` : `
                       <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'ARRIVED')" class="w-full col-span-2 px-2 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 bg-teal-50 border border-teal-300 text-teal-800 hover:bg-teal-100">
-                        <i class="fas fa-rotate-left text-xs"></i> ↩️ 2단계: 약국 입고완료(미수령) 상태로 되돌리기
+                        <i class="fas fa-rotate-left text-xs"></i> ↩️ 2단계: 약국 입고(대기) 상태로 되돌리기
                       </button>
                       <button type="button" onclick="PatientOrdersModule.updateStatus('${item.id}', 'PENDING_ORDER')" class="w-full col-span-2 px-2 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100">
                         <i class="fas fa-rotate-left text-xs"></i> ↩️ 1단계: 주문 접수 & 도매상 발주 상태로 되돌리기
@@ -513,19 +560,49 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               </div>
 
               <div>
-                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">선결제 여부 구분 <span style="color:#ef4444;">*</span></label>
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #ef4444; background:#fef2f2; color:#b91c1c; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">약품 수령 / 전달 방식 <span style="color:#ef4444;">*</span></label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <label style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; border-radius:12px; border:2px solid #0d9488; background:#f0fdfa; color:#0f766e; font-weight:800; font-size:13px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-delivery-type" value="PICKUP" checked style="accent-color:#0d9488;">
+                    <span>🚶 약국 방문 수령</span>
+                  </label>
+                  <label style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; border-radius:12px; border:2px solid #6366f1; background:#eef2ff; color:#4338ca; font-weight:800; font-size:13px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-delivery-type" value="PARCEL" style="accent-color:#6366f1;">
+                    <span>📦 택배 / 배송 발송</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">결제 구분 <span style="color:#ef4444;">*</span></label>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px;">
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #ef4444; background:#fef2f2; color:#b91c1c; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
                     <input type="radio" name="ord-paytype" value="UNPAID" checked onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#dc2626;">
                     <span>⏳ 수령시 결제</span>
                   </label>
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #f59e0b; background:#fffbeb; color:#b45309; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-paytype" value="BANK_TRANSFER" onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#d97706;">
+                    <span>🏦 계좌이체</span>
+                  </label>
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
                     <input type="radio" name="ord-paytype" value="PAID_PARTIAL" onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#2563eb;">
                     <span>💳 계약금</span>
                   </label>
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #10b981; background:#f0fdf4; color:#047857; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #10b981; background:#f0fdf4; color:#047857; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
                     <input type="radio" name="ord-paytype" value="PAID_FULL" onchange="PatientOrdersModule.updatePayFields()" style="accent-color:#059669;">
                     <span>💰 전액 완납</span>
+                  </label>
+                </div>
+
+                <!-- 계좌이체 선택 시 안내 박스 -->
+                <div id="ord-bank-transfer-box" style="display:none; margin-top:8px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:10px; padding:10px 12px; font-size:12px; color:#92400e;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:4px;">
+                    <span style="font-weight:800;"><i class="fas fa-university me-1"></i> 약국 공식 입금 계좌</span>
+                    <span style="font-weight:900; color:#b45309; font-size:12.5px;">기업은행 01-0648-34342 (문성도)</span>
+                  </div>
+                  <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-weight:700; color:#78350f; cursor:pointer;">
+                    <input type="checkbox" id="ord-bank-confirmed" onchange="PatientOrdersModule.calcTotal()" style="accent-color:#d97706; width:15px; height:15px;">
+                    <span>이미 계좌로 입금 확인됨 (선결제 입금 완료)</span>
                   </label>
                 </div>
               </div>
@@ -662,19 +739,49 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               </div>
 
               <div>
-                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">선결제 여부 구분 <span style="color:#ef4444;">*</span></label>
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #ef4444; background:#fef2f2; color:#b91c1c; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">약품 수령 / 전달 방식 <span style="color:#ef4444;">*</span></label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <label style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; border-radius:12px; border:2px solid #0d9488; background:#f0fdfa; color:#0f766e; font-weight:800; font-size:13px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-edit-delivery-type" value="PICKUP" style="accent-color:#0d9488;">
+                    <span>🚶 약국 방문 수령</span>
+                  </label>
+                  <label style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; border-radius:12px; border:2px solid #6366f1; background:#eef2ff; color:#4338ca; font-weight:800; font-size:13px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-edit-delivery-type" value="PARCEL" style="accent-color:#6366f1;">
+                    <span>📦 택배 / 배송 발송</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">결제 구분 <span style="color:#ef4444;">*</span></label>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px;">
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #ef4444; background:#fef2f2; color:#b91c1c; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
                     <input type="radio" name="ord-edit-paytype" value="UNPAID" onchange="PatientOrdersModule.updateEditPayFields()" style="accent-color:#dc2626;">
                     <span>⏳ 수령시 결제</span>
                   </label>
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #f59e0b; background:#fffbeb; color:#b45309; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
+                    <input type="radio" name="ord-edit-paytype" value="BANK_TRANSFER" onchange="PatientOrdersModule.updateEditPayFields()" style="accent-color:#d97706;">
+                    <span>🏦 계좌이체</span>
+                  </label>
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #3b82f6; background:#eff6ff; color:#1d4ed8; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
                     <input type="radio" name="ord-edit-paytype" value="PAID_PARTIAL" onchange="PatientOrdersModule.updateEditPayFields()" style="accent-color:#2563eb;">
                     <span>💳 계약금</span>
                   </label>
-                  <label style="display:flex; align-items:center; justify-content:center; gap:4px; padding:9px 4px; border-radius:10px; border:2px solid #10b981; background:#f0fdf4; color:#047857; font-weight:800; font-size:12px; cursor:pointer; text-align:center;">
+                  <label style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:10px; border:2px solid #10b981; background:#f0fdf4; color:#047857; font-weight:800; font-size:11.5px; cursor:pointer; text-align:center;">
                     <input type="radio" name="ord-edit-paytype" value="PAID_FULL" onchange="PatientOrdersModule.updateEditPayFields()" style="accent-color:#059669;">
                     <span>💰 전액 완납</span>
+                  </label>
+                </div>
+
+                <!-- 계좌이체 선택 시 안내 박스 -->
+                <div id="ord-edit-bank-transfer-box" style="display:none; margin-top:8px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:10px; padding:10px 12px; font-size:12px; color:#92400e;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:4px;">
+                    <span style="font-weight:800;"><i class="fas fa-university me-1"></i> 약국 공식 입금 계좌</span>
+                    <span style="font-weight:900; color:#b45309; font-size:12.5px;">기업은행 01-0648-34342 (문성도)</span>
+                  </div>
+                  <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-weight:700; color:#78350f; cursor:pointer;">
+                    <input type="checkbox" id="ord-edit-bank-confirmed" onchange="PatientOrdersModule.calcEditTotal()" style="accent-color:#d97706; width:15px; height:15px;">
+                    <span>이미 계좌로 입금 확인됨 (선결제 입금 완료)</span>
                   </label>
                 </div>
               </div>
@@ -762,12 +869,22 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const totalInput = document.getElementById('ord-total-price');
       const paidInput = document.getElementById('ord-paid-amount');
       const paidBox = document.getElementById('ord-paid-amount-box');
+      const bankBox = document.getElementById('ord-bank-transfer-box');
+      const bankConfCb = document.getElementById('ord-bank-confirmed');
+
+      if (bankBox) {
+        bankBox.style.display = (payType === 'BANK_TRANSFER') ? 'block' : 'none';
+      }
 
       if (payType === 'PAID_FULL') {
         if (paidBox) paidBox.style.display = 'none';
         if (paidInput && totalInput) paidInput.value = totalInput.value;
       } else if (payType === 'PAID_PARTIAL') {
         if (paidBox) paidBox.style.display = 'block';
+      } else if (payType === 'BANK_TRANSFER') {
+        if (paidBox) paidBox.style.display = 'none';
+        const isConf = bankConfCb && bankConfCb.checked;
+        if (paidInput) paidInput.value = isConf ? (totalInput?.value || 0) : '0';
       } else {
         if (paidBox) paidBox.style.display = 'none';
         if (paidInput) paidInput.value = '0';
@@ -780,11 +897,16 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const typeRadio = document.querySelector('input[name="ord-paytype"]:checked');
       const payType = typeRadio ? typeRadio.value : 'UNPAID';
       const paidInput = document.getElementById('ord-paid-amount');
+      const bankConfCb = document.getElementById('ord-bank-confirmed');
       
       let paid = 0;
       if (payType === 'PAID_FULL') {
         paid = total;
         if (paidInput) paidInput.value = total;
+      } else if (payType === 'BANK_TRANSFER') {
+        const isConf = bankConfCb && bankConfCb.checked;
+        paid = isConf ? total : 0;
+        if (paidInput) paidInput.value = paid;
       } else if (payType === 'PAID_PARTIAL') {
         paid = Number(paidInput?.value) || 0;
       } else {
@@ -806,12 +928,22 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const totalInput = document.getElementById('ord-edit-total-price');
       const paidInput = document.getElementById('ord-edit-paid-amount');
       const paidBox = document.getElementById('ord-edit-paid-amount-box');
+      const bankBox = document.getElementById('ord-edit-bank-transfer-box');
+      const bankConfCb = document.getElementById('ord-edit-bank-confirmed');
+
+      if (bankBox) {
+        bankBox.style.display = (payType === 'BANK_TRANSFER') ? 'block' : 'none';
+      }
 
       if (payType === 'PAID_FULL') {
         if (paidBox) paidBox.style.display = 'none';
         if (paidInput && totalInput) paidInput.value = totalInput.value;
       } else if (payType === 'PAID_PARTIAL') {
         if (paidBox) paidBox.style.display = 'block';
+      } else if (payType === 'BANK_TRANSFER') {
+        if (paidBox) paidBox.style.display = 'none';
+        const isConf = bankConfCb && bankConfCb.checked;
+        if (paidInput) paidInput.value = isConf ? (totalInput?.value || 0) : '0';
       } else {
         if (paidBox) paidBox.style.display = 'none';
         if (paidInput) paidInput.value = '0';
@@ -825,11 +957,16 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const typeRadio = document.querySelector('input[name="ord-edit-paytype"]:checked');
       const payType = typeRadio ? typeRadio.value : 'UNPAID';
       const paidInput = document.getElementById('ord-edit-paid-amount');
+      const bankConfCb = document.getElementById('ord-edit-bank-confirmed');
 
       let paid = 0;
       if (payType === 'PAID_FULL') {
         paid = total;
         if (paidInput) paidInput.value = total;
+      } else if (payType === 'BANK_TRANSFER') {
+        const isConf = bankConfCb && bankConfCb.checked;
+        paid = isConf ? total : 0;
+        if (paidInput) paidInput.value = paid;
       } else if (payType === 'PAID_PARTIAL') {
         paid = Number(paidInput?.value) || 0;
       } else {
@@ -875,10 +1012,18 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       if (paidEl) paidEl.value = target.paidAmount || 0;
       if (notesEl) notesEl.value = target.notes || '';
 
+      const delRadio = document.querySelector(`input[name="ord-edit-delivery-type"][value="${target.deliveryType || 'PICKUP'}"]`);
+      if (delRadio) delRadio.checked = true;
+
       const pType = target.payType || 'UNPAID';
       const targetRadio = document.querySelector(`input[name="ord-edit-paytype"][value="${pType}"]`);
       if (targetRadio) {
         targetRadio.checked = true;
+      }
+
+      const bankConfCb = document.getElementById('ord-edit-bank-confirmed');
+      if (bankConfCb) {
+        bankConfCb.checked = Boolean(target.isDepositConfirmed);
       }
 
       updateEditPayFields();
@@ -913,6 +1058,8 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || { name: '약국' };
 
         const newStatus = document.getElementById('ord-edit-status')?.value || 'PENDING_ORDER';
+        const deliveryRadio = document.querySelector('input[name="ord-edit-delivery-type"]:checked');
+        const deliveryType = deliveryRadio ? deliveryRadio.value : 'PICKUP';
         const patientName = (document.getElementById('ord-edit-patient-name')?.value || '').trim();
         const phone = (document.getElementById('ord-edit-phone')?.value || '').trim();
         const drugName = (document.getElementById('ord-edit-drug-name')?.value || '').trim();
@@ -920,9 +1067,12 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         const unit = document.getElementById('ord-edit-unit')?.value || '통/병';
         const typeRadio = document.querySelector('input[name="ord-edit-paytype"]:checked');
         const payType = typeRadio ? typeRadio.value : 'UNPAID';
+        const bankConfCb = document.getElementById('ord-edit-bank-confirmed');
+        const isDepositConfirmed = (payType === 'PAID_FULL') || (payType === 'BANK_TRANSFER' && bankConfCb && bankConfCb.checked);
         const totalPrice = Number(document.getElementById('ord-edit-total-price')?.value) || 0;
         let paidAmount = Number(document.getElementById('ord-edit-paid-amount')?.value) || 0;
         if (payType === 'PAID_FULL') paidAmount = totalPrice;
+        if (payType === 'BANK_TRANSFER') paidAmount = isDepositConfirmed ? totalPrice : 0;
         if (payType === 'UNPAID') paidAmount = 0;
         const unpaidBalance = Math.max(0, totalPrice - paidAmount);
         const notes = (document.getElementById('ord-edit-notes')?.value || '').trim();
@@ -930,12 +1080,14 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         const prevStatus = target.status;
 
         target.status = newStatus;
+        target.deliveryType = deliveryType;
         target.patientName = patientName;
         target.phone = phone;
         target.drugName = drugName;
         target.quantity = quantity;
         target.unit = unit;
         target.payType = payType;
+        target.isDepositConfirmed = isDepositConfirmed;
         target.totalPrice = totalPrice;
         target.paidAmount = paidAmount;
         target.unpaidBalance = unpaidBalance;
@@ -1003,6 +1155,8 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         const nowStr = `${year}.${month}.${date} ${hours}:${minutes}`;
         const nowMs = Date.now();
 
+        const deliveryRadio = document.querySelector('input[name="ord-delivery-type"]:checked');
+        const deliveryType = deliveryRadio ? deliveryRadio.value : 'PICKUP';
         const patientName = (document.getElementById('ord-patient-name')?.value || '').trim();
         const phone = (document.getElementById('ord-phone')?.value || '').trim();
         const drugName = (document.getElementById('ord-drug-name')?.value || '').trim();
@@ -1010,9 +1164,12 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         const unit = document.getElementById('ord-unit')?.value || '통/병';
         const typeRadio = document.querySelector('input[name="ord-paytype"]:checked');
         const payType = typeRadio ? typeRadio.value : 'UNPAID';
+        const bankConfCb = document.getElementById('ord-bank-confirmed');
+        const isDepositConfirmed = (payType === 'PAID_FULL') || (payType === 'BANK_TRANSFER' && bankConfCb && bankConfCb.checked);
         const totalPrice = Number(document.getElementById('ord-total-price')?.value) || 0;
         let paidAmount = Number(document.getElementById('ord-paid-amount')?.value) || 0;
         if (payType === 'PAID_FULL') paidAmount = totalPrice;
+        if (payType === 'BANK_TRANSFER') paidAmount = isDepositConfirmed ? totalPrice : 0;
         if (payType === 'UNPAID') paidAmount = 0;
         const unpaidBalance = Math.max(0, totalPrice - paidAmount);
         const notes = (document.getElementById('ord-notes')?.value || '').trim();
@@ -1024,14 +1181,16 @@ if (typeof window.PatientOrdersModule === 'undefined') {
           drugName,
           quantity,
           unit,
+          deliveryType,
           payType,
+          isDepositConfirmed,
           totalPrice,
           paidAmount,
           unpaidBalance,
           notes,
           photos: uploadedUrls,
           photoUrl: uploadedUrls[0] || '',
-          status: 'PENDING_ORDER', // 'PENDING_ORDER', 'ARRIVED', 'COMPLETED'
+          status: 'PENDING_ORDER',
           registeredBy: currUser.name,
           updatedBy: currUser.name,
           updatedAt: nowMs,
@@ -1096,16 +1255,32 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const linkEl = document.getElementById('ord-sms-app-link');
       if (!modal || !textEl) return;
 
-      if (titleEl) titleEl.innerText = `${target.patientName} 님 (${target.phone})`;
-
-      let balanceMsg = '';
-      if (target.unpaidBalance > 0) {
-        balanceMsg = `\n(남은 결제 잔액: ₩${target.unpaidBalance.toLocaleString()}원)`;
-      } else {
-        balanceMsg = `\n(결제 완료 건입니다)`;
+      const isParcel = target.deliveryType === 'PARCEL';
+      if (titleEl) {
+        titleEl.innerText = `${target.patientName} 님 (${target.phone}) · ${isParcel ? '📦 택배발송' : '🚶 방문수령'}`;
       }
 
-      const smsContent = `[신세계약국 안내]\n안녕하세요, ${target.patientName}님!\n주문 예약하신 [${target.drugName}]이 약국에 입고 완료되었습니다.\n편하신 시간에 내방하시어 수령해 주시기 바랍니다.${balanceMsg}\n\n감사합니다.`;
+      let payInfoMsg = '';
+      if (target.payType === 'BANK_TRANSFER') {
+        if (target.isDepositConfirmed) {
+          payInfoMsg = `\n(계좌이체 입금 확인 완료 건입니다.)`;
+        } else {
+          payInfoMsg = `\n■ 입금 안내 계좌: ${PHARMACY_BANK_INFO.bank} ${PHARMACY_BANK_INFO.accountNumber} (예금주: ${PHARMACY_BANK_INFO.holder})\n■ 입금 요청 금액: ₩${Number(target.unpaidBalance || target.totalPrice || 0).toLocaleString()}원\n* 입금 확인 후 ${isParcel ? '택배로 신속히 발송해 드리겠습니다.' : '약국에서 바로 수령 가능합니다.'}`;
+        }
+      } else if (target.unpaidBalance > 0) {
+        payInfoMsg = `\n(남은 결제 잔액: ₩${Number(target.unpaidBalance).toLocaleString()}원)`;
+      } else {
+        payInfoMsg = `\n(결제 완료 건입니다)`;
+      }
+
+      let bodyMsg = '';
+      if (isParcel) {
+        bodyMsg = `주문 예약하신 [${target.drugName}]이 약국에 입고되었습니다.\n${payInfoMsg}\n\n배송 받으실 주소를 문자로 회신해 주시면 신속히 포장하여 발송해 드리겠습니다.`;
+      } else {
+        bodyMsg = `주문 예약하신 [${target.drugName}]이 약국에 입고 완료되었습니다.\n편하신 시간에 내방하시어 수령해 주시기 바랍니다.\n${payInfoMsg}`;
+      }
+
+      const smsContent = `[신세계약국 안내]\n안녕하세요, ${target.patientName}님!\n${bodyMsg}\n\n감사합니다.`;
 
       textEl.value = smsContent;
 
@@ -1136,6 +1311,24 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         document.execCommand('copy');
         alert('📋 문자 문구가 복사되었습니다.');
       });
+    }
+
+    // 계좌이체 1클릭 입금 확인 처리
+    function confirmBankDeposit(id) {
+      const list = getStorageData();
+      const target = list.find(i => String(i.id) === String(id));
+      if (!target) return;
+
+      target.isDepositConfirmed = true;
+      target.paidAmount = target.totalPrice;
+      target.unpaidBalance = 0;
+      target.updatedAt = Date.now();
+      const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || { name: '약국' };
+      target.updatedBy = currUser.name;
+
+      saveStorageData(list);
+      alert(`✅ [${target.patientName}] 님의 기업은행 계좌 입금(₩${Number(target.totalPrice).toLocaleString()}원)이 확인 완료 처리되었습니다!`);
+      render('module-content');
     }
 
     function deleteItem(id, name) {
@@ -1200,8 +1393,14 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const notesInp = document.getElementById('ord-notes');
       if (notesInp) notesInp.value = '';
 
+      const delRadio = document.querySelector('input[name="ord-delivery-type"][value="PICKUP"]');
+      if (delRadio) delRadio.checked = true;
+
       const unpaidRadio = document.querySelector('input[name="ord-paytype"][value="UNPAID"]');
       if (unpaidRadio) unpaidRadio.checked = true;
+
+      const bankConfCb = document.getElementById('ord-bank-confirmed');
+      if (bankConfCb) bankConfCb.checked = false;
 
       const overlay = document.getElementById('ord-modal-overlay');
       if (overlay) overlay.style.display = 'flex';
@@ -1265,6 +1464,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       openSmsModal,
       closeSmsModal,
       copySmsText,
+      confirmBankDeposit,
       deleteItem,
       openPhoto,
       openEditModal,

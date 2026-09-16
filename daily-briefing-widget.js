@@ -141,9 +141,9 @@ window.DailyBriefingWidget = (function () {
           }
         }
       }
-      // 5. id에 타임스탬프가 포함된 경우 ('med_1788...', 'ord_1788...', 'exc_1788...' 등)
+      // 5. id에 타임스탬프가 포함된 경우 ('med_1788...', 'ord_1788...', 'exc_1788...', 'ds_1788...' 등)
       if (item.id && typeof item.id === 'string') {
-        const num = parseInt(item.id.replace(/^med_|^rx_|^task_|^sup_|^ret_|^ord_|^exc_/, ''), 10);
+        const num = parseInt(item.id.replace(/^med_|^rx_|^task_|^sup_|^ret_|^ord_|^exc_|^ds_/, ''), 10);
         if (!isNaN(num) && num > 1000000000000) {
           const d = new Date(num);
           if (!isNaN(d.getTime())) {
@@ -287,6 +287,15 @@ window.DailyBriefingWidget = (function () {
     const lendExchanges = pendingExchanges.filter(x => x.type === 'LEND');
     const borrowExchanges = pendingExchanges.filter(x => x.type === 'BORROW');
 
+    // 당일 등록된 불용재고 내역
+    const dayDeadStocks = deadStocks.filter(d => {
+      const dDate = getEntityDateStr(d) || (d.displayDate ? String(d.displayDate).split(' ')[0] : '');
+      return dDate === targetDateStr;
+    });
+    // 현재 보관 중(미정산)인 불용재고 리스트 및 총 손실액
+    const activeDeadStocks = deadStocks.filter(d => d.status === 'STORAGE');
+    const totalDeadStockLoss = activeDeadStocks.reduce((sum, d) => sum + (Number(d.totalPrice) || 0), 0);
+
     return {
       targetDateStr,
       onDutyStaff,
@@ -309,7 +318,10 @@ window.DailyBriefingWidget = (function () {
       dayExchanges,
       pendingExchanges,
       lendExchanges,
-      borrowExchanges
+      borrowExchanges,
+      dayDeadStocks,
+      activeDeadStocks,
+      totalDeadStockLoss
     };
   }
 
@@ -472,26 +484,46 @@ window.DailyBriefingWidget = (function () {
       `);
     }
 
-    // 카드 8: 인근약국 교품 & 불용재고 대장 (당일 등록 또는 미정산 교품이 있을 때만)
-    if (b.dayExchanges.length > 0 || b.pendingExchanges.length > 0) {
+    // 카드 8: 인근약국 교품 & 불용재고 대장 (당일 등록 또는 미정산 교품/불용재고가 있을 때)
+    if (b.dayExchanges.length > 0 || b.pendingExchanges.length > 0 || b.dayDeadStocks.length > 0 || b.activeDeadStocks.length > 0) {
       activeCards.push(`
         <div onclick="App.switchModule('pharmacy-exchange', true)" style="background:#ffffff; border:1.5px solid #fed7aa; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(249,115,22,0.08); cursor:pointer; transition:transform 0.15s ease;">
           <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:13px; color:#9a3412;"><i class="fas fa-handshake text-amber-600 me-1"></i> 인근약국 교품 (${b.dayExchanges.length > 0 ? `오늘 +${b.dayExchanges.length}건` : `미정산 ${b.pendingExchanges.length}건`})</strong>
+            <strong style="font-size:13px; color:#9a3412;"><i class="fas fa-handshake text-amber-600 me-1"></i> 교품 & 불용재고 (${(b.dayExchanges.length + b.dayDeadStocks.length) > 0 ? `오늘 +${b.dayExchanges.length + b.dayDeadStocks.length}건` : `관리중`})</strong>
             <span style="font-size:11px; color:#c2410c; font-weight:700;">대장 이동 ➔</span>
           </div>
           <div style="font-size:12px; color:#334155; line-height:1.6;">
-            <div>
-              ▪️ <strong>미정산 교품:</strong> 총 <strong class="text-danger">${b.pendingExchanges.length}건</strong>
-              ${b.lendExchanges.length > 0 ? `<span class="badge bg-warning text-dark ms-1">빌려줌 ${b.lendExchanges.length}</span>` : ''}
-              ${b.borrowExchanges.length > 0 ? `<span class="badge bg-info text-dark ms-1">빌려옴 ${b.borrowExchanges.length}</span>` : ''}
-            </div>
-            ${b.pendingExchanges.length > 0 ? `
-              <div style="font-size:11.5px; color:#475569; margin-top:4px; line-height:1.5;">
-                ${b.pendingExchanges.slice(0, 3).map(x => `• [${x.type === 'LEND' ? '대여' : '차용'}] ${x.targetPharmacy || '약국'}: ${x.drugName || '약품'}(${x.qty || 1}개)`).join('<br>')}
-                ${b.pendingExchanges.length > 3 ? `<br>외 ${b.pendingExchanges.length - 3}건` : ''}
+            <!-- 🤝 교품 섹션 -->
+            <div style="padding-bottom:6px; border-bottom:1px dashed #fed7aa;">
+              <div style="font-weight:700; color:#b45309; margin-bottom:2px;">
+                🤝 <strong>인근약국 교품 (미정산):</strong> <span class="text-danger font-black">${b.pendingExchanges.length}건</span>
+                ${b.lendExchanges.length > 0 ? `<span class="badge bg-warning text-dark ms-1">빌려줌 ${b.lendExchanges.length}</span>` : ''}
+                ${b.borrowExchanges.length > 0 ? `<span class="badge bg-info text-dark ms-1">빌려옴 ${b.borrowExchanges.length}</span>` : ''}
               </div>
-            ` : '<div style="color:#16a34a; font-size:11px; margin-top:3px;">✨ 모든 교품 정산이 완료되었습니다.</div>'}
+              ${b.pendingExchanges.length > 0 ? `
+                <div style="font-size:11.5px; color:#475569; line-height:1.5;">
+                  ${b.pendingExchanges.slice(0, 2).map(x => `• [${x.type === 'LEND' ? '대여' : '차용'}] ${x.targetPharmacy || '약국'}: ${x.drugName || '약품'}(${x.quantity || x.qty || 1}${x.unit || '개'})`).join('<br>')}
+                  ${b.pendingExchanges.length > 2 ? `<br>외 ${b.pendingExchanges.length - 2}건` : ''}
+                </div>
+              ` : '<div style="color:#16a34a; font-size:11px;">✨ 미정산 교품 내역 없음</div>'}
+            </div>
+
+            <!-- 📦 불용재고 섹션 -->
+            <div style="margin-top:6px;">
+              <div style="font-weight:700; color:#475569; margin-bottom:2px;">
+                📦 <strong>처방중단 불용재고:</strong> <span class="text-amber-700 font-black">${b.activeDeadStocks.length}품목</span>
+                ${b.dayDeadStocks.length > 0 ? `<span class="badge bg-danger ms-1">오늘 등록 +${b.dayDeadStocks.length}</span>` : ''}
+              </div>
+              ${b.activeDeadStocks.length > 0 ? `
+                <div style="font-size:11px; color:#64748b;">
+                  • 손실 추정액: <strong class="text-danger font-bold">₩ ${Math.round(b.totalDeadStockLoss).toLocaleString()}</strong>원
+                </div>
+                <div style="font-size:11.5px; color:#475569; line-height:1.5; margin-top:2px;">
+                  ${b.activeDeadStocks.slice(0, 2).map(d => `• ${d.drugName || '약품'}(${d.quantity || 0}개 · ${d.hospital || d.locationDetail || '보관'})`).join('<br>')}
+                  ${b.activeDeadStocks.length > 2 ? `<br>외 ${b.activeDeadStocks.length - 2}품목` : ''}
+                </div>
+              ` : '<div style="color:#16a34a; font-size:11px;">✨ 등록된 불용재고 없음</div>'}
+            </div>
           </div>
         </div>
       `);
@@ -736,10 +768,11 @@ window.DailyBriefingWidget = (function () {
               </div>
             ` : ''}
 
-            <!-- 🤝 인근약국 교품 브리핑 칩 -->
-            ${(b.dayExchanges.length > 0 || b.pendingExchanges.length > 0) ? `
+            <!-- 🤝 인근약국 교품 & 불용재고 브리핑 칩 -->
+            ${(b.dayExchanges.length > 0 || b.pendingExchanges.length > 0 || b.dayDeadStocks.length > 0 || b.activeDeadStocks.length > 0) ? `
               <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true)" style="background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; cursor:pointer;">
                 🤝 교품 <strong style="color:#ea580c;">${b.pendingExchanges.length}건</strong>
+                ${b.activeDeadStocks.length > 0 ? `<span style="background:#78716c; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">불용${b.activeDeadStocks.length}</span>` : ''}
                 ${b.lendExchanges.length > 0 ? `<span style="background:#eab308; color:#000; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">줌${b.lendExchanges.length}</span>` : ''}
                 ${b.borrowExchanges.length > 0 ? `<span style="background:#06b6d4; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">옴${b.borrowExchanges.length}</span>` : ''}
               </div>

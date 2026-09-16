@@ -671,10 +671,14 @@ window.App = (function () {
     const badges = computeNotificationBadges();
 
     // 맞춤 허용 탭 목록 (개인별 권한) - 약국장 수동 설정 100% 보존
-    let allowed = Array.isArray(currUser.allowedTabs) ? currUser.allowedTabs : [
+    let allowed = Array.isArray(currUser.allowedTabs) ? [...currUser.allowedTabs] : [
       'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module',
       'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
+    // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
+    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+      if (!allowed.includes(mTab)) allowed.push(mTab);
+    });
 
     let html = '';
 
@@ -1473,7 +1477,11 @@ window.App = (function () {
     }
 
     if (!isDirector && curr) {
-      const allowed = Array.isArray(curr.allowedTabs) ? curr.allowedTabs : [];
+      let allowed = Array.isArray(curr.allowedTabs) ? [...curr.allowedTabs] : [];
+      // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
+      ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+        if (!allowed.includes(mTab)) allowed.push(mTab);
+      });
       const targetTabId = moduleName + '-module';
       if (!allowed.includes(targetTabId)) {
         alert('🔒 접근 권한 안내: 약국장님에 의해 접근 권한이 부여되지 않은 메뉴입니다.');
@@ -2126,8 +2134,10 @@ function writeSheetData(sheet, dataList) {
     }
 
     const ALL_COMMON_TABS = [
-      'notices-module', 'worklog-module', 'schedule-module',
-      'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+      'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module',
+      'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module',
+      'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module',
+      'rules-module', 'emergency-contacts-module'
     ];
 
     const newEmp = {

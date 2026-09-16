@@ -402,14 +402,19 @@ window.StaffDirectoryModule = (function () {
                     
                     // 🛡️ permMap이 존재하면 항상 permMap 우선 (가장 최신 저장 상태 반영)
                     // emp.allowedTabs는 클라우드에서 덮어써졌을 수 있으므로 신뢰하지 않음
-                    const allowed = Array.isArray(permMap[emp.id])
-                      ? permMap[emp.id]
+                    let allowed = Array.isArray(permMap[emp.id])
+                      ? [...permMap[emp.id]]
                       : (Array.isArray(emp.allowedTabs)
-                          ? emp.allowedTabs
+                          ? [...emp.allowedTabs]
                           : [
                               'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
                               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
                             ]);
+
+                    // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
+                    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+                      if (!allowed.includes(mTab)) allowed.push(mTab);
+                    });
 
                     const tabs = [
                       { id: 'notices-module', name: '📢 공지사항' },
@@ -621,6 +626,10 @@ window.StaffDirectoryModule = (function () {
       permChks.forEach(cb => {
         if (cb.checked) newAllowed.push(cb.value);
       });
+      // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
+      ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+        if (!newAllowed.includes(mTab)) newAllowed.push(mTab);
+      });
       target.allowedTabs = newAllowed;
       target.updatedAt = now2;
       // ① 먼저 permMap에 타임스탬프 함께 기록
@@ -800,14 +809,19 @@ window.StaffDirectoryModule = (function () {
     } catch(e) {}
 
     // 🛡️ permMap이 존재하면 항상 permMap 우선 (가장 최신 약국장 수동 저장 상태 반영)
-    const allowed = (permMap && Array.isArray(permMap[target.id]))
-      ? permMap[target.id]
+    let allowed = (permMap && Array.isArray(permMap[target.id]))
+      ? [...permMap[target.id]]
       : (Array.isArray(target.allowedTabs)
-          ? target.allowedTabs
+          ? [...target.allowedTabs]
           : [
               'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module',
               'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
             ]);
+
+    // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
+    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+      if (!allowed.includes(mTab)) allowed.push(mTab);
+    });
 
     const tabCheckboxes = modal.querySelectorAll('.perm-tab-cb');
     tabCheckboxes.forEach(cb => {
@@ -827,6 +841,11 @@ window.StaffDirectoryModule = (function () {
     const newAllowed = [];
     tabCheckboxes.forEach(cb => {
       if (cb.checked) newAllowed.push(cb.value);
+    });
+
+    // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
+    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+      if (!newAllowed.includes(mTab)) newAllowed.push(mTab);
     });
 
     if (!empId) {
@@ -1086,8 +1105,10 @@ window.StaffDirectoryModule = (function () {
     }
 
     const ALL_COMMON_TABS = [
-      'notices-module', 'worklog-module', 'medicine-location-module', 'schedule-module',
-      'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
+      'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module',
+      'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module',
+      'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module',
+      'rules-module', 'emergency-contacts-module'
     ];
 
     const newEmp = {

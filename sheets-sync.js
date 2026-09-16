@@ -73,7 +73,7 @@ window.SheetsSync = (function () {
     { id: 'emp_10', username: 'miki1123@naver.com', email: 'miki1123@naver.com', passcode: '1817', name: '이정은', role: '예비인력', position: '부상', payType: 'MONTHLY', joinDate: '2026-01-01', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-7765-1817', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_11', username: 'inihaach@naver.com', email: 'inihaach@naver.com', passcode: '7807', name: '간영자', role: '예비인력', position: '매장관리', payType: 'MONTHLY', joinDate: '2024-09-09', weekdayRate: 15000, holidayRate: 15000, hourlyRate: 15000, baseMonthlySalary: 3000000, phone: '010-4164-7807', usedLeave: 0, pendingLeave: 0, memo: '등록된 참고 메모가 없습니다.', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
     { id: 'emp_12', username: 'dkmedical007@naver.com', email: 'dkmedical007@naver.com', passcode: '7979', name: '주찬양', role: '예비인력', position: '약국관리직', payType: 'MONTHLY', joinDate: '2026-04-20', weekdayRate: 35000, holidayRate: 35000, hourlyRate: 35000, baseMonthlySalary: 2717000, phone: '010-4168-3605', usedLeave: 0, pendingLeave: 0, memo: '비번 7979', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 },
-    { id: 'emp_13', username: 'tudgnsl1909@naver.com', email: 'tudgnsl1909@naver.com', passcode: '1031', name: '박주영', role: '일반직원', position: '조제팀', payType: 'MONTHLY', joinDate: '2026-09-14', weekdayRate: 12000, holidayRate: 12000, hourlyRate: 12000, baseMonthlySalary: 2083200, phone: '010-7590-1031', usedLeave: 0, pendingLeave: 0, memo: '조제실보조인', allowedTabs: ['notices-module', 'worklog-module', 'supplies-module', 'medicine-location-module', 'rx-medicine-location-module', 'expiry-returns-module', 'schedule-module', 'discount-purchase-module', 'emergency-contacts-module'], updatedAt: 0 }
+    { id: 'emp_13', username: 'tudgnsl1909@naver.com', email: 'tudgnsl1909@naver.com', passcode: '1031', name: '박주영', role: '일반직원', position: '조제팀', payType: 'MONTHLY', joinDate: '2026-09-14', weekdayRate: 12000, holidayRate: 12000, hourlyRate: 12000, baseMonthlySalary: 2083200, phone: '010-7590-1031', usedLeave: 0, pendingLeave: 0, memo: '조제실보조인', allowedTabs: [...ALL_COMMON_TABS], updatedAt: 0 }
   ];
 
   const INITIAL_DISCOUNT_PURCHASES = [
@@ -934,11 +934,16 @@ window.SheetsSync = (function () {
             if (pRaw) permMap = JSON.parse(pRaw);
           } catch(e) {}
 
-          const currentAllowed = (permMap && Array.isArray(permMap[u.id]))
-            ? permMap[u.id]
+          let currentAllowed = (permMap && Array.isArray(permMap[u.id]))
+            ? [...permMap[u.id]]
             : ((liveEmp && Array.isArray(liveEmp.allowedTabs))
-                ? liveEmp.allowedTabs
-                : (Array.isArray(u.allowedTabs) ? u.allowedTabs : [...ALL_COMMON_TABS]));
+                ? [...liveEmp.allowedTabs]
+                : (Array.isArray(u.allowedTabs) ? [...u.allowedTabs] : [...ALL_COMMON_TABS]));
+
+          // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
+          ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+            if (!currentAllowed.includes(mTab)) currentAllowed.push(mTab);
+          });
 
           if (liveEmp) {
             return { ...u, ...liveEmp, allowedTabs: currentAllowed };
@@ -1044,7 +1049,13 @@ window.SheetsSync = (function () {
       if (permRaw) permMap = JSON.parse(permRaw);
     } catch(e) {}
     
-    permMap[empId] = allowedTabs || [];
+    let finalTabs = Array.isArray(allowedTabs) ? [...allowedTabs] : [];
+    // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
+    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+      if (!finalTabs.includes(mTab)) finalTabs.push(mTab);
+    });
+
+    permMap[empId] = finalTabs;
     permMap[empId + '_updatedAt'] = now;
     safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
 
@@ -1058,7 +1069,7 @@ window.SheetsSync = (function () {
 
     const target = emps.find(e => e.id === empId);
     if (target) {
-      target.allowedTabs = allowedTabs || [];
+      target.allowedTabs = finalTabs;
       target.updatedAt = now;
     }
     
@@ -1070,7 +1081,7 @@ window.SheetsSync = (function () {
     // 3. 현재 세션 유저 업데이트
     const curr = getCurrentUser();
     if (curr && curr.id === empId) {
-      curr.allowedTabs = allowedTabs || [];
+      curr.allowedTabs = finalTabs;
       setCurrentUser(curr);
     }
     return true;
@@ -1125,10 +1136,14 @@ window.SheetsSync = (function () {
       if (isDirector) {
         return { ...e, role: '약국장', allowedTabs: [...ALL_SYSTEM_TABS] };
       }
-      if (permMap && Array.isArray(permMap[e.id])) {
-        return { ...e, allowedTabs: permMap[e.id] };
-      }
-      return e;
+      let allowed = (permMap && Array.isArray(permMap[e.id]))
+        ? [...permMap[e.id]]
+        : (Array.isArray(e.allowedTabs) ? [...e.allowedTabs] : [...ALL_COMMON_TABS]);
+      // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
+      ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+        if (!allowed.includes(mTab)) allowed.push(mTab);
+      });
+      return { ...e, allowedTabs: allowed };
     });
 
     const cleanEmps = emps.filter(e => e && e.name && !e.name.includes('테스트') && !String(e.email || '').includes('test@') && !deletedIds.includes(e.id));
@@ -2505,9 +2520,20 @@ window.SheetsSync = (function () {
           if (!k.endsWith('_updatedAt')) {
             const lTime = Number(permMap[k + '_updatedAt']) || 0;
             const cTime = Number(cloudData.empPermissions[k + '_updatedAt']) || 0;
-            if (cTime >= lTime) {
-              permMap[k] = cloudData.empPermissions[k];
+            if (cTime > lTime || (cTime === lTime && (!permMap[k] || permMap[k].length === 0))) {
+              let cTabs = Array.isArray(cloudData.empPermissions[k]) ? [...cloudData.empPermissions[k]] : [];
+              // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
+              ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+                if (!cTabs.includes(mTab)) cTabs.push(mTab);
+              });
+              permMap[k] = cTabs;
               permMap[k + '_updatedAt'] = cTime;
+            } else {
+              if (Array.isArray(permMap[k])) {
+                ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+                  if (!permMap[k].includes(mTab)) permMap[k].push(mTab);
+                });
+              }
             }
           }
         });
@@ -2532,7 +2558,10 @@ window.SheetsSync = (function () {
           if (!le) {
             const isDir = (id === 'emp_1') || (ce.role === '약국장') || (ce.position === '대표약사') || (ce.position === '대표') || (ce.username === 'garuemma@naver.com');
             if (isDir) return { ...ce, role: '약국장', allowedTabs: [...ALL_SYSTEM_TABS] };
-            const allowed = Array.isArray(permMap[id]) ? permMap[id] : (Array.isArray(ce.allowedTabs) ? ce.allowedTabs : [...ALL_COMMON_TABS]);
+            let allowed = Array.isArray(permMap[id]) ? [...permMap[id]] : (Array.isArray(ce.allowedTabs) ? [...ce.allowedTabs] : [...ALL_COMMON_TABS]);
+            ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+              if (!allowed.includes(mTab)) allowed.push(mTab);
+            });
             permMap[id] = allowed;
             return { ...ce, allowedTabs: allowed };
           }
@@ -2554,8 +2583,13 @@ window.SheetsSync = (function () {
 
           // 🔥 탭 권한: 로컬 permMap이 유효하면 permMap 우선, 아니면 chosen의 allowedTabs 채택
           let targetAllowed = Array.isArray(permMap[id]) 
-            ? permMap[id] 
-            : (Array.isArray(chosen.allowedTabs) ? chosen.allowedTabs : [...ALL_COMMON_TABS]);
+            ? [...permMap[id]] 
+            : (Array.isArray(chosen.allowedTabs) ? [...chosen.allowedTabs] : [...ALL_COMMON_TABS]);
+
+          // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
+          ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+            if (!targetAllowed.includes(mTab)) targetAllowed.push(mTab);
+          });
 
           permMap[id] = targetAllowed;
 
@@ -3219,11 +3253,73 @@ window.SheetsSync = (function () {
     pushToCloud();
   }
 
+  // 🛡️ 전 직원 필수 공용 탭(환자예약주문 & 교품·불용재고) 절대 유실 방지 자동 보정기 (Auto-Healing)
+  function autoHealStaffPermissions() {
+    try {
+      let permMap = {};
+      try {
+        const pRaw = safeGetItem(STORAGE_KEYS.EMP_PERMISSIONS);
+        if (pRaw) permMap = JSON.parse(pRaw);
+      } catch(e) {}
+
+      let emps = [];
+      try {
+        const raw = safeGetItem(STORAGE_KEYS.EMPLOYEES);
+        if (raw) emps = JSON.parse(raw);
+      } catch(e) {}
+
+      let changed = false;
+      const mandatory = ['patient-orders-module', 'pharmacy-exchange-module'];
+
+      if (Array.isArray(emps) && emps.length > 0) {
+        emps.forEach(e => {
+          if (!e || !e.id) return;
+          const isDir = e.role === '약국장' || e.id === 'emp_1';
+          if (isDir) {
+            e.allowedTabs = [...ALL_SYSTEM_TABS];
+            return;
+          }
+          if (!Array.isArray(e.allowedTabs)) e.allowedTabs = [...ALL_COMMON_TABS];
+          mandatory.forEach(mTab => {
+            if (!e.allowedTabs.includes(mTab)) {
+              e.allowedTabs.push(mTab);
+              changed = true;
+            }
+          });
+        });
+      }
+
+      if (permMap && typeof permMap === 'object') {
+        Object.keys(permMap).forEach(k => {
+          if (!k.endsWith('_updatedAt') && Array.isArray(permMap[k])) {
+            mandatory.forEach(mTab => {
+              if (!permMap[k].includes(mTab)) {
+                permMap[k].push(mTab);
+                changed = true;
+              }
+            });
+          }
+        });
+      }
+
+      if (changed) {
+        safeSetItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(emps));
+        safeSetItem(STORAGE_KEYS.EMP_PERMISSIONS, JSON.stringify(permMap));
+      }
+    } catch(err) {
+      console.warn('autoHealStaffPermissions warning:', err);
+    }
+  }
+
+  // 즉시 1회 자동 실행
+  autoHealStaffPermissions();
+
   return {
     STORAGE_KEYS,
     getData,
     saveData,
     getCurrentUser,
+    autoHealStaffPermissions,
     setCurrentUser,
     logoutUser,
     validatePasswordComplexity,

@@ -282,10 +282,24 @@ window.DailyBriefingWidget = (function () {
       const xDate = getEntityDateStr(x) || (x.date ? String(x.date).split(' ')[0] : '');
       return xDate === targetDateStr;
     });
-    // 미정산(빌려줌/빌려옴) 교품 내역
-    const pendingExchanges = pharmacyExchanges.filter(x => x.status !== 'SETTLED');
+
+    // 헬퍼: 교품 정산 완료 여부 판별 (SETTLED, SETTLED_RETURN, SETTLED_MONEY 모두 완벽 인식)
+    const isSettledExchange = (x) => {
+      if (!x) return false;
+      const s = String(x.status || '').toUpperCase();
+      return s === 'SETTLED' || s === 'SETTLED_RETURN' || s === 'SETTLED_MONEY' || s.startsWith('SETTLED');
+    };
+
+    // 미정산(빌려줌/빌려옴) 교품 내역 (SETTLED_RETURN, SETTLED_MONEY는 정산 완료로 완벽 제외!)
+    const pendingExchanges = pharmacyExchanges.filter(x => !isSettledExchange(x));
     const lendExchanges = pendingExchanges.filter(x => x.type === 'LEND');
     const borrowExchanges = pendingExchanges.filter(x => x.type === 'BORROW');
+    // 당일 정산 완료된 교품 내역
+    const settledExchangesToday = pharmacyExchanges.filter(x => {
+      if (!isSettledExchange(x)) return false;
+      const xDate = getEntityDateStr(x) || (x.date ? String(x.date).split(' ')[0] : '');
+      return xDate === targetDateStr;
+    });
 
     // 당일 등록된 불용재고 내역
     const dayDeadStocks = deadStocks.filter(d => {
@@ -319,6 +333,7 @@ window.DailyBriefingWidget = (function () {
       pendingExchanges,
       lendExchanges,
       borrowExchanges,
+      settledExchangesToday,
       dayDeadStocks,
       activeDeadStocks,
       totalDeadStockLoss
@@ -496,16 +511,17 @@ window.DailyBriefingWidget = (function () {
             <!-- 🤝 교품 섹션 -->
             <div style="padding-bottom:6px; border-bottom:1px dashed #fed7aa;">
               <div style="font-weight:700; color:#b45309; margin-bottom:2px;">
-                🤝 <strong>인근약국 교품 (미정산):</strong> <span class="text-danger font-black">${b.pendingExchanges.length}건</span>
+                🤝 <strong>인근약국 교품 (미정산):</strong> <span class="${b.pendingExchanges.length > 0 ? 'text-danger font-black' : 'text-success font-black'}">${b.pendingExchanges.length}건</span>
                 ${b.lendExchanges.length > 0 ? `<span class="badge bg-warning text-dark ms-1">빌려줌 ${b.lendExchanges.length}</span>` : ''}
                 ${b.borrowExchanges.length > 0 ? `<span class="badge bg-info text-dark ms-1">빌려옴 ${b.borrowExchanges.length}</span>` : ''}
+                ${b.settledExchangesToday && b.settledExchangesToday.length > 0 ? `<span class="badge bg-success ms-1">오늘 정산완료 ${b.settledExchangesToday.length}</span>` : ''}
               </div>
               ${b.pendingExchanges.length > 0 ? `
                 <div style="font-size:11.5px; color:#475569; line-height:1.5;">
-                  ${b.pendingExchanges.slice(0, 2).map(x => `• [${x.type === 'LEND' ? '대여' : '차용'}] ${x.targetPharmacy || '약국'}: ${x.drugName || '약품'}(${x.quantity || x.qty || 1}${x.unit || '개'})`).join('<br>')}
+                  ${b.pendingExchanges.slice(0, 2).map(x => `• [${x.type === 'LEND' ? '대여' : '차용'}] ${x.partnerPharmacy || x.targetPharmacy || '인근약국'}: ${x.drugName || '약품'}(${x.quantity || x.qty || 1}${x.unit || '개'})`).join('<br>')}
                   ${b.pendingExchanges.length > 2 ? `<br>외 ${b.pendingExchanges.length - 2}건` : ''}
                 </div>
-              ` : '<div style="color:#16a34a; font-size:11px;">✨ 미정산 교품 내역 없음</div>'}
+              ` : '<div style="color:#16a34a; font-size:11px; font-weight:700;">✨ 미정산 교품 없음 (모두 정산 완료됨)</div>'}
             </div>
 
             <!-- 📦 불용재고 섹션 -->
@@ -771,10 +787,14 @@ window.DailyBriefingWidget = (function () {
             <!-- 🤝 인근약국 교품 & 불용재고 브리핑 칩 -->
             ${(b.dayExchanges.length > 0 || b.pendingExchanges.length > 0 || b.dayDeadStocks.length > 0 || b.activeDeadStocks.length > 0) ? `
               <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true)" style="background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; cursor:pointer;">
-                🤝 교품 <strong style="color:#ea580c;">${b.pendingExchanges.length}건</strong>
+                ${b.pendingExchanges.length > 0 ? `
+                  🤝 교품 <strong style="color:#ea580c;">${b.pendingExchanges.length}건</strong>
+                  ${b.lendExchanges.length > 0 ? `<span style="background:#eab308; color:#000; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">줌${b.lendExchanges.length}</span>` : ''}
+                  ${b.borrowExchanges.length > 0 ? `<span style="background:#06b6d4; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">옴${b.borrowExchanges.length}</span>` : ''}
+                ` : `
+                  🤝 교품 <strong style="color:#16a34a;">정산완료</strong>
+                `}
                 ${b.activeDeadStocks.length > 0 ? `<span style="background:#78716c; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">불용${b.activeDeadStocks.length}</span>` : ''}
-                ${b.lendExchanges.length > 0 ? `<span style="background:#eab308; color:#000; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">줌${b.lendExchanges.length}</span>` : ''}
-                ${b.borrowExchanges.length > 0 ? `<span style="background:#06b6d4; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">옴${b.borrowExchanges.length}</span>` : ''}
               </div>
             ` : ''}
 

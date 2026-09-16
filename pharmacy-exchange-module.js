@@ -881,6 +881,9 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
       target.updatedAt = Date.now(); // 마스터 대원칙 제26조 타임스탬프 필수 갱신
       saveStorageData(data);
       render('module-content');
+      if (window.DailyBriefingWidget && typeof window.DailyBriefingWidget.renderWidget === 'function') {
+        window.DailyBriefingWidget.renderWidget();
+      }
     }
 
     function toggleDeadStockStatus(id, newStatus) {
@@ -892,6 +895,9 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
       target.updatedAt = Date.now();
       saveStorageData(data);
       render('module-content');
+      if (window.DailyBriefingWidget && typeof window.DailyBriefingWidget.renderWidget === 'function') {
+        window.DailyBriefingWidget.renderWidget();
+      }
     }
 
     function deleteItem(type, id, name) {

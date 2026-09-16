@@ -1839,6 +1839,10 @@ window.SheetsSync = (function () {
   function savePharmacyExchange(data) {
     safeSetItem(STORAGE_KEYS.PHARMACY_EXCHANGE, JSON.stringify(data));
     pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
   }
 
   function getPatientOrders() {
@@ -1849,6 +1853,10 @@ window.SheetsSync = (function () {
   function savePatientOrders(data) {
     safeSetItem(STORAGE_KEYS.PATIENT_ORDERS, JSON.stringify(data));
     pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
   }
 
   // ⚡ 신세계약국-일일결산26 정식 배포 Apps Script 웹앱 URL (메일 발송, 일일결산, 스마트정산 전용)

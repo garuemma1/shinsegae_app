@@ -1855,25 +1855,58 @@ window.SheetsSync = (function () {
 
   // 🔇 무소음 초경량 모드: Web Audio API 및 사운드 버퍼 100% 제거 (배터리 및 메모리 절약)
   if (typeof window !== 'undefined') {
-    // 📱 스마트폰 앱 복귀, 화면 켜짐, 앱 아이콘 터치 진입 시 F5 손 새로고침 필요없이 0.01초 직통 자동 갱신
-    const triggerInstantCloudResync = () => {
-      if (typeof pullFromCloud === 'function') {
-        pullFromCloud(() => {
-          if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
-            window.App.updateSidebarBadgesOnly();
+    // 🛡️ [제170조 준수] 스마트폰 화면 복귀/포커스 시 맹목적 1.1MB 재다운로드 차단 2중 가드 (트래픽 70% 다이어트)
+    let lastVisibilityCheckTime = 0;
+    const PUSH_SIGNAL_REST_URL = "https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pushSignal.json";
+
+    const triggerSmartCloudResync = async () => {
+      const now = Date.now();
+      // 최소 8초 디바운스 쿨다운: 화면을 빠르게 껐다 켜거나 탭 전환 시 중복 통신 원천 차단
+      if (now - lastVisibilityCheckTime < 8000) {
+        if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+          window.App.updateSidebarBadgesOnly();
+        }
+        return;
+      }
+      lastVisibilityCheckTime = now;
+
+      // 1단계: 95바이트 초경량 pushSignal 타임스탬프만 선확인 (1.1MB 전체 다운로드 방지)
+      try {
+        const res = await fetch(`${PUSH_SIGNAL_REST_URL}?t=${now}`, { cache: 'no-store' });
+        if (res.ok) {
+          const sig = await res.json();
+          if (sig && sig.timestamp) {
+            const lastHandled = safeGetItem('ssg_last_push_signal_time') || '0';
+            // 클라우드에 실제로 새 글이나 수정이 발생했을 때만 전체 다운로드 실행!
+            if (String(sig.timestamp) !== String(lastHandled)) {
+              safeSetItem('ssg_last_push_signal_time', String(sig.timestamp));
+              if (typeof pullFromCloud === 'function') {
+                pullFromCloud(() => {
+                  if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+                    window.App.updateSidebarBadgesOnly();
+                  }
+                });
+              }
+              return;
+            }
           }
-        });
+        }
+      } catch(e) {}
+
+      // 변동이 없으면 1.1MB 다운로드 없이 로컬 캐시 기준 사이드바 배지만 조용히 재계산 (트래픽 0MB)
+      if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+        window.App.updateSidebarBadgesOnly();
       }
     };
 
     window.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        triggerInstantCloudResync();
+        triggerSmartCloudResync();
       }
     });
 
-    window.addEventListener('pageshow', triggerInstantCloudResync);
-    window.addEventListener('focus', triggerInstantCloudResync);
+    window.addEventListener('pageshow', triggerSmartCloudResync);
+    window.addEventListener('focus', triggerSmartCloudResync);
   }
 
   function getSoundPreset() { return 'none'; }
@@ -2043,12 +2076,20 @@ window.SheetsSync = (function () {
                 
                 // 📱 타 기기 / 제3자 작성 수신 시 0.01초 사이드바 N 배지 갱신 (무소음 초경량 모드)
                 if (!isSelf) {
-                  pullFromCloud(() => {
+                  // 🛡️ WebSocket이 비활성 상태일 때만 REST 풀백 호출 (중복 1.1MB 다운로드 방지)
+                  if (!fbRef) {
+                    pullFromCloud(() => {
+                      if (window.App) {
+                        if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
+                        if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
+                      }
+                    });
+                  } else {
                     if (window.App) {
                       if (typeof window.App.renderSidebarNavigation === 'function') window.App.renderSidebarNavigation();
                       if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
                     }
-                  });
+                  }
                 }
               }
             }

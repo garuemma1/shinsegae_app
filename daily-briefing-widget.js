@@ -499,46 +499,47 @@ window.DailyBriefingWidget = (function () {
       `);
     }
 
-    // 카드 8: 인근약국 교품 & 불용재고 대장 (당일 등록 또는 미정산 교품/불용재고가 있을 때)
-    if (b.dayExchanges.length > 0 || b.pendingExchanges.length > 0 || b.dayDeadStocks.length > 0 || b.activeDeadStocks.length > 0) {
+    // 카드 8: 🤝 인근약국 교품 (미정산 건이 있거나 당일 교품 변동이 있을 때만 단독 노출!)
+    if (b.pendingExchanges.length > 0 || b.dayExchanges.length > 0) {
       activeCards.push(`
         <div onclick="App.switchModule('pharmacy-exchange', true)" style="background:#ffffff; border:1.5px solid #fed7aa; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(249,115,22,0.08); cursor:pointer; transition:transform 0.15s ease;">
           <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:13px; color:#9a3412;"><i class="fas fa-handshake text-amber-600 me-1"></i> 교품 & 불용재고 (${(b.dayExchanges.length + b.dayDeadStocks.length) > 0 ? `오늘 +${b.dayExchanges.length + b.dayDeadStocks.length}건` : `관리중`})</strong>
-            <span style="font-size:11px; color:#c2410c; font-weight:700;">대장 이동 ➔</span>
+            <strong style="font-size:13px; color:#9a3412;"><i class="fas fa-handshake text-amber-600 me-1"></i> 인근약국 교품 (${b.dayExchanges.length > 0 ? `오늘 +${b.dayExchanges.length}건` : (b.pendingExchanges.length > 0 ? `미정산 ${b.pendingExchanges.length}건` : '정산완료')})</strong>
+            <span style="font-size:11px; color:#c2410c; font-weight:700;">교품대장 ➔</span>
           </div>
           <div style="font-size:12px; color:#334155; line-height:1.6;">
-            <!-- 🤝 교품 섹션 -->
-            <div style="padding-bottom:6px; border-bottom:1px dashed #fed7aa;">
-              <div style="font-weight:700; color:#b45309; margin-bottom:2px;">
-                🤝 <strong>인근약국 교품 (미정산):</strong> <span class="${b.pendingExchanges.length > 0 ? 'text-danger font-black' : 'text-success font-black'}">${b.pendingExchanges.length}건</span>
-                ${b.lendExchanges.length > 0 ? `<span class="badge bg-warning text-dark ms-1">빌려줌 ${b.lendExchanges.length}</span>` : ''}
-                ${b.borrowExchanges.length > 0 ? `<span class="badge bg-info text-dark ms-1">빌려옴 ${b.borrowExchanges.length}</span>` : ''}
-                ${b.settledExchangesToday && b.settledExchangesToday.length > 0 ? `<span class="badge bg-success ms-1">오늘 정산완료 ${b.settledExchangesToday.length}</span>` : ''}
-              </div>
-              ${b.pendingExchanges.length > 0 ? `
-                <div style="font-size:11.5px; color:#475569; line-height:1.5;">
-                  ${b.pendingExchanges.slice(0, 2).map(x => `• [${x.type === 'LEND' ? '대여' : '차용'}] ${x.partnerPharmacy || x.targetPharmacy || '인근약국'}: ${x.drugName || '약품'}(${x.quantity || x.qty || 1}${x.unit || '개'})`).join('<br>')}
-                  ${b.pendingExchanges.length > 2 ? `<br>외 ${b.pendingExchanges.length - 2}건` : ''}
-                </div>
-              ` : '<div style="color:#16a34a; font-size:11px; font-weight:700;">✨ 미정산 교품 없음 (모두 정산 완료됨)</div>'}
+            <div style="font-weight:700; color:#b45309; margin-bottom:2px;">
+              🤝 <strong>미정산 교품:</strong> <span class="${b.pendingExchanges.length > 0 ? 'text-danger font-black' : 'text-success font-black'}">${b.pendingExchanges.length}건</span>
+              ${b.lendExchanges.length > 0 ? `<span class="badge bg-warning text-dark ms-1">빌려줌 ${b.lendExchanges.length}</span>` : ''}
+              ${b.borrowExchanges.length > 0 ? `<span class="badge bg-info text-dark ms-1">빌려옴 ${b.borrowExchanges.length}</span>` : ''}
+              ${b.settledExchangesToday && b.settledExchangesToday.length > 0 ? `<span class="badge bg-success ms-1">오늘 정산완료 ${b.settledExchangesToday.length}</span>` : ''}
             </div>
-
-            <!-- 📦 불용재고 섹션 -->
-            <div style="margin-top:6px;">
-              <div style="font-weight:700; color:#475569; margin-bottom:2px;">
-                📦 <strong>처방중단 불용재고:</strong> <span class="text-amber-700 font-black">${b.activeDeadStocks.length}품목</span>
-                ${b.dayDeadStocks.length > 0 ? `<span class="badge bg-danger ms-1">오늘 등록 +${b.dayDeadStocks.length}</span>` : ''}
+            ${b.pendingExchanges.length > 0 ? `
+              <div style="font-size:11.5px; color:#475569; line-height:1.5; margin-top:3px;">
+                ${b.pendingExchanges.slice(0, 3).map(x => `• [${x.type === 'LEND' ? '대여' : '차용'}] ${x.partnerPharmacy || x.targetPharmacy || '인근약국'}: ${x.drugName || '약품'}(${x.quantity || x.qty || 1}${x.unit || '개'})`).join('<br>')}
+                ${b.pendingExchanges.length > 3 ? `<br>외 ${b.pendingExchanges.length - 3}건` : ''}
               </div>
-              ${b.activeDeadStocks.length > 0 ? `
-                <div style="font-size:11px; color:#64748b;">
-                  • 손실 추정액: <strong class="text-danger font-bold">₩ ${Math.round(b.totalDeadStockLoss).toLocaleString()}</strong>원
-                </div>
-                <div style="font-size:11.5px; color:#475569; line-height:1.5; margin-top:2px;">
-                  ${b.activeDeadStocks.slice(0, 2).map(d => `• ${d.drugName || '약품'}(${d.quantity || 0}개 · ${d.hospital || d.locationDetail || '보관'})`).join('<br>')}
-                  ${b.activeDeadStocks.length > 2 ? `<br>외 ${b.activeDeadStocks.length - 2}품목` : ''}
-                </div>
-              ` : '<div style="color:#16a34a; font-size:11px;">✨ 등록된 불용재고 없음</div>'}
+            ` : '<div style="color:#16a34a; font-size:11px; font-weight:700; margin-top:2px;">✨ 미정산 교품 없음 (모두 정산 완료됨)</div>'}
+          </div>
+        </div>
+      `);
+    }
+
+    // 카드 9: 📦 처방중단 불용재고 (오늘 신규 등록된 불용재고가 있을 때만 단독 노출!)
+    if (b.dayDeadStocks.length > 0) {
+      activeCards.push(`
+        <div onclick="App.switchModule('pharmacy-exchange', true)" style="background:#ffffff; border:1.5px solid #fde68a; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(217,119,6,0.08); cursor:pointer; transition:transform 0.15s ease;">
+          <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:13px; color:#854d0e;"><i class="fas fa-triangle-exclamation text-amber-500 me-1"></i> 처방중단 불용재고 (오늘 신규 +${b.dayDeadStocks.length}품목)</strong>
+            <span style="font-size:11px; color:#b45309; font-weight:700;">불용재고 대장 ➔</span>
+          </div>
+          <div style="font-size:12px; color:#334155; line-height:1.6;">
+            <div style="font-weight:700; color:#92400e; margin-bottom:2px;">
+              📦 <strong>오늘 등록 품목:</strong>
+            </div>
+            <div style="font-size:11.5px; color:#475569; line-height:1.5;">
+              ${b.dayDeadStocks.slice(0, 3).map(d => `• ${d.drugName || '약품'}(${d.quantity || 0}개 · ${d.hospital || d.locationDetail || '보관'})`).join('<br>')}
+              ${b.dayDeadStocks.length > 3 ? `<br>외 ${b.dayDeadStocks.length - 3}품목` : ''}
             </div>
           </div>
         </div>
@@ -784,17 +785,19 @@ window.DailyBriefingWidget = (function () {
               </div>
             ` : ''}
 
-            <!-- 🤝 인근약국 교품 & 불용재고 브리핑 칩 -->
-            ${(b.dayExchanges.length > 0 || b.pendingExchanges.length > 0 || b.dayDeadStocks.length > 0 || b.activeDeadStocks.length > 0) ? `
+            <!-- 🤝 인근약국 교품 브리핑 칩 (미정산 또는 오늘 교품 변동이 있을 때만 단독 노출!) -->
+            ${(b.pendingExchanges.length > 0 || b.dayExchanges.length > 0) ? `
               <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true)" style="background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; cursor:pointer;">
-                ${b.pendingExchanges.length > 0 ? `
-                  🤝 교품 <strong style="color:#ea580c;">${b.pendingExchanges.length}건</strong>
-                  ${b.lendExchanges.length > 0 ? `<span style="background:#eab308; color:#000; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">줌${b.lendExchanges.length}</span>` : ''}
-                  ${b.borrowExchanges.length > 0 ? `<span style="background:#06b6d4; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">옴${b.borrowExchanges.length}</span>` : ''}
-                ` : `
-                  🤝 교품 <strong style="color:#16a34a;">정산완료</strong>
-                `}
-                ${b.activeDeadStocks.length > 0 ? `<span style="background:#78716c; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">불용${b.activeDeadStocks.length}</span>` : ''}
+                🤝 교품 <strong style="color:#ea580c;">${b.pendingExchanges.length > 0 ? `${b.pendingExchanges.length}건` : '정산완료'}</strong>
+                ${b.lendExchanges.length > 0 ? `<span style="background:#eab308; color:#000; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">줌${b.lendExchanges.length}</span>` : ''}
+                ${b.borrowExchanges.length > 0 ? `<span style="background:#06b6d4; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">옴${b.borrowExchanges.length}</span>` : ''}
+              </div>
+            ` : ''}
+
+            <!-- 📦 처방중단 불용재고 브리핑 칩 (오늘 신규 등록된 불용재고가 있을 때만 단독 노출!) -->
+            ${b.dayDeadStocks.length > 0 ? `
+              <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true)" style="background:#fefce8; color:#854d0e; border:1px solid #fef08a; cursor:pointer;">
+                📦 불용재고 <strong style="color:#ca8a04;">+${b.dayDeadStocks.length}품목</strong>
               </div>
             ` : ''}
 

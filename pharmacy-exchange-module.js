@@ -11,6 +11,7 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
     let deadStockFilter = 'ALL';   // 'ALL', 'STORAGE', 'DISPOSAL', 'SETTLED'
     let searchQuery = '';
     let selectedPhotos = [];       // [{ id, data, isNew }]
+    let editingItemId = null;      // ✏️ 수정 중인 항목 ID (신규 등록 시 null)
 
     function escapeHTML(str) {
       if (!str) return '';
@@ -426,11 +427,16 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
                 <div class="p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 text-xs flex flex-col gap-2">
                   <div class="flex items-center justify-between text-[11px] text-slate-400">
                     <span>🕒 <b>${escapeHTML(item.updatedBy || '약국')}</b> · ${escapeHTML(formatExchangeDate(item.updatedAt, item.displayDate))}</span>
-                    ${isDirector ? `
-                      <button type="button" onclick="PharmacyExchangeModule.deleteItem('EXCHANGE', '${item.id}', '${escapeHTML(item.drugName).replace(/'/g, "\\'")}')" class="text-rose-500 hover:text-rose-700 font-bold p-1" title="삭제">
-                        <i class="fas fa-trash-alt"></i>
+                    <div class="flex items-center gap-1">
+                      <button type="button" onclick="PharmacyExchangeModule.openEditModal('EXCHANGE', '${item.id}')" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold p-1 flex items-center gap-0.5" title="수정">
+                        <i class="fas fa-edit"></i> <span style="font-size:11px;">수정</span>
                       </button>
-                    ` : ''}
+                      ${isDirector ? `
+                        <button type="button" onclick="PharmacyExchangeModule.deleteItem('EXCHANGE', '${item.id}', '${escapeHTML(item.drugName).replace(/'/g, "\\'")}')" class="text-rose-500 hover:text-rose-700 font-bold p-1" title="삭제">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      ` : ''}
+                    </div>
                   </div>
 
                   <!-- 원터치 상태 변경 토글 버튼 -->
@@ -545,11 +551,16 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
                 <div class="p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 text-xs flex flex-col gap-2">
                   <div class="flex items-center justify-between text-[11px] text-slate-400">
                     <span>🕒 <b>${escapeHTML(item.updatedBy || '약국')}</b> · ${escapeHTML(formatExchangeDate(item.updatedAt, item.displayDate))}</span>
-                    ${isDirector ? `
-                      <button type="button" onclick="PharmacyExchangeModule.deleteItem('DEAD_STOCK', '${item.id}', '${escapeHTML(item.drugName).replace(/'/g, "\\'")}')" class="text-rose-500 hover:text-rose-700 font-bold p-1" title="삭제">
-                        <i class="fas fa-trash-alt"></i>
+                    <div class="flex items-center gap-1">
+                      <button type="button" onclick="PharmacyExchangeModule.openEditModal('DEAD_STOCK', '${item.id}')" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold p-1 flex items-center gap-0.5" title="수정">
+                        <i class="fas fa-edit"></i> <span style="font-size:11px;">수정</span>
                       </button>
-                    ` : ''}
+                      ${isDirector ? `
+                        <button type="button" onclick="PharmacyExchangeModule.deleteItem('DEAD_STOCK', '${item.id}', '${escapeHTML(item.drugName).replace(/'/g, "\\'")}')" class="text-rose-500 hover:text-rose-700 font-bold p-1" title="삭제">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      ` : ''}
+                    </div>
                   </div>
 
                   <div class="grid grid-cols-3 gap-1 pt-1 border-t border-slate-200 dark:border-slate-800">
@@ -574,14 +585,14 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
           <div class="modal-card shadow-2xl" style="background:#ffffff; border-radius:24px; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; padding:28px; position:relative; box-sizing:border-box;">
             <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:20px;">
               <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:40px; height:40px; border-radius:12px; background:#e0e7ff; color:#4338ca; display:flex; align-items:center; justify-content:center; font-size:20px; border:1px solid #c7d2fe;">
+                <div id="ex-modal-icon" style="width:40px; height:40px; border-radius:12px; background:#e0e7ff; color:#4338ca; display:flex; align-items:center; justify-content:center; font-size:20px; border:1px solid #c7d2fe;">
                   <i class="fas fa-handshake"></i>
                 </div>
                 <div>
                   <h3 id="ex-modal-title" style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">
                     ${activeSubTab === 'EXCHANGE' ? '인근약국 교품 내역 등록' : '처방 중단 불용재고 등록'}
                   </h3>
-                  <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">
+                  <p id="ex-modal-desc" style="font-size:12px; color:#64748b; margin:2px 0 0 0;">
                     ${activeSubTab === 'EXCHANGE' ? '약품 대여/차용 내역을 실시간 장부에 기록합니다.' : '처방 중단 고가약 손실을 방지하기 위해 재고를 기재합니다.'}
                   </p>
                 </div>
@@ -590,7 +601,9 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
             </div>
 
             <form onsubmit="PharmacyExchangeModule.handleSubmit(event)" style="display:flex; flex-direction:column; gap:14px;">
-              ${activeSubTab === 'EXCHANGE' ? renderExchangeFormFields() : renderDeadStockFormFields()}
+              <div id="ex-modal-fields-container">
+                ${activeSubTab === 'EXCHANGE' ? renderExchangeFormFields() : renderDeadStockFormFields()}
+              </div>
 
               <!-- 📸 사진 첨부 공통 UI -->
               <div>
@@ -705,14 +718,24 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="display:grid; grid-template-columns:2fr 1fr 2fr; gap:8px;">
           <div>
             <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">잔여 수량 <span style="color:#ef4444;">*</span></label>
-            <input type="number" id="ds-quantity" required placeholder="예: 28" oninput="PharmacyExchangeModule.calcTotalPrice()" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 12px; font-size:13.5px; font-weight:700; box-sizing:border-box;">
+            <input type="number" id="ds-quantity" required placeholder="예: 28" oninput="PharmacyExchangeModule.calcTotalPrice()" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 10px; font-size:13.5px; font-weight:700; box-sizing:border-box;">
           </div>
           <div>
-            <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">추정 1정/개 단가 (원)</label>
-            <input type="number" id="ds-price" placeholder="예: 1250" oninput="PharmacyExchangeModule.calcTotalPrice()" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 12px; font-size:13.5px; font-weight:700; box-sizing:border-box;">
+            <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">단위</label>
+            <select id="ds-unit" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 6px; font-size:13px; font-weight:700; background:#ffffff; box-sizing:border-box;">
+              <option value="정" selected>정</option>
+              <option value="캡슐">캡슐</option>
+              <option value="통/병">통/병</option>
+              <option value="PTP">PTP</option>
+              <option value="박스">박스</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">단가 (원)</label>
+            <input type="number" id="ds-price" placeholder="예: 1250" oninput="PharmacyExchangeModule.calcTotalPrice()" style="width:100%; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 10px; font-size:13.5px; font-weight:700; box-sizing:border-box;">
           </div>
         </div>
 
@@ -789,74 +812,133 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
 
         const data = getStorageData();
 
-        if (activeSubTab === 'EXCHANGE') {
-          // 교품 저장
-          const typeRadio = document.querySelector('input[name="ex-type"]:checked');
-          const type = typeRadio ? typeRadio.value : 'LEND';
-          const partnerPharmacy = (document.getElementById('ex-partner')?.value || '').trim();
-          const drugName = (document.getElementById('ex-drug-name')?.value || '').trim();
-          const quantity = (document.getElementById('ex-quantity')?.value || '').trim();
-          const unit = document.getElementById('ex-unit')?.value || '정';
-          const notes = (document.getElementById('ex-notes')?.value || '').trim();
+        if (editingItemId) {
+          // ✏️ 기존 항목 수정
+          if (activeSubTab === 'EXCHANGE') {
+            const target = (data.exchanges || []).find(e => String(e.id) === String(editingItemId));
+            if (target) {
+              const typeRadio = document.querySelector('input[name="ex-type"]:checked');
+              target.type = typeRadio ? typeRadio.value : (target.type || 'LEND');
+              target.partnerPharmacy = (document.getElementById('ex-partner')?.value || '').trim();
+              target.drugName = (document.getElementById('ex-drug-name')?.value || '').trim();
+              target.quantity = (document.getElementById('ex-quantity')?.value || '').trim();
+              target.unit = document.getElementById('ex-unit')?.value || target.unit || '정';
+              target.notes = (document.getElementById('ex-notes')?.value || '').trim();
+              target.photos = uploadedUrls;
+              target.photoUrl = uploadedUrls[0] || '';
+              target.updatedBy = currUser.name;
+              target.updatedAt = nowMs;
+            }
+          } else {
+            const target = (data.deadStocks || []).find(d => String(d.id) === String(editingItemId));
+            if (target) {
+              const drugName = (document.getElementById('ds-drug-name')?.value || '').trim();
+              const manufacturer = (document.getElementById('ds-manufacturer')?.value || '').trim();
+              const expiryDate = (document.getElementById('ds-expiry')?.value || '').trim();
+              const quantity = Number(document.getElementById('ds-quantity')?.value) || 0;
+              const unit = document.getElementById('ds-unit')?.value || target.unit || '정';
+              const price = Number(document.getElementById('ds-price')?.value) || 0;
+              const totalPrice = Math.round(quantity * price);
+              const hospital = (document.getElementById('ds-hospital')?.value || '').trim();
+              const locationDetail = (document.getElementById('ds-location')?.value || '').trim();
+              const reason = (document.getElementById('ds-reason')?.value || '').trim();
 
-          const newItem = {
-            id: 'exc_' + nowMs,
-            type,
-            partnerPharmacy,
-            drugName,
-            quantity,
-            unit,
-            notes,
-            photos: uploadedUrls,
-            photoUrl: uploadedUrls[0] || '',
-            status: 'PENDING', // PENDING, SETTLED_RETURN, SETTLED_MONEY
-            updatedBy: currUser.name,
-            updatedAt: nowMs,
-            displayDate: nowStr
-          };
+              target.drugName = drugName;
+              target.manufacturer = manufacturer;
+              target.expiryDate = expiryDate;
+              target.quantity = quantity;
+              target.unit = unit;
+              target.price = price;
+              target.totalPrice = totalPrice;
+              target.hospital = hospital;
+              target.locationDetail = locationDetail;
+              target.reason = reason;
+              target.photos = uploadedUrls;
+              target.photoUrl = uploadedUrls[0] || '';
+              target.updatedBy = currUser.name;
+              target.updatedAt = nowMs;
+            }
+          }
 
-          if (!data.exchanges) data.exchanges = [];
-          data.exchanges.unshift(newItem);
+          editingItemId = null;
+          saveStorageData(data);
+          closeModal();
+          resetPhoto();
+          alert('✅ 성공적으로 수정되었습니다!');
+          render('module-content');
         } else {
-          // 불용재고 저장
-          const drugName = (document.getElementById('ds-drug-name')?.value || '').trim();
-          const manufacturer = (document.getElementById('ds-manufacturer')?.value || '').trim();
-          const expiryDate = (document.getElementById('ds-expiry')?.value || '').trim();
-          const quantity = Number(document.getElementById('ds-quantity')?.value) || 0;
-          const price = Number(document.getElementById('ds-price')?.value) || 0;
-          const totalPrice = Math.round(quantity * price);
-          const hospital = (document.getElementById('ds-hospital')?.value || '').trim();
-          const locationDetail = (document.getElementById('ds-location')?.value || '').trim();
-          const reason = (document.getElementById('ds-reason')?.value || '').trim();
+          // ➕ 신규 항목 추가
+          if (activeSubTab === 'EXCHANGE') {
+            // 교품 저장
+            const typeRadio = document.querySelector('input[name="ex-type"]:checked');
+            const type = typeRadio ? typeRadio.value : 'LEND';
+            const partnerPharmacy = (document.getElementById('ex-partner')?.value || '').trim();
+            const drugName = (document.getElementById('ex-drug-name')?.value || '').trim();
+            const quantity = (document.getElementById('ex-quantity')?.value || '').trim();
+            const unit = document.getElementById('ex-unit')?.value || '정';
+            const notes = (document.getElementById('ex-notes')?.value || '').trim();
 
-          const newItem = {
-            id: 'ds_' + nowMs,
-            drugName,
-            manufacturer,
-            expiryDate,
-            quantity,
-            price,
-            totalPrice,
-            hospital,
-            locationDetail,
-            reason,
-            photos: uploadedUrls,
-            photoUrl: uploadedUrls[0] || '',
-            status: 'STORAGE', // STORAGE, DISPOSAL, SETTLED
-            updatedBy: currUser.name,
-            updatedAt: nowMs,
-            displayDate: nowStr
-          };
+            const newItem = {
+              id: 'exc_' + nowMs,
+              type,
+              partnerPharmacy,
+              drugName,
+              quantity,
+              unit,
+              notes,
+              photos: uploadedUrls,
+              photoUrl: uploadedUrls[0] || '',
+              status: 'PENDING', // PENDING, SETTLED_RETURN, SETTLED_MONEY
+              updatedBy: currUser.name,
+              updatedAt: nowMs,
+              displayDate: nowStr
+            };
 
-          if (!data.deadStocks) data.deadStocks = [];
-          data.deadStocks.unshift(newItem);
+            if (!data.exchanges) data.exchanges = [];
+            data.exchanges.unshift(newItem);
+          } else {
+            // 불용재고 저장
+            const drugName = (document.getElementById('ds-drug-name')?.value || '').trim();
+            const manufacturer = (document.getElementById('ds-manufacturer')?.value || '').trim();
+            const expiryDate = (document.getElementById('ds-expiry')?.value || '').trim();
+            const quantity = Number(document.getElementById('ds-quantity')?.value) || 0;
+            const unit = document.getElementById('ds-unit')?.value || '정';
+            const price = Number(document.getElementById('ds-price')?.value) || 0;
+            const totalPrice = Math.round(quantity * price);
+            const hospital = (document.getElementById('ds-hospital')?.value || '').trim();
+            const locationDetail = (document.getElementById('ds-location')?.value || '').trim();
+            const reason = (document.getElementById('ds-reason')?.value || '').trim();
+
+            const newItem = {
+              id: 'ds_' + nowMs,
+              drugName,
+              manufacturer,
+              expiryDate,
+              quantity,
+              unit,
+              price,
+              totalPrice,
+              hospital,
+              locationDetail,
+              reason,
+              photos: uploadedUrls,
+              photoUrl: uploadedUrls[0] || '',
+              status: 'STORAGE', // STORAGE, DISPOSAL, SETTLED
+              updatedBy: currUser.name,
+              updatedAt: nowMs,
+              displayDate: nowStr
+            };
+
+            if (!data.deadStocks) data.deadStocks = [];
+            data.deadStocks.unshift(newItem);
+          }
+
+          saveStorageData(data);
+          closeModal();
+          resetPhoto();
+          alert('✅ 성공적으로 저장되었습니다!');
+          render('module-content');
         }
-
-        saveStorageData(data);
-        closeModal();
-        resetPhoto();
-        alert('✅ 성공적으로 저장되었습니다!');
-        render('module-content');
 
       } catch (err) {
         console.error("PharmacyExchangeModule handleSubmit error:", err);
@@ -960,12 +1042,118 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
     }
 
     function openCreateModal() {
+      editingItemId = null;
       selectedPhotos = [];
+
+      const titleEl = document.getElementById('ex-modal-title');
+      if (titleEl) titleEl.innerText = (activeSubTab === 'EXCHANGE' ? '인근약국 교품 내역 등록' : '처방 중단 불용재고 등록');
+
+      const descEl = document.getElementById('ex-modal-desc');
+      if (descEl) descEl.innerText = (activeSubTab === 'EXCHANGE' ? '약품 대여/차용 내역을 실시간 장부에 기록합니다.' : '처방 중단 고가약 손실을 방지하기 위해 재고를 기재합니다.');
+
+      const iconEl = document.getElementById('ex-modal-icon');
+      if (iconEl) iconEl.innerHTML = activeSubTab === 'EXCHANGE' ? '<i class="fas fa-handshake"></i>' : '<i class="fas fa-boxes-stacked"></i>';
+
+      const submitBtn = document.getElementById('ex-submit-btn');
+      if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> 저장하기';
+
+      const fieldsContainer = document.getElementById('ex-modal-fields-container');
+      if (fieldsContainer) {
+        fieldsContainer.innerHTML = (activeSubTab === 'EXCHANGE' ? renderExchangeFormFields() : renderDeadStockFormFields());
+      }
+
+      resetPhoto();
+
+      const overlay = document.getElementById('ex-modal-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    }
+
+    function openEditModal(type, id) {
+      const data = getStorageData();
+      let item = null;
+      if (type === 'EXCHANGE') {
+        item = (data.exchanges || []).find(e => String(e.id) === String(id));
+      } else {
+        item = (data.deadStocks || []).find(d => String(d.id) === String(id));
+      }
+      if (!item) {
+        alert('⚠️ 해당 항목을 찾을 수 없습니다.');
+        return;
+      }
+
+      editingItemId = id;
+      activeSubTab = type;
+
+      const titleEl = document.getElementById('ex-modal-title');
+      if (titleEl) titleEl.innerText = (type === 'EXCHANGE' ? '인근약국 교품 내역 수정' : '처방 중단 불용재고 수정');
+
+      const descEl = document.getElementById('ex-modal-desc');
+      if (descEl) descEl.innerText = (type === 'EXCHANGE' ? '기존 등록된 교품 내역을 수정합니다.' : '기존 등록된 불용재고 정보를 수정합니다.');
+
+      const iconEl = document.getElementById('ex-modal-icon');
+      if (iconEl) iconEl.innerHTML = '<i class="fas fa-edit"></i>';
+
+      const submitBtn = document.getElementById('ex-submit-btn');
+      if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-edit me-1"></i> 수정 내용 저장';
+
+      const fieldsContainer = document.getElementById('ex-modal-fields-container');
+      if (fieldsContainer) {
+        fieldsContainer.innerHTML = (type === 'EXCHANGE' ? renderExchangeFormFields() : renderDeadStockFormFields());
+      }
+
+      // 폼 값 채우기
+      if (type === 'EXCHANGE') {
+        const radio = document.querySelector(`input[name="ex-type"][value="${item.type || 'LEND'}"]`);
+        if (radio) radio.checked = true;
+        const partnerEl = document.getElementById('ex-partner');
+        if (partnerEl) partnerEl.value = item.partnerPharmacy || '';
+        const drugEl = document.getElementById('ex-drug-name');
+        if (drugEl) drugEl.value = item.drugName || '';
+        const qtyEl = document.getElementById('ex-quantity');
+        if (qtyEl) qtyEl.value = item.quantity || '';
+        const unitEl = document.getElementById('ex-unit');
+        if (unitEl) unitEl.value = item.unit || '정';
+        const notesEl = document.getElementById('ex-notes');
+        if (notesEl) notesEl.value = item.notes || '';
+      } else {
+        const drugEl = document.getElementById('ds-drug-name');
+        if (drugEl) drugEl.value = item.drugName || '';
+        const mfgEl = document.getElementById('ds-manufacturer');
+        if (mfgEl) mfgEl.value = item.manufacturer || '';
+        const expEl = document.getElementById('ds-expiry');
+        if (expEl) expEl.value = item.expiryDate || '';
+        const qtyEl = document.getElementById('ds-quantity');
+        if (qtyEl) qtyEl.value = item.quantity != null ? item.quantity : '';
+        const unitEl = document.getElementById('ds-unit');
+        if (unitEl) unitEl.value = item.unit || '정';
+        const priceEl = document.getElementById('ds-price');
+        if (priceEl) priceEl.value = item.price != null ? item.price : '';
+        const hospEl = document.getElementById('ds-hospital');
+        if (hospEl) hospEl.value = item.hospital || '';
+        const locEl = document.getElementById('ds-location');
+        if (locEl) locEl.value = item.locationDetail || '';
+        const reasonEl = document.getElementById('ds-reason');
+        if (reasonEl) reasonEl.value = item.reason || '';
+        calcTotalPrice();
+      }
+
+      // 기존 사진 복원
+      const existingPhotos = (item.photos && Array.isArray(item.photos) && item.photos.length > 0)
+        ? item.photos
+        : (item.photoUrl ? [item.photoUrl] : []);
+      selectedPhotos = existingPhotos.map((url, idx) => ({
+        id: 'photo_edit_' + idx + '_' + Date.now(),
+        data: url,
+        isNew: false
+      }));
+      renderPhotoPreviews();
+
       const overlay = document.getElementById('ex-modal-overlay');
       if (overlay) overlay.style.display = 'flex';
     }
 
     function closeModal() {
+      editingItemId = null;
       const overlay = document.getElementById('ex-modal-overlay');
       if (overlay) overlay.style.display = 'none';
       resetPhoto();
@@ -1016,6 +1204,7 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
       setFilter,
       handleSearch,
       openCreateModal,
+      openEditModal,
       closeModal,
       handlePhotoSelect,
       removePhoto,

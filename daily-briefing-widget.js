@@ -502,7 +502,7 @@ window.DailyBriefingWidget = (function () {
     // 카드 8: 🤝 인근약국 교품 (미정산 건이 있거나 당일 교품 변동이 있을 때만 단독 노출!)
     if (b.pendingExchanges.length > 0 || b.dayExchanges.length > 0) {
       activeCards.push(`
-        <div onclick="App.switchModule('pharmacy-exchange', true)" style="background:#ffffff; border:1.5px solid #fed7aa; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(249,115,22,0.08); cursor:pointer; transition:transform 0.15s ease;">
+        <div onclick="App.switchModule('pharmacy-exchange', true, 'EXCHANGE')" style="background:#ffffff; border:1.5px solid #fed7aa; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(249,115,22,0.08); cursor:pointer; transition:transform 0.15s ease;">
           <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
             <strong style="font-size:13px; color:#9a3412;"><i class="fas fa-handshake text-amber-600 me-1"></i> 인근약국 교품 (${b.dayExchanges.length > 0 ? `오늘 +${b.dayExchanges.length}건` : (b.pendingExchanges.length > 0 ? `미정산 ${b.pendingExchanges.length}건` : '정산완료')})</strong>
             <span style="font-size:11px; color:#c2410c; font-weight:700;">교품대장 ➔</span>
@@ -528,7 +528,7 @@ window.DailyBriefingWidget = (function () {
     // 카드 9: 📦 처방중단 불용재고 (오늘 신규 등록된 불용재고가 있을 때만 단독 노출!)
     if (b.dayDeadStocks.length > 0) {
       activeCards.push(`
-        <div onclick="App.switchModule('pharmacy-exchange', true)" style="background:#ffffff; border:1.5px solid #fde68a; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(217,119,6,0.08); cursor:pointer; transition:transform 0.15s ease;">
+        <div onclick="App.switchModule('pharmacy-exchange', true, 'DEAD_STOCK')" style="background:#ffffff; border:1.5px solid #fde68a; border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(217,119,6,0.08); cursor:pointer; transition:transform 0.15s ease;">
           <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
             <strong style="font-size:13px; color:#854d0e;"><i class="fas fa-triangle-exclamation text-amber-500 me-1"></i> 처방중단 불용재고 (오늘 신규 +${b.dayDeadStocks.length}품목)</strong>
             <span style="font-size:11px; color:#b45309; font-weight:700;">불용재고 대장 ➔</span>
@@ -787,7 +787,7 @@ window.DailyBriefingWidget = (function () {
 
             <!-- 🤝 인근약국 교품 브리핑 칩 (미정산 또는 오늘 교품 변동이 있을 때만 단독 노출!) -->
             ${(b.pendingExchanges.length > 0 || b.dayExchanges.length > 0) ? `
-              <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true)" style="background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; cursor:pointer;">
+              <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true, 'EXCHANGE')" style="background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; cursor:pointer;">
                 🤝 교품 <strong style="color:#ea580c;">${b.pendingExchanges.length > 0 ? `${b.pendingExchanges.length}건` : '정산완료'}</strong>
                 ${b.lendExchanges.length > 0 ? `<span style="background:#eab308; color:#000; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">줌${b.lendExchanges.length}</span>` : ''}
                 ${b.borrowExchanges.length > 0 ? `<span style="background:#06b6d4; color:#fff; font-size:10px; padding:1px 4px; border-radius:10px; margin-left:2px;">옴${b.borrowExchanges.length}</span>` : ''}
@@ -796,7 +796,7 @@ window.DailyBriefingWidget = (function () {
 
             <!-- 📦 처방중단 불용재고 브리핑 칩 (오늘 신규 등록된 불용재고가 있을 때만 단독 노출!) -->
             ${b.dayDeadStocks.length > 0 ? `
-              <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true)" style="background:#fefce8; color:#854d0e; border:1px solid #fef08a; cursor:pointer;">
+              <div class="briefing-chip" onclick="App.switchModule('pharmacy-exchange', true, 'DEAD_STOCK')" style="background:#fefce8; color:#854d0e; border:1px solid #fef08a; cursor:pointer;">
                 📦 불용재고 <strong style="color:#ca8a04;">+${b.dayDeadStocks.length}품목</strong>
               </div>
             ` : ''}

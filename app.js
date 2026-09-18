@@ -1464,7 +1464,7 @@ window.App = (function () {
     checkPendingRejectionNotice(true, target);
   }
 
-  function switchModule(moduleName, isUserAction = false) {
+  function switchModule(moduleName, isUserAction = false, targetSubTab = null) {
     if (!MODULE_TITLES[moduleName]) return;
 
     // 보안 접근 가드 (약국장 전용 4대 모듈 및 맞춤형 탭 권한)
@@ -1553,6 +1553,16 @@ window.App = (function () {
     if (moduleName === 'building-rental' && isUserAction) {
       if (window.BuildingRentalModule && typeof window.BuildingRentalModule.setCurrentToNow === 'function') {
         window.BuildingRentalModule.setCurrentToNow();
+      }
+    }
+
+    if (moduleName === 'pharmacy-exchange') {
+      if (window.PharmacyExchangeModule) {
+        if (targetSubTab) {
+          window.PharmacyExchangeModule.setSubTab(targetSubTab, false);
+        } else if (isUserAction) {
+          window.PharmacyExchangeModule.autoSelectLatestSubTab();
+        }
       }
     }
 

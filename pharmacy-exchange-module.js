@@ -6,7 +6,7 @@
  */
 if (typeof window.PharmacyExchangeModule === 'undefined') {
   window.PharmacyExchangeModule = (function () {
-    let activeSubTab = 'EXCHANGE'; // 'EXCHANGE' (교품) | 'DEAD_STOCK' (불용재고)
+    let activeSubTab = null;       // 탭 진입 시 최신 등록 글 기준으로 자동 결정 ('EXCHANGE' | 'DEAD_STOCK')
     let exchangeFilter = 'ALL';    // 'ALL', 'LEND', 'BORROW', 'PENDING', 'SETTLED'
     let deadStockFilter = 'ALL';   // 'ALL', 'STORAGE', 'DISPOSAL', 'SETTLED'
     let searchQuery = '';
@@ -66,6 +66,78 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
       } catch (e) {
         console.warn('saveStorageData warning:', e);
       }
+    }
+
+    // ==========================================
+    // 🎯 최신 등록 글 기준 스마트 서브탭 자동 판별 (마스터 대원칙 제174조)
+    // ==========================================
+    function getItemTimestamp(item) {
+      if (!item) return 0;
+
+      // 1. updatedAt 필드 (숫자 ms 또는 유효한 날짜 문자열)
+      if (item.updatedAt) {
+        const num = Number(item.updatedAt);
+        if (!isNaN(num) && num > 100000000000) return num;
+        const parsed = Date.parse(item.updatedAt);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+
+      // 2. createdAt 필드
+      if (item.createdAt) {
+        const num = Number(item.createdAt);
+        if (!isNaN(num) && num > 100000000000) return num;
+        const parsed = Date.parse(item.createdAt);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+
+      // 3. 고유 ID에 각인된 밀리초 타임스탬프 (exc_1789... 또는 ds_1789...)
+      if (item.id && typeof item.id === 'string') {
+        const m = item.id.match(/\d{10,13}/);
+        if (m) {
+          const num = Number(m[0]);
+          if (num > 100000000000) return num;
+          if (num > 1000000000) return num * 1000;
+        }
+      }
+
+      // 4. displayDate 또는 date 문자열 (예: '2026.09.16 17:41' 또는 '2026-09-16 17:41')
+      const dateStr = item.displayDate || item.date;
+      if (dateStr && typeof dateStr === 'string') {
+        const clean = dateStr.trim().replace(/\./g, '/');
+        const parsed = Date.parse(clean);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+
+      return 0;
+    }
+
+    function getLatestTime(list) {
+      if (!Array.isArray(list) || list.length === 0) return 0;
+      let max = 0;
+      for (let i = 0; i < list.length; i++) {
+        const t = getItemTimestamp(list[i]);
+        if (t > max) max = t;
+      }
+      return max;
+    }
+
+    function determineDefaultSubTab() {
+      const data = getStorageData();
+      const exchanges = data.exchanges || [];
+      const deadStocks = data.deadStocks || [];
+
+      const latestExchangeTime = getLatestTime(exchanges);
+      const latestDeadStockTime = getLatestTime(deadStocks);
+
+      // 불용재고에 등록된 글이 교품보다 최신이거나, 교품이 없고 불용재고만 있는 경우 불용재고 서브탭 우선 활성화
+      if (latestDeadStockTime > latestExchangeTime) {
+        return 'DEAD_STOCK';
+      }
+      return 'EXCHANGE';
+    }
+
+    function autoSelectLatestSubTab() {
+      activeSubTab = determineDefaultSubTab();
     }
 
     // ==========================================
@@ -181,6 +253,11 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
     function render(containerId) {
       const container = document.getElementById(containerId || 'module-content');
       if (!container) return;
+
+      // 🌟 마스터 UX: 최초 진입 시 또는 서브탭 미지정 시 가장 최근 등록된 글 기준으로 서브탭 자동 선택 (마스터 대원칙 제174조)
+      if (!activeSubTab) {
+        activeSubTab = determineDefaultSubTab();
+      }
 
       const data = getStorageData();
       const exchanges = data.exchanges || [];
@@ -1026,10 +1103,12 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
       }
     }
 
-    function setSubTab(tab) {
+    function setSubTab(tab, shouldRender = true) {
       activeSubTab = tab;
       searchQuery = '';
-      render('module-content');
+      if (shouldRender) {
+        render('module-content');
+      }
     }
 
     function setFilter(filter) {
@@ -1214,7 +1293,10 @@ if (typeof window.PharmacyExchangeModule === 'undefined') {
       toggleExchangeStatus,
       toggleDeadStockStatus,
       deleteItem,
-      openPhoto
+      openPhoto,
+      determineDefaultSubTab,
+      autoSelectLatestSubTab,
+      getActiveSubTab: () => activeSubTab
     };
   })();
 }

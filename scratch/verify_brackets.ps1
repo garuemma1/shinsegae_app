@@ -1,11 +1,11 @@
 function Check-Brackets($filePath) {
     $content = Get-Content -Raw -Encoding UTF8 $filePath
-    $openCurl = ($content.ToCharArray() | Where-Object { $_ -eq '{' }).Count
-    $closeCurl = ($content.ToCharArray() | Where-Object { $_ -eq '}' }).Count
-    $openParen = ($content.ToCharArray() | Where-Object { $_ -eq '(' }).Count
-    $closeParen = ($content.ToCharArray() | Where-Object { $_ -eq ')' }).Count
-    $openBrack = ($content.ToCharArray() | Where-Object { $_ -eq '[' }).Count
-    $closeBrack = ($content.ToCharArray() | Where-Object { $_ -eq ']' }).Count
+    $openCurl = [regex]::Matches($content, '\{').Count
+    $closeCurl = [regex]::Matches($content, '\}').Count
+    $openParen = [regex]::Matches($content, '\(').Count
+    $closeParen = [regex]::Matches($content, '\)').Count
+    $openBrack = [regex]::Matches($content, '\[').Count
+    $closeBrack = [regex]::Matches($content, '\]').Count
     
     [PSCustomObject]@{
         File = Split-Path $filePath -Leaf
@@ -26,6 +26,7 @@ function Check-Brackets($filePath) {
     'c:\Users\win10\Desktop\shinsegae_app\expiry-returns-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\staff-directory-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\sheets-sync.js',
+    'c:\Users\win10\Desktop\shinsegae_app\schedule-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\building-rental-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\medicine-location-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\rx-medicine-location-module.js',

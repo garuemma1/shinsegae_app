@@ -1841,10 +1841,10 @@ window.ScheduleModule = (function () {
       '권명주': 3,
       '간영자': 4,
       '간명자': 4,
-      '김배영': 6,
-      '김동완': 7,
-      '윤세라': 8,
-      '박주영': 9
+      '김배영': 5,
+      '김동완': 6,
+      '윤세라': 7,
+      '박주영': 8
     };
 
     const mainEmployees = employees.filter(e => e.name !== '유호종').sort((a, b) => {
@@ -1855,6 +1855,15 @@ window.ScheduleModule = (function () {
 
     const yoEmp = employees.find(e => e.name === '유호종');
 
+    function formatReportAmount(val) {
+      if (!val || val === 0) return '0원';
+      const num = Number(val) || 0;
+      if (num % 10000 === 0 && Math.abs(num) >= 10000) {
+        return `${num / 10000}만`;
+      }
+      return `${num.toLocaleString()}원`;
+    }
+
     mainEmployees.forEach(emp => {
       const empAdj = monthAdj[emp.id] || {};
       const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
@@ -1862,26 +1871,38 @@ window.ScheduleModule = (function () {
       const deductionPay = Number(empAdj.deductionPay || 0);
 
       if (emp.name === '이승학') {
-        const mealPart = mealAlw > 0 ? (mealAlw % 10000 === 0 ? `${mealAlw / 10000}만` : `${mealAlw.toLocaleString()}원`) : '15만';
-        report += `${emp.name} 세후249만 (식대포함${mealPart})\n\n`;
+        const mealPart = mealAlw > 0 ? formatReportAmount(mealAlw) : '15만';
+        let extras = [];
+        if (overtimePay > 0) extras.push(`추가수당 ${formatReportAmount(overtimePay)}`);
+        if (deductionPay > 0) extras.push(`공제삭감 -${formatReportAmount(deductionPay)}`);
+        const extraStr = extras.length > 0 ? ` + ${extras.join(' + ').replace('+ 공제삭감 -', '- 공제삭감 ')}` : '';
+        report += `${emp.name} 세후249만 (식대포함${mealPart})${extraStr}\n\n`;
       } else if (emp.name === '권명주') {
-        report += `권명주 세전 155만 +식대 10만\n\n`;
+        const kwonMeal = mealAlw > 0 ? mealAlw : 100000;
+        const kwonMealStr = formatReportAmount(kwonMeal);
+        if (overtimePay > 0 || deductionPay > 0) {
+          const kwonPretax = 1550000 + overtimePay - deductionPay;
+          const kwonBreakdown = `기본 155만${overtimePay > 0 ? ` + 추가수당 ${formatReportAmount(overtimePay)}` : ''}${deductionPay > 0 ? ` - 공제삭감 ${formatReportAmount(deductionPay)}` : ''}`;
+          report += `권명주 세전 ${formatReportAmount(kwonPretax)} + 식대 ${kwonMealStr} (${kwonBreakdown})\n\n`;
+        } else {
+          report += `권명주 세전 155만 + 식대 ${kwonMealStr}\n\n`;
+        }
       } else if (emp.name.includes('간영자') || emp.name.includes('간명자')) {
         const kanTotalWithMeal = Math.max(0, kwonTotalPayroll - 1650000);
         const kanPreTaxBase = Math.max(0, kanTotalWithMeal - 100000);
-        report += `간영자 세전 ${kanPreTaxBase.toLocaleString()}원 +식대 10만\n\n`;
+        const kanMeal = mealAlw > 0 ? mealAlw : 100000;
+        const kanMealStr = formatReportAmount(kanMeal);
+        const kanPretax = kanPreTaxBase + overtimePay - deductionPay;
+
+        if (overtimePay > 0 || deductionPay > 0) {
+          const kanBreakdown = `산출 ${kanPreTaxBase.toLocaleString()}원${overtimePay > 0 ? ` + 추가수당 ${formatReportAmount(overtimePay)}` : ''}${deductionPay > 0 ? ` - 공제삭감 ${formatReportAmount(deductionPay)}` : ''}`;
+          report += `간영자 세전 ${kanPretax.toLocaleString()}원 + 식대 ${kanMealStr} (${kanBreakdown})\n\n`;
+        } else {
+          report += `간영자 세전 ${kanPreTaxBase.toLocaleString()}원 + 식대 ${kanMealStr}\n\n`;
+        }
       } else {
         const isPharmacist = emp.role && emp.role.includes('약사');
-        let pretaxTotal = 0;
-
-        let mealText = '';
-        if (mealAlw > 0) {
-          if (mealAlw % 10000 === 0) {
-            mealText = ` +식대 ${mealAlw / 10000}만`;
-          } else {
-            mealText = ` +식대 ${mealAlw.toLocaleString()}원`;
-          }
-        }
+        let baseCalc = 0;
 
         if (isPharmacist) {
           const empShifts = scheduleRecords.filter(r => r.empId === emp.id && r.date && r.date.startsWith(monthKey));
@@ -1890,13 +1911,23 @@ window.ScheduleModule = (function () {
           const currentHolidayRate = Number(emp.holidayRate) || Number(rateObj.holidayRate) || 40000;
           const currentBreakHours = Number(rateObj.breakHours) || 1.0;
           const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, currentWeekdayRate, currentHolidayRate, currentBreakHours);
-          pretaxTotal = calc.totalPayroll + overtimePay - deductionPay;
+          baseCalc = calc.totalPayroll;
         } else {
-          const baseSal = Number(emp.baseMonthlySalary) || 2717000;
-          pretaxTotal = baseSal + overtimePay - deductionPay;
+          baseCalc = Number(emp.baseMonthlySalary) || 2717000;
         }
 
-        report += `${emp.name} 세전 ${pretaxTotal.toLocaleString()}원${mealText}\n\n`;
+        const pretaxTotal = baseCalc + overtimePay - deductionPay;
+        const mealText = mealAlw > 0 ? ` + 식대 ${formatReportAmount(mealAlw)}` : '';
+
+        if (overtimePay > 0 || deductionPay > 0) {
+          let breakdownParts = [`산출 ${baseCalc.toLocaleString()}원`];
+          if (overtimePay > 0) breakdownParts.push(`추가수당 ${formatReportAmount(overtimePay)}`);
+          if (deductionPay > 0) breakdownParts.push(`공제삭감 -${formatReportAmount(deductionPay)}`);
+          const breakdownStr = breakdownParts.join(' + ').replace('+ 공제삭감 -', '- 공제삭감 ');
+          report += `${emp.name} 세전 ${pretaxTotal.toLocaleString()}원${mealText} (${breakdownStr})\n\n`;
+        } else {
+          report += `${emp.name} 세전 ${pretaxTotal.toLocaleString()}원${mealText}\n\n`;
+        }
       }
     });
 
@@ -1904,6 +1935,7 @@ window.ScheduleModule = (function () {
 
     if (yoEmp) {
       const empAdj = monthAdj[yoEmp.id] || {};
+      const mealAlw = Number(empAdj.mealAllowance !== undefined ? empAdj.mealAllowance : 0);
       const overtimePay = Number(empAdj.overtimePay || 0);
       const deductionPay = Number(empAdj.deductionPay || 0);
       const empShifts = scheduleRecords.filter(r => r.empId === yoEmp.id && r.date && r.date.startsWith(monthKey));
@@ -1912,9 +1944,19 @@ window.ScheduleModule = (function () {
       const currentHolidayRate = Number(yoEmp.holidayRate) || Number(rateObj.holidayRate) || 27000;
       const currentBreakHours = Number(rateObj.breakHours) || 1.0;
       const calc = window.LaborCalculator.calculatePharmacistPayroll(empShifts, currentWeekdayRate, currentHolidayRate, currentBreakHours);
-      const pretaxTotal = calc.totalPayroll + overtimePay - deductionPay;
+      const yoBaseCalc = calc.totalPayroll;
+      const pretaxTotal = yoBaseCalc + overtimePay - deductionPay;
+      const mealText = mealAlw > 0 ? ` + 식대 ${formatReportAmount(mealAlw)}` : '';
 
-      report += `${yoEmp.name} 세전 ${pretaxTotal.toLocaleString()}원`;
+      if (overtimePay > 0 || deductionPay > 0) {
+        let yoBreakdown = [`산출 ${yoBaseCalc.toLocaleString()}원`];
+        if (overtimePay > 0) yoBreakdown.push(`추가수당 ${formatReportAmount(overtimePay)}`);
+        if (deductionPay > 0) yoBreakdown.push(`공제삭감 -${formatReportAmount(deductionPay)}`);
+        const yoBreakdownStr = yoBreakdown.join(' + ').replace('+ 공제삭감 -', '- 공제삭감 ');
+        report += `${yoEmp.name} 세전 ${pretaxTotal.toLocaleString()}원${mealText} (${yoBreakdownStr})`;
+      } else {
+        report += `${yoEmp.name} 세전 ${pretaxTotal.toLocaleString()}원${mealText}`;
+      }
     }
 
     if (navigator.clipboard) {

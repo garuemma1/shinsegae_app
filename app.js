@@ -1901,7 +1901,7 @@ window.App = (function () {
               <div style="font-size:13px; color:#1e40af;">최신 데이터를 즉시 불러오거나 클라우드에 업로드합니다.</div>
             </div>
             <div class="d-flex gap-2">
-              <button type="button" class="btn btn-primary font-bold" onclick="App.forceSyncCloudNow()" style="border-radius:10px; padding:8px 16px; font-size:13px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+              <button type="button" class="btn btn-primary font-bold" onclick="App.forceSyncCloudNow(this)" style="border-radius:10px; padding:8px 16px; font-size:13px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
                 <i class="fas fa-cloud-download-alt me-1"></i> 지금 클라우드 동기화
               </button>
             </div>
@@ -2000,12 +2000,29 @@ window.App = (function () {
     reader.readAsText(file, 'utf-8');
   }
 
-  async function forceSyncCloudNow() {
-    if (window.SheetsSync && window.SheetsSync.pullFromCloud) {
-      await window.SheetsSync.pullFromCloud();
-      alert('🎉 클라우드 최신 데이터 동기화가 완료되었습니다!');
-      renderActiveModule();
-      renderSidebarNavigation();
+  async function forceSyncCloudNow(btnEl) {
+    let originalHtml = '';
+    if (btnEl) {
+      originalHtml = btnEl.innerHTML;
+      btnEl.disabled = true;
+      btnEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> 동기화 진행 중...';
+    }
+    try {
+      if (window.SheetsSync && window.SheetsSync.pullFromCloud) {
+        await window.SheetsSync.pullFromCloud();
+        alert('🎉 클라우드 최신 데이터 실시간 동기화가 성공적으로 완료되었습니다!');
+        renderActiveModule();
+        renderSidebarNavigation();
+      } else {
+        alert('⚠️ 동기화 모듈을 불러올 수 없습니다.');
+      }
+    } catch(err) {
+      alert('❌ 동기화 중 오류가 발생했습니다: ' + err.message);
+    } finally {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = originalHtml;
+      }
     }
   }
 
@@ -2547,6 +2564,9 @@ function writeSheetData(sheet, dataList) {
     openSheetModal,
     closeSheetModal,
     triggerDirectSheetSync,
+    forceSyncCloudNow,
+    exportBackupFile,
+    triggerImportBackup,
     copyGasScriptCode,
     openEmpModal,
     saveNewEmployee,

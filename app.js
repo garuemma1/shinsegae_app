@@ -1876,11 +1876,8 @@ window.App = (function () {
       document.body.appendChild(modal);
     }
 
-    const sheetId = "16yVS9f9bQs9Z2S1k2McnxhHGb9QjQguPa93MxZvNtP0";
-    const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
-
     modal.innerHTML = `
-      <div class="modal-card" style="background:#ffffff; border-radius:22px; max-width:640px; width:94%; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); position:relative; max-height:92vh; overflow-y:auto;">
+      <div class="modal-card" style="background:#ffffff; border-radius:24px; max-width:620px; width:94%; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); position:relative; max-height:92vh; overflow-y:auto;">
         <button type="button" class="close-btn" onclick="document.getElementById('sheet-sync-setup-modal').style.display='none'" style="position:absolute; top:20px; right:24px; font-size:26px; background:none; border:none; color:#64748b; cursor:pointer;">&times;</button>
         
         <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
@@ -1888,20 +1885,20 @@ window.App = (function () {
             <i class="fas fa-database"></i>
           </div>
           <div>
-            <span class="badge bg-success mb-1" style="font-size:11.5px; border-radius:8px;">약국장 전용 데이터 & 동기화 센터</span>
+            <span class="badge bg-success mb-1" style="font-size:11.5px; border-radius:8px;">약국장 전용 마스터 센터</span>
             <h3 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">🔄 기기 간 실시간 동기화 & 백업 센터</h3>
           </div>
         </div>
 
-        <!-- 1. 클라우드 실시간 동기화 카드 -->
+        <!-- 1. 초고속 클라우드 실시간 동기화 카드 -->
         <div class="card p-3 mb-3" style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border:1.5px solid #93c5fd; border-radius:16px;">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-              <span style="font-size:12px; font-weight:700; color:#1d4ed8;">☁️ 집 ↔ 약국 컴퓨터 실시간 클라우드 동기화</span>
-              <div style="font-size:13px; color:#1e40af;">최신 데이터를 즉시 불러오거나 클라우드에 업로드합니다.</div>
+              <span style="font-size:13.5px; font-weight:800; color:#1d4ed8;">☁️ 집 ↔ 약국 컴퓨터 실시간 클라우드 동기화</span>
+              <div style="font-size:12.5px; color:#1e40af; margin-top:2px;">Google Firebase 실시간 DB와 0.1초 만에 최신 데이터를 동기화합니다.</div>
             </div>
             <div class="d-flex gap-2">
-              <button type="button" class="btn btn-primary font-bold" onclick="App.forceSyncCloudNow(this)" style="border-radius:10px; padding:8px 16px; font-size:13px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+              <button type="button" class="btn btn-primary font-bold" onclick="App.forceSyncCloudNow(this)" style="border-radius:10px; padding:9px 18px; font-size:13.5px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
                 <i class="fas fa-cloud-download-alt me-1"></i> 지금 클라우드 동기화
               </button>
             </div>
@@ -1909,43 +1906,25 @@ window.App = (function () {
         </div>
 
         <!-- 2. 기기 간 원클릭 파일 백업 및 복원 카드 -->
-        <div class="card p-3 mb-3" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:16px;">
-          <span style="font-size:12px; font-weight:700; color:#475569;">💾 집 컴퓨터 ↔ 약국 컴퓨터 100% 완전 복원 (파일 백업)</span>
-          <p class="text-muted mb-2" style="font-size:12.5px;">네트워크 환경과 무관하게 집 컴퓨터의 모든 데이터를 파일(.json)로 저장하여 약국 컴퓨터에 즉시 복원할 수 있습니다.</p>
+        <div class="card p-3 mb-4" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:16px;">
+          <span style="font-size:13.5px; font-weight:800; color:#334155;">💾 집 컴퓨터 ↔ 약국 컴퓨터 100% 완전 복원 (파일 백업)</span>
+          <p class="text-muted mb-3" style="font-size:12.5px; margin-top:2px; line-height:1.5;">네트워크 환경과 무관하게 모든 데이터(스케줄, 일지, 약품위치, 명부 등)를 파일(.json)로 저장하여 다른 기기에 1초 만에 즉시 복원할 수 있습니다.</p>
           <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-outline-primary font-bold" onclick="App.exportBackupFile()" style="border-radius:10px; padding:8px 14px; font-size:13px;">
-              <i class="fas fa-download me-1"></i> 📥 집 컴퓨터 데이터 백업 저장 (.json)
+            <button type="button" class="btn btn-outline-primary font-bold" onclick="App.exportBackupFile()" style="border-radius:10px; padding:9px 16px; font-size:13px; background:#fff;">
+              <i class="fas fa-download me-1"></i> 📥 전체 데이터 백업 파일 저장 (.json)
             </button>
-            <button type="button" class="btn btn-success font-bold" onclick="App.triggerImportBackup()" style="border-radius:10px; padding:8px 14px; font-size:13px;">
-              <i class="fas fa-upload me-1"></i> 📤 약국 컴퓨터에 백업 파일 복원
+            <button type="button" class="btn btn-success font-bold" onclick="App.triggerImportBackup()" style="border-radius:10px; padding:9px 16px; font-size:13px;">
+              <i class="fas fa-upload me-1"></i> 📤 백업 파일로 즉시 복원
             </button>
           </div>
         </div>
 
-        <!-- 3. 구글 스프레드시트 연동 카드 -->
-        <div class="card p-3 mb-4" style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px;">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <span style="font-size:12px; font-weight:700; color:#64748b;">📊 구글 스프레드시트 연동</span>
-              <div style="font-size:14px; font-weight:700; color:#0f172a;">신세계약국 마스터 구글 시트</div>
-            </div>
-            <div class="d-flex gap-2">
-              <a href="${sheetUrl}" target="_blank" class="btn btn-outline-secondary font-bold" style="border-radius:10px; padding:7px 14px; font-size:12.5px;">
-                <i class="fas fa-external-link-alt me-1"></i> 시트 열기
-              </a>
-              <button type="button" class="btn btn-outline-success font-bold" onclick="App.triggerDirectSheetSync()" style="border-radius:10px; padding:7px 14px; font-size:12.5px;">
-                <i class="fas fa-sync-alt me-1"></i> 시트 연동
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 4. 하단 액션 버튼 -->
-        <div class="d-flex justify-content-between align-items-center pt-2">
+        <!-- 3. 하단 액션 버튼 -->
+        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
           <button type="button" class="btn btn-outline-dark font-bold" onclick="App.downloadActiveModuleToGoogleSheets()" style="border-radius:10px; padding:8px 16px; font-size:13px;">
-            <i class="fas fa-file-csv me-1 text-success"></i> 현재 화면 엑셀(CSV) 다운로드
+            <i class="fas fa-file-excel me-1 text-success"></i> 현재 화면 엑셀(CSV) 다운로드
           </button>
-          <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('sheet-sync-setup-modal').style.display='none'" style="border-radius:10px; padding:8px 18px;">닫기</button>
+          <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('sheet-sync-setup-modal').style.display='none'" style="border-radius:10px; padding:8px 20px;">닫기</button>
         </div>
       </div>
     `;

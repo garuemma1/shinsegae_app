@@ -1,0 +1,610 @@
+﻿{
+    "sheetName":  "2608결산",
+    "netSurplus":  32395697,
+    "theoreticalProfit":  61670380,
+    "incomeRxFee":  32849250,
+    "otcProfit":  24947460,
+    "incomeNonCovered":  744363,
+    "otcTotalSales":  62368650,
+    "grossIncome":  182199276,
+    "incomeOtcRaw":  62368650,
+    "incomeCopay":  38349890,
+    "incomeNhisClaim":  71969828,
+    "totalDiscounts":  2350700,
+    "totalPharmTrades":  5908800,
+    "incomeDiscount":  472800,
+    "totalCashback":  778608,
+    "incCardBenefit":  778608,
+    "grossExpenses":  149803579,
+    "vendorCashTotal":  42406182,
+    "vendorCardTotal":  47325551,
+    "expCardWithdraw":  76162130,
+    "expPayroll":  20181550,
+    "expUtility":  15099722,
+    "expRent":  15070000,
+    "expOtherOperating":  446800,
+    "expCardFee":  1505097,
+    "expFinance":  1737611,
+    "expPension":  400000,
+    "expSaving":  1000000,
+    "expYellowUmbrella":  400000,
+    "expSeverance":  4231066,
+    "expDining":  0,
+    "discounts":  [
+                      {
+                          "name":  "동화약품",
+                          "amount":  0,
+                          "cell":  "P54"
+                      },
+                      {
+                          "name":  "유화메디칼",
+                          "amount":  70000,
+                          "cell":  "P55"
+                      },
+                      {
+                          "name":  "하나",
+                          "amount":  0,
+                          "cell":  "P56"
+                      },
+                      {
+                          "name":  "동원금융",
+                          "amount":  95110,
+                          "cell":  "P57"
+                      },
+                      {
+                          "name":  "훼밀리팜금융비용",
+                          "amount":  573546,
+                          "cell":  "P58"
+                      },
+                      {
+                          "name":  "백제금융",
+                          "amount":  296372,
+                          "cell":  "P59"
+                      },
+                      {
+                          "name":  "지오영금융",
+                          "amount":  227036,
+                          "cell":  "P60"
+                      },
+                      {
+                          "name":  "동원에누리",
+                          "amount":  50000,
+                          "cell":  "P61"
+                      },
+                      {
+                          "name":  "훼밀리팜에누리",
+                          "amount":  720000,
+                          "cell":  "P62"
+                      },
+                      {
+                          "name":  "훼밀리페이",
+                          "amount":  318636,
+                          "cell":  "P63"
+                      },
+                      {
+                          "name":  "허정환",
+                          "amount":  0,
+                          "cell":  "P64"
+                      }
+                  ],
+    "pharmTrades":  [
+                        {
+                            "name":  "회천메디칼",
+                            "amount":  5000000,
+                            "cell":  "P42"
+                        },
+                        {
+                            "name":  "다산메디칼",
+                            "amount":  0,
+                            "cell":  "P43"
+                        },
+                        {
+                            "name":  "연푸른",
+                            "amount":  0,
+                            "cell":  "P44"
+                        },
+                        {
+                            "name":  "녹십자약국",
+                            "amount":  908800,
+                            "cell":  "P45"
+                        },
+                        {
+                            "name":  "기타 약국",
+                            "amount":  0,
+                            "cell":  "P46"
+                        }
+                    ],
+    "cashVendors":  [
+                        {
+                            "name":  "다원약품",
+                            "amount":  0,
+                            "cell":  "V4"
+                        },
+                        {
+                            "name":  "미향",
+                            "amount":  0,
+                            "cell":  "V5"
+                        },
+                        {
+                            "name":  "신성호",
+                            "amount":  5500000,
+                            "cell":  "V6"
+                        },
+                        {
+                            "name":  "에코테라팜",
+                            "amount":  0,
+                            "cell":  "V7"
+                        },
+                        {
+                            "name":  "영진약품",
+                            "amount":  0,
+                            "cell":  "V8"
+                        },
+                        {
+                            "name":  "유화메디칼",
+                            "amount":  1700000,
+                            "cell":  "V9"
+                        },
+                        {
+                            "name":  "훼밀리팜일반",
+                            "amount":  282500,
+                            "cell":  "V10"
+                        },
+                        {
+                            "name":  "훼밀리팜전문",
+                            "amount":  31863682,
+                            "cell":  "V11"
+                        },
+                        {
+                            "name":  "맥스포스",
+                            "amount":  0,
+                            "cell":  "V12"
+                        },
+                        {
+                            "name":  "현매",
+                            "amount":  3060000,
+                            "cell":  "V14"
+                        }
+                    ],
+    "cardVendors":  [
+                        {
+                            "name":  "동화",
+                            "amount":  0,
+                            "cell":  "Y4"
+                        },
+                        {
+                            "name":  "경남",
+                            "amount":  0,
+                            "cell":  "Y5"
+                        },
+                        {
+                            "name":  "광동",
+                            "amount":  0,
+                            "cell":  "Y6"
+                        },
+                        {
+                            "name":  "고려",
+                            "amount":  0,
+                            "cell":  "Y7"
+                        },
+                        {
+                            "name":  "광동제약",
+                            "amount":  0,
+                            "cell":  "Y8"
+                        },
+                        {
+                            "name":  "그린스토어",
+                            "amount":  0,
+                            "cell":  "Y9"
+                        },
+                        {
+                            "name":  "나이스팜2",
+                            "amount":  0,
+                            "cell":  "Y10"
+                        },
+                        {
+                            "name":  "쥴릭",
+                            "amount":  0,
+                            "cell":  "Y11"
+                        },
+                        {
+                            "name":  "동국일반",
+                            "amount":  0,
+                            "cell":  "Y12"
+                        },
+                        {
+                            "name":  "동성",
+                            "amount":  0,
+                            "cell":  "Y13"
+                        },
+                        {
+                            "name":  "디알에스",
+                            "amount":  0,
+                            "cell":  "Y14"
+                        },
+                        {
+                            "name":  "바로팜",
+                            "amount":  2460000,
+                            "cell":  "Y15"
+                        },
+                        {
+                            "name":  "백제",
+                            "amount":  16465133,
+                            "cell":  "Y16"
+                        },
+                        {
+                            "name":  "삼진",
+                            "amount":  0,
+                            "cell":  "Y17"
+                        },
+                        {
+                            "name":  "지오영",
+                            "amount":  12613136,
+                            "cell":  "Y18"
+                        },
+                        {
+                            "name":  "신신제약",
+                            "amount":  0,
+                            "cell":  "Y19"
+                        },
+                        {
+                            "name":  "아워팜",
+                            "amount":  0,
+                            "cell":  "Y20"
+                        },
+                        {
+                            "name":  "에코테라팜2",
+                            "amount":  0,
+                            "cell":  "Y21"
+                        },
+                        {
+                            "name":  "온라인몰결제총합",
+                            "amount":  10034407,
+                            "cell":  "Y22"
+                        },
+                        {
+                            "name":  "대원제약",
+                            "amount":  0,
+                            "cell":  "AA4"
+                        },
+                        {
+                            "name":  "동원팜",
+                            "amount":  5283905,
+                            "cell":  "AA5"
+                        },
+                        {
+                            "name":  "비타민하우스",
+                            "amount":  0,
+                            "cell":  "AA6"
+                        },
+                        {
+                            "name":  "원탁",
+                            "amount":  0,
+                            "cell":  "AA7"
+                        },
+                        {
+                            "name":  "유한내츄럴보호대",
+                            "amount":  400000,
+                            "cell":  "AA8"
+                        },
+                        {
+                            "name":  "유한양행",
+                            "amount":  0,
+                            "cell":  "AA9"
+                        },
+                        {
+                            "name":  "인터넷",
+                            "amount":  22000,
+                            "cell":  "AA10"
+                        },
+                        {
+                            "name":  "제일약품",
+                            "amount":  0,
+                            "cell":  "AA11"
+                        },
+                        {
+                            "name":  "케어센스",
+                            "amount":  0,
+                            "cell":  "AA12"
+                        },
+                        {
+                            "name":  "태극제약",
+                            "amount":  0,
+                            "cell":  "AA13"
+                        },
+                        {
+                            "name":  "하나",
+                            "amount":  0,
+                            "cell":  "AA14"
+                        },
+                        {
+                            "name":  "한가람약품",
+                            "amount":  0,
+                            "cell":  "AA15"
+                        },
+                        {
+                            "name":  "한풍",
+                            "amount":  0,
+                            "cell":  "AA16"
+                        },
+                        {
+                            "name":  "현대",
+                            "amount":  0,
+                            "cell":  "AA17"
+                        },
+                        {
+                            "name":  "한독",
+                            "amount":  0,
+                            "cell":  "AA18"
+                        },
+                        {
+                            "name":  "위생",
+                            "amount":  0,
+                            "cell":  "AA19"
+                        },
+                        {
+                            "name":  "전화비",
+                            "amount":  17070,
+                            "cell":  "AA20"
+                        },
+                        {
+                            "name":  "웅진렌탈",
+                            "amount":  29900,
+                            "cell":  "AA21"
+                        }
+                    ],
+    "employees":  [
+                      {
+                          "name":  "이승학11",
+                          "amount":  2490000,
+                          "cell":  "V54"
+                      },
+                      {
+                          "name":  "이승학11",
+                          "amount":  2490000,
+                          "cell":  "X54"
+                      },
+                      {
+                          "name":  "유호종31",
+                          "amount":  1962000,
+                          "cell":  "V55"
+                      },
+                      {
+                          "name":  "유호종31",
+                          "amount":  1962000,
+                          "cell":  "X55"
+                      },
+                      {
+                          "name":  "간영자5",
+                          "amount":  2862910,
+                          "cell":  "V56"
+                      },
+                      {
+                          "name":  "간영자5",
+                          "amount":  2862910,
+                          "cell":  "X56"
+                      },
+                      {
+                          "name":  "윤세라5",
+                          "amount":  1633210,
+                          "cell":  "V57"
+                      },
+                      {
+                          "name":  "윤세라5",
+                          "amount":  1683210,
+                          "cell":  "X57"
+                      },
+                      {
+                          "name":  "김제희5",
+                          "amount":  2235310,
+                          "cell":  "V58"
+                      }
+                  ],
+    "severances":  [
+                       {
+                           "name":  "김배영251118",
+                           "amount":  0,
+                           "cell":  "AA45"
+                       },
+                       {
+                           "name":  "김제희241101",
+                           "amount":  3975066,
+                           "cell":  "AA46"
+                       },
+                       {
+                           "name":  "이승학2307",
+                           "amount":  256000,
+                           "cell":  "AA47"
+                       },
+                       {
+                           "name":  "권명주240909",
+                           "amount":  0,
+                           "cell":  "AA48"
+                       },
+                       {
+                           "name":  "양윤지231004",
+                           "amount":  0,
+                           "cell":  "AA49"
+                       },
+                       {
+                           "name":  "김동완260301",
+                           "amount":  0,
+                           "cell":  "AA50"
+                       },
+                       {
+                           "name":  "윤세라260301",
+                           "amount":  0,
+                           "cell":  "AA51"
+                       }
+                   ],
+    "utilities":  [
+                      {
+                          "name":  "갑근세",
+                          "amount":  236110,
+                          "cell":  "V69"
+                      },
+                      {
+                          "name":  "소득월액보험료",
+                          "amount":  422940,
+                          "cell":  "X69"
+                      },
+                      {
+                          "name":  "관리비",
+                          "amount":  782900,
+                          "cell":  "V70"
+                      },
+                      {
+                          "name":  "건강보험료",
+                          "amount":  3212220,
+                          "cell":  "X70"
+                      },
+                      {
+                          "name":  "건강보험료",
+                          "amount":  3212220,
+                          "cell":  "V71"
+                      },
+                      {
+                          "name":  "연금보험료",
+                          "amount":  2834560,
+                          "cell":  "X71"
+                      },
+                      {
+                          "name":  "연금보험료",
+                          "amount":  2834560,
+                          "cell":  "V72"
+                      },
+                      {
+                          "name":  "고용보험료",
+                          "amount":  482970,
+                          "cell":  "X72"
+                      },
+                      {
+                          "name":  "고용보험료",
+                          "amount":  482970,
+                          "cell":  "V73"
+                      },
+                      {
+                          "name":  "산재보험료",
+                          "amount":  223830,
+                          "cell":  "X73"
+                      },
+                      {
+                          "name":  "산재보험료",
+                          "amount":  229830,
+                          "cell":  "V74"
+                      },
+                      {
+                          "name":  "주민세",
+                          "amount":  55000,
+                          "cell":  "X74"
+                      },
+                      {
+                          "name":  "주민세",
+                          "amount":  55000,
+                          "cell":  "V75"
+                      },
+                      {
+                          "name":  "퇴직금수수료",
+                          "amount":  34612,
+                          "cell":  "V76"
+                      }
+                  ],
+    "cardCashbacks":  [
+                          {
+                              "id":  "삼성",
+                              "name":  "삼성10/농협",
+                              "payAmount":  10034407,
+                              "amount":  10034407,
+                              "spend":  10034407,
+                              "payCell":  "AA69",
+                              "rate":  1.5,
+                              "benefitAmount":  150516,
+                              "benefitCell":  "P30",
+                              "cell":  "P30"
+                          },
+                          {
+                              "id":  "국민",
+                              "name":  "국민7/부산은행",
+                              "payAmount":  68970,
+                              "amount":  68970,
+                              "spend":  68970,
+                              "payCell":  "AA70",
+                              "rate":  1.5,
+                              "benefitAmount":  1035,
+                              "benefitCell":  "P31",
+                              "cell":  "P31"
+                          },
+                          {
+                              "id":  "신한",
+                              "name":  "신한8/부산은행",
+                              "payAmount":  2860000,
+                              "amount":  2860000,
+                              "spend":  2860000,
+                              "payCell":  "AA71",
+                              "rate":  1.5,
+                              "benefitAmount":  42900,
+                              "benefitCell":  "P32",
+                              "cell":  "P32"
+                          },
+                          {
+                              "id":  "우리",
+                              "name":  "우리10/우리은행",
+                              "payAmount":  34362174,
+                              "amount":  34362174,
+                              "spend":  34362174,
+                              "payCell":  "AA72",
+                              "rate":  1.7,
+                              "benefitAmount":  584157,
+                              "benefitCell":  "P33",
+                              "cell":  "P33"
+                          }
+                      ],
+    "cardWithdrawals":  [
+                            {
+                                "id":  "card_out_50",
+                                "name":  "우리10/우리은행",
+                                "amount":  41887914,
+                                "cell":  "S50"
+                            },
+                            {
+                                "id":  "card_out_51",
+                                "name":  "신한8/부산은행",
+                                "amount":  22043645,
+                                "cell":  "S51"
+                            },
+                            {
+                                "id":  "card_out_52",
+                                "name":  "국민배보9/부산은행",
+                                "amount":  7457483,
+                                "cell":  "S52"
+                            },
+                            {
+                                "id":  "card_out_53",
+                                "name":  "삼성9/농협",
+                                "amount":  4773088,
+                                "cell":  "S53"
+                            }
+                        ],
+    "otherExpenses":  [
+                          {
+                              "name":  "회식",
+                              "amount":  0,
+                              "cell":  "S68"
+                          },
+                          {
+                              "name":  "잡비1현금",
+                              "amount":  0,
+                              "cell":  "S69"
+                          },
+                          {
+                              "name":  "잡비2카드",
+                              "amount":  134900,
+                              "cell":  "S70"
+                          },
+                          {
+                              "name":  "식대실비",
+                              "amount":  311900,
+                              "cell":  "S71"
+                          }
+                      ]
+}

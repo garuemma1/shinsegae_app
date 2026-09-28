@@ -474,17 +474,11 @@ var DEFAULT_CARD_VENDORS = [
 ];
 
 var DEFAULT_EMPLOYEES = [
-  // 좌측 1열 (U열 성명 / V열 금액)
-  { name: '이송학11', amount: 2490000, cell: 'V54' },
-  { name: '유호동31', amount: 1562000, cell: 'V55' },
-  { name: '간영자5', amount: 2862910, cell: 'V56' },
-  { name: '윤세라5', amount: 1633210, cell: 'V57' },
-  { name: '김제희5', amount: 2295310, cell: 'V58' },
-  // 우측 2열 (W열 성명 / X열 금액)
-  { name: '이송학11', amount: 2490000, cell: 'X54' },
-  { name: '유호동31', amount: 1562000, cell: 'X55' },
-  { name: '간영자5', amount: 2862910, cell: 'X56' },
-  { name: '윤세라5', amount: 1633210, cell: 'X57' }
+  { name: '이승학', rawName: '이승학11', payDay: 11, amount: 2490000, cell: 'V54' },
+  { name: '유호종', rawName: '유호종31', payDay: 31, amount: 1962000, cell: 'V55' },
+  { name: '간영자', rawName: '간영자5', payDay: 5, amount: 2862910, cell: 'V56' },
+  { name: '윤세라', rawName: '윤세라5', payDay: 5, amount: 1633210, cell: 'V57' },
+  { name: '김제희', rawName: '김제희5', payDay: 5, amount: 2235310, cell: 'V58' }
 ];
 
 var DEFAULT_UTILITIES = [
@@ -735,18 +729,21 @@ window.PharmacyStore = class PharmacyStore {
         m2608.expSaving = 1000000;
         m2608.expYellowUmbrella = 400000;
         m2608.expSeverance = 4231066;
-        m2608.expPayroll = 20101550;
+        m2608.expPayroll = 11183430;
+        m2608.expUtility = 8393852;
 
         this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
       }
 
-      // 🛡️ 2608 이외의 신규 월(2609 등)에서 과거 2608 기본값으로 오염된 결산 캐시 자동 정화
+      // 🛡️ 모든 월(2608, 2609, 2610 등)에 대해 중복 직원/공과금 자동 정화 및 정밀 재계산
       if (this.monthlyRecords && typeof this.monthlyRecords === 'object') {
         Object.keys(this.monthlyRecords).forEach(ym => {
           if (ym !== '2608') {
             const ymRec = this.monthlyRecords[ym];
             if (ymRec && (ymRec.incomeRxFee === 32849250 || ymRec.expRent === 15070000)) {
               delete this.monthlyRecords[ym];
+            } else if (ymRec) {
+              this.monthlyRecords[ym] = this.calculateMonthly(ymRec);
             }
           }
         });
@@ -1226,15 +1223,60 @@ window.PharmacyStore = class PharmacyStore {
     m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : (is2608 ? 47325551 : 0);
     m.expCardWithdraw = m.vendorCardTotal;
 
+    // 🛡️ [모든 달 공통] 직원 급여 중복 제거 & 이름 정규화 & 지급일 분리
     let payrollSum = 0;
     if (m.employees && Array.isArray(m.employees)) {
-      m.employees.forEach(v => { payrollSum += this.parseMoney(v.amount); });
-    }
-    m.expPayroll = payrollSum > 0 ? payrollSum : (is2608 ? 20421710 : 0);
+      const seenEmp = {};
+      m.employees = m.employees.filter(e => {
+        if (!e) return false;
+        const raw = String(e.name || e.rawName || '').trim();
+        if (!raw || raw === '-' || raw === '.' || raw.includes('인건비') || raw.includes('합계')) return false;
+        const baseName = raw.replace(/[0-9\s()_\[\]-]/g, '').trim() || raw;
+        if (seenEmp[baseName]) return false; // 중복 배제!
+        seenEmp[baseName] = true;
 
+        if (/[0-9]$/.test(raw) && !e.payDay) {
+          const mDay = raw.match(/([0-9]{1,2})$/);
+          if (mDay) e.payDay = parseInt(mDay[1], 10);
+        }
+        e.name = baseName;
+        e.amount = this.parseMoney(e.amount);
+        payrollSum += e.amount;
+        return true;
+      });
+    }
+    m.expPayroll = payrollSum > 0 ? payrollSum : (is2608 ? 11183430 : 0);
+
+    // 🛡️ [모든 달 공통] 공과금 중복 제거 & 정규화
     let utilitySum = 0;
     if (m.utilities && Array.isArray(m.utilities)) {
-      m.utilities.forEach(v => { utilitySum += this.parseMoney(v.amount); });
+      const seenUtil = {};
+      m.utilities = m.utilities.filter(u => {
+        if (!u) return false;
+        const cleanStr = String(u.name || '').trim();
+        if (!cleanStr || cleanStr === '-' || cleanStr === '.' || cleanStr.includes('공과금') || cleanStr.includes('합계')) return false;
+        var normName = cleanStr.replace(/\s+/g, '');
+        if (normName.indexOf('건강') !== -1) normName = '건강보험료';
+        else if (normName.indexOf('연금') !== -1) normName = '연금보험료';
+        else if (normName.indexOf('고용') !== -1) normName = '고용보험료';
+        else if (normName.indexOf('산재') !== -1) normName = '산재보험료';
+        else if (normName.indexOf('주민세') !== -1) normName = '주민세';
+        else if (normName.indexOf('갑근세') !== -1) normName = '갑근세';
+        else if (normName.indexOf('지방소득세') !== -1) normName = '지방소득세';
+        else if (normName.indexOf('관리비') !== -1) normName = '관리비';
+        else if (normName.indexOf('캡스') !== -1) normName = '캡스';
+        else if (normName.indexOf('유비케어') !== -1) normName = '유비케어';
+        else if (normName.indexOf('토너') !== -1) normName = '토너비용';
+        else if (normName.indexOf('세무사') !== -1) normName = '세무사비';
+        else if (normName.indexOf('이디비') !== -1) normName = '이디비';
+        else if (normName.indexOf('퇴직금수수료') !== -1) normName = '퇴직금수수료';
+
+        if (seenUtil[normName]) return false; // 중복 배제!
+        seenUtil[normName] = true;
+        u.amount = this.parseMoney(u.amount);
+        utilitySum += u.amount;
+        return true;
+      });
     }
     m.expUtility = utilitySum > 0 ? utilitySum : (is2608 ? 8393852 : 0);
 
@@ -2218,7 +2260,7 @@ var UI = {
               <!-- 급여대장 (S8) -->
               <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:16px;" class="space-y-3">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #e2e8f0; padding-bottom:10px;">
-                  <span style="font-size:12.5px; font-weight:800; color:#d97706;">인건비 급여대장 (V53: ₩${window.store.formatMoney(m.expPayroll)})</span>
+                  <span style="font-size:12.5px; font-weight:800; color:#d97706;">인건비 급여대장 (₩${window.store.formatMoney(m.expPayroll)})</span>
                   <button onclick="UI.showAddItemModal('employees', '직원 급여 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#d97706; border:1px solid #fcd34d; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
                     <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 추가
                   </button>
@@ -2227,7 +2269,8 @@ var UI = {
                   ${m.employees.map((e, idx) => `
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px;">
                       <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
-                        <span style="font-weight:800; color:#0f172a; font-size:12px; white-space:nowrap; overflow:visible;">${e.name}</span>
+                        <span style="font-weight:800; color:#0f172a; font-size:12.5px; white-space:nowrap; overflow:visible;">${e.name}</span>
+                        ${e.payDay ? `<span style="font-size:10px; color:#d97706; background:#fef3c7; border:1px solid #fde68a; padding:1px 5px; border-radius:4px; font-weight:700; flex-shrink:0;">${e.payDay === 31 ? '말일' : e.payDay + '일'} 지급</span>` : ''}
                         ${e.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${e.cell}</span>` : ''}
                       </div>
                       <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
@@ -3418,9 +3461,9 @@ window.SmartLedgerModule = {
       try { window.store.saveToLocal(); } catch (e) {}
     }
 
-    if (m2608 && m2608.employees && (m2608.employees.some(e => e.name === '공과금' || e.name === '월세' || e.name === '기타운영비' || e.name === '카드수수료') || !m2608.employees.some(e => e.name === '이송학11'))) {
+    if (m2608 && m2608.employees && (m2608.employees.length > 5 || m2608.employees.some(e => e.name === '공과금' || e.name === '월세' || e.name === '기타운영비' || e.name === '카드수수료' || e.name === '이송학11') || !m2608.employees.some(e => e.name === '이승학'))) {
       m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
-      m2608.expPayroll = 20101550;
+      m2608.expPayroll = 11183430;
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
       try { window.store.saveToLocal(); } catch (e) {}
     }

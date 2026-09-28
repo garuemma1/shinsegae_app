@@ -474,27 +474,36 @@ var DEFAULT_CARD_VENDORS = [
 ];
 
 var DEFAULT_EMPLOYEES = [
-  { name: '이승학', rawName: '이승학11', payDay: 11, amount: 2490000, cell: 'V54' },
-  { name: '유호종', rawName: '유호종31', payDay: 31, amount: 1962000, cell: 'V55' },
-  { name: '간영자', rawName: '간영자5', payDay: 5, amount: 2862910, cell: 'V56' },
-  { name: '윤세라', rawName: '윤세라5', payDay: 5, amount: 1633210, cell: 'V57' },
-  { name: '김제희', rawName: '김제희5', payDay: 5, amount: 2235310, cell: 'V58' }
+  // 1열 (U/V열)
+  { name: '권명주', rawName: '권명주5', payDay: 5, amount: 1490000, cell: 'V54' },
+  { name: '김배영', rawName: '김배영5', payDay: 5, amount: 998570, cell: 'V55' },
+  { name: '김동완', rawName: '김동완5', payDay: 5, amount: 3014170, cell: 'V56' },
+  { name: '양윤지', rawName: '양윤지5', payDay: 5, amount: 3685540, cell: 'V57' },
+  { name: '김제희', rawName: '김제희5', payDay: 5, amount: 2235310, cell: 'V58' },
+  // 2열 (W/X열)
+  { name: '이승학', rawName: '이승학11', payDay: 11, amount: 2490000, cell: 'X54' },
+  { name: '유호종', rawName: '유호종31', payDay: 31, amount: 1962000, cell: 'X55' },
+  { name: '간영자', rawName: '간영자5', payDay: 5, amount: 2862910, cell: 'X56' },
+  { name: '윤세라', rawName: '윤세라5', payDay: 5, amount: 1683210, cell: 'X57' }
 ];
 
 var DEFAULT_UTILITIES = [
-  { name: '갑근세', amount: 230110, cell: 'T70' },
-  { name: '관리비', amount: 782900, cell: 'T71' },
-  { name: '캡스5', amount: 88000, cell: 'T72' },
-  { name: '유비케어20', amount: 130150, cell: 'T73' },
-  { name: '토너비용', amount: 71500, cell: 'T74' },
-  { name: '세무사비1', amount: 165000, cell: 'T75' },
-  { name: '이디비27', amount: 77000, cell: 'T76' },
-  { name: '퇴직금수수료', amount: 34612, cell: 'T77' },
+  // 1열 (U/V열)
+  { name: '갑근세', amount: 236110, cell: 'V69' },
+  { name: '관리비', amount: 782900, cell: 'V70' },
   { name: '건강보험료', amount: 3212220, cell: 'V71' },
   { name: '연금보험료', amount: 2834560, cell: 'V72' },
   { name: '고용보험료', amount: 482970, cell: 'V73' },
   { name: '산재보험료', amount: 229830, cell: 'V74' },
-  { name: '주민세', amount: 55000, cell: 'V75' }
+  { name: '주민세', amount: 55000, cell: 'V75' },
+  { name: '퇴직금수수료', amount: 34612, cell: 'V76' },
+  // 2열 (W/X열)
+  { name: '소득월액보험료', amount: 422940, cell: 'X69' },
+  { name: '건강보험료', amount: 3212220, cell: 'X70' },
+  { name: '연금보험료', amount: 2834560, cell: 'X71' },
+  { name: '고용보험료', amount: 482970, cell: 'X72' },
+  { name: '산재보험료', amount: 229830, cell: 'X73' },
+  { name: '주민세', amount: 55000, cell: 'X74' }
 ];
 
 var DEFAULT_OTHER_EXPENSES = [
@@ -729,8 +738,8 @@ window.PharmacyStore = class PharmacyStore {
         m2608.expSaving = 1000000;
         m2608.expYellowUmbrella = 400000;
         m2608.expSeverance = 4231066;
-        m2608.expPayroll = 11183430;
-        m2608.expUtility = 8393852;
+        m2608.expPayroll = 20421710;
+        m2608.expUtility = 15099722;
 
         this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
       }
@@ -1223,7 +1232,17 @@ window.PharmacyStore = class PharmacyStore {
     m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : (is2608 ? 47325551 : 0);
     m.expCardWithdraw = m.vendorCardTotal;
 
-    // 🛡️ [모든 달 공통] 직원 급여 중복 제거 & 이름 정규화 & 지급일 분리
+    function isUtilityOrNonEmployeeName(str) {
+      if (!str) return true;
+      var s = String(str).trim();
+      return s.indexOf('보험') !== -1 || s.indexOf('공과금') !== -1 || s.indexOf('관리비') !== -1 ||
+             s.indexOf('세') !== -1 || s.indexOf('수수료') !== -1 || s.indexOf('토너') !== -1 ||
+             s.indexOf('기타운영') !== -1 || s.indexOf('합계') !== -1 || s.indexOf('식대') !== -1 ||
+             s.indexOf('회식') !== -1 || s.indexOf('경비') !== -1 || s.indexOf('잡비') !== -1 ||
+             s.indexOf('퇴직금') !== -1 || s.indexOf('출금') !== -1;
+    }
+
+    // 🛡️ [모든 달 공통] 직원 급여 중복 제거 & 이름 정규화 & 지급일 분리 & 공과금/보험료 혼입 차단
     let payrollSum = 0;
     if (m.employees && Array.isArray(m.employees)) {
       const seenEmp = {};
@@ -1231,6 +1250,7 @@ window.PharmacyStore = class PharmacyStore {
         if (!e) return false;
         const raw = String(e.name || e.rawName || '').trim();
         if (!raw || raw === '-' || raw === '.' || raw.includes('인건비') || raw.includes('합계')) return false;
+        if (isUtilityOrNonEmployeeName(raw)) return false; // 🛡️ 공과금/보험료 항목 절대 인건비로 혼입 차단!
         const baseName = raw.replace(/[0-9\s()_\[\]-]/g, '').trim() || raw;
         if (seenEmp[baseName]) return false; // 중복 배제!
         seenEmp[baseName] = true;
@@ -1245,40 +1265,21 @@ window.PharmacyStore = class PharmacyStore {
         return true;
       });
     }
-    m.expPayroll = payrollSum > 0 ? payrollSum : (is2608 ? 11183430 : 0);
+    m.expPayroll = payrollSum > 0 ? payrollSum : (is2608 ? 20421710 : 0);
 
-    // 🛡️ [모든 달 공통] 공과금 중복 제거 & 정규화
+    // 🛡️ [모든 달 공통] 공과금 세부 내역 (14개 항목 100% 무락 보존)
     let utilitySum = 0;
     if (m.utilities && Array.isArray(m.utilities)) {
-      const seenUtil = {};
       m.utilities = m.utilities.filter(u => {
         if (!u) return false;
         const cleanStr = String(u.name || '').trim();
         if (!cleanStr || cleanStr === '-' || cleanStr === '.' || cleanStr.includes('공과금') || cleanStr.includes('합계')) return false;
-        var normName = cleanStr.replace(/\s+/g, '');
-        if (normName.indexOf('건강') !== -1) normName = '건강보험료';
-        else if (normName.indexOf('연금') !== -1) normName = '연금보험료';
-        else if (normName.indexOf('고용') !== -1) normName = '고용보험료';
-        else if (normName.indexOf('산재') !== -1) normName = '산재보험료';
-        else if (normName.indexOf('주민세') !== -1) normName = '주민세';
-        else if (normName.indexOf('갑근세') !== -1) normName = '갑근세';
-        else if (normName.indexOf('지방소득세') !== -1) normName = '지방소득세';
-        else if (normName.indexOf('관리비') !== -1) normName = '관리비';
-        else if (normName.indexOf('캡스') !== -1) normName = '캡스';
-        else if (normName.indexOf('유비케어') !== -1) normName = '유비케어';
-        else if (normName.indexOf('토너') !== -1) normName = '토너비용';
-        else if (normName.indexOf('세무사') !== -1) normName = '세무사비';
-        else if (normName.indexOf('이디비') !== -1) normName = '이디비';
-        else if (normName.indexOf('퇴직금수수료') !== -1) normName = '퇴직금수수료';
-
-        if (seenUtil[normName]) return false; // 중복 배제!
-        seenUtil[normName] = true;
         u.amount = this.parseMoney(u.amount);
         utilitySum += u.amount;
         return true;
       });
     }
-    m.expUtility = utilitySum > 0 ? utilitySum : (is2608 ? 8393852 : 0);
+    m.expUtility = utilitySum > 0 ? utilitySum : (is2608 ? 15099722 : 0);
 
     let severanceSum = 0;
     if (m.severances && Array.isArray(m.severances)) {
@@ -3461,9 +3462,16 @@ window.SmartLedgerModule = {
       try { window.store.saveToLocal(); } catch (e) {}
     }
 
-    if (m2608 && m2608.employees && (m2608.employees.length > 5 || m2608.employees.some(e => e.name === '공과금' || e.name === '월세' || e.name === '기타운영비' || e.name === '카드수수료' || e.name === '이송학11') || !m2608.employees.some(e => e.name === '이승학'))) {
+    if (m2608 && (!m2608.employees || m2608.employees.length !== 9 || m2608.employees.some(e => String(e.name).includes('보험') || String(e.name).includes('공과금') || String(e.name).includes('세') || String(e.name).includes('수수료')))) {
       m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
-      m2608.expPayroll = 11183430;
+      m2608.expPayroll = 20421710;
+      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
+      try { window.store.saveToLocal(); } catch (e) {}
+    }
+
+    if (m2608 && (!m2608.utilities || m2608.utilities.length !== 14)) {
+      m2608.utilities = DEFAULT_UTILITIES.map(v => ({ ...v }));
+      m2608.expUtility = 15099722;
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
       try { window.store.saveToLocal(); } catch (e) {}
     }

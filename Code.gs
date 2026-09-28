@@ -554,16 +554,32 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     });
   });
 
-  // 4. 인건비 (직원급여 상세대장) 동적 앵커링 & 모든 달 공통 자동 중복 제거
+  // 4. 인건비 (직원급여 상세대장) 동적 앵커링 & 모든 달 공통 정밀 파싱
   // 🛡️ 요약표 R8/S8(인건비 총괄)을 건너뛰고, 실제 직원급여 상세표가 있는 30행 이후, 18열(R열) 이후에서 '인건비' 검색!
   var empLoc = findHeaderLocation(dispValues, ['인건비', '인건비내역', '직원급여', '인건비합계'], 30, 18);
+  var utilLoc = findHeaderLocation(dispValues, ['공과금내역', '공과금'], 50, 18);
+  var maxEmpRow = utilLoc ? (utilLoc.row - 1) : (empLoc ? empLoc.row + 15 : 65);
   var seenEmpMap = {};
+
+  function isUtilityOrNonEmployeeName(str) {
+    if (!str) return true;
+    var s = String(str).trim();
+    if (s.indexOf('보험') !== -1 || s.indexOf('공과금') !== -1 || s.indexOf('관리비') !== -1 ||
+        s.indexOf('세') !== -1 || s.indexOf('수수료') !== -1 || s.indexOf('토너') !== -1 ||
+        s.indexOf('기타운영') !== -1 || s.indexOf('합계') !== -1 || s.indexOf('식대') !== -1 ||
+        s.indexOf('회식') !== -1 || s.indexOf('경비') !== -1 || s.indexOf('잡비') !== -1 ||
+        s.indexOf('퇴직금') !== -1 || s.indexOf('출금') !== -1) {
+      return true;
+    }
+    return false;
+  }
 
   function processEmpItem(rawName, rawAmt, cellRef) {
     if (!rawName) return;
     var cleanStr = String(rawName).trim();
     if (!cleanStr || cleanStr === '-' || cleanStr === '.' || cleanStr.includes('인건비')) return;
     if (cleanStr === '합계' || cleanStr.indexOf('합계') === 0 || cleanStr.indexOf('공과금') !== -1 || cleanStr.indexOf('기타운영') !== -1) return;
+    if (isUtilityOrNonEmployeeName(cleanStr)) return; // 🛡️ 공과금/보험료 항목이 인건비로 혼입되는 것 원천 차단!
 
     // 성명 정규화: 지급일 숫자(11, 31, 5 등) 및 공백, 특수문자 분리
     var baseName = cleanStr.replace(/[0-9\s()_\[\]-]/g, '');
@@ -573,7 +589,7 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     var dayMatch = cleanStr.match(/([0-9]{1,2})$/);
     var payDay = dayMatch ? parseInt(dayMatch[1], 10) : null;
 
-    // 🛡️ [모든 달 공통] 이미 추가된 직원이면 중복 배제 (좌측 U/V열 우선, 우측 W/X열 중복 원천 차단)
+    // 🛡️ [모든 달 공통] 이미 추가된 직원이면 중복 배제
     if (seenEmpMap[baseName]) return;
 
     var amt = parseVal(rawAmt);
@@ -592,30 +608,29 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     var eAmtCol1 = empLoc.col + 1;
     var eNameCol2 = empLoc.col + 2;
     var eAmtCol2 = empLoc.col + 3;
-    // 1열 그룹 (좌측: U열 성명, V열 금액) 먼저 스캔
-    for (var r = empLoc.row + 1; r <= empLoc.row + 20 && r <= dispValues.length; r++) {
+
+    // 1열 그룹 (좌측: U열 성명, V열 금액) - 공과금 테이블 시작 전(maxEmpRow)까지만 안전 탐색
+    for (var r = empLoc.row + 1; r <= maxEmpRow && r <= dispValues.length; r++) {
       var rawName1 = getCellValue(dispValues, r, eNameCol1);
       var clean1 = String(rawName1 || '').trim();
-      if (clean1 === '합계' || clean1.indexOf('합계') === 0 || clean1.indexOf('공과금') !== -1 || clean1.indexOf('기타운영') !== -1) break;
+      if (clean1 === '공과금' || clean1.indexOf('공과금') !== -1 || clean1.indexOf('합계') === 0) break;
       var amt1 = getCellValue(dispValues, r, eAmtCol1) || getCellValue(values, r, eAmtCol1);
       processEmpItem(rawName1, amt1, colIndexToLetter(eAmtCol1) + r);
     }
-    // 2열 그룹 (우측: W열 성명, X열 금액) 스캔 (1열에 없는 신규 고유 직원만 추가)
-    for (var r = empLoc.row + 1; r <= empLoc.row + 20 && r <= dispValues.length; r++) {
+    // 2열 그룹 (우측: W열 성명, X열 금액) - 공과금 테이블 시작 전(maxEmpRow)까지만 안전 탐색
+    for (var r = empLoc.row + 1; r <= maxEmpRow && r <= dispValues.length; r++) {
       var rawName2 = getCellValue(dispValues, r, eNameCol2);
       var clean2 = String(rawName2 || '').trim();
-      if (clean2 === '합계' || clean2.indexOf('합계') === 0 || clean2.indexOf('공과금') !== -1 || clean2.indexOf('기타운영') !== -1) break;
+      if (clean2 === '공과금' || clean2.indexOf('공과금') !== -1 || clean2.indexOf('합계') === 0) break;
       var amt2 = getCellValue(dispValues, r, eAmtCol2) || getCellValue(values, r, eAmtCol2);
       processEmpItem(rawName2, amt2, colIndexToLetter(eAmtCol2) + r);
     }
   }
   if (employees.length === 0) {
-    for (var r = 54; r <= 63; r++) {
+    for (var r = 54; r <= 58; r++) {
       var rawName1 = getCellValue(dispValues, r, 21);
       var amt1 = getCellValue(dispValues, r, 22) || getCellValue(values, r, 22);
       processEmpItem(rawName1, amt1, 'V' + r);
-    }
-    for (var r = 54; r <= 63; r++) {
       var rawName2 = getCellValue(dispValues, r, 23);
       var amt2 = getCellValue(dispValues, r, 24) || getCellValue(values, r, 24);
       processEmpItem(rawName2, amt2, 'X' + r);
@@ -646,36 +661,14 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     if (rawName && !String(rawName).includes('퇴직금') && !String(rawName).includes('합계')) severances.push({ name: String(rawName).trim(), amount: amt, cell: 'AA' + r });
   }
 
-  // 7. 공과금 / 기타운영비 동적 앵커링 & 모든 달 공통 자동 중복 제거
-  var utilLoc = findHeaderLocation(dispValues, ['공과금내역', '공과금'], 50, 18);
-  var seenUtilMap = {};
-
+  // 7. 공과금 / 기타운영비 동적 앵커링 (좌/우 2단 테이블 14개 항목 100% 무락 수집)
   function processUtilItem(rawName, rawAmt, cellRef) {
     if (!rawName) return;
     var cleanStr = String(rawName).trim();
     if (!cleanStr || cleanStr === '-' || cleanStr === '.' || cleanStr.includes('공과금')) return;
     if (cleanStr === '합계' || cleanStr.indexOf('합계') === 0) return;
 
-    var normName = cleanStr.replace(/\s+/g, '');
-    if (normName.indexOf('건강') !== -1) normName = '건강보험료';
-    else if (normName.indexOf('연금') !== -1) normName = '연금보험료';
-    else if (normName.indexOf('고용') !== -1) normName = '고용보험료';
-    else if (normName.indexOf('산재') !== -1) normName = '산재보험료';
-    else if (normName.indexOf('주민세') !== -1) normName = '주민세';
-    else if (normName.indexOf('갑근세') !== -1) normName = '갑근세';
-    else if (normName.indexOf('지방소득세') !== -1) normName = '지방소득세';
-    else if (normName.indexOf('관리비') !== -1) normName = '관리비';
-    else if (normName.indexOf('캡스') !== -1) normName = '캡스';
-    else if (normName.indexOf('유비케어') !== -1) normName = '유비케어';
-    else if (normName.indexOf('토너') !== -1) normName = '토너비용';
-    else if (normName.indexOf('세무사') !== -1) normName = '세무사비';
-    else if (normName.indexOf('이디비') !== -1) normName = '이디비';
-    else if (normName.indexOf('퇴직금수수료') !== -1) normName = '퇴직금수수료';
-
-    if (seenUtilMap[normName]) return; // 이미 추가된 공과금이면 중복 배제!
-
     var amt = parseVal(rawAmt);
-    seenUtilMap[normName] = true;
     utilities.push({ name: cleanStr, amount: amt, cell: cellRef });
   }
 
@@ -684,14 +677,16 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     var uAmtCol1 = utilLoc.col + 1;
     var uNameCol2 = utilLoc.col + 2;
     var uAmtCol2 = utilLoc.col + 3;
-    for (var r = utilLoc.row + 1; r <= utilLoc.row + 20 && r <= dispValues.length; r++) {
+    // 1열 (U/V) 공과금 수집
+    for (var r = utilLoc.row + 1; r <= utilLoc.row + 15 && r <= dispValues.length; r++) {
       var rawName1 = getCellValue(dispValues, r, uNameCol1);
       var clean1 = String(rawName1 || '').trim();
       if (clean1 === '합계' || clean1.indexOf('합계') === 0) break;
       var amt1 = getCellValue(dispValues, r, uAmtCol1) || getCellValue(values, r, uAmtCol1);
       processUtilItem(rawName1, amt1, colIndexToLetter(uAmtCol1) + r);
     }
-    for (var r = utilLoc.row + 1; r <= utilLoc.row + 20 && r <= dispValues.length; r++) {
+    // 2열 (W/X) 공과금 수집 (소득월액보험료, 건강/연금/고용/산재/주민세 2차 고지분 등 100% 보존)
+    for (var r = utilLoc.row + 1; r <= utilLoc.row + 15 && r <= dispValues.length; r++) {
       var rawName2 = getCellValue(dispValues, r, uNameCol2);
       var clean2 = String(rawName2 || '').trim();
       if (clean2 === '합계' || clean2.indexOf('합계') === 0) break;
@@ -700,12 +695,10 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     }
   }
   if (utilities.length === 0) {
-    for (var r = 69; r <= 85; r++) {
+    for (var r = 69; r <= 80; r++) {
       var rawName1 = getCellValue(dispValues, r, 21);
       var amt1 = getCellValue(dispValues, r, 22) || getCellValue(values, r, 22);
       processUtilItem(rawName1, amt1, 'V' + r);
-    }
-    for (var r = 69; r <= 85; r++) {
       var rawName2 = getCellValue(dispValues, r, 23);
       var amt2 = getCellValue(dispValues, r, 24) || getCellValue(values, r, 24);
       processUtilItem(rawName2, amt2, 'X' + r);

@@ -1235,8 +1235,9 @@ window.PharmacyStore = class PharmacyStore {
     function isUtilityOrNonEmployeeName(str) {
       if (!str) return true;
       var s = String(str).trim();
+      var isTax = s.indexOf('주민세') !== -1 || s.indexOf('갑근세') !== -1 || s.indexOf('소득세') !== -1 || s.indexOf('부가세') !== -1 || s.indexOf('지방세') !== -1 || s.indexOf('국세') !== -1 || s.indexOf('세무') !== -1;
       return s.indexOf('보험') !== -1 || s.indexOf('공과금') !== -1 || s.indexOf('관리비') !== -1 ||
-             s.indexOf('세') !== -1 || s.indexOf('수수료') !== -1 || s.indexOf('토너') !== -1 ||
+             isTax || s.indexOf('수수료') !== -1 || s.indexOf('토너') !== -1 ||
              s.indexOf('기타운영') !== -1 || s.indexOf('합계') !== -1 || s.indexOf('식대') !== -1 ||
              s.indexOf('회식') !== -1 || s.indexOf('경비') !== -1 || s.indexOf('잡비') !== -1 ||
              s.indexOf('퇴직금') !== -1 || s.indexOf('출금') !== -1;
@@ -3462,7 +3463,7 @@ window.SmartLedgerModule = {
       try { window.store.saveToLocal(); } catch (e) {}
     }
 
-    if (m2608 && (!m2608.employees || m2608.employees.length !== 9 || m2608.employees.some(e => String(e.name).includes('보험') || String(e.name).includes('공과금') || String(e.name).includes('세') || String(e.name).includes('수수료')))) {
+    if (m2608 && (!m2608.employees || m2608.employees.length !== 9 || m2608.employees.some(e => String(e.name).includes('보험') || String(e.name).includes('공과금') || String(e.name).includes('갑근세') || String(e.name).includes('주민세') || String(e.name).includes('수수료')))) {
       m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
       m2608.expPayroll = 20421710;
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);

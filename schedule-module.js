@@ -2902,9 +2902,14 @@ window.ScheduleModule = (function () {
     html += '  <button type="button" class="btn btn-outline-secondary font-bold" onclick="ScheduleModule.closeInlinePanel()" style="padding:10px 22px; border-radius:14px;">';
     html += '    <i class="fas fa-times me-1"></i> 작업창 닫기';
     html += '  </button>';
-    html += '  <button type="button" id="btn-execute-tax-publish" class="btn btn-success btn-lg font-bold" style="padding:12px 28px; border-radius:16px; box-shadow:0 8px 20px rgba(16,185,129,0.35); font-size:16px;" onclick="ScheduleModule.executeTaxPaystubPublishing()">';
-    html += '    <i class="fas fa-envelope me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 이메일 1:1 발송)';
-    html += '  </button>';
+    html += '  <div class="d-flex align-items-center flex-wrap gap-2">';
+    html += '    <button type="button" class="btn btn-outline-success font-bold" onclick="ScheduleModule.markAllMatchesVerified()" style="padding:10px 18px; border-radius:14px;">';
+    html += '      <i class="fas fa-check-double me-1"></i> ⚡ 전체 일괄 검수완료';
+    html += '    </button>';
+    html += '    <button type="button" id="btn-execute-tax-publish" class="btn ' + (verifiedCount > 0 ? 'btn-success' : 'btn-secondary') + ' btn-lg font-bold" style="padding:12px 28px; border-radius:16px; box-shadow:0 8px 20px ' + (verifiedCount > 0 ? 'rgba(16,185,129,0.35)' : 'rgba(100,116,139,0.2)') + '; font-size:16px;" onclick="ScheduleModule.executeTaxPaystubPublishing()">';
+    html += '      <i class="fas fa-envelope me-1"></i> 🚀 ' + (verifiedCount > 0 ? ('검수 완료된 ' + verifiedCount + '명 명세서 일괄 교부 (이메일 1:1 발송)') : '검수 완료된 직원 명세서 교부 (0명 검수됨)');
+    html += '    </button>';
+    html += '  </div>';
     html += '</div>';
 
     return html;
@@ -3029,6 +3034,29 @@ window.ScheduleModule = (function () {
     alert(`🎉 [${match ? match.empName : '직원'}] 님의 명세서 검수가 완료되었습니다!`);
   }
 
+  function markAllMatchesVerified() {
+    const matches = window._activeTaxMatches || [];
+    if (!matches.length) return;
+    const unverified = matches.filter(m => m.matched && !m.verified);
+    if (!unverified.length) {
+      alert('이미 모든 매칭 직원의 검수가 완료된 상태입니다.');
+      return;
+    }
+    if (!confirm(`매칭된 모든 직원(${unverified.length}명)을 일괄 검수완료 상태로 전환하시겠습니까?\n\n(모두 확인 후 안전하게 발송할 수 있습니다)`)) {
+      return;
+    }
+    matches.forEach(m => {
+      if (m.matched) m.verified = true;
+    });
+    const wrapper = document.getElementById('tax-paystub-preview-wrapper');
+    if (wrapper) {
+      const data = window.SheetsSync.getData();
+      const employees = (data.employees || []).filter(e => e.role !== '약국장');
+      wrapper.innerHTML = renderTaxPaystubPreviewTable(matches, employees);
+    }
+    alert('✅ 매칭된 모든 직원이 [🟢 검수완료] 상태로 변경되었습니다.\n하단의 [일괄 교부] 버튼을 눌러 발송을 진행하실 수 있습니다.');
+  }
+
   async function processTaxPdfFile(input) {
     if (!input.files || !input.files[0]) return;
     const file = input.files[0];
@@ -3134,6 +3162,30 @@ window.ScheduleModule = (function () {
 
   async function executeTaxPaystubPublishing() {
     const btn = document.getElementById('btn-execute-tax-publish');
+
+    const matches = window._activeTaxMatches || [];
+    if (!matches.length) {
+      alert('교부할 매칭 내역이 없습니다. 먼저 PDF 파일을 선택해 주세요.');
+      return;
+    }
+
+    // 🛡️ [핵심 안전 개선] 오직 약국장님이 [미리보기 & 검수]를 완료한 직원(verified === true)만 대상!
+    const targetMatches = matches.filter(m => m.empId && m.net && m.verified);
+    const unverifiedMatches = matches.filter(m => m.empId && m.net && !m.verified);
+
+    if (targetMatches.length === 0) {
+      alert('⚠️ 아직 [검수완료]된 직원이 0명입니다!\n\n각 직원의 [🔍 미리보기 & 검수] 버튼을 눌러 명세서와 시간을 확인하신 후 검수를 완료해 주세요.\n(또는 필요 시 [⚡ 전체 일괄 검수완료] 버튼을 이용하실 수 있습니다)');
+      return;
+    }
+
+    let confirmMsg = `검수 완료된 총 ${targetMatches.length}명의 직원에게 확정 급여명세서를 교부 및 이메일 발송하시겠습니까?`;
+    if (unverifiedMatches.length > 0) {
+      confirmMsg += `\n\n⚠️ 검수대기 중인 ${unverifiedMatches.length}명(${unverifiedMatches.map(u => u.empName).join(', ')})은 이번 발송 대상에서 제외됩니다.`;
+    }
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Cloudinary 클라우드에 고화질 명세서 업로드 및 전송 중...';
@@ -3144,20 +3196,14 @@ window.ScheduleModule = (function () {
       const allPaystubs = window.SheetsSync.getPaystubs ? window.SheetsSync.getPaystubs() : {};
       if (!allPaystubs[monthKey]) allPaystubs[monthKey] = {};
 
-      const matches = window._activeTaxMatches || [];
-      if (!matches.length) {
-        alert('교부할 매칭 내역이 없습니다. 먼저 PDF 파일을 선택해 주세요.');
-        return;
-      }
-
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
       const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
       let uploadSuccessCount = 0;
 
-      for (let i = 0; i < matches.length; i++) {
-        const item = matches[i];
+      for (let i = 0; i < targetMatches.length; i++) {
+        const item = targetMatches[i];
         if (!item.empId || !item.net) continue;
 
         let finalUrl = item.cloudUrl || '';
@@ -3199,8 +3245,8 @@ window.ScheduleModule = (function () {
       // 📧 각 직원의 등록 개인 이메일로 1:1 확정 급여명세서 안전 발송
       const emps = window.SheetsSync.getEmployees ? window.SheetsSync.getEmployees() : [];
       let emailSentCount = 0;
-      for (let i = 0; i < matches.length; i++) {
-        const item = matches[i];
+      for (let i = 0; i < targetMatches.length; i++) {
+        const item = targetMatches[i];
         if (item.empId && item.net) {
           const emp = emps.find(e => e.id === item.empId);
           if (emp && emp.email && window.SheetsSync && typeof window.SheetsSync.sendPaystubEmailToStaff === 'function') {
@@ -3223,14 +3269,20 @@ window.ScheduleModule = (function () {
       closeInlinePanel();
       render('module-content');
 
-      alert('🏆 세무 신고 대상 직원 ' + uploadSuccessCount + '명의 ' + currentMonth + '월 확정 급여명세서가 각 직원의 개인 이메일(' + emailSentCount + '명)로 안전하게 1:1 발송 및 교부되었습니다!\n\n🔒 (약국 공용 화면에는 개인 금융정보 보호를 위해 급여 액수가 노출되지 않습니다)');
+      let alertMsg = '🏆 검수 완료된 직원 ' + uploadSuccessCount + '명의 ' + currentMonth + '월 확정 급여명세서가 각 직원의 개인 이메일(' + emailSentCount + '명)로 안전하게 1:1 발송 및 교부되었습니다!';
+      if (unverifiedMatches.length > 0) {
+        alertMsg += '\n\nℹ️ 미검수 직원 ' + unverifiedMatches.length + '명은 발송되지 않고 보류되었습니다.';
+      }
+      alertMsg += '\n\n🔒 (약국 공용 화면에는 개인 금융정보 보호를 위해 급여 액수가 노출되지 않습니다)';
+      alert(alertMsg);
     } catch (err) {
       console.error('executeTaxPaystubPublishing error:', err);
       alert('⚠️ 교부 처리 중 오류가 발생했습니다: ' + err.message);
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-envelope me-1"></i> 🚀 최종 확정 급여명세서 일괄 교부 (직원 이메일 1:1 발송)';
+        const vCount = (window._activeTaxMatches || []).filter(m => m.verified).length;
+        btn.innerHTML = '<i class="fas fa-envelope me-1"></i> 🚀 ' + (vCount > 0 ? ('검수 완료된 ' + vCount + '명 명세서 일괄 교부 (이메일 1:1 발송)') : '검수 완료된 직원 명세서 교부 (0명 검수됨)');
       }
     }
   }
@@ -3254,6 +3306,7 @@ window.ScheduleModule = (function () {
   window.updatePharmacistRateSettings = updatePharmacistRateSettings;
   window.openMatchInspectionModal = openMatchInspectionModal;
   window.confirmMatchInspection = confirmMatchInspection;
+  window.markAllMatchesVerified = markAllMatchesVerified;
   window.toggleEmployeeAccordion = toggleEmployeeAccordion;
   window.openSubmitConfirmModal = openSubmitConfirmModal;
   window.closeSubmitConfirmModal = closeSubmitConfirmModal;
@@ -3281,6 +3334,7 @@ window.ScheduleModule = (function () {
     openDirectorTaxPaystubModal,
     openMatchInspectionModal,
     confirmMatchInspection,
+    markAllMatchesVerified,
     processTaxPdfFile,
     executeTaxPaystubPublishing,
     changeMonth,

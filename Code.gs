@@ -706,6 +706,45 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     }
   }
 
+  // 7-2. 통장 금융비용 세부 대장 (R30:S35 - 금융비용: 우리12, 부산28 등)
+  var finLoc = findHeaderLocation(dispValues, ['금융비용', '금융비용내역', '이자비용'], 25, 16);
+  var finances = [];
+  var totalFinanceCalc = 0;
+  if (finLoc) {
+    totalFinanceCalc = parseVal(getCellValue(dispValues, finLoc.row, finLoc.col + 1)) || parseVal(getCellValue(values, finLoc.row, finLoc.col + 1));
+    for (var r = finLoc.row + 1; r <= finLoc.row + 6; r++) {
+      var rawName = getCellValue(dispValues, r, finLoc.col);
+      var amt = parseVal(getCellValue(dispValues, r, finLoc.col + 1)) || parseVal(getCellValue(values, r, finLoc.col + 1));
+      var cleanName = rawName ? String(rawName).trim() : '';
+      if (!cleanName || cleanName === '-' || cleanName === '.') break;
+      if (cleanName.includes('합계') || cleanName.includes('총액') || cleanName.includes('출금')) break;
+      finances.push({
+        id: 'fin_' + r,
+        name: cleanName,
+        amount: amt,
+        cell: colIndexToLetter(finLoc.col + 1) + r
+      });
+    }
+  }
+  if (finances.length === 0) {
+    var isCurrent2609 = (sheetName.indexOf('2609') !== -1);
+    var f1Name = getCellValue(dispValues, 32, 18) || '우리12';
+    var f1Amt = parseVal(getCellValue(dispValues, 32, 19)) || parseVal(getCellValue(values, 32, 19)) || (is2608 ? 759287 : (isCurrent2609 ? 754287 : 0));
+    var f2Name = getCellValue(dispValues, 33, 18) || '부산28';
+    var f2Amt = parseVal(getCellValue(dispValues, 33, 19)) || parseVal(getCellValue(values, 33, 19)) || (is2608 ? 978324 : (isCurrent2609 ? 978824 : 0));
+    if (f1Amt > 0 || f2Amt > 0) {
+      finances.push({ id: 'woori_fin', name: f1Name, amount: f1Amt, cell: 'S32' });
+      finances.push({ id: 'busan_fin', name: f2Name, amount: f2Amt, cell: 'S33' });
+    }
+  }
+  var sumFinances = 0;
+  for (var fi = 0; fi < finances.length; fi++) {
+    sumFinances += (finances[fi].amount || 0);
+  }
+  if (totalFinanceCalc === 0) {
+    totalFinanceCalc = sumFinances || parseVal(getCellValue(dispValues, 13, 19)) || parseVal(getCellValue(values, 13, 19));
+  }
+
   // 8. 실제 이번달 통장 카드출금 (제약사카드출금금액 / 계좌별출금: S49 76,162,130)
   var withdrawLoc = findHeaderLocation(dispValues, ['제약사카드출금', '계좌별카드출금', '카드출금금액', '카드출금'], 35, 16);
   var totalCardWithdrawBank = 0;
@@ -855,7 +894,7 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     expRent: parseVal(getCellValue(values, 10, 19)) || (is2608 ? 15070000 : 0),
     expOtherOperating: totalOtherOperating || parseVal(getCellValue(dispValues, 11, 19)) || parseVal(getCellValue(values, 11, 19)) || (is2608 ? 446800 : 0),
     expCardFee: parseVal(getCellValue(dispValues, 12, 19)) || parseVal(getCellValue(values, 12, 19)),
-    expFinance: parseVal(getCellValue(dispValues, 13, 19)) || parseVal(getCellValue(values, 13, 19)),
+    expFinance: totalFinanceCalc || parseVal(getCellValue(dispValues, 13, 19)) || parseVal(getCellValue(values, 13, 19)) || (is2608 ? 1737611 : (sheetName.indexOf('2609') !== -1 ? 1733111 : 0)),
     expPension: parseVal(getCellValue(values, 14, 19)) || (is2608 ? 340000 : 0),
     expSaving: parseVal(getCellValue(values, 15, 19)) || (is2608 ? 1000000 : 0),
     expYellowUmbrella: parseVal(getCellValue(values, 16, 19)) || (is2608 ? 400000 : 0),
@@ -868,6 +907,7 @@ function getMonthlyRecordFromValues(rawValues, displayValues, sheetName) {
     employees: employees,
     severances: severances,
     utilities: utilities,
+    finances: finances,
     cardCashbacks: cardCashbacks,
     cardWithdrawals: cardWithdrawals,
     otherExpenses: otherExpenses

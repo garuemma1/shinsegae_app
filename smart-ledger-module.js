@@ -565,8 +565,13 @@ var DEFAULT_CARD_CASHBACKS = [
 ];
 
 var DEFAULT_FINANCES = [
-  { id: 'woori_fin', name: '우리12', amount: 759287, cell: 'R32' },
-  { id: 'busan_fin', name: '부산28', amount: 978324, cell: 'R33' }
+  { id: 'woori_fin', name: '우리12', amount: 759287, cell: 'S32' },
+  { id: 'busan_fin', name: '부산28', amount: 978324, cell: 'S33' }
+];
+
+var DEFAULT_FINANCES_2609 = [
+  { id: 'woori_fin', name: '우리12', amount: 754287, cell: 'S32' },
+  { id: 'busan_fin', name: '부산28', amount: 978824, cell: 'S33' }
 ];
 
 var DEFAULT_CARD_WITHDRAWALS = [
@@ -1091,6 +1096,30 @@ window.PharmacyStore = class PharmacyStore {
           expSeverance: 4231066,
           notes: ''
         };
+      } else if (yymm === '2609') {
+        rec = {
+          yymm: '2609',
+          incomeRxFee: 35678190,
+          incomeCopay: 39562600,
+          incomeNhisClaim: 63691104,
+          incomeNonCovered: 820743,
+          incomeDiscount: 624000,
+          incCardBenefit: 1210493,
+          vendorCashTotal: 46335837,
+          vendorCardTotal: 80605475,
+          expCardWithdraw: 80605475,
+          expPayroll: 18934010,
+          expUtility: 7913240,
+          expRent: 15070000,
+          expOtherOperating: 2252500,
+          expCardFee: 1619082,
+          expFinance: 1733111,
+          expPension: 400000,
+          expSaving: 1000000,
+          expYellowUmbrella: 400000,
+          expSeverance: 256000,
+          notes: ''
+        };
       } else {
         rec = {
           yymm: yymm,
@@ -1143,7 +1172,11 @@ window.PharmacyStore = class PharmacyStore {
       rec.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v, payAmount: is2608 ? v.payAmount : 0, spend: is2608 ? v.spend : 0, amount: is2608 ? v.amount : 0, benefitAmount: is2608 ? v.benefitAmount : 0 }));
     }
     if (!rec.finances || !Array.isArray(rec.finances) || rec.finances.length === 0) {
-      rec.finances = DEFAULT_FINANCES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
+      if (yymm === '2609') {
+        rec.finances = DEFAULT_FINANCES_2609.map(v => ({ ...v }));
+      } else {
+        rec.finances = DEFAULT_FINANCES.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
+      }
     }
     if (!rec.cardWithdrawals || !Array.isArray(rec.cardWithdrawals) || rec.cardWithdrawals.length === 0) {
       rec.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v, amount: is2608 ? v.amount : 0 }));
@@ -1159,6 +1192,7 @@ window.PharmacyStore = class PharmacyStore {
     const m = { ...record };
     if (!m.yymm) m.yymm = this.currentYYMM || '2608';
     const is2608 = (m.yymm === '2608');
+    const is2609 = (m.yymm === '2609');
     const s = summary || this.getMonthSummary(m.yymm);
 
     // 1. 이론적 총수익 분석 (B4:C13)
@@ -1299,7 +1333,7 @@ window.PharmacyStore = class PharmacyStore {
     if (m.finances && Array.isArray(m.finances)) {
       m.finances.forEach(f => { financeSum += this.parseMoney(f.amount); });
     }
-    m.expFinance = financeSum > 0 ? financeSum : (is2608 ? 1737611 : 0);
+    m.expFinance = financeSum > 0 ? financeSum : (this.parseMoney(m.expFinance) || (is2608 ? 1737611 : (is2609 ? 1733111 : 0)));
 
     // 9. 계좌별 카드출금금액 (R50:S53 - 제약사카드출금)
     if (!m.cardWithdrawals || !Array.isArray(m.cardWithdrawals) || m.cardWithdrawals.length === 0) {
@@ -1415,9 +1449,12 @@ window.PharmacyStore = class PharmacyStore {
           if (d.incomeRxFee !== undefined) current.incomeRxFee = d.incomeRxFee;
           if (d.incomeCopay !== undefined) current.incomeCopay = d.incomeCopay;
           if (d.incomeNhisClaim !== undefined) current.incomeNhisClaim = d.incomeNhisClaim;
+          if (d.incomeNonCovered !== undefined) current.incomeNonCovered = d.incomeNonCovered;
           if (d.otcTotalSales !== undefined) current.otcTotalSales = d.otcTotalSales;
           if (d.incomeDiscount !== undefined) current.incomeDiscount = d.incomeDiscount;
           if (d.incCardBenefit !== undefined) current.incCardBenefit = d.incCardBenefit;
+          if (d.vendorCashTotal !== undefined) current.vendorCashTotal = d.vendorCashTotal;
+          if (d.vendorCardTotal !== undefined) current.vendorCardTotal = d.vendorCardTotal;
           if (d.expCardWithdraw !== undefined) current.expCardWithdraw = d.expCardWithdraw;
           if (d.expCardFee !== undefined) current.expCardFee = d.expCardFee;
           if (d.expFinance !== undefined) current.expFinance = d.expFinance;
@@ -1426,6 +1463,7 @@ window.PharmacyStore = class PharmacyStore {
           if (d.expSaving !== undefined) current.expSaving = d.expSaving;
           if (d.expYellowUmbrella !== undefined) current.expYellowUmbrella = d.expYellowUmbrella;
           if (d.expOtherOperating !== undefined) current.expOtherOperating = d.expOtherOperating;
+          if (d.expSeverance !== undefined) current.expSeverance = d.expSeverance;
           if (d.cashVendors && Array.isArray(d.cashVendors)) current.cashVendors = d.cashVendors;
           if (d.cardVendors && Array.isArray(d.cardVendors)) current.cardVendors = d.cardVendors;
           if (d.employees && Array.isArray(d.employees)) current.employees = d.employees;
@@ -2592,6 +2630,45 @@ var UI = {
                 </div>
               </div>
             </div>
+
+            <!-- 하단: 통장 금융비용 상세 (R30:S35 - 우리12, 부산28) -->
+            <div style="background:#fff1f2; border:1.5px solid #fecdd3; border-radius:14px; padding:16px;" class="space-y-3">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #ffe4e6; padding-bottom:10px;">
+                <div>
+                  <span style="font-size:12.5px; font-weight:800; color:#e11d48; display:block;">3. 통장 금융비용 세부 대장 (R30:S35 - 우리12, 부산28 등)</span>
+                  <span style="font-size:11px; color:#be123c; font-weight:700;">합계: ₩<span id="disp-total-finances">${window.store.formatMoney(m.expFinance || 0)}</span> (지출 S11 연동)</span>
+                </div>
+                <button onclick="UI.showAddItemModal('finances', '금융비용 항목 추가')" style="padding:4px 10px; background:#ffffff; color:#e11d48; border:1px solid #fda4af; border-radius:8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                  <i data-lucide="plus" style="width:12px; height:12px;"></i>+ 항목 추가
+                </button>
+              </div>
+              <div class="space-y-2 text-xs max-h-[300px] overflow-y-auto pr-1">
+                ${(m.finances || []).map((f, idx) => `
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:7px 10px; background:#ffffff; border:1px solid #ffe4e6; border-radius:10px;">
+                    <div style="display:flex; align-items:center; gap:5px; min-width:0; flex:1;">
+                      <span style="font-weight:800; color:#0f172a; font-size:12.5px; white-space:nowrap; overflow:visible;">${f.name}</span>
+                      ${f.cell ? `<span style="font-size:9.5px; color:#64748b; background:#f1f5f9; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; flex-shrink:0;">${f.cell}</span>` : ''}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+                      <input 
+                        type="text" 
+                        inputmode="numeric"
+                        value="${window.store.formatMoney(f.amount)}" 
+                        oninput="UI.handleVendorChange('finances', ${idx}, this)" 
+                        style="width:95px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:6px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;"
+                        placeholder="금액 입력"
+                      />
+                      <button onclick="UI.showEditItemModal('finances', ${idx})" style="padding:2px 3px; color:#64748b; background:none; border:none; cursor:pointer;" title="수정">
+                        <i data-lucide="pencil" style="width:13px; height:13px;"></i>
+                      </button>
+                      <button onclick="UI.removeVendor('finances', ${idx})" style="padding:2px 3px; color:#ef4444; background:none; border:none; cursor:pointer;" title="삭제">
+                        <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
           </div>
 
           <!-- 탭 6: 손익 종합 분석표 (C열/P열/S열) -->
@@ -2750,7 +2827,7 @@ var UI = {
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#475569; font-weight:600;">금융비용 (S11 = R30):</span>
-                    <span style="font-weight:800; color:#0f172a;">₩${window.store.formatMoney(m.expFinance)}</span>
+                    <input type="text" inputmode="numeric" value="${window.store.formatMoney(m.expFinance)}" oninput="UI.handleMonthlyChange('expFinance', this)" style="width:100px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:8px; padding:3px 6px; text-align:right; font-weight:800; color:#0f172a; outline:none; font-size:12px;" placeholder="0"/>
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#475569; font-weight:600;">연금저축 (S12):</span>
@@ -2853,6 +2930,11 @@ var UI = {
       const m = window.store.getMonthly(yymm);
       const totalEl = document.getElementById('disp-total-other-expenses');
       if (totalEl) totalEl.textContent = window.store.formatMoney(m.expOtherOperating || 446800);
+    }
+    if (listKey === 'finances') {
+      const m = window.store.getMonthly(yymm);
+      const totalEl = document.getElementById('disp-total-finances');
+      if (totalEl) totalEl.textContent = window.store.formatMoney(m.expFinance || 0);
     }
   },
 
@@ -3500,6 +3582,15 @@ window.SmartLedgerModule = {
       m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
       m2608.expOtherOperating = 446800;
       window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
+      try { window.store.saveToLocal(); } catch (e) {}
+    }
+
+    const m2609 = window.store.monthlyRecords && window.store.monthlyRecords['2609'];
+    if (m2609 && (!m2609.finances || m2609.finances.length === 0 || !m2609.expFinance || m2609.expFinance === 0)) {
+      m2609.finances = DEFAULT_FINANCES_2609.map(v => ({ ...v }));
+      m2609.expFinance = 1733111;
+      if (!m2609.incomeNonCovered) m2609.incomeNonCovered = 820743;
+      window.store.monthlyRecords['2609'] = window.store.calculateMonthly(m2609);
       try { window.store.saveToLocal(); } catch (e) {}
     }
 

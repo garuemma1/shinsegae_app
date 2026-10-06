@@ -498,12 +498,7 @@ var DEFAULT_UTILITIES = [
   { name: '주민세', amount: 55000, cell: 'V75' },
   { name: '퇴직금수수료', amount: 34612, cell: 'V76' },
   // 2열 (W/X열)
-  { name: '소득월액보험료', amount: 422940, cell: 'X69' },
-  { name: '건강보험료', amount: 3212220, cell: 'X70' },
-  { name: '연금보험료', amount: 2834560, cell: 'X71' },
-  { name: '고용보험료', amount: 482970, cell: 'X72' },
-  { name: '산재보험료', amount: 229830, cell: 'X73' },
-  { name: '주민세', amount: 55000, cell: 'X74' }
+  { name: '소득월액보험료', amount: 422940, cell: 'X69' }
 ];
 
 var DEFAULT_OTHER_EXPENSES = [
@@ -714,51 +709,23 @@ window.PharmacyStore = class PharmacyStore {
         } catch (err) {}
       }
 
-      // 🔥 [구글 시트 2608결산 100% 정합성 자동 마이그레이션 & 완전 초기화]
-      if (this.monthlyRecords['2608']) {
+      // 🛡️ 기존 로컬스토리지에 남아있던 구버전 공과금 중복(15,099,722) 오염 데이터 자동 정화 & 동기화 데이터 100% 영구 보존
+      if (this.monthlyRecords && this.monthlyRecords['2608']) {
         const m2608 = this.monthlyRecords['2608'];
-        m2608.cashVendors = DEFAULT_CASH_VENDORS.map(v => ({ ...v }));
-        m2608.cardVendors = DEFAULT_CARD_VENDORS.map(v => ({ ...v }));
-        m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
-        m2608.utilities = DEFAULT_UTILITIES.map(v => ({ ...v }));
-        m2608.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
-        m2608.pharmTrades = DEFAULT_PHARM_TRADES.map(v => ({ ...v }));
-        m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
-        m2608.finances = DEFAULT_FINANCES.map(v => ({ ...v }));
-        m2608.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
-        m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
-        m2608.severances = DEFAULT_SEVERANCES.map(v => ({ ...v }));
-
-        m2608.incomeRxFee = 32849250;
-        m2608.incomeCopay = 30349850;
-        m2608.incomeNhisClaim = 71969828;
-        m2608.incomeNonCovered = 744362.68;
-        m2608.incomeDiscount = 472800;
-        m2608.incCardBenefit = 778608;
-        m2608.expRent = 15070000;
-        m2608.expOtherOperating = 446800;
-        m2608.expCardFee = 1505097;
-        m2608.expFinance = 1737611;
-        m2608.expPension = 400000;
-        m2608.expSaving = 1000000;
-        m2608.expYellowUmbrella = 400000;
-        m2608.expSeverance = 4231066;
-        m2608.expPayroll = 20421710;
-        m2608.expUtility = 15099722;
-
-        this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
+        if (m2608.expUtility === 15099722 || (m2608.utilities && m2608.utilities.length === 14)) {
+          m2608.utilities = DEFAULT_UTILITIES.map(v => ({ ...v }));
+          m2608.expUtility = 7093682;
+          this.monthlyRecords['2608'] = this.calculateMonthly(m2608);
+          this.saveToLocal();
+        }
       }
 
-      // 🛡️ 모든 월(2608, 2609, 2610 등)에 대해 중복 직원/공과금 자동 정화 및 정밀 재계산
+      // 🛡️ 모든 월 레코드 정밀 검증 (절대 기존 동기화 데이터를 삭제하지 않고 안전 유지)
       if (this.monthlyRecords && typeof this.monthlyRecords === 'object') {
         Object.keys(this.monthlyRecords).forEach(ym => {
-          if (ym !== '2608') {
-            const ymRec = this.monthlyRecords[ym];
-            if (ymRec && (ymRec.incomeRxFee === 32849250 || ymRec.expRent === 15070000)) {
-              delete this.monthlyRecords[ym];
-            } else if (ymRec) {
-              this.monthlyRecords[ym] = this.calculateMonthly(ymRec);
-            }
+          const ymRec = this.monthlyRecords[ym];
+          if (ymRec && typeof ymRec === 'object') {
+            this.monthlyRecords[ym] = this.calculateMonthly(ymRec);
           }
         });
       }
@@ -1314,7 +1281,7 @@ window.PharmacyStore = class PharmacyStore {
         return true;
       });
     }
-    m.expUtility = utilitySum > 0 ? utilitySum : (is2608 ? 15099722 : 0);
+    m.expUtility = utilitySum > 0 ? utilitySum : (this.parseMoney(m.expUtility) || (is2608 ? 7093682 : 0));
 
     let severanceSum = 0;
     if (m.severances && Array.isArray(m.severances)) {
@@ -1464,6 +1431,8 @@ window.PharmacyStore = class PharmacyStore {
           if (d.expYellowUmbrella !== undefined) current.expYellowUmbrella = d.expYellowUmbrella;
           if (d.expOtherOperating !== undefined) current.expOtherOperating = d.expOtherOperating;
           if (d.expSeverance !== undefined) current.expSeverance = d.expSeverance;
+          if (d.expPayroll !== undefined) current.expPayroll = d.expPayroll;
+          if (d.expUtility !== undefined) current.expUtility = d.expUtility;
           if (d.cashVendors && Array.isArray(d.cashVendors)) current.cashVendors = d.cashVendors;
           if (d.cardVendors && Array.isArray(d.cardVendors)) current.cardVendors = d.cardVendors;
           if (d.employees && Array.isArray(d.employees)) current.employees = d.employees;
@@ -1476,7 +1445,11 @@ window.PharmacyStore = class PharmacyStore {
           if (d.cardWithdrawals && Array.isArray(d.cardWithdrawals)) current.cardWithdrawals = d.cardWithdrawals;
           if (d.otherExpenses && Array.isArray(d.otherExpenses)) current.otherExpenses = d.otherExpenses;
 
-          this.monthlyRecords[yymm] = this.calculateMonthly(current);
+          const calculated = this.calculateMonthly(current);
+          if (d.netSurplus !== undefined && typeof d.netSurplus === 'number' && d.netSurplus !== 0) {
+            calculated.netSurplus = d.netSurplus;
+          }
+          this.monthlyRecords[yymm] = calculated;
         }
 
         // 3. 당월 누적 집계 직접 반영
@@ -3505,6 +3478,12 @@ window.UI = UI;
 // ==========================================
 window.SmartLedgerModule = {
   setCurrentToNow: function () {
+    const prefix = (window.store && window.store.storagePrefix) || 'ssg_ledger_';
+    const savedYYMM = localStorage.getItem(`${prefix}current_yymm`);
+    if (savedYYMM && window.store && window.store.availableMonths && (window.store.availableMonths.includes(savedYYMM) || /^[0-9]{4}$/.test(savedYYMM))) {
+      window.store.setCurrentYYMM(savedYYMM);
+      return;
+    }
     const now = new Date();
     const curYY = String(now.getFullYear()).slice(-2);
     const curMM = String(now.getMonth() + 1).padStart(2, '0');
@@ -3523,75 +3502,21 @@ window.SmartLedgerModule = {
     // 약국 컨텍스트 스위칭
     window.store.setPharmacy(pharmacyKey);
     window.sheetsClient.setPharmacy(pharmacyKey);
-    if (!window.store.cumulativeCache || !window.store.cumulativeCache['2608'] || window.store.cumulativeCache['2608'].cashSalesTotal !== 6650000 || window.store.cumulativeCache['2608'].onlineMallTotal !== 10034407) {
-      if (!window.store.cumulativeCache) window.store.cumulativeCache = {};
-      window.store.cumulativeCache['2608'] = {
-        cashSalesTotal: 6650000,
-        cardSalesTotal: 94068540,
-        onlineMallTotal: 10034407,
-        totalSalesSum: 100718540,
-        rxSalesSum: 38349890,
-        otcSalesSum: 62368650
-      };
-      try { window.store.saveToLocal(); } catch (e) {}
-    }
 
-    const m2608 = window.store.monthlyRecords && window.store.monthlyRecords['2608'];
-    if (!m2608 || !m2608.discounts || m2608.discounts.length < 11 || !m2608.discounts.some(d => d.name.includes('훼밀리에누리')) || !m2608.discounts.some(d => d.name.includes('허정환'))) {
-      if (!window.store.monthlyRecords) window.store.monthlyRecords = {};
-      const targetM = m2608 || window.store.getMonthly('2608');
-      targetM.discounts = DEFAULT_DISCOUNTS.map(v => ({ ...v }));
-      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(targetM);
+    // 🛡️ 기존 로컬스토리지에 저장된 동기화 데이터가 있으면 절대 덮어쓰지 않고 최우선 보존
+    // 오직 초기 1회성 데이터가 아예 없는 경우에만 안전 폴백 로드
+    if (!window.store.monthlyRecords['2608']) {
+      window.store.monthlyRecords['2608'] = window.store.getMonthly('2608');
       try { window.store.saveToLocal(); } catch (e) {}
-    }
-
-    if (m2608 && (!m2608.employees || m2608.employees.length !== 9 || m2608.employees.some(e => String(e.name).includes('보험') || String(e.name).includes('공과금') || String(e.name).includes('갑근세') || String(e.name).includes('주민세') || String(e.name).includes('수수료')))) {
-      m2608.employees = DEFAULT_EMPLOYEES.map(v => ({ ...v }));
-      m2608.expPayroll = 20421710;
-      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
-      try { window.store.saveToLocal(); } catch (e) {}
-    }
-
-    if (m2608 && (!m2608.utilities || m2608.utilities.length !== 14)) {
-      m2608.utilities = DEFAULT_UTILITIES.map(v => ({ ...v }));
-      m2608.expUtility = 15099722;
-      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
-      try { window.store.saveToLocal(); } catch (e) {}
-    }
-
-    if (m2608 && m2608.cardCashbacks && (!m2608.cardCashbacks.some(c => (c.payAmount && c.payAmount > 0) || (c.spend && c.spend > 0)) || (m2608.cardCashbacks[0] && m2608.cardCashbacks[0].payAmount === 0))) {
-      m2608.cardCashbacks = DEFAULT_CARD_CASHBACKS.map(v => ({ ...v }));
-      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
-      try { window.store.saveToLocal(); } catch (e) {}
-    }
-
-    if (m2608 && m2608.cardWithdrawals && (m2608.cardWithdrawals.length !== 4 || m2608.cardWithdrawals.some(w => {
-      const n = String(w.name || '').trim();
-      return n.includes('기타운영비') || n.includes('월세') || n.includes('경비') || n.includes('식대') || n.includes('실비');
-    }))) {
-      m2608.cardWithdrawals = DEFAULT_CARD_WITHDRAWALS.map(v => ({ ...v }));
-      m2608.cardWithdrawalSum = 76162130;
-      m2608.expCardWithdrawBank = 76162130;
-      m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
-      m2608.expOtherOperating = 446800;
-      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
-      try { window.store.saveToLocal(); } catch (e) {}
-    }
-
-    if (m2608 && (!m2608.otherExpenses || !Array.isArray(m2608.otherExpenses) || m2608.otherExpenses.length === 0 || m2608.otherExpenses.some(oe => oe.name === '월세' || oe.name === '경비/현금' || oe.name === '신세계카드' || oe.amount === 134160 || oe.amount === 311500) || !m2608.otherExpenses.some(oe => oe.name === '잡비2카드'))) {
-      m2608.otherExpenses = DEFAULT_OTHER_EXPENSES.map(v => ({ ...v }));
-      m2608.expOtherOperating = 446800;
-      window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
-      try { window.store.saveToLocal(); } catch (e) {}
-    }
-
-    const m2609 = window.store.monthlyRecords && window.store.monthlyRecords['2609'];
-    if (m2609 && (!m2609.finances || m2609.finances.length === 0 || !m2609.expFinance || m2609.expFinance === 0)) {
-      m2609.finances = DEFAULT_FINANCES_2609.map(v => ({ ...v }));
-      m2609.expFinance = 1733111;
-      if (!m2609.incomeNonCovered) m2609.incomeNonCovered = 820743;
-      window.store.monthlyRecords['2609'] = window.store.calculateMonthly(m2609);
-      try { window.store.saveToLocal(); } catch (e) {}
+    } else {
+      // 🛡️ 구버전 공과금 중복(15,099,722) 잔재 발견 시 자동 정화
+      const m2608 = window.store.monthlyRecords['2608'];
+      if (m2608 && (m2608.expUtility === 15099722 || (m2608.utilities && m2608.utilities.length === 14))) {
+        m2608.utilities = DEFAULT_UTILITIES.map(v => ({ ...v }));
+        m2608.expUtility = 7093682;
+        window.store.monthlyRecords['2608'] = window.store.calculateMonthly(m2608);
+        try { window.store.saveToLocal(); } catch (e) {}
+      }
     }
 
     // 원본 컨테이너 구조 주입

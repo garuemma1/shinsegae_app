@@ -1862,31 +1862,53 @@ window.SheetsSync = (function () {
   }
 
   function getPrescriptionShortages() {
+    const deletedIds = getDeletedIds();
     const raw = safeGetItem(STORAGE_KEYS.PRESCRIPTION_SHORTAGES);
-    return raw ? JSON.parse(raw) : [];
+    const list = raw ? JSON.parse(raw) : [];
+    return (list || []).filter(item => item && !deletedIds.includes(item.id));
   }
 
   function savePrescriptionShortages(data) {
-    safeSetItem(STORAGE_KEYS.PRESCRIPTION_SHORTAGES, JSON.stringify(data));
+    const deletedIds = getDeletedIds();
+    const cleanData = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    safeSetItem(STORAGE_KEYS.PRESCRIPTION_SHORTAGES, JSON.stringify(cleanData));
     pushToCloud();
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
       window.dispatchEvent(new CustomEvent('ssg_data_changed'));
     }
+  }
+
+  function deletePrescriptionShortage(id) {
+    if (!id) return;
+    addDeletedId(id);
+    const list = getPrescriptionShortages().filter(item => item && String(item.id) !== String(id));
+    savePrescriptionShortages(list);
   }
 
   function getSmsDispatchHistory() {
+    const deletedIds = getDeletedIds();
     const raw = safeGetItem(STORAGE_KEYS.SMS_DISPATCH_HISTORY);
-    return raw ? JSON.parse(raw) : [];
+    const list = raw ? JSON.parse(raw) : [];
+    return (list || []).filter(item => item && !deletedIds.includes(item.id));
   }
 
   function saveSmsDispatchHistory(data) {
-    safeSetItem(STORAGE_KEYS.SMS_DISPATCH_HISTORY, JSON.stringify(data));
+    const deletedIds = getDeletedIds();
+    const cleanData = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    safeSetItem(STORAGE_KEYS.SMS_DISPATCH_HISTORY, JSON.stringify(cleanData));
     pushToCloud();
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
       window.dispatchEvent(new CustomEvent('ssg_data_changed'));
     }
+  }
+
+  function deleteSmsDispatchHistory(id) {
+    if (!id) return;
+    addDeletedId(id);
+    const list = getSmsDispatchHistory().filter(item => item && String(item.id) !== String(id));
+    saveSmsDispatchHistory(list);
   }
 
   // ⚡ 신세계약국-일일결산26 정식 배포 Apps Script 웹앱 URL (메일 발송, 일일결산, 스마트정산 전용)
@@ -3417,8 +3439,10 @@ window.SheetsSync = (function () {
     savePatientOrders,
     getPrescriptionShortages,
     savePrescriptionShortages,
+    deletePrescriptionShortage,
     getSmsDispatchHistory,
     saveSmsDispatchHistory,
+    deleteSmsDispatchHistory,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

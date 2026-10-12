@@ -834,6 +834,8 @@ if (typeof window.PatientOrdersModule === 'undefined') {
     // ==========================================
     function renderSmsCenterViewHTML(history) {
       const resolvedMessage = resolveSmsTemplate();
+      const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || {};
+      const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1' || currUser.name === '문성도';
 
       return `
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
@@ -1051,9 +1053,11 @@ ${escapeHTML(resolvedMessage)}
                       <span class="font-black text-slate-900 dark:text-white">
                         ${escapeHTML(h.recipientName || '고객')}님 <span class="text-[11px] font-medium text-slate-500">(${formatPhone(h.phone)})</span>
                       </span>
-                      <button onclick="PatientOrdersModule.deleteSmsHistory('${h.id}')" title="삭제" class="text-slate-400 hover:text-rose-500 text-xs">
+                      ${isDirector ? `
+                      <button type="button" onclick="PatientOrdersModule.deleteSmsHistory('${h.id}')" title="이력 삭제 (약국장 전용)" class="text-slate-400 hover:text-rose-500 text-xs p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition">
                         <i class="fas fa-trash-alt"></i>
                       </button>
+                      ` : ''}
                     </div>
 
                     <div class="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
@@ -1455,10 +1459,24 @@ ${escapeHTML(h.content)}
     }
 
     function deleteShortage(id) {
-      if (!confirm('이 처방 미출 건을 삭제하시겠습니까?')) return;
-      let list = getShortagesData();
-      list = list.filter(i => String(i.id) !== String(id));
-      saveShortagesData(list);
+      const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || {};
+      const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1' || currUser.name === '문성도';
+      if (!isDirector) {
+        alert('🔒 [권한 통제] 처방 미출 건 삭제는 대표 약국장님만 가능합니다.');
+        return;
+      }
+      if (!confirm('이 처방 미출 건을 영구 삭제하시겠습니까?\n(클라우드에서도 완전히 삭제되어 다시 복원되지 않습니다)')) return;
+
+      if (window.SheetsSync && typeof window.SheetsSync.deletePrescriptionShortage === 'function') {
+        window.SheetsSync.deletePrescriptionShortage(id);
+      } else {
+        if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+          window.SheetsSync.addDeletedId(id);
+        }
+        let list = getShortagesData();
+        list = list.filter(i => String(i.id) !== String(id));
+        saveShortagesData(list);
+      }
       render('module-content');
     }
 
@@ -1764,10 +1782,25 @@ ${escapeHTML(h.content)}
     }
 
     function deleteSmsHistory(id) {
-      if (!confirm('이 발송 이력을 삭제하시겠습니까?')) return;
-      let history = getSmsHistoryData();
-      history = history.filter(h => String(h.id) !== String(id));
-      saveSmsHistoryData(history);
+      const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || {};
+      const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1' || currUser.name === '문성도';
+      if (!isDirector) {
+        alert('🔒 [권한 통제] 고객 문자 발송 이력 삭제는 대표 약국장님만 가능합니다.');
+        return;
+      }
+      if (!confirm('이 발송 이력을 영구 삭제하시겠습니까?\n(클라우드에서도 완전히 삭제되어 다시 복원되지 않습니다)')) return;
+
+      // 1. 클라우드 재병합(부활) 방지를 위해 전역 삭제 ID 등록 및 클라우드 동기화
+      if (window.SheetsSync && typeof window.SheetsSync.deleteSmsDispatchHistory === 'function') {
+        window.SheetsSync.deleteSmsDispatchHistory(id);
+      } else {
+        if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
+          window.SheetsSync.addDeletedId(id);
+        }
+        let history = getSmsHistoryData();
+        history = history.filter(h => String(h.id) !== String(id));
+        saveSmsHistoryData(history);
+      }
       render('module-content');
     }
 

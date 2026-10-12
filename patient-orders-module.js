@@ -44,8 +44,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       bankName: '기업은행',
       accountNumber: '01-0648-34342',
       accountHolder: '문성도',
-      lunchTime: '1~2시',
-      closeTime: '저녁 8시'
+      businessHours: '평일 및 토요일 09:00~22:00 / 공휴일 및 대체휴일 10:00~19:00'
     };
 
     // 📨 6+1 상황별 공식 문자 템플릿 정의
@@ -67,11 +66,11 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         title: '비대면 처방 수령 안내',
         badge: '비대면 처방',
         badgeColor: 'bg-blue-600 text-white',
-        desc: '비대면 조제 완료, 저녁 8시 마감 및 점심시간 제외 안내',
+        desc: '비대면 조제 완료 및 영업시간 안내',
         template: `[신세계약국]
 {고객명}님, 접수해주신 비대면 처방 조제가 완료되었습니다.
-1~2시 점심시간은 피해서 방문해주시기 바랍니다.
-■ 영업 마감: 저녁 8시
+편하신 시간에 방문하셔서 수령해주시기 바랍니다.
+■ 영업시간: 평일 및 토요일 09:00~22:00 / 공휴일 및 대체휴일 10:00~19:00
 (문의: 031-852-2212)`
       },
       GENERAL_RX: {
@@ -79,12 +78,12 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         title: '일반 조제약 준비 완료',
         badge: '처방약 조제',
         badgeColor: 'bg-emerald-600 text-white',
-        desc: '일반 처방 조제 완료 및 수령 안내 (점심시간 제외)',
+        desc: '일반 처방 조제 완료 및 수령 영업시간 안내',
         template: `[신세계약국]
 {고객명}님, 요청하신 처방 조제약이 준비 완료되었습니다.
 편하신 시간에 약국으로 방문하여 수령하시기 바랍니다.
 {보관위치안내}
-■ 점심시간: 오후 1시 ~ 2시
+■ 영업시간: 평일 및 토요일 09:00~22:00 / 공휴일 및 대체휴일 10:00~19:00
 (문의: 031-852-2212)`
       },
       SHORTAGE_RX: {
@@ -97,6 +96,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 {고객명}님, 처방 조제 시 부족했던 약품({약품명})이 입고되어 조제가 완료되었습니다.
 약국에 방문하셔서 수령해 주시기 바랍니다.
 {보관위치안내}
+■ 영업시간: 평일 및 토요일 09:00~22:00 / 공휴일 및 대체휴일 10:00~19:00
 (문의: 031-852-2212)`
       },
       WAITING_PICKUP: {
@@ -108,7 +108,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         template: `[신세계약국]
 {고객명}님, 약국에 보관 중인 미수령 약품({약품명})이 있습니다.
 방문하시어 수령해 주시기 바랍니다.
-■ 영업 시간: 평일 09:00 ~ 20:00
+■ 영업시간: 평일 및 토요일 09:00~22:00 / 공휴일 및 대체휴일 10:00~19:00
 (문의: 031-852-2212)`
       },
       STOCK_ARRIVED: {
@@ -120,6 +120,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         template: `[신세계약국]
 {고객명}님, 주문 요청하신 {약품명} 제품이 약국에 입고되었습니다.
 편하신 시간에 방문하셔서 수령하시기 바랍니다.
+■ 영업시간: 평일 및 토요일 09:00~22:00 / 공휴일 및 대체휴일 10:00~19:00
 (문의: 031-852-2212)`
       },
       CUSTOM: {
@@ -131,6 +132,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         template: `[신세계약국]
 {고객명}님, 안녕하세요. 
 {직접입력내용}
+■ 영업시간: 평일 및 토요일 09:00~22:00 / 공휴일 및 대체휴일 10:00~19:00
 (문의: 031-852-2212)`
       }
     };
@@ -854,6 +856,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
               <div class="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
                 <div class="text-blue-600 dark:text-blue-400 font-black">📞 발신 번호: 031-852-2212</div>
                 <div class="text-[11px] text-slate-500">기업은행 01-0648-34342 (문성도)</div>
+                <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold mt-0.5">🕒 평일·토 09~22시 / 공휴일 10~19시</div>
               </div>
             </div>
 
@@ -1104,6 +1107,9 @@ ${escapeHTML(h.content)}
 
       // 약국 전화번호 치환
       text = text.replace(/{약국전화}/g, PHARMACY_INFO.phone);
+
+      // 약국 영업시간 치환
+      text = text.replace(/{영업시간}/g, PHARMACY_INFO.businessHours);
 
       return text;
     }

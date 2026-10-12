@@ -7,12 +7,63 @@
 window.DailyBriefingWidget = (function () {
   let isExpanded = false;
   let targetDayOffset = 0; // 0: 오늘, -1: 어제, 1: 내일
+  const DISMISSED_BANNER_DATE_KEY = 'ssg_dismissed_critical_banner_date';
+  const DISMISSED_BANNER_IDS_KEY = 'ssg_dismissed_critical_banner_ids';
+  let cachedCriticalReturns = [];
 
   function getTargetDateStr(offset = 0) {
     const d = new Date();
     d.setDate(d.getDate() + offset);
     const pad = n => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function isCriticalBannerDismissed(criticalReturns) {
+    if (!criticalReturns || criticalReturns.length === 0) return true;
+    try {
+      const todayStr = getTargetDateStr(0);
+      const dismissedDate = localStorage.getItem(DISMISSED_BANNER_DATE_KEY);
+      if (dismissedDate !== todayStr) return false;
+      const rawIds = localStorage.getItem(DISMISSED_BANNER_IDS_KEY);
+      if (!rawIds) return false;
+      const savedIds = new Set(JSON.parse(rawIds));
+      // 신규 D-30 초긴급 반품 품목이 추가되었는지 검사 (기존 인지 시점에 없던 ID가 있으면 자동 재알림)
+      const hasNewItem = criticalReturns.some(item => {
+        const id = item.id || (item.drugName + '_' + item.expiryDate);
+        return !savedIds.has(id);
+      });
+      return !hasNewItem;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function dismissCriticalBanner() {
+    try {
+      const todayStr = getTargetDateStr(0);
+      const currentIds = (cachedCriticalReturns || []).map(item => item.id || (item.drugName + '_' + item.expiryDate));
+      localStorage.setItem(DISMISSED_BANNER_DATE_KEY, todayStr);
+      localStorage.setItem(DISMISSED_BANNER_IDS_KEY, JSON.stringify(currentIds));
+
+      const bannerEl = document.getElementById('critical-return-alert-banner');
+      if (bannerEl) {
+        bannerEl.style.transition = 'all 0.3s ease';
+        bannerEl.style.opacity = '0';
+        bannerEl.style.maxHeight = '0px';
+        bannerEl.style.overflow = 'hidden';
+        bannerEl.style.marginTop = '0px';
+        bannerEl.style.paddingTop = '0px';
+        bannerEl.style.paddingBottom = '0px';
+        setTimeout(() => {
+          renderWidget();
+        }, 300);
+      } else {
+        renderWidget();
+      }
+    } catch (e) {
+      console.warn('dismissCriticalBanner error:', e);
+      renderWidget();
+    }
   }
 
   function getDateLabel(offset = 0) {
@@ -354,6 +405,7 @@ window.DailyBriefingWidget = (function () {
     const targetDateStr = getTargetDateStr(targetDayOffset);
     const dateLabel = getDateLabel(targetDayOffset);
     const b = aggregateBriefingData(targetDateStr);
+    cachedCriticalReturns = b.criticalReturns || [];
 
     const pharmacists = b.onDutyStaff.filter(s => s.role.includes('약사') || s.role === '약국장');
     const generalStaff = b.onDutyStaff.filter(s => !s.role.includes('약사') && s.role !== '약국장');
@@ -802,11 +854,11 @@ window.DailyBriefingWidget = (function () {
             ` : ''}
 
             ${b.criticalReturns.length > 0 ? `
-              <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fee2e2; color:#b91c1c; border:1.5px solid #ef4444; cursor:pointer;">
+              <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fee2e2; color:#b91c1c; border:1.5px solid #ef4444; cursor:pointer;" title="클릭 시 유효기간/반품대장으로 이동">
                 🚨 초긴급반품 <strong style="color:#dc2626;">${b.criticalReturns.length}건</strong>
               </div>
             ` : `
-              <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fef2f2; color:#991b1b; border:1px solid #fecaca; cursor:pointer;">
+              <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fef2f2; color:#991b1b; border:1px solid #fecaca; cursor:pointer;" title="클릭 시 유효기간/반품대장으로 이동">
                 ⚠️ 반품 <strong style="color:#dc2626;">${b.dayReturns.length}건</strong>
               </div>
             `}
@@ -824,9 +876,9 @@ window.DailyBriefingWidget = (function () {
             ` : ''}
           </div>
 
-          <!-- 🚨 유효기간 3단계 초긴급 조기경보 알림 배너 (전 직원 즉각 인지) -->
-          ${b.criticalReturns.length > 0 ? `
-            <div onclick="App.switchModule('expiry-returns', true)" style="margin-top:10px; padding:10px 14px; background:linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius:10px; color:#ffffff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(185,28,28,0.25);">
+          <!-- 🚨 유효기간 3단계 초긴급 조기경보 알림 배너 (전 직원 즉각 인지, 인지 완료 시 오늘 하루 숨김 가능) -->
+          ${(b.criticalReturns.length > 0 && !isCriticalBannerDismissed(b.criticalReturns)) ? `
+            <div id="critical-return-alert-banner" onclick="App.switchModule('expiry-returns', true)" style="margin-top:10px; padding:10px 14px; background:linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius:10px; color:#ffffff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(185,28,28,0.25);">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:16px;">🚨</span>
                 <div>
@@ -838,9 +890,14 @@ window.DailyBriefingWidget = (function () {
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn btn-sm btn-light font-bold" style="font-size:11px; padding:3px 8px; border-radius:6px; flex-shrink:0;">
-                반품대장 ➔
-              </button>
+              <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                <button type="button" class="btn btn-sm btn-light font-bold" style="font-size:11px; padding:3px 8px; border-radius:6px;">
+                  반품대장 ➔
+                </button>
+                <button type="button" class="btn btn-sm" onclick="event.stopPropagation(); DailyBriefingWidget.dismissCriticalBanner();" title="오늘 하루 상단에서 숨기기 (새 약품 추가 시 자동 재알림)" style="font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.45); background:rgba(0,0,0,0.25); color:#ffffff; white-space:nowrap;">
+                  <i class="fas fa-check me-1"></i>인지 완료 ✕
+                </button>
+              </div>
             </div>
           ` : ''}
 
@@ -947,6 +1004,7 @@ window.DailyBriefingWidget = (function () {
   return {
     renderWidget,
     toggleExpand,
-    setDayOffset
+    setDayOffset,
+    dismissCriticalBanner
   };
 })();

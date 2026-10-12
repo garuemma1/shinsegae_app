@@ -1531,7 +1531,7 @@ ${escapeHTML(h.content)}
       resetPhoto();
     }
 
-    function handleOrderSubmit(e) {
+    async function handleOrderSubmit(e) {
       e.preventDefault();
       const patient = document.getElementById('ord-input-patient')?.value.trim();
       const phone = document.getElementById('ord-input-phone')?.value.trim();
@@ -1547,6 +1547,16 @@ ${escapeHTML(h.content)}
         return;
       }
 
+      // 🌥️ 50GB Cloudinary 스토리지로 사진 업로드 (용량 최적화)
+      let uploadedPhotos = [];
+      if (selectedPhotos && selectedPhotos.length > 0) {
+        if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
+          uploadedPhotos = await Promise.all(selectedPhotos.map(p => window.App.processAndUploadPhoto(p.data)));
+        } else {
+          uploadedPhotos = selectedPhotos.map(p => p.data);
+        }
+      }
+
       const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser && window.SheetsSync.getCurrentUser()) || {};
       const newOrder = {
         id: 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -1559,7 +1569,7 @@ ${escapeHTML(h.content)}
         paidAmount: paid,
         unpaidBalance: Math.max(0, price - paid),
         notes: notes,
-        photos: selectedPhotos.map(p => p.data),
+        photos: uploadedPhotos,
         status: 'PENDING_ORDER',
         registeredBy: currUser.name || '직원',
         createdAt: Date.now(),

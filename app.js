@@ -1763,6 +1763,30 @@ window.App = (function () {
         rows.push([c.category, c.name, c.phone, c.memo]);
       });
 
+    } else if (activeModule === 'patient-orders') {
+      filename = `신세계약국_환자예약미출_고객문자발송대장.csv`;
+      rows.push(['[ 1. 처방약 미출약 관리 대장 ]']);
+      rows.push(['환자명', '생년월일', '연락처', '처방병원', '미출약품내역', '주문처', '처방일자', '결제상태', '보관위치', '비고', '진행상태', '등록자']);
+      const shortages = (window.SheetsSync.getPrescriptionShortages ? window.SheetsSync.getPrescriptionShortages() : (data.prescriptionShortages || [])) || [];
+      shortages.forEach(s => {
+        rows.push([s.patientName, s.residentId || '', s.phone, s.clinicName || '', (s.drugName || '').replace(/\n/g, ' '), s.orderSupplier || '', s.rxDate || '', s.payType || '', s.storageLocation || '', s.notes || '', s.status || '', s.registeredBy || '']);
+      });
+      rows.push([]);
+      rows.push(['[ 2. 일반약·건기식 예약 주문 대장 ]']);
+      rows.push(['환자명', '연락처', '약품명', '수령방식', '결제상태', '총금액', '선결제액', '미납잔액', '비고', '진행상태', '등록자']);
+      const orders = (window.SheetsSync.getPatientOrders ? window.SheetsSync.getPatientOrders() : (data.patientOrders || [])) || [];
+      orders.forEach(o => {
+        rows.push([o.patientName, o.phone, (o.drugName || '').replace(/\n/g, ' '), o.deliveryType || '', o.payType || '', o.totalPrice || 0, o.paidAmount || 0, o.unpaidBalance || 0, o.notes || '', o.status || '', o.registeredBy || '']);
+      });
+      rows.push([]);
+      rows.push(['[ 3. 고객 안내 문자 발송 이력 ]']);
+      rows.push(['수신자', '연락처', '템플릿구분', '발송직원', '발송일시', '발송내용']);
+      const smsHistory = (window.SheetsSync.getSmsDispatchHistory ? window.SheetsSync.getSmsDispatchHistory() : (data.smsDispatchHistory || [])) || [];
+      smsHistory.forEach(h => {
+        const dStr = h.createdAt ? new Date(h.createdAt).toLocaleString('ko-KR') : '';
+        rows.push([h.recipientName, h.phone, h.templateTitle || '', h.senderName || '', dStr, (h.content || '').replace(/\n/g, ' ')]);
+      });
+
     } else if (activeModule === 'pharmacy-settlement') {
       filename = `신세계약국_스마트정산대시보드_2026년08월.csv`;
       const ps = data.pharmacySettlement || {};

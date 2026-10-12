@@ -25,6 +25,8 @@ window.SheetsSync = (function () {
     EXPIRY_RETURNS: 'ssg_expiry_returns_v1',
     PHARMACY_EXCHANGE: 'ssg_pharmacy_exchange_v1',
     PATIENT_ORDERS: 'ssg_patient_orders_v1',
+    PRESCRIPTION_SHORTAGES: 'ssg_prescription_shortages_v1',
+    SMS_DISPATCH_HISTORY: 'ssg_sms_dispatch_history_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -1859,6 +1861,34 @@ window.SheetsSync = (function () {
     }
   }
 
+  function getPrescriptionShortages() {
+    const raw = safeGetItem(STORAGE_KEYS.PRESCRIPTION_SHORTAGES);
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  function savePrescriptionShortages(data) {
+    safeSetItem(STORAGE_KEYS.PRESCRIPTION_SHORTAGES, JSON.stringify(data));
+    pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
+  }
+
+  function getSmsDispatchHistory() {
+    const raw = safeGetItem(STORAGE_KEYS.SMS_DISPATCH_HISTORY);
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  function saveSmsDispatchHistory(data) {
+    safeSetItem(STORAGE_KEYS.SMS_DISPATCH_HISTORY, JSON.stringify(data));
+    pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
+  }
+
   // ⚡ 신세계약국-일일결산26 정식 배포 Apps Script 웹앱 URL (메일 발송, 일일결산, 스마트정산 전용)
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbyhPnLdy53ExpzHW66U0m7hqmcBksBfKpFYkILQTUjxtng30FLevf9cdMSbqbeYQ97x/exec";
   const CLOUD_SYNC_RELAY_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
@@ -2391,6 +2421,27 @@ window.SheetsSync = (function () {
         }
       }
 
+      // 4-6. 💊 처방약 미출약 관리 스마트 비파괴 양방향 융합
+      if (cloudData.prescriptionShortages && Array.isArray(cloudData.prescriptionShortages)) {
+        const localShortages = getPrescriptionShortages() || [];
+        const mergedShortages = mergeById(localShortages, cloudData.prescriptionShortages, 'updatedAt');
+        if (isListDifferent(localShortages, mergedShortages)) {
+          safeSetItem(STORAGE_KEYS.PRESCRIPTION_SHORTAGES, JSON.stringify(mergedShortages));
+          updated = true;
+          patientOrdersChanged = true;
+        }
+      }
+
+      // 4-7. 📨 고객 안내 문자 발송 이력 스마트 비파괴 병합
+      if (cloudData.smsDispatchHistory && Array.isArray(cloudData.smsDispatchHistory)) {
+        const localHistory = getSmsDispatchHistory() || [];
+        const mergedHistory = mergeById(localHistory, cloudData.smsDispatchHistory, 'createdAt');
+        if (isListDifferent(localHistory, mergedHistory)) {
+          safeSetItem(STORAGE_KEYS.SMS_DISPATCH_HISTORY, JSON.stringify(mergedHistory));
+          updated = true;
+        }
+      }
+
       // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키 & 타임스탬프 기반 최신 수정 우선)
       if (cloudData.schedule && Array.isArray(cloudData.schedule)) {
         const localSched = getSchedule() || [];
@@ -2798,6 +2849,8 @@ window.SheetsSync = (function () {
           expiryReturns: getExpiryReturns(),
           pharmacyExchange: getPharmacyExchange(),
           patientOrders: getPatientOrders(),
+          prescriptionShortages: getPrescriptionShortages(),
+          smsDispatchHistory: getSmsDispatchHistory(),
           gasUrls: getGasUrls(),
           buildingRentalDashboard: (() => {
             try {
@@ -3194,7 +3247,9 @@ window.SheetsSync = (function () {
       paystubs: getPaystubs(),
       overtimeAdjustments: getOvertimeAdjustments(),
       pharmacyExchange: getPharmacyExchange(),
-      patientOrders: getPatientOrders()
+      patientOrders: getPatientOrders(),
+      prescriptionShortages: getPrescriptionShortages(),
+      smsDispatchHistory: getSmsDispatchHistory()
     };
   }
 
@@ -3360,6 +3415,10 @@ window.SheetsSync = (function () {
     savePharmacyExchange,
     getPatientOrders,
     savePatientOrders,
+    getPrescriptionShortages,
+    savePrescriptionShortages,
+    getSmsDispatchHistory,
+    saveSmsDispatchHistory,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

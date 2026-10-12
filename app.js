@@ -11,7 +11,7 @@ window.App = (function () {
     'notices': '📢 공지사항 & 업무 SOP',
     'worklog': '📝 약국 업무일지 & 인수인계',
     'supplies': '📦 약국 소모품 관리 & 주문 시스템',
-    'patient-orders': '📋 환자 예약 주문 & 선결제 관리',
+    'patient-orders': '📋 환자 예약·미출 & 고객문자',
     'medicine-location': '💊 일반약 위치 관리 & 위치 검색',
     'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
     'pharmacy-exchange': '💊 인근약국 교품 & 불용재고 대장',
@@ -414,31 +414,32 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
-  // ─── 환자 예약 주문 & 선결제 관리 읽음 상태 관리 헬퍼 ─────────────────────────────
+  // ─── 환자 예약 주문 & 선결제 / 처방약 미출약 관리 읽음 상태 관리 헬퍼 ────────────────
   function _patientOrderFingerprint(item) {
     if (!item) return '';
     const dateClean = String(item.updatedAt || item.createdAt || '').trim();
-    return [item.id || '', dateClean, item.status || '', item.paymentStatus || '', item.patientName || '', item.drugName || ''].join('|');
+    return [item.id || '', dateClean, item.status || '', item.paymentStatus || '', item.patientName || item.customerName || '', item.drugName || item.drugsSummary || ''].join('|');
   }
 
   function markPatientOrdersRead() {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) return;
     const orders = (window.SheetsSync.getPatientOrders ? window.SheetsSync.getPatientOrders() : (window.SheetsSync.getData().patientOrders || [])) || [];
-    const fingerprints = orders.map(_patientOrderFingerprint);
+    const rxShortages = (window.SheetsSync.getPrescriptionShortages ? window.SheetsSync.getPrescriptionShortages() : (window.SheetsSync.getData().prescriptionShortages || [])) || [];
+    const fingerprints = [...orders, ...rxShortages].map(_patientOrderFingerprint);
     try {
       localStorage.setItem('ssg_read_patient_orders_' + currUser.id, JSON.stringify(fingerprints));
     } catch(e) {}
   }
 
-  function _hasUnreadPatientOrders(currUser, orders) {
+  function _hasUnreadPatientOrders(currUser, items) {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_patient_orders_' + currUser.id);
       if (raw === null) return false;
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
-      return (orders || []).some(item => !savedSet.has(_patientOrderFingerprint(item)));
+      return (items || []).some(item => !savedSet.has(_patientOrderFingerprint(item)));
     } catch(e) { return false; }
   }
 
@@ -571,16 +572,19 @@ window.App = (function () {
       const pendingExchanges = (peData.exchanges || []).filter(e => e.status !== 'SETTLED_RETURN' && e.status !== 'SETTLED_MONEY');
       const hasUnreadPE = _hasUnreadPharmacyExchange(currUser, peData);
 
-      // 📋 환자 예약 주문 & 선결제 관리 (patient-orders: 미수령 입고약/주문접수 건수 또는 신규/변동 시 N 뱃지)
+      // 📋 환자 예약 주문 & 선결제 / 처방약 미출약 관리 (patient-orders: 미수령 입고약/미출약 건수 또는 신규/변동 시 N 뱃지)
       const patientOrdersList = (window.SheetsSync.getPatientOrders ? window.SheetsSync.getPatientOrders() : (data.patientOrders || [])) || [];
       const pendingPatientOrders = patientOrdersList.filter(o => o.status === 'ARRIVED' || o.status === 'PENDING_ORDER');
-      const hasUnreadPatientOrders = _hasUnreadPatientOrders(currUser, patientOrdersList);
+      const rxShortagesList = (window.SheetsSync.getPrescriptionShortages ? window.SheetsSync.getPrescriptionShortages() : (data.prescriptionShortages || [])) || [];
+      const pendingRxShortages = rxShortagesList.filter(s => s.status !== '5. 수령 완료');
+      const totalPendingOrdersAndShortages = pendingPatientOrders.length + pendingRxShortages.length;
+      const hasUnreadPatientOrders = _hasUnreadPatientOrders(currUser, [...patientOrdersList, ...rxShortagesList]);
 
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
         supplies: pendingSupplies.length > 0 ? pendingSupplies.length : null,
-        'patient-orders': pendingPatientOrders.length > 0 ? pendingPatientOrders.length : (hasUnreadPatientOrders ? 'N' : null),
+        'patient-orders': totalPendingOrdersAndShortages > 0 ? totalPendingOrdersAndShortages : (hasUnreadPatientOrders ? 'N' : null),
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
         'pharmacy-exchange': pendingExchanges.length > 0 ? pendingExchanges.length : (hasUnreadPE ? 'N' : null),
@@ -736,7 +740,7 @@ window.App = (function () {
             <i class="fas fa-clipboard-list" style="color:#0284c7;"></i>
             ${badges['patient-orders'] ? `<span class="menu-item-badge">${badges['patient-orders']}</span>` : ''}
           </div>
-          <span>환자 예약 주문 & 선결제</span>
+          <span>환자 예약·미출 & 고객문자</span>
         </button>
       `;
     }

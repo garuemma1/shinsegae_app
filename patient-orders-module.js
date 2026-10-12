@@ -40,7 +40,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
     // 🏢 약국 공식 정보 (신세계약국)
     const PHARMACY_INFO = {
       name: '신세계약국',
-      phone: '031-861-8868',
+      phone: '031-852-2212',
       bankName: '기업은행',
       accountNumber: '01-0648-34342',
       accountHolder: '문성도',
@@ -60,7 +60,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 {고객명}님, 안녕하세요. 아래 계좌로 입금 부탁드립니다. 불편을 드려 죄송합니다.
 ■ 입금 계좌: {계좌정보}
 ■ 입금 금액: {입금금액}원
-(문의: 031-861-8868)`
+(문의: 031-852-2212)`
       },
       UNTACT_RX: {
         key: 'UNTACT_RX',
@@ -72,7 +72,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 {고객명}님, 접수해주신 비대면 처방 조제가 완료되었습니다.
 1~2시 점심시간은 피해서 방문해주시기 바랍니다.
 ■ 영업 마감: 저녁 8시
-(문의: 031-861-8868)`
+(문의: 031-852-2212)`
       },
       GENERAL_RX: {
         key: 'GENERAL_RX',
@@ -85,7 +85,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 편하신 시간에 약국으로 방문하여 수령하시기 바랍니다.
 {보관위치안내}
 ■ 점심시간: 오후 1시 ~ 2시
-(문의: 031-861-8868)`
+(문의: 031-852-2212)`
       },
       SHORTAGE_RX: {
         key: 'SHORTAGE_RX',
@@ -97,7 +97,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 {고객명}님, 처방 조제 시 부족했던 약품({약품명})이 입고되어 조제가 완료되었습니다.
 약국에 방문하셔서 수령해 주시기 바랍니다.
 {보관위치안내}
-(문의: 031-861-8868)`
+(문의: 031-852-2212)`
       },
       WAITING_PICKUP: {
         key: 'WAITING_PICKUP',
@@ -109,7 +109,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 {고객명}님, 약국에 보관 중인 미수령 약품({약품명})이 있습니다.
 방문하시어 수령해 주시기 바랍니다.
 ■ 영업 시간: 평일 09:00 ~ 20:00
-(문의: 031-861-8868)`
+(문의: 031-852-2212)`
       },
       STOCK_ARRIVED: {
         key: 'STOCK_ARRIVED',
@@ -120,7 +120,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         template: `[신세계약국]
 {고객명}님, 주문 요청하신 {약품명} 제품이 약국에 입고되었습니다.
 편하신 시간에 방문하셔서 수령하시기 바랍니다.
-(문의: 031-861-8868)`
+(문의: 031-852-2212)`
       },
       CUSTOM: {
         key: 'CUSTOM',
@@ -131,7 +131,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         template: `[신세계약국]
 {고객명}님, 안녕하세요. 
 {직접입력내용}
-(문의: 031-861-8868)`
+(문의: 031-852-2212)`
       }
     };
 
@@ -851,8 +851,8 @@ if (typeof window.PatientOrdersModule === 'undefined') {
                   <p class="text-xs text-slate-500 dark:text-slate-400">약값 입금 요청, 비대면 처방 수령 등 고객 안내용 문자를 신속하게 작성하고 발송합니다.</p>
                 </div>
               </div>
-              <div class="text-right text-xs font-bold text-slate-700 dark:text-slate-300 hidden sm:block">
-                <div>📞 발신: 031-861-8868</div>
+              <div class="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                <div class="text-blue-600 dark:text-blue-400 font-black">📞 발신 번호: 031-852-2212</div>
                 <div class="text-[11px] text-slate-500">기업은행 01-0648-34342 (문성도)</div>
               </div>
             </div>
@@ -989,10 +989,14 @@ if (typeof window.PatientOrdersModule === 'undefined') {
 
               <!-- 스마트폰 메시지 버블 스타일 -->
               <div class="bg-slate-100 dark:bg-slate-950 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-inner">
+                <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-500 mb-2 px-1">
+                  <span>📞 발신 번호: <strong class="text-blue-600 font-black">031-852-2212</strong></span>
+                  <span>📱 수신 번호: <strong class="text-slate-800 dark:text-slate-200">${smsPhone || '미입력'}</strong></span>
+                </div>
                 <div class="bg-white dark:bg-slate-900 p-3.5 rounded-2xl rounded-tl-sm border border-slate-200 dark:border-slate-800 shadow-sm text-xs font-bold text-slate-900 dark:text-slate-100 leading-relaxed whitespace-pre-wrap font-sans">
 ${escapeHTML(resolvedMessage)}
                 </div>
-                <div class="text-right text-[10px] text-slate-400 font-bold mt-1.5">신세계약국 고객 알림</div>
+                <div class="text-right text-[10px] text-slate-400 font-bold mt-1.5">신세계약국 고객 알림 (발신: 031-852-2212)</div>
               </div>
 
               <!-- 🚀 4대 원터치 발송 & 공유 액션 버튼 바 -->
@@ -1097,6 +1101,9 @@ ${escapeHTML(h.content)}
 
       // 직접입력내용 치환
       text = text.replace(/{직접입력내용}/g, (smsCustomMessage || '').trim() || '안내 말씀 드립니다.');
+
+      // 약국 전화번호 치환
+      text = text.replace(/{약국전화}/g, PHARMACY_INFO.phone);
 
       return text;
     }

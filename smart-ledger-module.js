@@ -658,12 +658,29 @@ window.PharmacyStore = class PharmacyStore {
         this.dailyRecords = {};
       }
 
-      if (savedMonthly) this.monthlyRecords = JSON.parse(savedMonthly);
-      else this.monthlyRecords = {};
+      if (savedMonthly) {
+        this.monthlyRecords = JSON.parse(savedMonthly);
+      } else {
+        this.monthlyRecords = {};
+      }
+
+      // ☁️ 로컬스토리지에 결산 데이터가 없을 경우 Firebase 클라우드 DB에서 즉시 복원
+      if (this.activePharmacy === 'ssg' && Object.keys(this.monthlyRecords).length === 0 && window.SheetsSync && typeof window.SheetsSync.getSmartLedgerCloudData === 'function') {
+        const cloudLedger = window.SheetsSync.getSmartLedgerCloudData();
+        if (cloudLedger && cloudLedger.monthlyRecords && typeof cloudLedger.monthlyRecords === 'object') {
+          this.monthlyRecords = cloudLedger.monthlyRecords;
+          if (cloudLedger.cumulativeCache && !savedCumulative) {
+            this.cumulativeCache = cloudLedger.cumulativeCache;
+          }
+          if (cloudLedger.availableMonths && (!months || this.availableMonths.length === 0)) {
+            this.availableMonths = cloudLedger.availableMonths;
+          }
+        }
+      }
 
       if (savedCumulative) {
         try { this.cumulativeCache = JSON.parse(savedCumulative); } catch (ce) { this.cumulativeCache = {}; }
-      } else {
+      } else if (!this.cumulativeCache) {
         this.cumulativeCache = {};
       }
       if (!this.cumulativeCache['2608'] || !this.cumulativeCache['2608'].cashSalesTotal || this.cumulativeCache['2608'].cashSalesTotal !== 6650000 || this.cumulativeCache['2608'].onlineMallTotal !== 10034407) {
@@ -745,6 +762,16 @@ window.PharmacyStore = class PharmacyStore {
       localStorage.setItem(`${prefix}online_malls`, JSON.stringify(this.onlineMalls));
       if (this.cumulativeCache) {
         localStorage.setItem(`${prefix}cumulative_cache`, JSON.stringify(this.cumulativeCache));
+      }
+
+      // ☁️ Firebase 클라우드 DB 실시간 백업 (신세계약국 장부 전 기기 일치 보장)
+      if (this.activePharmacy === 'ssg' && window.SheetsSync && typeof window.SheetsSync.saveSmartLedgerToCloud === 'function') {
+        window.SheetsSync.saveSmartLedgerToCloud({
+          monthlyRecords: this.monthlyRecords,
+          cumulativeCache: this.cumulativeCache,
+          availableMonths: this.availableMonths,
+          currentYYMM: this.currentYYMM
+        });
       }
     } catch (e) {
       console.error('Local Storage save error:', e);
@@ -1569,13 +1596,13 @@ var UI = {
           <div class="flex items-center gap-2">
             <!-- Sync Button -->
             <button 
-              onclick="UI.syncWithGoogleSheets()" 
+              onclick="UI.syncWithGoogleSheets(true)" 
               id="sync-btn"
               class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
-              title="구글 스프레드시트 최신 데이터 실시간 동기화"
+              title="구글 스프레드시트 전체 월 데이터 실시간 일괄 동기화 (원클릭 100% 최신화)"
             >
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span class="hidden sm:inline">시트 동기화</span>
+              <span class="hidden sm:inline">전체 시트 동기화</span>
             </button>
 
             <!-- Settings Button -->
@@ -1686,11 +1713,22 @@ var UI = {
     if (window.lucide) window.lucide.createIcons();
   },
 
-  handleMonthChange(yymm) {
+  async handleMonthChange(yymm) {
     window.store.setCurrentYYMM(yymm);
     this.selectedDay = 1;
     this.renderHeader();
     this.renderCurrentView();
+
+    // 🚀 해당 월의 시트 데이터가 없거나 최신화가 필요할 때 백그라운드 자동 로드
+    if (window.sheetsClient && window.sheetsClient.isConfigured) {
+      try {
+        await window.store.loadMonthFromSheets(yymm);
+        this.renderHeader();
+        this.renderCurrentView();
+      } catch (err) {
+        console.warn(`Auto sync for month ${yymm} skipped:`, err);
+      }
+    }
   },
 
   selectDay(day) {
@@ -3267,7 +3305,7 @@ var UI = {
     }, 3000);
   },
 
-  async syncWithGoogleSheets() {
+  async syncWithGoogleSheets(syncAll = true) {
     if (!window.sheetsClient || !window.sheetsClient.isConfigured) {
       this.showSettingsModal();
       return;
@@ -3289,6 +3327,7 @@ var UI = {
           });
           if (discovered.length > 0) {
             window.store.availableMonths = discovered.sort();
+            window.store.saveToLocal();
           }
         }
       } catch (pingErr) {
@@ -3300,16 +3339,57 @@ var UI = {
       }
 
       const currentYYMM = window.store.currentYYMM;
-      this.showToast(`구글 시트(20${currentYYMM.substring(0,2)}년 ${currentYYMM.substring(2,4)}월)에서 데이터를 가져오는 중...`);
-      await window.store.loadMonthFromSheets(currentYYMM);
+      this.showToast(`구글 시트(20${currentYYMM.substring(0,2)}년 ${currentYYMM.substring(2,4)}월) 최우선 동기화 중...`);
+
+      // 1. 현재 보고 있는 기준 월 즉시 최우선 동기화 & 0.5초 만에 화면 갱신
+      await window.store.loadMonthFromSheets(currentYYMM, true);
       this.renderHeader();
       this.renderCurrentView();
-      this.showToast(`⚡ 20${currentYYMM.substring(0,2)}년 ${currentYYMM.substring(2,4)}월 시트 데이터를 100% 동기화 완료했습니다!`);
+
+      // 2. 🌟 구글 시트에 존재하는 나머지 모든 월도 백그라운드에서 한 번에 100% 일괄 동기화!
+      if (syncAll && window.store.availableMonths && window.store.availableMonths.length > 1) {
+        const otherMonths = window.store.availableMonths.filter(m => m !== currentYYMM && /^[0-9]{4}$/.test(m));
+        this.showToast(`⚡ 20${currentYYMM.substring(0,2)}년 ${currentYYMM.substring(2,4)}월 최신화 완료! 나머지 전체 월(${otherMonths.length}개) 일괄 동기화 중...`);
+        for (const m of otherMonths) {
+          try {
+            await window.store.loadMonthFromSheets(m, true);
+          } catch (mErr) {
+            console.warn(`Month ${m} sync error:`, mErr);
+          }
+        }
+        window.store.saveToLocal();
+        this.renderHeader();
+        this.renderCurrentView();
+        this.showToast(`✨ 전체 월(총 ${window.store.availableMonths.length}개 월) 구글 시트 동기화가 100% 완료되었습니다!`);
+      } else {
+        this.showToast(`⚡ 20${currentYYMM.substring(0,2)}년 ${currentYYMM.substring(2,4)}월 시트 데이터를 100% 동기화 완료했습니다!`);
+      }
+
+      const nowTime = Date.now();
+      localStorage.setItem(`${window.store.storagePrefix}last_auto_sync_time`, String(nowTime));
     } catch (e) {
       console.warn("Sync error:", e);
       this.showToast('⚠️ 동기화 오류: ' + (e.message || e));
     } finally {
       if (syncBtn) syncBtn.classList.remove('animate-spin');
+    }
+  },
+
+  async autoBackgroundSync() {
+    if (!window.sheetsClient || !window.sheetsClient.isConfigured) return;
+    const now = Date.now();
+    const lastSync = parseInt(localStorage.getItem(`${window.store.storagePrefix}last_auto_sync_time`) || '0', 10);
+    // 3분 이내에 이미 동기화했으면 중복 호출 방지
+    if (now - lastSync < 180000) return;
+
+    try {
+      localStorage.setItem(`${window.store.storagePrefix}last_auto_sync_time`, String(now));
+      const currentYYMM = window.store.currentYYMM;
+      await window.store.loadMonthFromSheets(currentYYMM);
+      this.renderHeader();
+      this.renderCurrentView();
+    } catch (e) {
+      console.warn('Auto background sync skipped:', e);
     }
   },
 
@@ -3546,5 +3626,14 @@ window.SmartLedgerModule = {
 
     // 100% 원본 UI 초기화 가동
     window.UI.init();
+
+    // 🚀 스마트장부 탭 진입 시: 0.5초 후 백그라운드 자동 최신 동기화 실행
+    setTimeout(() => {
+      try {
+        if (window.UI && typeof window.UI.autoBackgroundSync === 'function') {
+          window.UI.autoBackgroundSync();
+        }
+      } catch (err) {}
+    }, 500);
   }
 };

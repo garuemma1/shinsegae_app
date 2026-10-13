@@ -1849,6 +1849,27 @@ window.SheetsSync = (function () {
     } catch(e) {}
   }
 
+  function getSmartLedgerCloudData() {
+    try {
+      const raw = safeGetItem('ssg_cloud_smart_ledger_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  let smartLedgerPushTimer = null;
+  function saveSmartLedgerToCloud(data) {
+    if (!data) return;
+    try {
+      safeSetItem('ssg_cloud_smart_ledger_v1', JSON.stringify(data));
+      clearTimeout(smartLedgerPushTimer);
+      smartLedgerPushTimer = setTimeout(() => {
+        pushToCloud();
+      }, 1000);
+    } catch(e) {}
+  }
+
   function getPharmacyExchange() {
     const raw = safeGetItem(STORAGE_KEYS.PHARMACY_EXCHANGE);
     return raw ? JSON.parse(raw) : { exchanges: [], deadStocks: [] };
@@ -2439,6 +2460,23 @@ window.SheetsSync = (function () {
         safeSetItem('ssg_dismissed_critical_keys', JSON.stringify(Array.from(mergedDismissedSet)));
       }
 
+      // 스마트장부(구글시트 동기화된 결산 및 누적 데이터) 클라우드 양방향 통합
+      if (cloudData.smartLedger && typeof cloudData.smartLedger === 'object') {
+        const localSL = getSmartLedgerCloudData();
+        if (!localSL || JSON.stringify(localSL) !== JSON.stringify(cloudData.smartLedger)) {
+          safeSetItem('ssg_cloud_smart_ledger_v1', JSON.stringify(cloudData.smartLedger));
+          if (cloudData.smartLedger.monthlyRecords) {
+            safeSetItem('ssg_monthly_records', JSON.stringify(cloudData.smartLedger.monthlyRecords));
+          }
+          if (cloudData.smartLedger.cumulativeCache) {
+            safeSetItem('ssg_cumulative_cache', JSON.stringify(cloudData.smartLedger.cumulativeCache));
+          }
+          if (cloudData.smartLedger.availableMonths) {
+            safeSetItem('ssg_available_months', JSON.stringify(cloudData.smartLedger.availableMonths));
+          }
+        }
+      }
+
       // 4-4. 💊 인근약국 교품 & 불용재고 대장 스마트 비파괴 양방향 융합
       if (cloudData.pharmacyExchange && typeof cloudData.pharmacyExchange === 'object') {
         const localPE = getPharmacyExchange();
@@ -2897,6 +2935,7 @@ window.SheetsSync = (function () {
           patientOrders: getPatientOrders(),
           prescriptionShortages: getPrescriptionShortages(),
           smsDispatchHistory: getSmsDispatchHistory(),
+          smartLedger: getSmartLedgerCloudData(),
           gasUrls: getGasUrls(),
           buildingRentalDashboard: (() => {
             try {
@@ -3459,6 +3498,8 @@ window.SheetsSync = (function () {
     deleteExpiryReturn,
     getDismissedCriticalReturnKeys,
     saveDismissedCriticalReturnKeys,
+    getSmartLedgerCloudData,
+    saveSmartLedgerToCloud,
     getPharmacyExchange,
     savePharmacyExchange,
     getPatientOrders,

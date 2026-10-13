@@ -1833,6 +1833,22 @@ window.SheetsSync = (function () {
     saveExpiryReturns(list);
   }
 
+  function getDismissedCriticalReturnKeys() {
+    try {
+      const raw = safeGetItem('ssg_dismissed_critical_keys');
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveDismissedCriticalReturnKeys(keys) {
+    try {
+      safeSetItem('ssg_dismissed_critical_keys', JSON.stringify(keys || []));
+      pushToCloud();
+    } catch(e) {}
+  }
+
   function getPharmacyExchange() {
     const raw = safeGetItem(STORAGE_KEYS.PHARMACY_EXCHANGE);
     return raw ? JSON.parse(raw) : { exchanges: [], deadStocks: [] };
@@ -2416,6 +2432,13 @@ window.SheetsSync = (function () {
         }
       }
 
+      // 인지 완료된 초긴급 반품 약품 키 목록 클라우드 양방향 통합
+      if (cloudData.dismissedCriticalReturnKeys && Array.isArray(cloudData.dismissedCriticalReturnKeys)) {
+        const localDismissedKeys = getDismissedCriticalReturnKeys();
+        const mergedDismissedSet = new Set([...localDismissedKeys, ...cloudData.dismissedCriticalReturnKeys]);
+        safeSetItem('ssg_dismissed_critical_keys', JSON.stringify(Array.from(mergedDismissedSet)));
+      }
+
       // 4-4. 💊 인근약국 교품 & 불용재고 대장 스마트 비파괴 양방향 융합
       if (cloudData.pharmacyExchange && typeof cloudData.pharmacyExchange === 'object') {
         const localPE = getPharmacyExchange();
@@ -2869,6 +2892,7 @@ window.SheetsSync = (function () {
           supplies: getSupplies(),
           supplyPresets: getSupplyPresets(),
           expiryReturns: getExpiryReturns(),
+          dismissedCriticalReturnKeys: getDismissedCriticalReturnKeys(),
           pharmacyExchange: getPharmacyExchange(),
           patientOrders: getPatientOrders(),
           prescriptionShortages: getPrescriptionShortages(),
@@ -3433,6 +3457,8 @@ window.SheetsSync = (function () {
     addExpiryReturn,
     updateExpiryReturnStatus,
     deleteExpiryReturn,
+    getDismissedCriticalReturnKeys,
+    saveDismissedCriticalReturnKeys,
     getPharmacyExchange,
     savePharmacyExchange,
     getPatientOrders,

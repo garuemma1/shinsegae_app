@@ -7,8 +7,7 @@
 window.DailyBriefingWidget = (function () {
   let isExpanded = false;
   let targetDayOffset = 0; // 0: 오늘, -1: 어제, 1: 내일
-  const DISMISSED_BANNER_DATE_KEY = 'ssg_dismissed_critical_banner_date';
-  const DISMISSED_BANNER_IDS_KEY = 'ssg_dismissed_critical_banner_ids';
+  const DISMISSED_BANNER_KEYS_STORAGE = 'ssg_dismissed_critical_keys';
   let cachedCriticalReturns = [];
 
   function getTargetDateStr(offset = 0) {
@@ -18,20 +17,50 @@ window.DailyBriefingWidget = (function () {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
+  // 각 초긴급 반품 약품의 고유 식별자 키 목록 생성 (ID 및 약품명+유효기간 복합키)
+  function getCriticalItemKeys(item) {
+    if (!item) return [];
+    const keys = [];
+    if (item.id) keys.push(String(item.id).trim());
+    const name = (item.drugName || item.name || item.medName || '').trim();
+    const exp = (item.expiryDate || '').trim();
+    if (name || exp) {
+      keys.push(`${name}__${exp}`);
+    }
+    return keys;
+  }
+
+  // 인지 완료 처리된 품목 키 Set 조회 (SheetsSync 클라우드 동기화 + 로컬스토리지 듀얼)
+  function getSavedDismissedKeys() {
+    let keys = [];
+    if (window.SheetsSync && typeof window.SheetsSync.getDismissedCriticalReturnKeys === 'function') {
+      keys = window.SheetsSync.getDismissedCriticalReturnKeys() || [];
+    }
+    if (!keys || keys.length === 0) {
+      try {
+        const raw = localStorage.getItem(DISMISSED_BANNER_KEYS_STORAGE);
+        if (raw) keys = JSON.parse(raw);
+      } catch(e) {}
+    }
+    return new Set(Array.isArray(keys) ? keys : []);
+  }
+
   function isCriticalBannerDismissed(criticalReturns) {
     if (!criticalReturns || criticalReturns.length === 0) return true;
     try {
-      const todayStr = getTargetDateStr(0);
-      const dismissedDate = localStorage.getItem(DISMISSED_BANNER_DATE_KEY);
-      if (dismissedDate !== todayStr) return false;
-      const rawIds = localStorage.getItem(DISMISSED_BANNER_IDS_KEY);
-      if (!rawIds) return false;
-      const savedIds = new Set(JSON.parse(rawIds));
-      // 신규 D-30 초긴급 반품 품목이 추가되었는지 검사 (기존 인지 시점에 없던 ID가 있으면 자동 재알림)
+      const savedKeys = getSavedDismissedKeys();
+      if (savedKeys.size === 0) return false; // 최초 상태: 아직 인지 완료 누른 적 없음
+
+      // 현재 존재하는 초긴급 반품 품목 중 "새롭게 등록되어 아직 인지되지 않은 신규 품목"이 하나라도 있는지 검사
       const hasNewItem = criticalReturns.some(item => {
-        const id = item.id || (item.drugName + '_' + item.expiryDate);
-        return !savedIds.has(id);
+        const itemKeys = getCriticalItemKeys(item);
+        if (itemKeys.length === 0) return false;
+        // 저장된 키 목록에 itemKeys 중 하나라도 포함되어 있으면 이미 인지된 기존 품목임
+        const isKnown = itemKeys.some(k => savedKeys.has(k));
+        return !isKnown; // 인지된 적 없는 새로운 품목이면 true
       });
+
+      // 신규 품목이 등록되었으면 즉시 배너 표시(!hasNewItem === false), 이미 인지된 품목들만 있으면 영구 숨김(!hasNewItem === true)
       return !hasNewItem;
     } catch (e) {
       return false;
@@ -40,10 +69,28 @@ window.DailyBriefingWidget = (function () {
 
   function dismissCriticalBanner() {
     try {
-      const todayStr = getTargetDateStr(0);
-      const currentIds = (cachedCriticalReturns || []).map(item => item.id || (item.drugName + '_' + item.expiryDate));
-      localStorage.setItem(DISMISSED_BANNER_DATE_KEY, todayStr);
-      localStorage.setItem(DISMISSED_BANNER_IDS_KEY, JSON.stringify(currentIds));
+      // 1. 현재 존재하는 초긴급 반품 약품들의 고유 키를 모두 수집 (캐시 및 최신 집계 병합)
+      const freshCriticalReturns = aggregateBriefingData(getTargetDateStr(0)).criticalReturns || [];
+      const itemsToDismiss = (cachedCriticalReturns && cachedCriticalReturns.length > 0)
+        ? cachedCriticalReturns
+        : freshCriticalReturns;
+
+      const savedKeySet = getSavedDismissedKeys();
+      itemsToDismiss.forEach(item => {
+        getCriticalItemKeys(item).forEach(k => savedKeySet.add(k));
+      });
+      freshCriticalReturns.forEach(item => {
+        getCriticalItemKeys(item).forEach(k => savedKeySet.add(k));
+      });
+
+      const updatedKeysArray = Array.from(savedKeySet);
+      try {
+        localStorage.setItem(DISMISSED_BANNER_KEYS_STORAGE, JSON.stringify(updatedKeysArray));
+      } catch(e) {}
+
+      if (window.SheetsSync && typeof window.SheetsSync.saveDismissedCriticalReturnKeys === 'function') {
+        window.SheetsSync.saveDismissedCriticalReturnKeys(updatedKeysArray);
+      }
 
       const bannerEl = document.getElementById('critical-return-alert-banner');
       if (bannerEl) {
@@ -876,7 +923,7 @@ window.DailyBriefingWidget = (function () {
             ` : ''}
           </div>
 
-          <!-- 🚨 유효기간 3단계 초긴급 조기경보 알림 배너 (전 직원 즉각 인지, 인지 완료 시 오늘 하루 숨김 가능) -->
+          <!-- 🚨 유효기간 3단계 초긴급 조기경보 알림 배너 (전 직원 즉각 인지, 인지 완료 시 신규 품목 등록 전까지 숨김) -->
           ${(b.criticalReturns.length > 0 && !isCriticalBannerDismissed(b.criticalReturns)) ? `
             <div id="critical-return-alert-banner" onclick="App.switchModule('expiry-returns', true)" style="margin-top:10px; padding:10px 14px; background:linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius:10px; color:#ffffff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(185,28,28,0.25);">
               <div style="display:flex; align-items:center; gap:8px;">
@@ -894,7 +941,7 @@ window.DailyBriefingWidget = (function () {
                 <button type="button" class="btn btn-sm btn-light font-bold" style="font-size:11px; padding:3px 8px; border-radius:6px;">
                   반품대장 ➔
                 </button>
-                <button type="button" class="btn btn-sm" onclick="event.stopPropagation(); DailyBriefingWidget.dismissCriticalBanner();" title="오늘 하루 상단에서 숨기기 (새 약품 추가 시 자동 재알림)" style="font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.45); background:rgba(0,0,0,0.25); color:#ffffff; white-space:nowrap;">
+                <button type="button" class="btn btn-sm" onclick="event.stopPropagation(); DailyBriefingWidget.dismissCriticalBanner();" title="새로운 반품 품목 등록 시까지 상단에서 숨기기" style="font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.45); background:rgba(0,0,0,0.25); color:#ffffff; white-space:nowrap;">
                   <i class="fas fa-check me-1"></i>인지 완료 ✕
                 </button>
               </div>

@@ -684,7 +684,17 @@ window.App = (function () {
       if (!allowed.includes(mTab)) allowed.push(mTab);
     });
 
-    let html = '';
+    let html = `
+      <div style="padding:8px 12px 4px 12px;">
+        <button type="button" onclick="App.openGuide(false)" style="width:100%; background:linear-gradient(135deg, #fef08a 0%, #fde047 100%); color:#0f172a; border:2px solid #eab308; border-radius:14px; padding:10px 14px; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:space-between; cursor:pointer; box-shadow:0 3px 10px rgba(234,179,8,0.2);">
+          <span style="display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-book-open" style="color:#b45309; font-size:15px;"></i>
+            <span>📘 앱 사용설명서 (POP)</span>
+          </span>
+          <span style="background:#0f172a; color:#fef08a; font-size:10.5px; padding:2px 7px; border-radius:999px; font-weight:800;">열기 &rarr;</span>
+        </button>
+      </div>
+    `;
 
     // ==========================================
     // Group 1: 📦 약국 현장 업무
@@ -2529,7 +2539,13 @@ function writeSheetData(sheet, dataList) {
     return base64Data;
   }
 
+  function openGuide(jumpToCurrentTab) {
+    const url = jumpToCurrentTab && activeModule ? `guide.html?tab=${encodeURIComponent(activeModule)}` : 'guide.html';
+    window.location.href = url;
+  }
+
   return {
+    openGuide,
     openImageLightbox,
     closeImageLightbox,
     prevLightboxImage,

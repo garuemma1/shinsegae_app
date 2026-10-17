@@ -383,6 +383,22 @@ window.RxMedicineLocationModule = (function () {
 
           <form onsubmit="RxMedicineLocationModule.handleFormSubmit(event)" style="display:flex; flex-direction:column; gap:14px;">
             <input type="hidden" id="rx-item-id" value="" />
+            <input type="hidden" id="rx-edit-type" value="TYPO_FIX" />
+
+            <!-- ✏️ 수정 모드 선택 박스 (기존 항목 수정 시에만 표시) -->
+            <div id="rx-edit-mode-box" style="display:none; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:14px; padding:12px;">
+              <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+                <i class="fas fa-sliders-h" style="color:#059669;"></i> <span>작업 유형 선택</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <button type="button" id="rx-mode-typo-btn" onclick="RxMedicineLocationModule.setEditMode('TYPO_FIX')" style="padding:9px 10px; border-radius:10px; font-size:12.5px; font-weight:800; border:2px solid #059669; background:#f0fdf4; color:#065f46; cursor:pointer; text-align:center; transition:all 0.15s;">
+                  ✏️ 오타·내용 수정<br><span style="font-size:10.5px; font-weight:600; opacity:0.85;">(이력 추가 없이 즉시 수정)</span>
+                </button>
+                <button type="button" id="rx-mode-move-btn" onclick="RxMedicineLocationModule.setEditMode('LOCATION_MOVE')" style="padding:9px 10px; border-radius:10px; font-size:12.5px; font-weight:800; border:1.5px solid #cbd5e1; background:#ffffff; color:#64748b; cursor:pointer; text-align:center; transition:all 0.15s;">
+                  🔄 위치·전산 이력 기록<br><span style="font-size:10.5px; font-weight:600; opacity:0.85;">(이전 내역을 이력에 보관)</span>
+                </button>
+              </div>
+            </div>
 
             <div>
               <label style="display:block; font-size:13px; font-weight:800; color:#334155; margin-bottom:5px;">약품명 <span style="color:#ef4444;">*</span></label>
@@ -600,9 +616,36 @@ window.RxMedicineLocationModule = (function () {
     render();
   }
 
+  function setEditMode(mode) {
+    const typeInput = document.getElementById('rx-edit-type');
+    if (typeInput) typeInput.value = mode;
+    const typoBtn = document.getElementById('rx-mode-typo-btn');
+    const moveBtn = document.getElementById('rx-mode-move-btn');
+    if (typoBtn && moveBtn) {
+      if (mode === 'LOCATION_MOVE') {
+        moveBtn.style.border = '2px solid #059669';
+        moveBtn.style.background = '#f0fdf4';
+        moveBtn.style.color = '#065f46';
+        typoBtn.style.border = '1.5px solid #cbd5e1';
+        typoBtn.style.background = '#ffffff';
+        typoBtn.style.color = '#64748b';
+      } else {
+        typoBtn.style.border = '2px solid #059669';
+        typoBtn.style.background = '#f0fdf4';
+        typoBtn.style.color = '#065f46';
+        moveBtn.style.border = '1.5px solid #cbd5e1';
+        moveBtn.style.background = '#ffffff';
+        moveBtn.style.color = '#64748b';
+      }
+    }
+  }
+
   function openCreateModal() {
     document.getElementById('rx-item-id').value = '';
     document.getElementById('rx-modal-title').innerText = '전문약 보관 위치 등록 & 전산 수정 흔적 작성';
+    const modeBox = document.getElementById('rx-edit-mode-box');
+    if (modeBox) modeBox.style.display = 'none';
+    setEditMode('TYPO_FIX');
     document.getElementById('rx-name').value = '';
     document.getElementById('rx-name').readOnly = false;
     document.getElementById('rx-zone-id').value = 'ZONE_NOR';
@@ -615,15 +658,18 @@ window.RxMedicineLocationModule = (function () {
     if (modal) modal.style.display = 'flex';
   }
 
-  function openEditModal(id) {
+  function openEditModal(id, initialMode = 'TYPO_FIX') {
     const items = getStorageData();
     const target = items.find(i => i.id === id);
     if (!target) return;
 
     document.getElementById('rx-item-id').value = target.id;
-    document.getElementById('rx-modal-title').innerText = `🔄 [${target.name}] 위치 및 전산 수정 흔적 작성`;
-    document.getElementById('rx-name').value = target.name;
-    document.getElementById('rx-name').readOnly = true;
+    document.getElementById('rx-modal-title').innerText = `✏️ [${target.name}] 오타 수정 및 위치/전산 흔적 변경`;
+    const modeBox = document.getElementById('rx-edit-mode-box');
+    if (modeBox) modeBox.style.display = 'block';
+    setEditMode(initialMode || 'TYPO_FIX');
+    document.getElementById('rx-name').value = target.name || '';
+    document.getElementById('rx-name').readOnly = false;
     document.getElementById('rx-zone-id').value = target.zoneId || 'ZONE_NOR';
     document.getElementById('rx-location-detail').value = target.locationDetail || '';
     document.getElementById('rx-adjustment-reason').value = target.adjustmentReason || '';
@@ -697,23 +743,28 @@ window.RxMedicineLocationModule = (function () {
       const items = getStorageData() || [];
 
       if (itemId) {
-        // 기존 위치 수정 및 수정 흔적 이력 축적
+        // 기존 전문약 오타 수정 또는 위치/전산 흔적 이력 축적
         const target = items.find(i => i.id === itemId);
         if (target) {
-          const historyEntry = {
-            zoneName: target.zoneName,
-            locationDetail: target.locationDetail,
-            photoUrl: target.photoUrl,
-            photos: target.photos || (target.photoUrl ? [target.photoUrl] : []),
-            updatedBy: target.updatedBy,
-            updatedAt: target.updatedAt,
-            notes: target.notes,
-            adjustmentReason: target.adjustmentReason
-          };
-          if (!target.history) target.history = [];
-          target.history.unshift(historyEntry);
-          if (target.history.length > 5) target.history = target.history.slice(0, 5);
+          const editType = document.getElementById('rx-edit-type') ? document.getElementById('rx-edit-type').value : 'TYPO_FIX';
 
+          if (editType === 'LOCATION_MOVE') {
+            const historyEntry = {
+              zoneName: target.zoneName,
+              locationDetail: target.locationDetail,
+              photoUrl: target.photoUrl,
+              photos: target.photos || (target.photoUrl ? [target.photoUrl] : []),
+              updatedBy: target.updatedBy,
+              updatedAt: target.updatedAt,
+              notes: target.notes,
+              adjustmentReason: target.adjustmentReason
+            };
+            if (!target.history) target.history = [];
+            target.history.unshift(historyEntry);
+            if (target.history.length > 5) target.history = target.history.slice(0, 5);
+          }
+
+          target.name = name;
           target.zoneId = zoneId;
           target.zoneName = zoneName;
           target.locationDetail = locationDetail;
@@ -811,7 +862,7 @@ window.RxMedicineLocationModule = (function () {
       : (target.photoUrl ? [target.photoUrl] : []);
 
     const contentHtml = `
-      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px; padding-right:50px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px; padding-right:50px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="width:40px; height:40px; border-radius:12px; background:${zoneObj.bg}; color:${zoneObj.color}; display:flex; align-items:center; justify-content:center; font-size:20px; border:1px solid ${zoneObj.border};">
             <i class="fas fa-pills"></i>
@@ -821,11 +872,16 @@ window.RxMedicineLocationModule = (function () {
             <span style="font-size:11.5px; font-weight:800; color:${zoneObj.color};">${zoneObj.name}</span>
           </div>
         </div>
-        ${isDirector ? `
-          <button type="button" onclick="RxMedicineLocationModule.deleteItem('${target.id}', '${escapeHTML(target.name).replace(/'/g, "\\'")}')" style="background:#fff1f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#e11d48; cursor:pointer; flex-shrink:0;">
-            <i class="fas fa-trash-alt me-1"></i> 위치 삭제
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button type="button" onclick="RxMedicineLocationModule.closeDetailModal(); RxMedicineLocationModule.openEditModal('${target.id}', 'TYPO_FIX');" style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#065f46; cursor:pointer; flex-shrink:0;">
+            <i class="fas fa-edit me-1"></i> 수정/흔적
           </button>
-        ` : ''}
+          ${isDirector ? `
+            <button type="button" onclick="RxMedicineLocationModule.deleteItem('${target.id}', '${escapeHTML(target.name).replace(/'/g, "\\'")}')" style="background:#fff1f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#e11d48; cursor:pointer; flex-shrink:0;">
+              <i class="fas fa-trash-alt me-1"></i> 삭제
+            </button>
+          ` : ''}
+        </div>
       </div>
 
       ${allPhotos.length > 0 ? `
@@ -970,6 +1026,7 @@ window.RxMedicineLocationModule = (function () {
     render: render,
     handleSearch: handleSearch,
     setCategory: setCategory,
+    setEditMode: setEditMode,
     handlePhotoSelect: handlePhotoSelect,
     removeRxPhoto: removeRxPhoto,
     resetPhoto: resetPhoto,

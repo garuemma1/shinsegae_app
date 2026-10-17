@@ -203,6 +203,22 @@ window.MedicineLocationModule = (function () {
 
           <form onsubmit="MedicineLocationModule.handleSubmit(event)">
             <input type="hidden" id="med-item-id" value="" />
+            <input type="hidden" id="med-edit-type" value="TYPO_FIX" />
+
+            <!-- ✏️ 수정 모드 선택 박스 (기존 항목 수정 시에만 표시) -->
+            <div id="med-edit-mode-box" class="mb-3" style="display:none; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:14px; padding:12px;">
+              <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+                <i class="fas fa-sliders-h text-blue-600"></i> <span>작업 유형 선택</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <button type="button" id="med-mode-typo-btn" onclick="MedicineLocationModule.setEditMode('TYPO_FIX')" style="padding:9px 10px; border-radius:10px; font-size:12.5px; font-weight:800; border:2px solid #2563eb; background:#eff6ff; color:#1d4ed8; cursor:pointer; text-align:center; transition:all 0.15s;">
+                  ✏️ 오타·내용 수정<br><span style="font-size:10.5px; font-weight:600; opacity:0.85;">(이력 추가 없이 즉시 수정)</span>
+                </button>
+                <button type="button" id="med-mode-move-btn" onclick="MedicineLocationModule.setEditMode('LOCATION_MOVE')" style="padding:9px 10px; border-radius:10px; font-size:12.5px; font-weight:800; border:1.5px solid #cbd5e1; background:#ffffff; color:#64748b; cursor:pointer; text-align:center; transition:all 0.15s;">
+                  🔄 보관 위치 이동<br><span style="font-size:10.5px; font-weight:600; opacity:0.85;">(이전 위치를 이력에 보관)</span>
+                </button>
+              </div>
+            </div>
 
             <div class="mb-3">
               <label class="form-label font-bold" style="font-size:13.5px; color:#334155; margin-bottom:6px;">약품명 및 용량 <span style="color:#ef4444;">*</span></label>
@@ -339,8 +355,8 @@ window.MedicineLocationModule = (function () {
           </span>
 
           <div class="flex items-center gap-1.5 flex-wrap">
-            <button type="button" onclick="MedicineLocationModule.openEditModal('${item.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition">
-              <i class="fas fa-sync-alt text-blue-500"></i> 변경
+            <button type="button" onclick="MedicineLocationModule.openEditModal('${item.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition hover:bg-blue-50 hover:border-blue-300">
+              <i class="fas fa-edit text-blue-600"></i> 수정/변경
             </button>
             <button type="button" onclick="MedicineLocationModule.openDetailModal('${item.id}')" class="px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 font-bold text-xs transition">
               이력 (${historyCount})
@@ -466,9 +482,36 @@ window.MedicineLocationModule = (function () {
     renderMedPhotoPreviews();
   }
 
+  function setEditMode(mode) {
+    const typeInput = document.getElementById('med-edit-type');
+    if (typeInput) typeInput.value = mode;
+    const typoBtn = document.getElementById('med-mode-typo-btn');
+    const moveBtn = document.getElementById('med-mode-move-btn');
+    if (typoBtn && moveBtn) {
+      if (mode === 'LOCATION_MOVE') {
+        moveBtn.style.border = '2px solid #2563eb';
+        moveBtn.style.background = '#eff6ff';
+        moveBtn.style.color = '#1d4ed8';
+        typoBtn.style.border = '1.5px solid #cbd5e1';
+        typoBtn.style.background = '#ffffff';
+        typoBtn.style.color = '#64748b';
+      } else {
+        typoBtn.style.border = '2px solid #2563eb';
+        typoBtn.style.background = '#eff6ff';
+        typoBtn.style.color = '#1d4ed8';
+        moveBtn.style.border = '1.5px solid #cbd5e1';
+        moveBtn.style.background = '#ffffff';
+        moveBtn.style.color = '#64748b';
+      }
+    }
+  }
+
   function openCreateModal() {
     document.getElementById('med-item-id').value = '';
     document.getElementById('med-modal-title').innerText = '약품 보관 위치 등록';
+    const modeBox = document.getElementById('med-edit-mode-box');
+    if (modeBox) modeBox.style.display = 'none';
+    setEditMode('TYPO_FIX');
     document.getElementById('med-name').value = '';
     document.getElementById('med-name').readOnly = false;
     document.getElementById('med-zone-id').value = 'ZONE_A';
@@ -478,15 +521,18 @@ window.MedicineLocationModule = (function () {
     document.getElementById('med-location-modal').style.display = 'flex';
   }
 
-  function openEditModal(id) {
+  function openEditModal(id, initialMode = 'TYPO_FIX') {
     const items = getStorageData();
     const target = items.find(i => i.id === id);
     if (!target) return;
 
     document.getElementById('med-item-id').value = target.id;
-    document.getElementById('med-modal-title').innerText = `🔄 [${target.name}] 위치 변경 및 업데이트`;
-    document.getElementById('med-name').value = target.name;
-    document.getElementById('med-name').readOnly = true;
+    document.getElementById('med-modal-title').innerText = `✏️ [${target.name}] 오타 수정 및 위치 변경`;
+    const modeBox = document.getElementById('med-edit-mode-box');
+    if (modeBox) modeBox.style.display = 'block';
+    setEditMode(initialMode || 'TYPO_FIX');
+    document.getElementById('med-name').value = target.name || '';
+    document.getElementById('med-name').readOnly = false;
     document.getElementById('med-zone-id').value = target.zoneId || 'ZONE_A';
     document.getElementById('med-location-detail').value = target.locationDetail || '';
     document.getElementById('med-notes').value = target.notes || '';
@@ -574,24 +620,29 @@ window.MedicineLocationModule = (function () {
       const items = getStorageData() || [];
 
       if (itemId) {
-        // 기존 약품 위치 수정/변경 (히스토리 누적)
+        // 기존 약품 오타 수정 또는 보관 위치 이동
         const target = items.find(i => i.id === itemId);
         if (target) {
-          const historyEntry = {
-            zoneName: target.zoneName,
-            locationDetail: target.locationDetail,
-            photoUrl: target.photoUrl,
-            photos: target.photos || (target.photoUrl ? [target.photoUrl] : []),
-            updatedBy: target.updatedBy,
-            updatedAt: target.updatedAt,
-            notes: target.notes
-          };
-          if (!target.history) target.history = [];
-          target.history.unshift(historyEntry);
-          if (target.history.length > 5) {
-            target.history = target.history.slice(0, 5);
+          const editType = document.getElementById('med-edit-type') ? document.getElementById('med-edit-type').value : 'TYPO_FIX';
+
+          if (editType === 'LOCATION_MOVE') {
+            const historyEntry = {
+              zoneName: target.zoneName,
+              locationDetail: target.locationDetail,
+              photoUrl: target.photoUrl,
+              photos: target.photos || (target.photoUrl ? [target.photoUrl] : []),
+              updatedBy: target.updatedBy,
+              updatedAt: target.updatedAt,
+              notes: target.notes
+            };
+            if (!target.history) target.history = [];
+            target.history.unshift(historyEntry);
+            if (target.history.length > 5) {
+              target.history = target.history.slice(0, 5);
+            }
           }
 
+          target.name = name;
           target.zoneId = zoneId;
           target.zoneName = zoneName;
           target.locationDetail = locationDetail;
@@ -653,21 +704,26 @@ window.MedicineLocationModule = (function () {
       : (target.photoUrl ? [target.photoUrl] : []);
 
     const contentHtml = `
-      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px; padding-right:50px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid #f1f5f9; padding-bottom:14px; margin-bottom:16px; padding-right:50px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="width:40px; height:40px; border-radius:12px; background:${zone.bg}; color:${zone.color}; display:flex; align-items:center; justify-content:center; font-size:20px;">
             <i class="fas fa-boxes-stacked"></i>
           </div>
           <div>
-            <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">${target.name}</h3>
+            <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">${escapeHTML(target.name)}</h3>
             <span style="font-size:11.5px; font-weight:800; color:${zone.color};">📍 ${zone.name}</span>
           </div>
         </div>
-        ${window.SheetsSync && window.SheetsSync.getCurrentUser() && window.SheetsSync.getCurrentUser().role === '약국장' ? `
-          <button type="button" onclick="MedicineLocationModule.deleteMedicine('${target.id}', '${target.name.replace(/'/g, "\\'")}')" style="background:#fef2f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#ef4444; cursor:pointer; flex-shrink:0;">
-            <i class="fas fa-trash-can me-1"></i> 위치 삭제
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button type="button" onclick="MedicineLocationModule.closeDetailModal(); MedicineLocationModule.openEditModal('${target.id}', 'TYPO_FIX');" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#1d4ed8; cursor:pointer; flex-shrink:0;">
+            <i class="fas fa-edit me-1"></i> 수정/변경
           </button>
-        ` : ''}
+          ${window.SheetsSync && window.SheetsSync.getCurrentUser() && window.SheetsSync.getCurrentUser().role === '약국장' ? `
+            <button type="button" onclick="MedicineLocationModule.deleteMedicine('${target.id}', '${escapeHTML(target.name).replace(/'/g, "\\'")}')" style="background:#fef2f2; border:1px solid #fecdd3; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; color:#ef4444; cursor:pointer; flex-shrink:0;">
+              <i class="fas fa-trash-can me-1"></i> 삭제
+            </button>
+          ` : ''}
+        </div>
       </div>
 
       <!-- 대표 위치 사진 및 갤러리 -->
@@ -857,7 +913,7 @@ window.MedicineLocationModule = (function () {
   }
 
   return {
-    render, openCreateModal, openEditModal, closeModal, openDetailModal, closeDetailModal,
+    render, openCreateModal, openEditModal, setEditMode, closeModal, openDetailModal, closeDetailModal,
     handlePhotoSelect, removeMedPhoto, resetPhoto, handleSubmit, handleSearch, filterCategory, deleteMedicine, openPhoto
   };
 })();

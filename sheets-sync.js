@@ -1791,7 +1791,7 @@ window.SheetsSync = (function () {
 
   function updateExpiryReturnStatus(id, newStatus, extraData = {}) {
     const list = getExpiryReturns();
-    const target = list.find(s => s.id === id);
+    const target = list.find(s => String(s.id) === String(id));
     if (!target) return false;
 
     target.status = newStatus;
@@ -1809,13 +1809,22 @@ window.SheetsSync = (function () {
     if (extraData.memo !== undefined) target.memo = extraData.memo;
     if (extraData.photos !== undefined) target.photos = extraData.photos;
     
-    if (newStatus === 'PROCESSING_RETURN') {
+    if (newStatus === 'PENDING_RETURN') {
+      target.returnHandoverDate = extraData.returnHandoverDate !== undefined ? extraData.returnHandoverDate : '';
+      target.returnCollector = extraData.returnCollector !== undefined ? extraData.returnCollector : '';
+      target.actualSettledAmount = extraData.actualSettledAmount !== undefined ? Number(extraData.actualSettledAmount) || 0 : 0;
+      target.settledDate = extraData.settledDate !== undefined ? extraData.settledDate : '';
+    } else if (newStatus === 'PROCESSING_RETURN') {
       const now = new Date();
-      target.returnHandoverDate = extraData.returnHandoverDate || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      if (extraData.returnCollector) target.returnCollector = extraData.returnCollector;
+      target.returnHandoverDate = extraData.returnHandoverDate !== undefined
+        ? extraData.returnHandoverDate
+        : (target.returnHandoverDate || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
+      if (extraData.returnCollector !== undefined) target.returnCollector = extraData.returnCollector;
+      if (extraData.actualSettledAmount !== undefined) target.actualSettledAmount = Number(extraData.actualSettledAmount) || 0;
+      if (extraData.settledDate !== undefined) target.settledDate = extraData.settledDate;
     } else if (newStatus === 'COMPLETED') {
       const now = new Date();
-      target.settledDate = extraData.settledDate || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      target.settledDate = extraData.settledDate || target.settledDate || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       if (extraData.actualSettledAmount !== undefined) {
         target.actualSettledAmount = Math.max(0, Number(extraData.actualSettledAmount) || 0);
       } else if (!target.actualSettledAmount) {

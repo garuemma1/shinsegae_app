@@ -342,8 +342,8 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <!-- 1단계 대기 -->
             <div 
-              onclick="ExpiryReturnsModule.setStatusFilter('PENDING_RETURN')" 
-              class="cursor-pointer bg-amber-50/70 dark:bg-amber-950/30 p-3.5 sm:p-4 rounded-2xl border border-amber-200 dark:border-amber-900/60 shadow-sm hover:shadow transition"
+              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'PENDING_RETURN' ? 'ALL' : 'PENDING_RETURN'}')" 
+              class="cursor-pointer bg-amber-50/70 dark:bg-amber-950/30 p-3.5 sm:p-4 rounded-2xl border border-amber-200 dark:border-amber-900/60 shadow-sm hover:shadow transition ${statusFilter === 'PENDING_RETURN' ? 'ring-2 ring-amber-500 bg-amber-100/80' : ''}"
             >
               <div class="flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">
                 <span>⏳ ① 임박·반품대기</span>
@@ -359,8 +359,8 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
             <!-- 2단계 처리중 -->
             <div 
-              onclick="ExpiryReturnsModule.setStatusFilter('PROCESSING_RETURN')" 
-              class="cursor-pointer bg-blue-50/70 dark:bg-blue-950/30 p-3.5 sm:p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 shadow-sm hover:shadow transition"
+              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'PROCESSING_RETURN' ? 'ALL' : 'PROCESSING_RETURN'}')" 
+              class="cursor-pointer bg-blue-50/70 dark:bg-blue-950/30 p-3.5 sm:p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 shadow-sm hover:shadow transition ${statusFilter === 'PROCESSING_RETURN' ? 'ring-2 ring-blue-500 bg-blue-100/80' : ''}"
             >
               <div class="flex items-center justify-between text-xs font-bold text-blue-800 dark:text-blue-300 mb-1">
                 <span>📦 ② 반품처리중</span>
@@ -376,8 +376,8 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
             <!-- 3단계 완료/정산 -->
             <div 
-              onclick="ExpiryReturnsModule.setStatusFilter('COMPLETED')" 
-              class="cursor-pointer bg-emerald-50/70 dark:bg-emerald-950/30 p-3.5 sm:p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 shadow-sm hover:shadow transition"
+              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED'}')" 
+              class="cursor-pointer bg-emerald-50/70 dark:bg-emerald-950/30 p-3.5 sm:p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 shadow-sm hover:shadow transition ${statusFilter === 'COMPLETED' ? 'ring-2 ring-emerald-500 bg-emerald-100/80' : ''}"
             >
               <div class="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">
                 <span>✅ ③ 반품완료·정산</span>
@@ -393,8 +393,8 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
             <!-- 위험도 요약 -->
             <div 
-              onclick="ExpiryReturnsModule.setPeriodFilter('3M')" 
-              class="cursor-pointer bg-rose-50/70 dark:bg-rose-950/30 p-3.5 sm:p-4 rounded-2xl border border-rose-200 dark:border-rose-900/60 shadow-sm hover:shadow transition"
+              onclick="ExpiryReturnsModule.setPeriodFilter('${periodFilter === '3M' ? 'ALL' : '3M'}')" 
+              class="cursor-pointer bg-rose-50/70 dark:bg-rose-950/30 p-3.5 sm:p-4 rounded-2xl border border-rose-200 dark:border-rose-900/60 shadow-sm hover:shadow transition ${periodFilter === '3M' ? 'ring-2 ring-rose-500 bg-rose-100/80' : ''}"
             >
               <div class="flex items-center justify-between text-xs font-bold text-rose-800 dark:text-rose-300 mb-1">
                 <span>🚨 임박 및 만료약</span>
@@ -629,14 +629,14 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       const isOTC = item.drugType === 'OTC';
       const photos = Array.isArray(item.photos) ? item.photos : [];
 
-      // 상태별 뱃지
+      // 상태별 뱃지 (클릭 시 즉시 단계/상세 수정 모달 오픈)
       let statusBadge = '';
       if (item.status === 'PENDING_RETURN') {
-        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">⏳ 1단계: 임박/반품대기</span>`;
+        statusBadge = `<span onclick="ExpiryReturnsModule.openEditModal('${item.id}')" title="클릭하여 진행 단계 및 상세 내역 수정" class="cursor-pointer hover:opacity-80 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300">⏳ 1단계: 임박/반품대기</span>`;
       } else if (item.status === 'PROCESSING_RETURN') {
-        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-100 text-blue-900 border border-blue-300">📦 2단계: 반품처리중</span>`;
+        statusBadge = `<span onclick="ExpiryReturnsModule.openEditModal('${item.id}')" title="클릭하여 진행 단계 및 상세 내역 수정" class="cursor-pointer hover:opacity-80 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-100 text-blue-900 border border-blue-300">📦 2단계: 반품처리중</span>`;
       } else if (item.status === 'COMPLETED') {
-        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300">✅ 3단계: 정산완료</span>`;
+        statusBadge = `<span onclick="ExpiryReturnsModule.openEditModal('${item.id}')" title="클릭하여 진행 단계 및 상세 내역 수정" class="cursor-pointer hover:opacity-80 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300">✅ 3단계: 정산완료</span>`;
       }
 
       return `
@@ -756,13 +756,13 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
               <span>${escapeHTML(item.createdAt || '')}</span>
             </div>
 
-            <!-- 상태 전환 버튼 그룹 (약국장 1-Click 원터치) -->
-            <div class="flex items-center gap-1.5 pt-1">
+            <!-- 상태 전환 버튼 그룹 (이전 단계 복원 & 다음 단계 진행 & 수정) -->
+            <div class="flex items-center gap-1.5 pt-1 flex-wrap">
               ${item.status === 'PENDING_RETURN' ? `
                 <button
                   type="button"
                   onclick="ExpiryReturnsModule.openHandoverModal('${item.id}')"
-                  class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1"
+                  class="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1 whitespace-nowrap"
                 >
                   <i class="fas fa-truck"></i>
                   <span>📦 반품 수거/인계</span>
@@ -772,8 +772,16 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
               ${item.status === 'PROCESSING_RETURN' ? `
                 <button
                   type="button"
+                  onclick="ExpiryReturnsModule.revertToPending('${item.id}')"
+                  class="py-1.5 px-2.5 rounded-xl text-[11.5px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition whitespace-nowrap flex items-center justify-center gap-1"
+                  title="반품 수거/인계 취소 후 1단계(임박/반품대기)로 되돌리기"
+                >
+                  <span>◀ 1단계 대기로</span>
+                </button>
+                <button
+                  type="button"
                   onclick="ExpiryReturnsModule.openSettleModal('${item.id}')"
-                  class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1"
+                  class="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition active:scale-95 flex items-center justify-center gap-1 whitespace-nowrap"
                 >
                   <i class="fas fa-check-circle"></i>
                   <span>✅ 반품정산 확정</span>
@@ -784,25 +792,33 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                 <button
                   type="button"
                   onclick="ExpiryReturnsModule.revertToProcessing('${item.id}')"
-                  class="flex-1 py-1.5 px-2 rounded-xl text-[11.5px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 transition"
-                  title="정산 취소 후 다시 처리중으로 복원"
+                  class="flex-1 py-1.5 px-2 rounded-xl text-[11.5px] font-extrabold bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 transition whitespace-nowrap flex items-center justify-center gap-1"
+                  title="정산 취소 후 2단계(반품처리중)로 복원"
                 >
-                  <i class="fas fa-undo"></i>
-                  <span>처리중으로 복원</span>
+                  <span>◀ 2단계 처리중</span>
+                </button>
+                <button
+                  type="button"
+                  onclick="ExpiryReturnsModule.revertToPending('${item.id}')"
+                  class="py-1.5 px-2 rounded-xl text-[11.5px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition whitespace-nowrap"
+                  title="1단계(임박/반품대기)로 복원"
+                >
+                  <span>◀ 1단계 대기</span>
                 </button>
               ` : ''}
 
-              <!-- 수정 버튼 -->
+              <!-- 수정 버튼 (단계 및 상세 내역 수정) -->
               <button
                 type="button"
                 onclick="ExpiryReturnsModule.openEditModal('${item.id}')"
-                class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition"
-                title="상세 내역 수정"
+                class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-300 transition flex items-center gap-1 whitespace-nowrap"
+                title="진행 단계 및 상세 내역 수정"
               >
                 <i class="fas fa-edit"></i>
+                <span>수정</span>
               </button>
 
-              <!-- 영구 삭제 버튼 (약국장 최고관리자 또는 작성자) -->
+              <!-- 영구 삭제 버튼 (약국장 최고관리자) -->
               ${isDirector ? `
                 <button
                   type="button"
@@ -877,7 +893,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
           <div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-2xl border border-blue-200 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200 flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2">
               <i class="fas fa-info-circle text-blue-600 text-base"></i>
-              <span>도매상 방문 시 우측의 <strong>[📄 반품요청서 1초 복사]</strong> 버튼을 누르면 해당 거래처 반품 내역을 카카오톡 텍스트나 인쇄용 서식으로 즉시 추출할 수 있습니다.</span>
+              <span>도매상 방문 시 우측의 <strong>[📄 반품요청서 1초 복사]</strong> 버튼을 누르면 해당 거래처 반품 내역을 카카오톡 텍스트나 인쇄용 서식으로 즉시 추출할 수 있습니다. (품목 클릭 시 즉시 수정 가능)</span>
             </div>
             <span class="font-extrabold text-blue-800 dark:text-blue-300">총 ${groupList.length}개 거래처</span>
           </div>
@@ -932,10 +948,11 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                   ${g.items.map(i => {
                     const dday = calculateExpiryDDay(i.expiryDate);
                     return `
-                      <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-xs border border-slate-100 dark:border-slate-700/50">
+                      <div onclick="ExpiryReturnsModule.openEditModal('${i.id}')" title="클릭하여 진행 단계 및 상세 내역 수정" class="cursor-pointer hover:bg-blue-50/60 dark:hover:bg-slate-800 flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-xs border border-slate-100 dark:border-slate-700/50 transition">
                         <div class="min-w-0 pr-2">
-                          <div class="font-bold text-slate-800 dark:text-slate-200 truncate">
-                            ${escapeHTML(i.drugName)}
+                          <div class="font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
+                            <span>${escapeHTML(i.drugName)}</span>
+                            <i class="fas fa-edit text-[10px] text-slate-400"></i>
                           </div>
                           <div class="text-[10.5px] text-slate-400">
                             ${i.qty}${escapeHTML(i.unit || '개')} • 만료: ${escapeHTML(i.expiryDate)} (${dday.label})
@@ -946,9 +963,9 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                             ${formatKRW(i.estimatedReturnAmount)}
                           </span>
                           <div>
-                            ${i.status === 'PENDING_RETURN' ? '<span class="text-[9.5px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">대기</span>' : ''}
-                            ${i.status === 'PROCESSING_RETURN' ? '<span class="text-[9.5px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold">처리중</span>' : ''}
-                            ${i.status === 'COMPLETED' ? '<span class="text-[9.5px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">완료</span>' : ''}
+                            ${i.status === 'PENDING_RETURN' ? '<span class="text-[9.5px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">1단계 대기</span>' : ''}
+                            ${i.status === 'PROCESSING_RETURN' ? '<span class="text-[9.5px] px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold">2단계 처리중</span>' : ''}
+                            ${i.status === 'COMPLETED' ? '<span class="text-[9.5px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">3단계 완료</span>' : ''}
                           </div>
                         </div>
                       </div>
@@ -1446,12 +1463,29 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
     }
 
     function revertToProcessing(id) {
-      if (!confirm('해당 건을 다시 [📦 반품처리중] 상태로 되돌리시겠습니까?')) return;
+      if (!confirm('해당 건을 다시 [📦 2단계: 반품처리중] 상태로 되돌리시겠습니까?')) return;
       window.SheetsSync.updateExpiryReturnStatus(id, 'PROCESSING_RETURN', {
         actualSettledAmount: 0,
         settledDate: ''
       });
       render();
+      if (window.App && typeof window.App.showToast === 'function') {
+        window.App.showToast('📦 [2단계: 반품처리중] 상태로 복원되었습니다.');
+      }
+    }
+
+    function revertToPending(id) {
+      if (!confirm('해당 건을 다시 [⏳ 1단계: 임박/반품대기] 상태로 되돌리시겠습니까?')) return;
+      window.SheetsSync.updateExpiryReturnStatus(id, 'PENDING_RETURN', {
+        returnHandoverDate: '',
+        returnCollector: '',
+        actualSettledAmount: 0,
+        settledDate: ''
+      });
+      render();
+      if (window.App && typeof window.App.showToast === 'function') {
+        window.App.showToast('⏳ [1단계: 임박/반품대기] 상태로 복원되었습니다.');
+      }
     }
 
     // ────────────────────────────────────────────────────────────
@@ -1647,75 +1681,120 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
     }
 
     // ────────────────────────────────────────────────────────────
-    // ✏️ 수정 및 삭제 처리
+    // ✏️ 수정 및 삭제 처리 (진행 단계 1~3단계 자유 변경 및 인계·정산 정보 수정 지원)
     // ────────────────────────────────────────────────────────────
     function openEditModal(id) {
       const allReturns = window.SheetsSync.getExpiryReturns() || [];
-      const item = allReturns.find(r => r.id === id);
+      const item = allReturns.find(r => String(r.id) === String(id));
       if (!item) return;
 
       selectedPhotos = (item.photos || []).map(url => ({ id: 'p_' + Math.random(), data: url, isNew: false }));
       const modalTarget = document.getElementById('exp-modal-container');
       if (!modalTarget) return;
 
+      const curStatus = item.status || 'PENDING_RETURN';
+
       modalTarget.innerHTML = `
         <div class="modal-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.65); z-index:999999; display:flex; justify-content:center; align-items:flex-end sm:align-items:center; padding:0 sm:p-4;">
           <div class="modal-card bg-white dark:bg-slate-900 w-full sm:max-w-2xl rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             
             <div class="flex items-center justify-between border-b pb-3">
-              <h3 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <i class="fas fa-edit text-blue-600"></i> 내역 수정: ${escapeHTML(item.drugName)}
+              <h3 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <i class="fas fa-edit text-blue-600"></i>
+                <span>내역 및 진행 단계 수정: ${escapeHTML(item.drugName)}</span>
               </h3>
               <button type="button" onclick="ExpiryReturnsModule.closeModal()" class="text-slate-400 text-xl font-bold">&times;</button>
             </div>
 
             <form onsubmit="ExpiryReturnsModule.handleEditSubmit(event, '${item.id}')" class="space-y-3.5 text-xs">
               
+              <!-- 🔄 진행 단계(status) 자유 변경 박스 -->
+              <div class="bg-blue-50/70 dark:bg-blue-950/30 p-3 rounded-xl border border-blue-200 dark:border-blue-800/70">
+                <label class="block text-xs font-black text-blue-900 dark:text-blue-300 mb-1.5 flex items-center gap-1.5">
+                  <i class="fas fa-sliders"></i>
+                  <span>현재 진행 단계 변경 (이전 단계 되돌리기 가능)</span>
+                </label>
+                <select id="exp-edit-status" class="w-full h-10 bg-white dark:bg-slate-950 border-2 border-blue-500 dark:border-blue-600 rounded-xl px-3 text-xs font-extrabold text-slate-900 dark:text-white outline-none cursor-pointer shadow-sm">
+                  <option value="PENDING_RETURN" ${curStatus === 'PENDING_RETURN' ? 'selected' : ''}>⏳ 1단계: 임박/반품대기 (등록단계)</option>
+                  <option value="PROCESSING_RETURN" ${curStatus === 'PROCESSING_RETURN' ? 'selected' : ''}>📦 2단계: 반품처리중 (수거/영업인계)</option>
+                  <option value="COMPLETED" ${curStatus === 'COMPLETED' ? 'selected' : ''}>✅ 3단계: 반품완료·정산 (정산마감)</option>
+                </select>
+              </div>
+
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">약품 구분</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">약품 구분</label>
                   <select id="exp-edit-type" class="w-full h-10 px-3 rounded-xl border border-slate-300 font-bold">
                     <option value="OTC" ${item.drugType === 'OTC' ? 'selected' : ''}>💊 일반약</option>
                     <option value="ETC" ${item.drugType === 'ETC' ? 'selected' : ''}>💉 전문약</option>
                   </select>
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block font-bold text-slate-700 mb-1">약품명 *</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">약품명 *</label>
                   <input type="text" id="exp-edit-name" required value="${escapeHTML(item.drugName)}" class="w-full h-10 px-3 rounded-xl border border-slate-300 font-bold">
                 </div>
               </div>
 
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">규격</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">규격</label>
                   <input type="text" id="exp-edit-spec" value="${escapeHTML(item.spec || '')}" class="w-full h-10 px-3 rounded-xl border border-slate-300">
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">수량 *</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">수량 *</label>
                   <input type="number" id="exp-edit-qty" required min="1" value="${item.qty}" class="w-full h-10 px-3 rounded-xl border border-slate-300 font-bold">
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">단위</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">단위</label>
                   <input type="text" id="exp-edit-unit" value="${escapeHTML(item.unit || '개')}" class="w-full h-10 px-3 rounded-xl border border-slate-300">
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">유효기간</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">유효기간</label>
                   <input type="month" id="exp-edit-expiry" value="${escapeHTML(item.expiryDate || '')}" class="w-full h-10 px-3 rounded-xl border border-slate-300 font-bold text-blue-700">
                 </div>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">거래처 (도매상)</label>
-                  <input type="text" id="exp-edit-vendor" value="${escapeHTML(item.vendor || '')}" class="w-full h-10 px-3 rounded-xl border border-slate-300 font-bold">
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">거래처 (도매상)</label>
+                  <input type="text" id="exp-edit-vendor" list="exp-edit-vendor-list" value="${escapeHTML(item.vendor || '')}" class="w-full h-10 px-3 rounded-xl border border-slate-300 font-bold">
+                  <datalist id="exp-edit-vendor-list">
+                    ${DEFAULT_VENDORS.map(v => `<option value="${v}"></option>`).join('')}
+                  </datalist>
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">제조사</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">제조사</label>
                   <input type="text" id="exp-edit-manufacturer" value="${escapeHTML(item.manufacturer || '')}" class="w-full h-10 px-3 rounded-xl border border-slate-300">
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">매입 단가 (원)</label>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">매입 단가 (원)</label>
                   <input type="number" id="exp-edit-cost" value="${item.costPrice || 0}" class="w-full h-10 px-3 rounded-xl border border-slate-300 font-bold">
+                </div>
+              </div>
+
+              <!-- 🚚 반품 수거·인계 및 💳 정산 정보 수정 섹션 -->
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+                <div class="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                  <i class="fas fa-truck-ramp-box text-blue-600"></i>
+                  <span>반품 인계 및 정산 상세 정보 (필요시 수정)</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label class="block font-bold text-slate-600 dark:text-slate-400 mb-1">인계 일시 (2단계)</label>
+                    <input type="text" id="exp-edit-handover-date" value="${escapeHTML(item.returnHandoverDate || '')}" placeholder="예: 2026-10-17 14:30" class="w-full h-9 px-3 rounded-xl border border-slate-300 bg-white font-semibold">
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-600 dark:text-slate-400 mb-1">수거 영업사원/담당자 (2단계)</label>
+                    <input type="text" id="exp-edit-collector" value="${escapeHTML(item.returnCollector || '')}" placeholder="예: 백제약품 담당자" class="w-full h-9 px-3 rounded-xl border border-slate-300 bg-white font-semibold">
+                  </div>
+                  <div>
+                    <label class="block font-bold text-emerald-700 dark:text-emerald-400 mb-1">실제 정산 확정 금액 (3단계)</label>
+                    <input type="number" id="exp-edit-settled-amount" value="${item.actualSettledAmount || 0}" class="w-full h-9 px-3 rounded-xl border border-emerald-300 bg-white font-bold text-emerald-800">
+                  </div>
+                  <div>
+                    <label class="block font-bold text-emerald-700 dark:text-emerald-400 mb-1">정산 마감 일자 (3단계)</label>
+                    <input type="date" id="exp-edit-settled-date" value="${escapeHTML(item.settledDate || '')}" class="w-full h-9 px-3 rounded-xl border border-emerald-300 bg-white font-bold text-emerald-800">
+                  </div>
                 </div>
               </div>
 
@@ -1768,6 +1847,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       }
 
       try {
+        const newStatus = document.getElementById('exp-edit-status')?.value || 'PENDING_RETURN';
         const drugType = document.getElementById('exp-edit-type').value;
         const drugName = document.getElementById('exp-edit-name').value.trim();
         const spec = document.getElementById('exp-edit-spec').value.trim();
@@ -1778,6 +1858,11 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
         const manufacturer = document.getElementById('exp-edit-manufacturer').value.trim();
         const costPrice = parseVal(document.getElementById('exp-edit-cost').value);
         const memo = document.getElementById('exp-edit-memo').value.trim();
+
+        const handoverDate = document.getElementById('exp-edit-handover-date')?.value.trim() || '';
+        const collector = document.getElementById('exp-edit-collector')?.value.trim() || '';
+        const settledAmount = parseVal(document.getElementById('exp-edit-settled-amount')?.value);
+        const settledDate = document.getElementById('exp-edit-settled-date')?.value.trim() || '';
 
         let photoUrls = [];
         if (selectedPhotos.length > 0 && window.App && typeof window.App.processAndUploadPhoto === 'function') {
@@ -1790,8 +1875,9 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
         }
 
         const allReturns = window.SheetsSync.getExpiryReturns() || [];
-        const target = allReturns.find(r => r.id === id);
+        const target = allReturns.find(r => String(r.id) === String(id));
         if (target) {
+          target.status = newStatus;
           target.drugType = drugType;
           target.drugName = drugName;
           target.spec = spec;
@@ -1804,6 +1890,24 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
           target.estimatedReturnAmount = Math.round(qty * costPrice);
           target.memo = memo;
           target.photos = photoUrls;
+
+          if (newStatus === 'PENDING_RETURN') {
+            target.returnHandoverDate = '';
+            target.returnCollector = '';
+            target.actualSettledAmount = 0;
+            target.settledDate = '';
+          } else if (newStatus === 'PROCESSING_RETURN') {
+            target.returnHandoverDate = handoverDate || target.returnHandoverDate || '';
+            target.returnCollector = collector;
+            target.actualSettledAmount = 0;
+            target.settledDate = '';
+          } else if (newStatus === 'COMPLETED') {
+            target.returnHandoverDate = handoverDate;
+            target.returnCollector = collector;
+            target.actualSettledAmount = settledAmount || target.estimatedReturnAmount;
+            target.settledDate = settledDate || target.settledDate || new Date().toISOString().substring(0, 10);
+          }
+
           target.updatedAt = Date.now();
 
           window.SheetsSync.saveExpiryReturns(allReturns);
@@ -1811,6 +1915,10 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
         closeModal();
         render();
+
+        if (window.App && typeof window.App.showToast === 'function') {
+          window.App.showToast(`✅ [${drugName}] 내역 및 진행 단계가 수정되었습니다.`);
+        }
       } catch (err) {
         alert('수정 실패: ' + err.message);
         if (submitBtn) submitBtn.disabled = false;
@@ -1819,7 +1927,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
     function confirmDelete(id) {
       const allReturns = window.SheetsSync.getExpiryReturns() || [];
-      const item = allReturns.find(r => r.id === id);
+      const item = allReturns.find(r => String(r.id) === String(id));
       const name = item ? item.drugName : '해당 약품';
 
       if (confirm(`정말로 [${name}] 내역을 영구 삭제하시겠습니까?\n(삭제 후에는 클라우드 동기화 시에도 다시 되살아나지 않습니다.)`)) {
@@ -1833,7 +1941,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
     // ────────────────────────────────────────────────────────────
     function openPhotoLightbox(itemId, startIndex = 0) {
       const allReturns = window.SheetsSync.getExpiryReturns() || [];
-      const item = allReturns.find(r => r.id === itemId);
+      const item = allReturns.find(r => String(r.id) === String(itemId));
       if (!item || !item.photos || item.photos.length === 0) return;
 
       if (window.App && typeof window.App.openImageLightbox === 'function') {
@@ -1981,9 +2089,11 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
     // ────────────────────────────────────────────────────────────
     return {
       init: function () {
-        // 클라우드 동기화 수신 시 0.1초 자동 리렌더링 (규칙 7)
+        // 클라우드 동기화 수신 시 0.1초 자동 리렌더링 (규칙 7, 모달 오픈 중에는 입력 보호)
         window.addEventListener('ssg_cloud_updated', () => {
           if (window.App && window.App.getActiveModule && window.App.getActiveModule() === 'expiry-returns') {
+            const modalTarget = document.getElementById('exp-modal-container');
+            if (modalTarget && modalTarget.innerHTML.trim() !== '') return;
             render();
           }
         });
@@ -2006,6 +2116,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       handleHandoverSubmit,
       handleSettleSubmit,
       revertToProcessing,
+      revertToPending,
       confirmDelete,
       handlePhotoSelect,
       removePhoto,

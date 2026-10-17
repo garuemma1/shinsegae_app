@@ -449,6 +449,7 @@ if (typeof window.PatientOrdersModule === 'undefined') {
         <!-- 📝 모달 레이어 -->
         <div id="patient-orders-modal-root">
           ${renderShortageModalHTML()}
+          ${renderShortageEditModalHTML()}
           ${renderOrderModalHTML()}
           ${renderOrderEditModalHTML()}
         </div>
@@ -577,14 +578,14 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       const status = item.status || 'PENDING_ORDER';
       const isCompleted = status === 'COMPLETED';
 
-      // 5단계 상태 라벨 & 배지 색상
+      // 5단계 상태 라벨 & 배지 색상 (이전 단계 되돌리기 prevStatus 포함)
       const statusMeta = {
-        PENDING_ORDER: { label: '1. 미출 접수', badge: 'bg-amber-100 text-amber-800 border-amber-300', btnText: '약품 주문 완료 처리 >', nextStatus: 'ORDERED' },
-        ORDERED: { label: '2. 주문 완료', badge: 'bg-sky-100 text-sky-800 border-sky-300', btnText: '약입고 후 조제 완료 (보관 위치 기록) >', nextStatus: 'PREPARED' },
-        PREPARED: { label: '3. 조제 완료', badge: 'bg-purple-100 text-purple-800 border-purple-300', btnText: '수령 대기 전환 (문자 발송) >', nextStatus: 'AWAITING_PICKUP' },
-        AWAITING_PICKUP: { label: '4. 수령 대기', badge: 'bg-teal-100 text-teal-800 border-teal-300', btnText: '고객 수령 완료 처리 (미출 해소) >', nextStatus: 'COMPLETED' },
-        COMPLETED: { label: '5. 수령 완료', badge: 'bg-slate-200 text-slate-700 border-slate-300', btnText: '✅ 수령 완료됨', nextStatus: null }
-      }[status] || { label: '1. 미출 접수', badge: 'bg-amber-100 text-amber-800', btnText: '다음 단계 >', nextStatus: 'ORDERED' };
+        PENDING_ORDER: { label: '1. 미출 접수', badge: 'bg-amber-100 text-amber-800 border-amber-300', btnText: '약품 주문 완료 처리 >', nextStatus: 'ORDERED', prevStatus: null, prevBtnText: null },
+        ORDERED: { label: '2. 주문 완료', badge: 'bg-sky-100 text-sky-800 border-sky-300', btnText: '약입고 후 조제 완료 (보관 위치 기록) >', nextStatus: 'PREPARED', prevStatus: 'PENDING_ORDER', prevBtnText: '◀ 1. 미출 접수로' },
+        PREPARED: { label: '3. 조제 완료', badge: 'bg-purple-100 text-purple-800 border-purple-300', btnText: '수령 대기 전환 (문자 발송) >', nextStatus: 'AWAITING_PICKUP', prevStatus: 'ORDERED', prevBtnText: '◀ 2. 주문 완료로' },
+        AWAITING_PICKUP: { label: '4. 수령 대기', badge: 'bg-teal-100 text-teal-800 border-teal-300', btnText: '고객 수령 완료 처리 (미출 해소) >', nextStatus: 'COMPLETED', prevStatus: 'PREPARED', prevBtnText: '◀ 3. 조제 완료로' },
+        COMPLETED: { label: '5. 수령 완료', badge: 'bg-slate-200 text-slate-700 border-slate-300', btnText: '✅ 수령 완료됨', nextStatus: null, prevStatus: 'AWAITING_PICKUP', prevBtnText: '◀ 4. 수령 대기로' }
+      }[status] || { label: '1. 미출 접수', badge: 'bg-amber-100 text-amber-800', btnText: '다음 단계 >', nextStatus: 'ORDERED', prevStatus: null, prevBtnText: null };
 
       // 결제 상태 라벨
       const payMeta = {
@@ -598,12 +599,15 @@ if (typeof window.PatientOrdersModule === 'undefined') {
           <!-- 카드 헤더 (상태 배지 & 결제 배지 & 액션) -->
           <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-xs font-black px-2.5 py-0.5 rounded-full border ${statusMeta.badge}">${statusMeta.label}</span>
+              <span onclick="PatientOrdersModule.openEditShortageModal('${item.id}')" title="클릭하여 진행 단계 및 정보 수정" class="cursor-pointer hover:opacity-80 text-xs font-black px-2.5 py-0.5 rounded-full border ${statusMeta.badge}">${statusMeta.label}</span>
               <span class="text-xs font-bold px-2 py-0.5 rounded-full border ${payMeta.color}">${payMeta.label}</span>
             </div>
             <div class="flex items-center gap-1 text-slate-400">
-              <button onclick="PatientOrdersModule.openEditShortageModal('${item.id}')" title="수정" class="p-1 hover:text-teal-600 transition"><i class="fas fa-edit text-xs"></i></button>
-              <button onclick="PatientOrdersModule.deleteShortage('${item.id}')" title="삭제" class="p-1 hover:text-rose-600 transition"><i class="fas fa-trash-alt text-xs"></i></button>
+              <button type="button" onclick="PatientOrdersModule.openEditShortageModal('${item.id}')" title="내용 및 진행 단계 수정" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/50 text-slate-600 dark:text-slate-300 hover:text-teal-600 font-bold text-[11px] transition flex items-center gap-1">
+                <i class="fas fa-edit text-[11px]"></i>
+                <span>수정</span>
+              </button>
+              <button type="button" onclick="PatientOrdersModule.deleteShortage('${item.id}')" title="삭제" class="p-1.5 hover:text-rose-600 transition"><i class="fas fa-trash-alt text-xs"></i></button>
             </div>
           </div>
 
@@ -658,20 +662,25 @@ if (typeof window.PatientOrdersModule === 'undefined') {
             <span>등록: ${escapeHTML(item.registeredBy || '직원')}</span>
           </div>
 
-          <!-- 액션 버튼 영역 (다음 단계 진행 & 원터치 문자 발송) -->
+          <!-- 액션 버튼 영역 (다음 단계 진행 / 이전 단계 되돌리기 / 원터치 문자 발송) -->
           <div class="space-y-1.5 pt-1">
             ${statusMeta.nextStatus ? `
-              <button onclick="PatientOrdersModule.updateShortageStatus('${item.id}', '${statusMeta.nextStatus}')" class="w-full py-2.5 px-3 rounded-xl bg-purple-700 hover:bg-purple-600 text-white font-extrabold text-xs shadow transition flex items-center justify-center gap-1.5">
+              <button type="button" onclick="PatientOrdersModule.updateShortageStatus('${item.id}', '${statusMeta.nextStatus}')" class="w-full py-2.5 px-3 rounded-xl bg-purple-700 hover:bg-purple-600 text-white font-extrabold text-xs shadow transition flex items-center justify-center gap-1.5">
                 <span>${statusMeta.btnText}</span>
               </button>
             ` : ''}
-            <div class="flex items-center gap-1.5">
-              <button onclick="PatientOrdersModule.jumpToSmsFromShortage('${item.id}')" class="flex-1 py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold text-xs transition flex items-center justify-center gap-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${statusMeta.prevStatus ? `
+                <button type="button" onclick="PatientOrdersModule.updateShortageStatus('${item.id}', '${statusMeta.prevStatus}')" title="이전 단계로 되돌리기" class="py-2 px-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-extrabold text-xs transition whitespace-nowrap flex items-center justify-center gap-1">
+                  <span>${statusMeta.prevBtnText}</span>
+                </button>
+              ` : ''}
+              <button type="button" onclick="PatientOrdersModule.jumpToSmsFromShortage('${item.id}')" class="flex-1 py-2 px-3 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold text-xs transition flex items-center justify-center gap-1 whitespace-nowrap">
                 <i class="fas fa-envelope text-[11px]"></i>
                 <span>안내문자 발송</span>
               </button>
               ${!isCompleted ? `
-                <button onclick="PatientOrdersModule.updateShortageStatus('${item.id}', 'COMPLETED')" class="py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs transition whitespace-nowrap">
+                <button type="button" onclick="PatientOrdersModule.updateShortageStatus('${item.id}', 'COMPLETED')" class="py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs transition whitespace-nowrap">
                   수령완료
                 </button>
               ` : ''}
@@ -768,12 +777,15 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       return `
         <div class="bg-white dark:bg-slate-900 rounded-2xl border ${isCompleted ? 'border-slate-200 dark:border-slate-800 opacity-80' : 'border-slate-300 dark:border-slate-700 shadow-sm'} p-4 flex flex-col justify-between space-y-3 transition hover:shadow-md">
           <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-            <span class="text-xs font-black px-2.5 py-0.5 rounded-full ${status === 'ARRIVED' ? 'bg-teal-600 text-white' : status === 'COMPLETED' ? 'bg-slate-600 text-white' : 'bg-amber-500 text-white'}">
+            <span onclick="PatientOrdersModule.openEditOrderModal('${item.id}')" title="클릭하여 진행 단계 및 정보 수정" class="cursor-pointer hover:opacity-80 text-xs font-black px-2.5 py-0.5 rounded-full ${status === 'ARRIVED' ? 'bg-teal-600 text-white' : status === 'COMPLETED' ? 'bg-slate-600 text-white' : 'bg-amber-500 text-white'}">
               ${status === 'ARRIVED' ? '📦 2단계: 약 도착 (수령대기)' : status === 'COMPLETED' ? '✅ 3단계: 고객 수령완료' : '⏳ 1단계: 주문 접수/발주'}
             </span>
             <div class="flex items-center gap-1 text-slate-400">
-              <button onclick="PatientOrdersModule.openEditOrderModal('${item.id}')" title="수정" class="p-1 hover:text-indigo-600 transition"><i class="fas fa-edit text-xs"></i></button>
-              <button onclick="PatientOrdersModule.deleteOrder('${item.id}')" title="삭제" class="p-1 hover:text-rose-600 transition"><i class="fas fa-trash-alt text-xs"></i></button>
+              <button type="button" onclick="PatientOrdersModule.openEditOrderModal('${item.id}')" title="수정" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 text-slate-600 dark:text-slate-300 hover:text-indigo-600 font-bold text-[11px] transition flex items-center gap-1">
+                <i class="fas fa-edit text-[11px]"></i>
+                <span>수정</span>
+              </button>
+              <button type="button" onclick="PatientOrdersModule.deleteOrder('${item.id}')" title="삭제" class="p-1.5 hover:text-rose-600 transition"><i class="fas fa-trash-alt text-xs"></i></button>
             </div>
           </div>
 
@@ -809,17 +821,26 @@ if (typeof window.PatientOrdersModule === 'undefined') {
           ${item.notes ? `<div class="text-[11px] text-slate-500 bg-amber-50/50 p-2 rounded-lg break-keep"><strong>메모:</strong> ${escapeHTML(item.notes)}</div>` : ''}
 
           <div class="space-y-1.5 pt-1">
-            <div class="flex items-center gap-1.5">
-              ${status === 'PENDING_ORDER' ? `
-                <button onclick="PatientOrdersModule.updateOrderStatus('${item.id}', 'ARRIVED')" class="flex-1 py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition">
-                  📦 약 도착 처리
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${status === 'ARRIVED' ? `
+                <button type="button" onclick="PatientOrdersModule.updateOrderStatus('${item.id}', 'PENDING_ORDER')" title="이전 단계로 되돌리기" class="py-2 px-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-extrabold text-xs transition whitespace-nowrap">
+                  ◀ 1단계 발주대기로
                 </button>
-              ` : status === 'ARRIVED' ? `
-                <button onclick="PatientOrdersModule.updateOrderStatus('${item.id}', 'COMPLETED')" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition">
-                  ✅ 수령 완료 처리
+              ` : status === 'COMPLETED' ? `
+                <button type="button" onclick="PatientOrdersModule.updateOrderStatus('${item.id}', 'ARRIVED')" title="이전 단계로 되돌리기" class="py-2 px-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-extrabold text-xs transition whitespace-nowrap">
+                  ◀ 2단계 약도착으로
                 </button>
               ` : ''}
-              <button onclick="PatientOrdersModule.jumpToSmsFromOrder('${item.id}')" class="flex-1 py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs transition flex items-center justify-center gap-1">
+              ${status === 'PENDING_ORDER' ? `
+                <button type="button" onclick="PatientOrdersModule.updateOrderStatus('${item.id}', 'ARRIVED')" class="flex-1 py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition whitespace-nowrap">
+                  📦 약 도착 처리 >
+                </button>
+              ` : status === 'ARRIVED' ? `
+                <button type="button" onclick="PatientOrdersModule.updateOrderStatus('${item.id}', 'COMPLETED')" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition whitespace-nowrap">
+                  ✅ 수령 완료 처리 >
+                </button>
+              ` : ''}
+              <button type="button" onclick="PatientOrdersModule.jumpToSmsFromOrder('${item.id}')" class="flex-1 py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs transition flex items-center justify-center gap-1 whitespace-nowrap">
                 <i class="fas fa-envelope text-[11px]"></i>
                 <span>고객 문자 발송</span>
               </button>
@@ -1221,6 +1242,115 @@ ${escapeHTML(h.content)}
     }
 
     // ==========================================
+    // 📝 [모달 1-2] 처방 미출약 수정 모달 (진행 단계 되돌리기 및 전 항목 수정)
+    // ==========================================
+    function renderShortageEditModalHTML() {
+      const todayStr = new Date().toISOString().substring(0, 10);
+      return `
+        <div id="shortage-edit-modal" style="display:none;" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <i class="fas fa-edit text-teal-600"></i>
+                <span>처방 미출약 내역 및 진행 단계 수정</span>
+              </h3>
+              <button type="button" onclick="PatientOrdersModule.closeEditShortageModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <form onsubmit="PatientOrdersModule.handleEditShortageSubmit(event)" id="shortage-edit-form" class="space-y-3.5">
+              <input type="hidden" id="sh-edit-id">
+
+              <!-- 🔄 진행 단계(status) 자유 변경 박스 -->
+              <div class="bg-teal-50/70 dark:bg-teal-950/30 p-3 rounded-xl border border-teal-200 dark:border-teal-800/70">
+                <label class="block text-xs font-black text-teal-900 dark:text-teal-300 mb-1.5 flex items-center gap-1.5">
+                  <i class="fas fa-sliders"></i>
+                  <span>현재 진행 단계 변경 (이전 단계 되돌리기 가능)</span>
+                </label>
+                <select id="sh-edit-status" class="w-full bg-white dark:bg-slate-950 border-2 border-teal-500 dark:border-teal-600 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 dark:text-white outline-none cursor-pointer shadow-sm">
+                  <option value="PENDING_ORDER">1. 미출 접수 (주문 필요 건)</option>
+                  <option value="ORDERED">2. 주문 완료 (입고 및 조제 대기)</option>
+                  <option value="PREPARED">3. 조제 완료 (보관함 보관중)</option>
+                  <option value="AWAITING_PICKUP">4. 수령 대기 (문자 발송 완료)</option>
+                  <option value="COMPLETED">5. 수령 완료 (미출 해소 완료)</option>
+                </select>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">환자명 <span class="text-rose-500">*</span></label>
+                  <input type="text" id="sh-edit-patient" required placeholder="예: 김학성" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">주민번호 앞자리(생년월일)</label>
+                  <input type="text" id="sh-edit-resident" placeholder="예: 551109" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">연락처 <span class="text-rose-500">*</span></label>
+                  <input type="tel" id="sh-edit-phone" required placeholder="010-0000-0000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">처방 병의원</label>
+                  <input type="text" id="sh-edit-clinic" placeholder="예: 서울안과" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">미출 약품 내역 <span class="text-rose-500">*</span></label>
+                <textarea id="sh-edit-drug" required rows="2" placeholder="예: 타플로탄 에스 점안액" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500"></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">주문처 (도매상)</label>
+                  <select id="sh-edit-supplier" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                    <option value="동원">동원약품</option>
+                    <option value="백제">백제약품</option>
+                    <option value="지오영">지오영</option>
+                    <option value="훼밀리">훼밀리팜</option>
+                    <option value="자체">약국자체/인근약국</option>
+                    <option value="기타">기타 주문처</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">문서/처방일자</label>
+                  <input type="date" id="sh-edit-rxdate" value="${todayStr}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">결제 상태</label>
+                  <select id="sh-edit-paytype" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                    <option value="UNPAID">미결제 (수령시 수납)</option>
+                    <option value="PAID_FULL">선결제 완납</option>
+                    <option value="BANK_TRANSFER">계좌입금 예정</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">보관 위치</label>
+                  <input type="text" id="sh-edit-location" placeholder="예: A-1 보관함 / 냉장고" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">비고 / 전달사항</label>
+                <input type="text" id="sh-edit-notes" placeholder="예: 10.12 방문예정 / 가족 대리수령" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-teal-500">
+              </div>
+
+              <div class="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="PatientOrdersModule.closeEditShortageModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs">취소</button>
+                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs shadow-md">수정 저장</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
     // 📝 [모달 2] 일반약 예약 주문 신규 모달 (기존 보존)
     // ==========================================
     function renderOrderModalHTML() {
@@ -1316,7 +1446,7 @@ ${escapeHTML(h.content)}
     }
 
     // ==========================================
-    // 📝 [모달 3] 일반약 예약 수정 모달 (기존 보존)
+    // 📝 [모달 3] 일반약 예약 수정 모달 (단계 변경 및 전체 항목 수정)
     // ==========================================
     function renderOrderEditModalHTML() {
       return `
@@ -1325,12 +1455,26 @@ ${escapeHTML(h.content)}
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <i class="fas fa-edit text-indigo-600"></i>
-                <span>예약 주문 수정</span>
+                <span>일반약 예약 주문 및 진행 단계 수정</span>
               </h3>
               <button type="button" onclick="PatientOrdersModule.closeEditOrderModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
             </div>
             <form onsubmit="PatientOrdersModule.handleEditOrderSubmit(event)" id="ord-edit-form" class="space-y-3.5">
               <input type="hidden" id="ord-edit-id">
+
+              <!-- 🔄 진행 단계(status) 변경 박스 -->
+              <div class="bg-indigo-50/70 dark:bg-indigo-950/30 p-3 rounded-xl border border-indigo-200 dark:border-indigo-800/70">
+                <label class="block text-xs font-black text-indigo-900 dark:text-indigo-300 mb-1.5 flex items-center gap-1.5">
+                  <i class="fas fa-sliders"></i>
+                  <span>현재 진행 단계 변경 (이전 단계 되돌리기 가능)</span>
+                </label>
+                <select id="ord-edit-status" class="w-full bg-white dark:bg-slate-950 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 dark:text-white outline-none cursor-pointer shadow-sm">
+                  <option value="PENDING_ORDER">⏳ 1단계: 주문 접수/발주</option>
+                  <option value="ARRIVED">📦 2단계: 약 도착 (수령대기)</option>
+                  <option value="COMPLETED">✅ 3단계: 고객 수령완료</option>
+                </select>
+              </div>
+
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">손님 이름</label>
@@ -1344,6 +1488,23 @@ ${escapeHTML(h.content)}
               <div>
                 <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">약품/제품명</label>
                 <input type="text" id="ord-edit-drug" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none">
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">수령 방식</label>
+                  <select id="ord-edit-delivery" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none">
+                    <option value="PICKUP">🏬 약국 방문 수령</option>
+                    <option value="PARCEL">🚚 택배 배송</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">결제 구분</label>
+                  <select id="ord-edit-paytype" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none">
+                    <option value="UNPAID">미결제 (방문시 결제)</option>
+                    <option value="PAID_FULL">선결제 완납</option>
+                    <option value="BANK_TRANSFER">계좌 입금 확인</option>
+                  </select>
+                </div>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -1445,6 +1606,90 @@ ${escapeHTML(h.content)}
       saveShortagesData(list);
       closeCreateShortageModal();
       render('module-content');
+    }
+
+    function openEditShortageModal(id) {
+      const list = getShortagesData();
+      const target = list.find(i => String(i.id) === String(id));
+      if (!target) return;
+
+      const setVal = (elId, val) => {
+        const el = document.getElementById(elId);
+        if (el) el.value = val !== undefined && val !== null ? val : '';
+      };
+
+      setVal('sh-edit-id', target.id);
+      setVal('sh-edit-status', target.status || 'PENDING_ORDER');
+      setVal('sh-edit-patient', target.patientName || '');
+      setVal('sh-edit-resident', target.residentId || target.birth || '');
+      setVal('sh-edit-phone', target.phone || '');
+      setVal('sh-edit-clinic', target.clinicName || '');
+      setVal('sh-edit-drug', target.drugName || '');
+
+      const supplierSelect = document.getElementById('sh-edit-supplier');
+      if (supplierSelect) {
+        const supVal = target.orderSupplier || '동원';
+        const hasOpt = Array.from(supplierSelect.options).some(o => o.value === supVal);
+        if (!hasOpt && supVal) {
+          const opt = document.createElement('option');
+          opt.value = supVal;
+          opt.textContent = supVal;
+          supplierSelect.appendChild(opt);
+        }
+        supplierSelect.value = supVal;
+      }
+
+      const defaultDate = formatDate(target.createdAt, '').substring(0, 10) || new Date().toISOString().substring(0, 10);
+      setVal('sh-edit-rxdate', target.rxDate || defaultDate);
+      setVal('sh-edit-paytype', target.payType || 'UNPAID');
+      setVal('sh-edit-location', target.storageLocation || '');
+      setVal('sh-edit-notes', target.notes || '');
+
+      const modal = document.getElementById('shortage-edit-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeEditShortageModal() {
+      const modal = document.getElementById('shortage-edit-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleEditShortageSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('sh-edit-id')?.value;
+      const list = getShortagesData();
+      const target = list.find(i => String(i.id) === String(id));
+      if (!target) return;
+
+      const patient = document.getElementById('sh-edit-patient')?.value.trim();
+      const phone = document.getElementById('sh-edit-phone')?.value.trim();
+      const drug = document.getElementById('sh-edit-drug')?.value.trim();
+
+      if (!patient || !phone || !drug) {
+        alert('환자명, 연락처, 미출 약품 내역을 모두 입력해주세요.');
+        return;
+      }
+
+      target.status = document.getElementById('sh-edit-status')?.value || target.status || 'PENDING_ORDER';
+      target.patientName = patient;
+      target.residentId = document.getElementById('sh-edit-resident')?.value.trim() || '';
+      target.phone = formatPhone(phone);
+      target.clinicName = document.getElementById('sh-edit-clinic')?.value.trim() || '';
+      target.drugName = drug;
+      target.orderSupplier = document.getElementById('sh-edit-supplier')?.value || '동원';
+      target.rxDate = document.getElementById('sh-edit-rxdate')?.value || '';
+      target.payType = document.getElementById('sh-edit-paytype')?.value || 'UNPAID';
+      target.storageLocation = document.getElementById('sh-edit-location')?.value.trim() || '';
+      target.notes = document.getElementById('sh-edit-notes')?.value.trim() || '';
+      target.updatedAt = Date.now();
+
+      saveShortagesData(list);
+      closeEditShortageModal();
+      render('module-content');
+
+      if (window.App && typeof window.App.showToast === 'function') {
+        window.App.showToast(`✅ ${target.patientName} 님의 처방 미출 내역이 수정되었습니다.`);
+      }
     }
 
     function updateShortageStatus(id, newStatus) {
@@ -1608,9 +1853,15 @@ ${escapeHTML(h.content)}
       if (!target) return;
 
       document.getElementById('ord-edit-id').value = target.id;
+      const statusEl = document.getElementById('ord-edit-status');
+      if (statusEl) statusEl.value = target.status || 'PENDING_ORDER';
       document.getElementById('ord-edit-patient').value = target.patientName || '';
       document.getElementById('ord-edit-phone').value = target.phone || '';
       document.getElementById('ord-edit-drug').value = target.drugName || '';
+      const delivEl = document.getElementById('ord-edit-delivery');
+      if (delivEl) delivEl.value = target.deliveryType || 'PICKUP';
+      const payEl = document.getElementById('ord-edit-paytype');
+      if (payEl) payEl.value = target.payType || 'UNPAID';
       document.getElementById('ord-edit-price').value = target.totalPrice || 0;
       document.getElementById('ord-edit-paid').value = target.paidAmount || 0;
       document.getElementById('ord-edit-notes').value = target.notes || '';
@@ -1631,9 +1882,12 @@ ${escapeHTML(h.content)}
       const target = list.find(i => String(i.id) === String(id));
       if (!target) return;
 
+      target.status = document.getElementById('ord-edit-status')?.value || target.status || 'PENDING_ORDER';
       target.patientName = document.getElementById('ord-edit-patient')?.value.trim();
       target.phone = formatPhone(document.getElementById('ord-edit-phone')?.value.trim());
       target.drugName = document.getElementById('ord-edit-drug')?.value.trim();
+      target.deliveryType = document.getElementById('ord-edit-delivery')?.value || 'PICKUP';
+      target.payType = document.getElementById('ord-edit-paytype')?.value || 'UNPAID';
       target.totalPrice = Number(document.getElementById('ord-edit-price')?.value || 0);
       target.paidAmount = Number(document.getElementById('ord-edit-paid')?.value || 0);
       target.unpaidBalance = Math.max(0, target.totalPrice - target.paidAmount);
@@ -1643,6 +1897,10 @@ ${escapeHTML(h.content)}
       saveOrdersData(list);
       closeEditOrderModal();
       render('module-content');
+
+      if (window.App && typeof window.App.showToast === 'function') {
+        window.App.showToast(`✅ ${target.patientName} 님의 예약 주문 내역이 수정되었습니다.`);
+      }
     }
 
     function openPhotoLightbox(id) {
@@ -1819,7 +2077,7 @@ ${escapeHTML(h.content)}
       window.addEventListener('ssg_cloud_updated', () => {
         const active = window.App && typeof window.App.getActiveModule === 'function' ? window.App.getActiveModule() : '';
         if (active === 'patient-orders') {
-          const anyModalOpen = Array.from(document.querySelectorAll('.modal-overlay, #shortage-create-modal, #ord-modal-overlay, #ord-edit-modal-overlay')).some(m => {
+          const anyModalOpen = Array.from(document.querySelectorAll('.modal-overlay, #shortage-create-modal, #shortage-edit-modal, #ord-modal-overlay, #ord-edit-modal-overlay')).some(m => {
             const disp = window.getComputedStyle(m).display;
             return disp !== 'none' && disp !== '';
           });
@@ -1843,6 +2101,9 @@ ${escapeHTML(h.content)}
       openCreateShortageModal,
       closeCreateShortageModal,
       handleShortageSubmit,
+      openEditShortageModal,
+      closeEditShortageModal,
+      handleEditShortageSubmit,
       updateShortageStatus,
       deleteShortage,
       jumpToSmsFromShortage,

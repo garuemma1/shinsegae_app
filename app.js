@@ -500,6 +500,46 @@ window.App = (function () {
       return saved !== current;
     } catch(e) { return false; }
   }
+
+  // ─── 📦 약국 소모품 관리 읽음 상태 관리 헬퍼 ─────────────────────────────────────
+  function _supplyFingerprint(item) {
+    if (!item) return '';
+    return [
+      item.id || '',
+      item.updatedAt || '',
+      item.status || '',
+      item.itemName || '',
+      item.qty || '',
+      item.unit || '',
+      item.vendor || '',
+      item.actualPrice || item.estimatedPrice || ''
+    ].join('|');
+  }
+
+  function markSuppliesRead() {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) return;
+    const supplies = (window.SheetsSync.getSupplies ? window.SheetsSync.getSupplies() : (window.SheetsSync.getData().supplies || [])) || [];
+    const fingerprints = supplies.map(_supplyFingerprint);
+    try {
+      localStorage.setItem('ssg_read_supplies_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadSupplies(currUser, items) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_supplies_' + currUser.id);
+      if (raw === null) {
+        const fingerprints = (items || []).map(_supplyFingerprint);
+        localStorage.setItem('ssg_read_supplies_' + currUser.id, JSON.stringify(fingerprints));
+        return false;
+      }
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return (items || []).some(item => !savedSet.has(_supplyFingerprint(item)));
+    } catch(e) { return false; }
+  }
   // ─────────────────────────────────────────────────────────────────────────
 
   function computeNotificationBadges() {
@@ -546,6 +586,7 @@ window.App = (function () {
 
       const suppliesList = (window.SheetsSync.getSupplies ? window.SheetsSync.getSupplies() : data.supplies) || [];
       const pendingSupplies = suppliesList.filter(s => s.status === 'PENDING');
+      const hasUnreadSupplies = _hasUnreadSupplies(currUser, suppliesList);
 
       // ⏳ 유효기간 & 제약사 반품 대장 (3단계 조기경보: D-30 초긴급/만료 건수 숫자 뱃지, 미확인 시 N 뱃지)
       const expiryReturnsList = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : data.expiryReturns) || [];
@@ -583,7 +624,7 @@ window.App = (function () {
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
-        supplies: pendingSupplies.length > 0 ? pendingSupplies.length : null,
+        supplies: pendingSupplies.length > 0 ? pendingSupplies.length : (hasUnreadSupplies ? 'N' : null),
         'patient-orders': totalPendingOrdersAndShortages > 0 ? totalPendingOrdersAndShortages : (hasUnreadPatientOrders ? 'N' : null),
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
@@ -1536,6 +1577,9 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'rx-medicine-location') {
         markRxMedicineLocationRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'supplies') {
+        markSuppliesRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'patient-orders') {
         markPatientOrdersRead();
@@ -2563,9 +2607,11 @@ function writeSheetData(sheet, dataList) {
     renderActiveModule,
     getActiveModule: () => activeModule,
     renderSidebarNavigation,
+    updateSidebarBadgesOnly,
     renderUserHeader,
     markNoticesRead,
     markWorklogRead,
+    markSuppliesRead,
     markMedicineLocationRead,
     markExpiryReturnsRead,
     markApprovalRead,

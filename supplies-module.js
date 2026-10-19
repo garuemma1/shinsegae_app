@@ -63,11 +63,14 @@ window.SuppliesModule = (function () {
           </div>
         </div>
 
-        <!-- KPI 통계 카운터 카드 (2x2 모바일 / 4x1 PC 적응형) -->
+        <!-- KPI 통계 카운터 카드 (2x2 모바일 / 4x1 PC 적응형 - 클릭 시 필터 토글) -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-          <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
+          <div onclick="SuppliesModule.setStatusFilter('PENDING')" class="bg-amber-500/10 border ${statusFilter === 'PENDING' && activeTab === 'requests' ? 'border-amber-500 ring-2 ring-amber-500/40' : 'border-amber-500/30'} rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between cursor-pointer hover:bg-amber-500/15 transition">
             <div>
-              <div class="text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400">요청 대기 중</div>
+              <div class="text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <span>요청 대기 중</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300">${statusFilter === 'PENDING' && activeTab === 'requests' ? '✓ 필터중' : '클릭 필터'}</span>
+              </div>
               <div class="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-300 mt-0.5">${pendingList.length} <span class="text-xs font-normal">건</span></div>
             </div>
             <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-sm sm:text-base">
@@ -75,9 +78,12 @@ window.SuppliesModule = (function () {
             </div>
           </div>
 
-          <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
+          <div onclick="SuppliesModule.setStatusFilter('ORDERED')" class="bg-blue-500/10 border ${statusFilter === 'ORDERED' && activeTab === 'requests' ? 'border-blue-500 ring-2 ring-blue-500/40' : 'border-blue-500/30'} rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between cursor-pointer hover:bg-blue-500/15 transition">
             <div>
-              <div class="text-[11px] sm:text-xs font-bold text-blue-600 dark:text-blue-400">주문 진행 중</div>
+              <div class="text-[11px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                <span>주문 진행 중</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-700 dark:text-blue-300">${statusFilter === 'ORDERED' && activeTab === 'requests' ? '✓ 필터중' : '클릭 필터'}</span>
+              </div>
               <div class="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 mt-0.5">${orderedList.length} <span class="text-xs font-normal">건</span></div>
             </div>
             <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-500 text-sm sm:text-lg font-bold">
@@ -85,9 +91,12 @@ window.SuppliesModule = (function () {
             </div>
           </div>
 
-          <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
+          <div onclick="SuppliesModule.setStatusFilter('COMPLETED')" class="bg-emerald-500/10 border ${statusFilter === 'COMPLETED' && activeTab === 'requests' ? 'border-emerald-500 ring-2 ring-emerald-500/40' : 'border-emerald-500/30'} rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between cursor-pointer hover:bg-emerald-500/15 transition">
             <div>
-              <div class="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400">입고 완료 (누적)</div>
+              <div class="text-[11px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <span>입고 완료 (누적)</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">${statusFilter === 'COMPLETED' && activeTab === 'requests' ? '✓ 필터중' : '클릭 필터'}</span>
+              </div>
               <div class="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">${completedList.length} <span class="text-xs font-normal">건</span></div>
             </div>
             <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-500 text-sm sm:text-lg font-bold">
@@ -95,7 +104,7 @@ window.SuppliesModule = (function () {
             </div>
           </div>
 
-          <div class="bg-slate-500/10 border border-slate-300 dark:border-slate-700 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between">
+          <div onclick="SuppliesModule.setStatusFilter('ALL')" class="bg-slate-500/10 border ${statusFilter === 'ALL' && activeTab === 'requests' ? 'border-slate-500 ring-2 ring-slate-400/30' : 'border-slate-300 dark:border-slate-700'} rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between cursor-pointer hover:bg-slate-500/15 transition">
             <div>
               <div class="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">이번 달 집계 금액</div>
               <div class="text-base sm:text-lg font-black text-slate-800 dark:text-slate-100 mt-0.5">₩${(totalOrderedPrice + totalCompletedPrice).toLocaleString()}</div>
@@ -180,11 +189,14 @@ window.SuppliesModule = (function () {
       <!-- 공통 모달 2: 약국장 주문 확정 처리 모달 -->
       ${renderConfirmModalHTML()}
 
-      <!-- 공통 모달 3: 자주쓰는 품목 추가 모달 -->
+      <!-- 공통 모달 3: 자주쓰는 품목 추가/수정 모달 -->
       ${renderPresetModalHTML()}
 
       <!-- 공통 모달 4: 입고 완료 확인 모달 -->
       ${renderCompleteModalHTML()}
+
+      <!-- 공통 모달 5: 소모품 요청 전 항목 통합 수정 모달 -->
+      ${renderEditModalHTML()}
     `;
   }
 
@@ -267,6 +279,7 @@ window.SuppliesModule = (function () {
     const isPending = item.status === 'PENDING';
     const isOrdered = item.status === 'ORDERED';
     const isCompleted = item.status === 'COMPLETED';
+    const isRejected = item.status === 'REJECTED';
 
     return `
       <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border ${isUrgent ? 'border-red-400 dark:border-red-600/60 shadow-red-500/5' : 'border-slate-200 dark:border-slate-800'} shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4 relative">
@@ -278,7 +291,7 @@ window.SuppliesModule = (function () {
               ${isUrgent ? `<span class="px-2 py-0.5 text-[10px] font-black rounded bg-red-500 text-white animate-pulse">⚡ 긴급요청</span>` : ''}
               ${renderCategoryBadge(item.category)}
             </div>
-            <div>
+            <div onclick="SuppliesModule.openEditModal('${item.id}')" class="cursor-pointer hover:opacity-80 transition" title="클릭하여 진행 단계 및 소모품 정보 수정">
               ${renderStatusBadge(item.status)}
             </div>
           </div>
@@ -287,7 +300,7 @@ window.SuppliesModule = (function () {
             ${escapeHTML(item.itemName)}
           </h3>
 
-          <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+          <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
             <span>수량: <strong class="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">${item.qty} ${escapeHTML(item.unit || '개')}</strong></span>
             <span>·</span>
             <span>신청: <strong>${escapeHTML(item.applicantName || '직원')}</strong> (${escapeHTML(item.applicantRole || '직원')})</span>
@@ -301,6 +314,12 @@ window.SuppliesModule = (function () {
               <i class="fas fa-sticky-note text-amber-500 mr-1"></i> ${escapeHTML(item.memo)}
             </div>
           ` : '<div class="text-slate-400 italic">등록된 특이사항 메모가 없습니다.</div>'}
+
+          ${isRejected && item.rejectReason ? `
+            <div class="text-rose-600 dark:text-rose-400 font-bold leading-relaxed bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-800/60">
+              <i class="fas fa-exclamation-circle mr-1"></i> 반려 사유: ${escapeHTML(item.rejectReason)}
+            </div>
+          ` : ''}
 
           <div class="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between flex-wrap gap-1 text-[11px]">
             <div>
@@ -318,8 +337,8 @@ window.SuppliesModule = (function () {
         </div>
 
         <!-- 액션 버튼 영역 -->
-        <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800">
-          <div class="flex items-center gap-1.5">
+        <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap">
             ${isPending ? `
               <button 
                 onclick="SuppliesModule.openConfirmModal('${item.id}')"
@@ -346,22 +365,67 @@ window.SuppliesModule = (function () {
               >
                 <i class="fas fa-box-open"></i> 물품 수령 / 입고 확정
               </button>
+
+              <button 
+                onclick="SuppliesModule.revertStatus('${item.id}', 'PENDING')"
+                class="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-bold text-[11px] transition flex items-center gap-1"
+                title="요청 대기 상태로 되돌리기"
+              >
+                <i class="fas fa-undo-alt text-[10px]"></i> ◀ 요청 대기로
+              </button>
             ` : ''}
 
             ${isCompleted ? `
-              <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mr-1">
                 <i class="fas fa-check-double"></i> 입고 완료 (${item.completedAt || '처리됨'})
               </span>
+
+              <button 
+                onclick="SuppliesModule.revertStatus('${item.id}', 'ORDERED')"
+                class="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-600 hover:text-white text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 font-bold text-[11px] transition flex items-center gap-1"
+                title="주문 완료(진행중) 상태로 되돌리기"
+              >
+                <i class="fas fa-undo-alt text-[10px]"></i> ◀ 주문 완료로
+              </button>
+
+              <button 
+                onclick="SuppliesModule.revertStatus('${item.id}', 'PENDING')"
+                class="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-bold text-[11px] transition flex items-center gap-1"
+                title="요청 대기 상태로 되돌리기"
+              >
+                ◀ 대기로
+              </button>
+            ` : ''}
+
+            ${isRejected ? `
+              <button 
+                onclick="SuppliesModule.revertStatus('${item.id}', 'PENDING')"
+                class="px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-bold text-xs transition flex items-center gap-1"
+                title="반려 취소 및 요청 대기 상태로 복원"
+              >
+                <i class="fas fa-undo-alt text-[10px]"></i> ◀ 요청 대기로 복원
+              </button>
             ` : ''}
           </div>
 
-          <button 
-            onclick="SuppliesModule.deleteRequest('${item.id}')"
-            class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            title="요청 삭제"
-          >
-            <i class="fas fa-trash-alt text-xs"></i>
-          </button>
+          <div class="flex items-center gap-1 ml-auto">
+            <button 
+              onclick="SuppliesModule.openEditModal('${item.id}')"
+              class="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1"
+              title="소모품 품목명/수량/단위/거래처/금액/상태 수정"
+            >
+              <i class="fas fa-edit text-[11px]"></i>
+              <span>수정</span>
+            </button>
+
+            <button 
+              onclick="SuppliesModule.deleteRequest('${item.id}')"
+              class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title="요청 삭제"
+            >
+              <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -381,13 +445,11 @@ window.SuppliesModule = (function () {
 
     return `
       <div class="space-y-4">
-        <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+        <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between flex-wrap gap-2">
           <span>약국에서 정기적으로 구매하는 자주 쓰는 소모품 목록입니다. <strong>[1초 간편 신청]</strong> 버튼으로 바로 요청할 수 있습니다.</span>
-          ${isDirector ? `
-            <button onclick="SuppliesModule.openPresetModal()" class="text-emerald-600 hover:underline font-bold text-xs">
-              + 자주쓰는 품목 추가
-            </button>
-          ` : ''}
+          <button onclick="SuppliesModule.openPresetModal()" class="text-emerald-600 hover:underline font-bold text-xs">
+            + 자주쓰는 품목 추가
+          </button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -402,14 +464,30 @@ window.SuppliesModule = (function () {
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${escapeHTML(p.memo || '주요 구매처: ' + (p.defaultVendor || '도매몰'))}</p>
               </div>
 
-              <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+              <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1.5 flex-wrap">
                 <span class="text-[11px] text-slate-400">기본단위: ${escapeHTML(p.defaultUnit || '개')}</span>
-                <button 
-                  onclick="SuppliesModule.openRequestModalWithPreset('${p.id}')"
-                  class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition shadow-sm flex items-center gap-1"
-                >
-                  <i class="fas fa-paper-plane"></i> 1초 간편 신청
-                </button>
+                <div class="flex items-center gap-1 ml-auto">
+                  <button 
+                    onclick="SuppliesModule.openPresetModal('${p.id}')"
+                    class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-[11px] transition"
+                    title="카탈로그 품목 수정"
+                  >
+                    <i class="fas fa-edit"></i> 수정
+                  </button>
+                  <button 
+                    onclick="SuppliesModule.deletePreset('${p.id}')"
+                    class="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                    title="카탈로그 품목 삭제"
+                  >
+                    <i class="fas fa-trash-alt text-[11px]"></i>
+                  </button>
+                  <button 
+                    onclick="SuppliesModule.openRequestModalWithPreset('${p.id}')"
+                    class="px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition shadow-sm flex items-center gap-1"
+                  >
+                    <i class="fas fa-paper-plane"></i> 1초 신청
+                  </button>
+                </div>
               </div>
             </div>
           `).join('')}
@@ -594,14 +672,16 @@ window.SuppliesModule = (function () {
       <div id="supplies-preset-modal" class="modal-overlay" style="display:none;">
         <div class="modal-card max-w-md">
           <div class="modal-header">
-            <h3 class="font-bold text-base flex items-center gap-2">
+            <h3 id="sup-preset-modal-title" class="font-bold text-base flex items-center gap-2">
               <i class="fas fa-plus"></i>
-              <span>자주 쓰는 소모품 품목 추가</span>
+              <span>자주 쓰는 소모품 품목 추가 / 수정</span>
             </h3>
             <button class="close-btn" onclick="SuppliesModule.closePresetModal()">&times;</button>
           </div>
           
           <form onsubmit="SuppliesModule.handlePresetSubmit(event)" class="modal-body space-y-3">
+            <input type="hidden" id="sup-preset-id" value="">
+
             <div class="form-group">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">품목명 <span class="text-rose-500">*</span></label>
               <input type="text" id="sup-preset-name" required placeholder="예: 전산봉투 5000매" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold">
@@ -654,6 +734,112 @@ window.SuppliesModule = (function () {
     `;
   }
 
+  function renderEditModalHTML() {
+    return `
+      <div id="supplies-edit-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card max-w-lg">
+          <div class="modal-header">
+            <h3 class="font-bold text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              <i class="fas fa-edit"></i>
+              <span>소모품 요청 내역 및 진행 단계 통합 수정</span>
+            </h3>
+            <button class="close-btn" onclick="SuppliesModule.closeEditModal()">&times;</button>
+          </div>
+          
+          <form onsubmit="SuppliesModule.handleEditSubmit(event)" class="modal-body space-y-3.5">
+            <input type="hidden" id="sup-edit-id">
+
+            <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800">
+              <label class="block text-xs font-black text-emerald-800 dark:text-emerald-300 mb-1.5">
+                📌 현재 진행 단계 (상태 변경 및 이전 단계 되돌리기 가능)
+              </label>
+              <select id="sup-edit-status" class="w-full bg-white dark:bg-slate-900 border border-emerald-400 dark:border-emerald-700 rounded-xl px-3 py-2 text-xs font-black text-slate-900 dark:text-white">
+                <option value="PENDING">⏳ 1단계: 요청 대기 (PENDING)</option>
+                <option value="ORDERED">🚚 2단계: 주문 완료 / 진행중 (ORDERED)</option>
+                <option value="COMPLETED">✅ 3단계: 입고 완료 (COMPLETED)</option>
+                <option value="REJECTED">❌ 반려됨 (REJECTED)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">소모품 품목명 <span class="text-rose-500">*</span></label>
+              <input type="text" id="sup-edit-name" required placeholder="예: 비닐봉투(박카스2박스용), 전산약봉투..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">카테고리</label>
+                <select id="sup-edit-cat" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white">
+                  <option value="전산/인쇄">전산/인쇄</option>
+                  <option value="약봉투/비닐">약봉투/비닐</option>
+                  <option value="조제용품">조제용품</option>
+                  <option value="청소용품">청소용품</option>
+                  <option value="기타">기타소모품</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">긴급도</label>
+                <select id="sup-edit-urgency" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-red-500">
+                  <option value="NORMAL">보통 (일반 재고 보충)</option>
+                  <option value="URGENT">⚡ 긴급 (재고 임박/즉시 주문)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">필요 수량 <span class="text-rose-500">*</span></label>
+                <input type="number" id="sup-edit-qty" required min="1" value="1" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-slate-900 dark:text-white">
+              </div>
+
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">단위 (상자/묶음/롤/개)</label>
+                <input type="text" id="sup-edit-unit" placeholder="예: 상자, 박스, 롤, 개" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">신청자 성함</label>
+                <input type="text" id="sup-edit-applicant" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white">
+              </div>
+
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">주문처 (도매상/인쇄소/쇼핑몰)</label>
+                <input type="text" id="sup-edit-vendor" placeholder="예: 조은봉투, 드림오피스, 쿠팡" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">실제 결제/주문 금액 (원)</label>
+                <input type="number" id="sup-edit-price" min="0" step="10" placeholder="예: 120000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-emerald-600">
+              </div>
+
+              <div class="form-group">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">입고 완료일 (입고완료 시)</label>
+                <input type="text" id="sup-edit-completed-date" placeholder="예: 2026-10-19" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">요청 사유 및 특이사항 메모</label>
+              <textarea id="sup-edit-memo" rows="2" placeholder="특이사항 또는 메모를 입력하세요." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white"></textarea>
+            </div>
+
+            <div class="modal-footer flex items-center justify-end gap-2 pt-3">
+              <button type="button" class="btn btn-secondary text-xs" onclick="SuppliesModule.closeEditModal()">취소</button>
+              <button type="submit" class="btn btn-primary bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1">
+                <i class="fas fa-save"></i> 수정 내용 저장
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+  }
+
   // 4. 모듈 이벤트 및 액션 컨트롤러
   function setTab(tab) {
     activeTab = tab;
@@ -663,7 +849,14 @@ window.SuppliesModule = (function () {
   }
 
   function setStatusFilter(filter) {
-    statusFilter = filter;
+    if (activeTab !== 'requests') {
+      activeTab = 'requests';
+      statusFilter = filter;
+    } else if (filter !== 'ALL' && statusFilter === filter) {
+      statusFilter = 'ALL';
+    } else {
+      statusFilter = filter;
+    }
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();
     }
@@ -887,6 +1080,115 @@ window.SuppliesModule = (function () {
     openCompleteModal(id);
   }
 
+  function openEditModal(id) {
+    const supplies = window.SheetsSync.getSupplies() || [];
+    const target = supplies.find(s => String(s.id) === String(id));
+    if (!target) return;
+
+    const idEl = document.getElementById('sup-edit-id');
+    const statusEl = document.getElementById('sup-edit-status');
+    const nameEl = document.getElementById('sup-edit-name');
+    const catEl = document.getElementById('sup-edit-cat');
+    const urgencyEl = document.getElementById('sup-edit-urgency');
+    const qtyEl = document.getElementById('sup-edit-qty');
+    const unitEl = document.getElementById('sup-edit-unit');
+    const applicantEl = document.getElementById('sup-edit-applicant');
+    const vendorEl = document.getElementById('sup-edit-vendor');
+    const priceEl = document.getElementById('sup-edit-price');
+    const completedDateEl = document.getElementById('sup-edit-completed-date');
+    const memoEl = document.getElementById('sup-edit-memo');
+
+    if (idEl) idEl.value = target.id;
+    if (statusEl) statusEl.value = target.status || 'PENDING';
+    if (nameEl) nameEl.value = target.itemName || '';
+    if (catEl) {
+      const catVal = target.category === '기타소모품' ? '기타' : (target.category || '기타');
+      catEl.value = ['전산/인쇄', '약봉투/비닐', '조제용품', '청소용품', '기타'].includes(catVal) ? catVal : '기타';
+    }
+    if (urgencyEl) urgencyEl.value = target.urgency || 'NORMAL';
+    if (qtyEl) qtyEl.value = Number(target.qty) || 1;
+    if (unitEl) unitEl.value = target.unit || '상자';
+    if (applicantEl) applicantEl.value = target.applicantName || '직원';
+    if (vendorEl) vendorEl.value = target.vendor || '';
+    if (priceEl) priceEl.value = Number(target.actualPrice || target.estimatedPrice) || 0;
+    if (completedDateEl) completedDateEl.value = target.completedAt || '';
+    if (memoEl) memoEl.value = target.memo || '';
+
+    const modal = document.getElementById('supplies-edit-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    const modal = document.getElementById('supplies-edit-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function handleEditSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('sup-edit-id').value;
+    if (!id) return;
+
+    const newStatus = document.getElementById('sup-edit-status').value || 'PENDING';
+    const itemName = document.getElementById('sup-edit-name').value.trim();
+    const category = document.getElementById('sup-edit-cat').value;
+    const urgency = document.getElementById('sup-edit-urgency').value;
+    const qty = Math.max(1, Number(document.getElementById('sup-edit-qty').value) || 1);
+    const unit = document.getElementById('sup-edit-unit').value.trim() || '개';
+    const applicantName = document.getElementById('sup-edit-applicant').value.trim() || '직원';
+    const vendor = document.getElementById('sup-edit-vendor').value.trim();
+    const price = Math.max(0, Number(document.getElementById('sup-edit-price').value) || 0);
+    const completedAt = document.getElementById('sup-edit-completed-date').value.trim();
+    const memo = document.getElementById('sup-edit-memo').value.trim();
+
+    if (!itemName) {
+      alert('소모품 품목명을 입력해 주세요.');
+      return;
+    }
+
+    window.SheetsSync.updateSupplyStatus(id, newStatus, {
+      itemName,
+      category,
+      urgency,
+      qty,
+      unit,
+      applicantName,
+      vendor,
+      actualPrice: price,
+      estimatedPrice: price,
+      completedAt,
+      memo
+    });
+
+    closeEditModal();
+
+    if (window.App && typeof window.App.renderActiveModule === 'function') {
+      window.App.renderActiveModule();
+    }
+  }
+
+  function revertStatus(id, targetStatus) {
+    const supplies = window.SheetsSync.getSupplies() || [];
+    const target = supplies.find(s => String(s.id) === String(id));
+    if (!target) return;
+
+    const statusLabelMap = {
+      'PENDING': '⏳ 요청 대기',
+      'ORDERED': '🚚 주문 완료 (진행중)',
+      'COMPLETED': '✅ 입고 완료'
+    };
+    const nextLabel = statusLabelMap[targetStatus] || targetStatus;
+
+    if (!confirm(`[${target.itemName}] 품목을 '${nextLabel}' 단계로 되돌리시겠습니까?`)) {
+      return;
+    }
+
+    window.SheetsSync.updateSupplyStatus(id, targetStatus);
+
+    if (window.App && typeof window.App.renderActiveModule === 'function') {
+      window.App.renderActiveModule();
+    }
+  }
+
   function rejectRequest(id) {
     const reason = prompt('소모품 요청 반려 사유를 입력하세요 (예: 재고 여유 확인됨, 중복 요청)');
     if (reason === null) return;
@@ -905,8 +1207,38 @@ window.SuppliesModule = (function () {
     }
   }
 
-  function openPresetModal() {
+  function openPresetModal(presetId) {
     const modal = document.getElementById('supplies-preset-modal');
+    const idEl = document.getElementById('sup-preset-id');
+    const nameEl = document.getElementById('sup-preset-name');
+    const catEl = document.getElementById('sup-preset-cat');
+    const unitEl = document.getElementById('sup-preset-unit');
+    const vendorEl = document.getElementById('sup-preset-vendor');
+    const priceEl = document.getElementById('sup-preset-price');
+    const memoEl = document.getElementById('sup-preset-memo');
+
+    if (presetId) {
+      const presets = window.SheetsSync.getSupplyPresets() || [];
+      const target = presets.find(p => String(p.id) === String(presetId));
+      if (target) {
+        if (idEl) idEl.value = target.id;
+        if (nameEl) nameEl.value = target.itemName || '';
+        if (catEl) catEl.value = target.category || '전산/인쇄';
+        if (unitEl) unitEl.value = target.defaultUnit || '상자';
+        if (vendorEl) vendorEl.value = target.defaultVendor || '';
+        if (priceEl) priceEl.value = target.estimatedPrice || 0;
+        if (memoEl) memoEl.value = target.memo || '';
+      }
+    } else {
+      if (idEl) idEl.value = '';
+      if (nameEl) nameEl.value = '';
+      if (catEl) catEl.value = '전산/인쇄';
+      if (unitEl) unitEl.value = '상자';
+      if (vendorEl) vendorEl.value = '';
+      if (priceEl) priceEl.value = '';
+      if (memoEl) memoEl.value = '';
+    }
+
     if (modal) modal.style.display = 'flex';
   }
 
@@ -917,6 +1249,8 @@ window.SuppliesModule = (function () {
 
   function handlePresetSubmit(e) {
     e.preventDefault();
+    const idEl = document.getElementById('sup-preset-id');
+    const editId = idEl ? idEl.value.trim() : '';
     const name = document.getElementById('sup-preset-name').value.trim();
     const category = document.getElementById('sup-preset-cat').value;
     const unit = document.getElementById('sup-preset-unit').value.trim() || '상자';
@@ -927,20 +1261,45 @@ window.SuppliesModule = (function () {
     if (!name) return;
 
     const presets = window.SheetsSync.getSupplyPresets() || [];
-    presets.push({
-      id: 'pre_' + Date.now(),
-      itemName: name,
-      category,
-      defaultUnit: unit,
-      defaultVendor: vendor,
-      estimatedPrice: price,
-      memo
-    });
+    if (editId) {
+      const idx = presets.findIndex(p => String(p.id) === String(editId));
+      if (idx !== -1) {
+        presets[idx] = {
+          ...presets[idx],
+          itemName: name,
+          category,
+          defaultUnit: unit,
+          defaultVendor: vendor,
+          estimatedPrice: price,
+          memo
+        };
+      }
+    } else {
+      presets.push({
+        id: 'pre_' + Date.now(),
+        itemName: name,
+        category,
+        defaultUnit: unit,
+        defaultVendor: vendor,
+        estimatedPrice: price,
+        memo
+      });
+    }
 
     window.SheetsSync.saveSupplyPresets(presets);
     closePresetModal();
-    alert('자주 쓰는 소모품이 카탈로그에 등록되었습니다.');
+    alert(editId ? '자주 쓰는 소모품 정보가 수정되었습니다.' : '자주 쓰는 소모품이 카탈로그에 등록되었습니다.');
 
+    if (window.App && typeof window.App.renderActiveModule === 'function') {
+      window.App.renderActiveModule();
+    }
+  }
+
+  function deletePreset(presetId) {
+    if (!presetId) return;
+    if (!confirm('이 자주 쓰는 소모품 품목을 카탈로그에서 삭제하시겠습니까?')) return;
+    const presets = (window.SheetsSync.getSupplyPresets() || []).filter(p => String(p.id) !== String(presetId));
+    window.SheetsSync.saveSupplyPresets(presets);
     if (window.App && typeof window.App.renderActiveModule === 'function') {
       window.App.renderActiveModule();
     }
@@ -972,11 +1331,16 @@ window.SuppliesModule = (function () {
     closeCompleteModal,
     handleCompleteSubmit,
     completeOrderPrompt,
+    openEditModal,
+    closeEditModal,
+    handleEditSubmit,
+    revertStatus,
     rejectRequest,
     deleteRequest,
     openPresetModal,
     closePresetModal,
-    handlePresetSubmit
+    handlePresetSubmit,
+    deletePreset
   };
 
 })();
@@ -987,7 +1351,12 @@ if (typeof window !== 'undefined') {
     if (currMod === 'supplies-module' || currMod === 'supplies') {
       const activeEl = document.activeElement;
       const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
-      if (!isTyping) {
+      const modalIds = ['supplies-request-modal', 'supplies-confirm-modal', 'supplies-preset-modal', 'supplies-complete-modal', 'supplies-edit-modal'];
+      const isAnyModalOpen = modalIds.some(function (mId) {
+        const m = document.getElementById(mId);
+        return m && m.style.display !== 'none' && m.style.display !== '';
+      });
+      if (!isTyping && !isAnyModalOpen) {
         if (window.App && typeof window.App.renderActiveModule === 'function') {
           window.App.renderActiveModule(true);
         }

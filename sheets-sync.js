@@ -1649,6 +1649,10 @@ window.SheetsSync = (function () {
     pushToCloud();
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
+    if (typeof window !== 'undefined' && window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
     }
   }
 
@@ -1680,22 +1684,40 @@ window.SheetsSync = (function () {
 
   function updateSupplyStatus(id, newStatus, extraData = {}) {
     const list = getSupplies();
-    const target = list.find(s => s.id === id);
+    const target = list.find(s => String(s.id) === String(id));
     if (!target) return false;
 
     target.status = newStatus;
     target.updatedAt = Date.now();
-    if (extraData.vendor) target.vendor = extraData.vendor;
-    if (extraData.actualPrice !== undefined) target.actualPrice = Number(extraData.actualPrice);
+    if (extraData.itemName !== undefined) target.itemName = extraData.itemName;
+    if (extraData.category !== undefined) target.category = extraData.category;
+    if (extraData.urgency !== undefined) target.urgency = extraData.urgency;
+    if (extraData.qty !== undefined) target.qty = Math.max(1, Number(extraData.qty) || 1);
+    if (extraData.unit !== undefined) target.unit = extraData.unit;
+    if (extraData.applicantName !== undefined) target.applicantName = extraData.applicantName;
+    if (extraData.applicantRole !== undefined) target.applicantRole = extraData.applicantRole;
+    if (extraData.vendor !== undefined) target.vendor = extraData.vendor;
+    if (extraData.estimatedPrice !== undefined) target.estimatedPrice = Math.max(0, Number(extraData.estimatedPrice) || 0);
+    if (extraData.actualPrice !== undefined) target.actualPrice = Math.max(0, Number(extraData.actualPrice) || 0);
     if (extraData.memo !== undefined) target.memo = extraData.memo;
-    if (extraData.payMethod) target.payMethod = extraData.payMethod;
-    if (extraData.ledgerCategory) target.ledgerCategory = extraData.ledgerCategory;
-    if (newStatus === 'COMPLETED') {
+    if (extraData.payMethod !== undefined) target.payMethod = extraData.payMethod;
+    if (extraData.ledgerCategory !== undefined) target.ledgerCategory = extraData.ledgerCategory;
+
+    if (newStatus === 'PENDING') {
+      target.completedAt = '';
+      target.rejectReason = '';
+    } else if (newStatus === 'ORDERED') {
+      target.completedAt = '';
+      target.rejectReason = '';
+    } else if (newStatus === 'COMPLETED') {
       const now = new Date();
-      target.completedAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    }
-    if (newStatus === 'REJECTED' && extraData.rejectReason) {
-      target.rejectReason = extraData.rejectReason;
+      target.completedAt = extraData.completedAt || target.completedAt || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      target.rejectReason = '';
+    } else if (newStatus === 'REJECTED') {
+      if (extraData.rejectReason !== undefined) {
+        target.rejectReason = extraData.rejectReason;
+      }
+      target.completedAt = '';
     }
     saveSupplies(list);
     return target;

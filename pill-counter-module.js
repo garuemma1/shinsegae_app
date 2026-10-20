@@ -134,7 +134,7 @@ window.PillCounterModule = (function () {
       totalCount: Number(item.totalCount) || 0,
       userName: String(item.userName || '약사').trim(),
       timeStr: String(item.timeStr || '').trim(),
-      photoUrl: rawPhoto.startsWith('http') ? rawPhoto : ''
+      photoUrl: (rawPhoto.startsWith('http') || rawPhoto.startsWith('data:image')) ? rawPhoto : ''
     };
   }
 
@@ -280,20 +280,21 @@ window.PillCounterModule = (function () {
     return `
       <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(310px, 1fr)); gap:10px; max-height:380px; overflow-y:auto; padding-right:2px;">
         ${filtered.map(item => {
-          const hasPhoto = item.photoUrl && item.photoUrl.startsWith('http');
+          const hasPhoto = item.photoUrl && (item.photoUrl.startsWith('http') || item.photoUrl.startsWith('data:image'));
           const pName = item.patientName && item.patientName !== '미입력' ? item.patientName : '이름 미입력';
           const isNameMissing = !item.patientName || item.patientName === '미입력';
           return `
-            <div style="padding:10px 12px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div onclick="PillCounterModule.openPhotoModal('${escapeHtml(item.id)}')" title="클릭하면 번호가 찍힌 검수 증거 사진이 크게 열립니다" style="padding:10px 12px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'; this.style.background='#eff6ff';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc';">
               <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
                 ${hasPhoto ? `
-                  <div onclick="PillCounterModule.openPhotoModal('${escapeHtml(item.id)}')" title="클릭하여 증거 사진 크게 보기" style="width:54px; height:54px; border-radius:10px; overflow:hidden; flex-shrink:0; border:1.5px solid #94a3b8; cursor:pointer; position:relative; background:#0f172a;">
+                  <div style="width:56px; height:56px; border-radius:10px; overflow:hidden; flex-shrink:0; border:1.5px solid #2563eb; position:relative; background:#0f172a;">
                     <img src="${escapeHtml(item.photoUrl)}" alt="검수사진" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;">
-                    <span style="position:absolute; bottom:0; right:0; background:rgba(15,23,42,0.8); color:#fff; font-size:9px; padding:1px 4px; font-weight:800;">🔍확대</span>
+                    <span style="position:absolute; bottom:0; right:0; background:rgba(37,99,235,0.9); color:#fff; font-size:9px; padding:1px 4px; font-weight:800;">🔍사진</span>
                   </div>
                 ` : `
-                  <div style="width:54px; height:54px; border-radius:10px; background:#e2e8f0; color:#64748b; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-                    💊
+                  <div style="width:56px; height:56px; border-radius:10px; background:#e2e8f0; color:#64748b; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; border:1px dashed #94a3b8;">
+                    <span>📷</span>
+                    <span style="font-size:9px; font-weight:800;">클릭</span>
                   </div>
                 `}
 
@@ -310,8 +311,8 @@ window.PillCounterModule = (function () {
                   <div style="font-size:11px; color:#64748b; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                     <span>🕒 ${escapeHtml(item.timeStr || '')}</span>
                     <span>• ${escapeHtml(item.userName || '약사')}</span>
-                    <button type="button" onclick="PillCounterModule.editHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#2563eb; font-size:11px; font-weight:800; padding:0; cursor:pointer;">[✏️수정]</button>
-                    <button type="button" onclick="PillCounterModule.deleteHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#dc2626; font-size:11px; font-weight:800; padding:0; cursor:pointer;">[삭제]</button>
+                    <button type="button" onclick="event.stopPropagation(); PillCounterModule.editHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#2563eb; font-size:11px; font-weight:800; padding:0; cursor:pointer;">[✏️수정]</button>
+                    <button type="button" onclick="event.stopPropagation(); PillCounterModule.deleteHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#dc2626; font-size:11px; font-weight:800; padding:0; cursor:pointer;">[삭제]</button>
                   </div>
                 </div>
               </div>
@@ -324,11 +325,9 @@ window.PillCounterModule = (function () {
                   ? `<div style="font-size:10.5px; font-weight:800; color:#059669;">✅ 목표(${item.targetCount}) 일치</div>`
                   : `<div style="font-size:10.5px; font-weight:800; color:#d97706;">목표 ${item.targetCount}정</div>`
                 ) : ''}
-                ${hasPhoto ? `
-                  <button type="button" onclick="PillCounterModule.openPhotoModal('${escapeHtml(item.id)}')" style="margin-top:3px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:6px; padding:2px 7px; font-size:10.5px; font-weight:800; cursor:pointer;">
-                    🖼️ 증거사진
-                  </button>
-                ` : ''}
+                <div style="margin-top:3px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:6px; padding:2px 7px; font-size:10.5px; font-weight:800; display:inline-block;">
+                  🖼️ 사진보기
+                </div>
               </div>
             </div>
           `;
@@ -653,7 +652,20 @@ window.PillCounterModule = (function () {
             ${rec.photoUrl ? `
               <img src="${escapeHtml(rec.photoUrl)}" alt="조제검수 증거사진" style="max-width:100%; max-height:64vh; border-radius:10px; border:1px solid #334155;">
             ` : `
-              <div style="padding:40px; color:#94a3b8;">저장된 사진이 없습니다.</div>
+              <div style="padding:36px 20px; color:#cbd5e1;">
+                <div style="font-size:32px; margin-bottom:8px;">📷</div>
+                <div style="font-size:14.5px; font-weight:800; color:#ffffff; margin-bottom:6px;">
+                  이 기록은 이전 버전에서 사진이 누락되어 저장된 내역입니다.
+                </div>
+                <div style="font-size:12.5px; color:#94a3b8; margin-bottom:14px;">
+                  새로 촬영 후 <strong>[💾 근거 기록저장]</strong>을 누르시면 번호(1~N)가 찍힌 알약 사진이 함께 저장됩니다.
+                </div>
+                ${loadedImage ? `
+                  <button type="button" onclick="PillCounterModule.attachCurrentPhotoToRecord('${escapeHtml(rec.id)}')" style="background:#2563eb; color:#ffffff; border:none; border-radius:10px; padding:9px 18px; font-size:13px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.4);">
+                    📸 현재 화면의 번호 찍힌 알약 사진을 '${escapeHtml(pName)}' 기록에 바로 연결하기
+                  </button>
+                ` : ''}
+              </div>
             `}
           </div>
 
@@ -1241,8 +1253,62 @@ window.PillCounterModule = (function () {
   }
 
   // ============================================================================
-  // ☁️ Cloudinary 증거 사진 업로드 연동 기록 저장
+  // ☁️ 번호 마커(1~N)가 찍힌 증거 사진 직접 합성 & Cloudinary 업로드 (processAndUploadPhoto 연동)
   // ============================================================================
+  function buildMarkedEvidenceJpeg(pName, dName, totalCount, timeStr, uName) {
+    if (!loadedImage || !imageWidth || !imageHeight) return '';
+
+    const maxW = 800;
+    const sc = Math.min(1, maxW / Math.max(imageWidth, imageHeight));
+    const imgW = Math.max(320, Math.round(imageWidth * sc));
+    const imgH = Math.max(240, Math.round(imageHeight * sc));
+    const stampH = 46;
+
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = imgW;
+    thumbCanvas.height = imgH + stampH;
+    const tCtx = thumbCanvas.getContext('2d');
+
+    // 1. 원본 알약 사진 그리기
+    tCtx.drawImage(loadedImage, 0, 0, imgW, imgH);
+
+    // 2. 각 알약 위에 실제로 카운팅된 번호 마커(1 ~ N) 선명하게 그리기
+    const minDim = Math.min(imgW, imgH);
+    for (let i = 0; i < markers.length; i++) {
+      const m = markers[i];
+      const cx = m.x * imgW;
+      const cy = m.y * imgH;
+      const baseR = Math.max(10, Math.min(20, (m.r || 0.022) * minDim * 0.72));
+
+      tCtx.beginPath();
+      tCtx.arc(cx, cy, baseR, 0, Math.PI * 2);
+      tCtx.fillStyle = m.isManual ? 'rgba(37, 99, 235, 0.92)' : 'rgba(5, 150, 105, 0.90)';
+      tCtx.fill();
+      tCtx.lineWidth = 2;
+      tCtx.strokeStyle = '#ffffff';
+      tCtx.stroke();
+
+      const fontSize = Math.max(9, Math.round(baseR * (i >= 99 ? 0.78 : 0.92)));
+      tCtx.font = `900 ${fontSize}px sans-serif`;
+      tCtx.textAlign = 'center';
+      tCtx.textBaseline = 'middle';
+      tCtx.fillStyle = '#ffffff';
+      tCtx.fillText(String(i + 1), cx, cy);
+    }
+
+    // 3. 하단 검수 증명 스탬프 바 합성
+    tCtx.fillStyle = '#0f172a';
+    tCtx.fillRect(0, imgH, imgW, stampH);
+    tCtx.fillStyle = '#ffffff';
+    tCtx.font = 'bold 13px sans-serif';
+    tCtx.textAlign = 'left';
+    tCtx.textBaseline = 'middle';
+    const stampText = `[신세계약국 조제검수] 환자: ${pName}  |  약품: ${dName}  |  검수수량: ${totalCount}정  |  ${timeStr} (${uName})`;
+    tCtx.fillText(stampText, 12, imgH + stampH / 2);
+
+    return thumbCanvas.toDataURL('image/jpeg', 0.82);
+  }
+
   async function saveCurrentInspection() {
     onTextMetaInput();
 
@@ -1257,43 +1323,27 @@ window.PillCounterModule = (function () {
     const now = new Date();
     const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+    // ⚡ 중요: 화면 리렌더링 전에 원본 이미지 + 번호 마커(1~N)가 찍힌 증거 이미지를 먼저 생성!
+    let jpgData = '';
+    try {
+      jpgData = buildMarkedEvidenceJpeg(pName, dName, totalCount, timeStr, uName);
+    } catch (e) {}
+
     isSavingCloud = true;
     render('module-content');
 
-    let cloudPhotoUrl = '';
+    let cloudPhotoUrl = jpgData;
     try {
-      const canvas = document.getElementById('pc-main-canvas');
-      if (canvas && window.App && typeof window.App.uploadPhotoToCloudinary === 'function') {
-        const sc = Math.min(1, 760 / Math.max(canvas.width, canvas.height));
-        const imgW = Math.round(canvas.width * sc);
-        const imgH = Math.round(canvas.height * sc);
-        const stampH = 44;
-
-        const thumbCanvas = document.createElement('canvas');
-        thumbCanvas.width = imgW;
-        thumbCanvas.height = imgH + stampH;
-        const tCtx = thumbCanvas.getContext('2d');
-
-        tCtx.drawImage(canvas, 0, 0, imgW, imgH);
-
-        tCtx.fillStyle = '#0f172a';
-        tCtx.fillRect(0, imgH, imgW, stampH);
-        tCtx.fillStyle = '#ffffff';
-        tCtx.font = 'bold 13px sans-serif';
-        tCtx.textBaseline = 'middle';
-        const stampText = `[신세계약국 조제검수] 환자: ${pName}  |  약품: ${dName}  |  검수수량: ${totalCount}정  |  ${timeStr} (${uName})`;
-        tCtx.fillText(stampText, 12, imgH + stampH / 2);
-
-        const jpgData = thumbCanvas.toDataURL('image/jpeg', 0.80);
-        const uploaded = await window.App.uploadPhotoToCloudinary(jpgData);
-        if (uploaded && uploaded.startsWith('http')) {
+      // ⚡ app.js의 공식 Cloudinary + ImgBB 파이프라인(processAndUploadPhoto) 호출
+      if (jpgData && window.App && typeof window.App.processAndUploadPhoto === 'function') {
+        const uploaded = await window.App.processAndUploadPhoto(jpgData);
+        if (uploaded) {
           cloudPhotoUrl = uploaded;
         }
       }
     } catch (e) {}
 
-    const list = getHistoryList();
-    list.unshift({
+    const newRecord = {
       id: 'pch_' + Date.now(),
       createdAt: Date.now(),
       patientName: pName,
@@ -1303,10 +1353,41 @@ window.PillCounterModule = (function () {
       userName: uName,
       timeStr,
       photoUrl: cloudPhotoUrl
-    });
+    };
+
+    const list = getHistoryList();
+    list.unshift(newRecord);
     saveHistoryList(list);
 
     isSavingCloud = false;
+    render('module-content');
+  }
+
+  async function attachCurrentPhotoToRecord(recordId) {
+    if (!loadedImage || isSavingCloud) return;
+    const list = getHistoryList();
+    const idx = list.findIndex(item => item.id === recordId);
+    if (idx < 0) return;
+
+    const rec = list[idx];
+    const totalCount = markers.length > 0 ? markers.length : rec.totalCount;
+    const jpgData = buildMarkedEvidenceJpeg(rec.patientName, rec.drugName, totalCount, rec.timeStr, rec.userName);
+    if (!jpgData) return;
+
+    isSavingCloud = true;
+    let cloudPhotoUrl = jpgData;
+    try {
+      if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
+        const uploaded = await window.App.processAndUploadPhoto(jpgData);
+        if (uploaded) cloudPhotoUrl = uploaded;
+      }
+    } catch (e) {}
+    isSavingCloud = false;
+
+    list[idx].photoUrl = cloudPhotoUrl;
+    if (markers.length > 0) list[idx].totalCount = markers.length;
+    saveHistoryList(list);
+    previewRecord = list[idx];
     render('module-content');
   }
 
@@ -1509,6 +1590,7 @@ window.PillCounterModule = (function () {
     addCurrentToBatch,
     clearBatches,
     saveCurrentInspection,
+    attachCurrentPhotoToRecord,
     clearHistory,
     openAiSettingsModal,
     closeAiSettingsModal,

@@ -42,6 +42,7 @@ window.SheetsSync = (function () {
     'supplies-module',
     'medicine-location-module',
     'rx-medicine-location-module',
+    'pill-counter-module',
     'pharmacy-exchange-module',
     'patient-orders-module',
     'expiry-returns-module',
@@ -943,7 +944,7 @@ window.SheetsSync = (function () {
                 : (Array.isArray(u.allowedTabs) ? [...u.allowedTabs] : [...ALL_COMMON_TABS]));
 
           // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
-          ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+          ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
             if (!currentAllowed.includes(mTab)) currentAllowed.push(mTab);
           });
 
@@ -1053,7 +1054,7 @@ window.SheetsSync = (function () {
     
     let finalTabs = Array.isArray(allowedTabs) ? [...allowedTabs] : [];
     // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
-    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+    ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
       if (!finalTabs.includes(mTab)) finalTabs.push(mTab);
     });
 
@@ -1142,7 +1143,7 @@ window.SheetsSync = (function () {
         ? [...permMap[e.id]]
         : (Array.isArray(e.allowedTabs) ? [...e.allowedTabs] : [...ALL_COMMON_TABS]);
       // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
-      ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+      ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
         if (!allowed.includes(mTab)) allowed.push(mTab);
       });
       return { ...e, allowedTabs: allowed };
@@ -2698,14 +2699,14 @@ window.SheetsSync = (function () {
             if (cTime > lTime || (cTime === lTime && (!permMap[k] || permMap[k].length === 0))) {
               let cTabs = Array.isArray(cloudData.empPermissions[k]) ? [...cloudData.empPermissions[k]] : [];
               // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
-              ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+              ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
                 if (!cTabs.includes(mTab)) cTabs.push(mTab);
               });
               permMap[k] = cTabs;
               permMap[k + '_updatedAt'] = cTime;
             } else {
               if (Array.isArray(permMap[k])) {
-                ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+                ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
                   if (!permMap[k].includes(mTab)) permMap[k].push(mTab);
                 });
               }
@@ -2734,7 +2735,7 @@ window.SheetsSync = (function () {
             const isDir = (id === 'emp_1') || (ce.role === '약국장') || (ce.position === '대표약사') || (ce.position === '대표') || (ce.username === 'garuemma@naver.com');
             if (isDir) return { ...ce, role: '약국장', allowedTabs: [...ALL_SYSTEM_TABS] };
             let allowed = Array.isArray(permMap[id]) ? [...permMap[id]] : (Array.isArray(ce.allowedTabs) ? [...ce.allowedTabs] : [...ALL_COMMON_TABS]);
-            ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+            ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
               if (!allowed.includes(mTab)) allowed.push(mTab);
             });
             permMap[id] = allowed;
@@ -2762,7 +2763,7 @@ window.SheetsSync = (function () {
             : (Array.isArray(chosen.allowedTabs) ? [...chosen.allowedTabs] : [...ALL_COMMON_TABS]);
 
           // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
-          ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+          ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
             if (!targetAllowed.includes(mTab)) targetAllowed.push(mTab);
           });
 

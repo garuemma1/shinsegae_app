@@ -14,6 +14,7 @@ window.App = (function () {
     'patient-orders': '📋 환자 예약·미출 & 고객문자',
     'medicine-location': '💊 일반약 위치 관리 & 위치 검색',
     'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
+    'pill-counter': '🔢 스마트 알약 카운터 & 조제 검수기',
     'pharmacy-exchange': '💊 인근약국 교품 & 불용재고 대장',
     'expiry-returns': '⏳ 유효기간 & 제약사 반품 대장',
     'schedule': '📅 월간 근무 스케줄',
@@ -34,6 +35,7 @@ window.App = (function () {
     'patient-orders': 'fa-clipboard-list',
     'medicine-location': 'fa-boxes-packing',
     'rx-medicine-location': 'fa-pills',
+    'pill-counter': 'fa-calculator',
     'pharmacy-exchange': 'fa-handshake',
     'expiry-returns': 'fa-hourglass-half',
     'schedule': 'fa-calendar-alt',
@@ -718,11 +720,11 @@ window.App = (function () {
 
     // 맞춤 허용 탭 목록 (개인별 권한) - 약국장 수동 설정 100% 보존
     let allowed = Array.isArray(currUser.allowedTabs) ? [...currUser.allowedTabs] : [
-      'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module',
+      'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module', 'medicine-location-module', 'rx-medicine-location-module', 'pill-counter-module',
       'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
     // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
-    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+    ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
       if (!allowed.includes(mTab)) allowed.push(mTab);
     });
 
@@ -806,6 +808,17 @@ window.App = (function () {
             ${badges['rx-medicine-location'] ? `<span class="menu-item-badge">${badges['rx-medicine-location']}</span>` : ''}
           </div>
           <span>전문약(조제실) 위치 관리</span>
+        </button>
+      `;
+    }
+
+    if (isDirector || allowed.includes('pill-counter-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'pill-counter' ? 'active' : ''}" data-module="pill-counter" onclick="App.switchModule('pill-counter', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-calculator" style="color:#8b5cf6;"></i>
+          </div>
+          <span>스마트 알약 카운터</span>
         </button>
       `;
     }
@@ -1284,6 +1297,11 @@ window.App = (function () {
       case 'rx-medicine-location':
         if (window.RxMedicineLocationModule) window.RxMedicineLocationModule.render('module-content');
         break;
+      case 'pill-counter':
+        if (window.PillCounterModule) window.PillCounterModule.render('module-content');
+        break;
+        if (window.RxMedicineLocationModule) window.RxMedicineLocationModule.render('module-content');
+        break;
       case 'pharmacy-exchange':
         if (window.PharmacyExchangeModule) window.PharmacyExchangeModule.render('module-content');
         break;
@@ -1540,7 +1558,7 @@ window.App = (function () {
     if (!isDirector && curr) {
       let allowed = Array.isArray(curr.allowedTabs) ? [...curr.allowedTabs] : [];
       // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
-      ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+      ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
         if (!allowed.includes(mTab)) allowed.push(mTab);
       });
       const targetTabId = moduleName + '-module';

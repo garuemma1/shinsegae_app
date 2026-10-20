@@ -30,6 +30,7 @@ function Check-Brackets($filePath) {
     'c:\Users\win10\Desktop\shinsegae_app\building-rental-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\medicine-location-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\rx-medicine-location-module.js',
+    'c:\Users\win10\Desktop\shinsegae_app\pill-counter-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\pharmacy-exchange-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\supplies-module.js',
     'c:\Users\win10\Desktop\shinsegae_app\patient-orders-module.js',

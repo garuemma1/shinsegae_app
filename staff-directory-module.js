@@ -412,7 +412,7 @@ window.StaffDirectoryModule = (function () {
                             ]);
 
                     // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
-                    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+                    ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
                       if (!allowed.includes(mTab)) allowed.push(mTab);
                     });
 
@@ -423,6 +423,7 @@ window.StaffDirectoryModule = (function () {
                       { id: 'patient-orders-module', name: '📋 환자 예약 주문' },
                       { id: 'medicine-location-module', name: '💊 일반약 위치' },
                       { id: 'rx-medicine-location-module', name: '💉 전문약 위치' },
+                      { id: 'pill-counter-module', name: '🔢 스마트 알약 카운터' },
                       { id: 'pharmacy-exchange-module', name: '🤝 교품 & 불용재고' },
                       { id: 'expiry-returns-module', name: '⏳ 유효기간 & 반품' },
                       { id: 'schedule-module', name: '📅 근무 스케줄 & 급여' },
@@ -627,7 +628,7 @@ window.StaffDirectoryModule = (function () {
         if (cb.checked) newAllowed.push(cb.value);
       });
       // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
-      ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+      ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
         if (!newAllowed.includes(mTab)) newAllowed.push(mTab);
       });
       target.allowedTabs = newAllowed;
@@ -819,7 +820,7 @@ window.StaffDirectoryModule = (function () {
             ]);
 
     // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
-    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+    ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
       if (!allowed.includes(mTab)) allowed.push(mTab);
     });
 
@@ -844,7 +845,7 @@ window.StaffDirectoryModule = (function () {
     });
 
     // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
-    ['patient-orders-module', 'pharmacy-exchange-module'].forEach(mTab => {
+    ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
       if (!newAllowed.includes(mTab)) newAllowed.push(mTab);
     });
 
@@ -1106,7 +1107,7 @@ window.StaffDirectoryModule = (function () {
 
     const ALL_COMMON_TABS = [
       'notices-module', 'worklog-module', 'supplies-module', 'patient-orders-module',
-      'medicine-location-module', 'rx-medicine-location-module', 'pharmacy-exchange-module',
+      'medicine-location-module', 'rx-medicine-location-module', 'pill-counter-module', 'pharmacy-exchange-module',
       'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module',
       'rules-module', 'emergency-contacts-module'
     ];

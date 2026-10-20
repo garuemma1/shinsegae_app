@@ -8,6 +8,7 @@
 window.PillCounterModule = (function () {
   const HISTORY_STORAGE_KEY = 'ssg_pill_counter_history_v1';
   const GEMINI_KEY_STORAGE = 'ssg_pill_gemini_api_key_v1';
+  const WORKING_MODEL_STORAGE = 'ssg_pill_working_model_v1';
   const FIREBASE_AI_CONFIG_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillCounterConfig.json';
 
   // --- 상태 변수 ---
@@ -615,8 +616,101 @@ window.PillCounterModule = (function () {
   }
 
   // ============================================================================
-  // 🚀 [메인 엔진] Google Gemini 2.5 Flash Spatial Object Detection (box_2d)
+  // 🚀 [메인 엔진] Google Gemini Vision Spatial Object Detection (자동 최신 모델 탐색 + box_2d)
   // ============================================================================
+  async function discoverAvailableGeminiModels(apiKey) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      const models = Array.isArray(data.models) ? data.models : [];
+
+      const valid = [];
+      for (let i = 0; i < models.length; i++) {
+        const m = models[i];
+        const methods = Array.isArray(m.supportedGenerationMethods) ? m.supportedGenerationMethods : [];
+        if (!methods.includes('generateContent')) continue;
+        const id = String(m.name || '').replace(/^models\//, '');
+        if (!id.startsWith('gemini-')) continue;
+        if (/2\.0-flash|1\.5-|1\.0-|embedding|tts|audio|imagen|veo|aqa|bisheng|robotics|computer-use|learnlm|thinking/i.test(id)) continue;
+        valid.push(id);
+      }
+
+      // 최신 버전 Flash 모델을 최우선 정렬
+      valid.sort((a, b) => {
+        const aFlash = a.includes('flash') ? 1 : 0;
+        const bFlash = b.includes('flash') ? 1 : 0;
+        if (aFlash !== bFlash) return bFlash - aFlash;
+        return b.localeCompare(a);
+      });
+      return valid;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function callGeminiWithAutoFallback(apiKey, requestBody) {
+    const candidateSet = new Set();
+
+    // 1. 이전에 성공했던 모델 캐시 확인 (단, 지원 종료된 2.0은 제외)
+    try {
+      const cachedModel = localStorage.getItem(WORKING_MODEL_STORAGE);
+      if (cachedModel && !cachedModel.includes('2.0-flash')) {
+        candidateSet.add(cachedModel);
+      }
+    } catch (e) {}
+
+    // 2. 구글 공식 최신 별칭 및 주력 모델 추가
+    ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-3.0-flash', 'gemini-2.5-pro'].forEach(m => candidateSet.add(m));
+
+    // 3. 실시간 구글 서버 활성 모델 목록(/v1beta/models) 조회 후 병합
+    const discovered = await discoverAvailableGeminiModels(apiKey);
+    discovered.forEach(m => candidateSet.add(m));
+
+    const queue = Array.from(candidateSet);
+    const tried = new Set();
+    let lastErrorMsg = '사용 가능한 Gemini 비전 모델을 찾을 수 없습니다.';
+
+    while (queue.length > 0) {
+      const modelId = queue.shift();
+      if (!modelId || tried.has(modelId)) continue;
+      tried.add(modelId);
+
+      try {
+        const resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+          }
+        );
+
+        if (resp.ok) {
+          try { localStorage.setItem(WORKING_MODEL_STORAGE, modelId); } catch (e) {}
+          return await resp.json();
+        }
+
+        let errDetail = 'HTTP ' + resp.status;
+        try {
+          const errJson = await resp.json();
+          if (errJson?.error?.message) errDetail = errJson.error.message;
+        } catch (e) {}
+        lastErrorMsg = errDetail;
+
+        // 구글 에러 메시지가 특정 최신 모델(예: models/gemini-3.x-flash)을 안내한 경우 즉시 최우선 재시도!
+        const hintMatch = errDetail.match(/models\/([a-zA-Z0-9._-]+)/);
+        if (hintMatch && hintMatch[1] && !tried.has(hintMatch[1])) {
+          queue.unshift(hintMatch[1]);
+        }
+      } catch (netErr) {
+        lastErrorMsg = netErr.message || String(netErr);
+      }
+    }
+
+    throw new Error(lastErrorMsg);
+  }
+
   async function runGeminiAIVision(isManualTrigger = false) {
     if (!loadedImage) return;
     const apiKey = getGeminiApiKey();
@@ -664,36 +758,7 @@ window.PillCounterModule = (function () {
         }
       };
 
-      let resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
-        }
-      );
-
-      if (!resp.ok) {
-        resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-          }
-        );
-      }
-
-      if (!resp.ok) {
-        let errDetail = 'HTTP ' + resp.status;
-        try {
-          const errJson = await resp.json();
-          if (errJson?.error?.message) errDetail = errJson.error.message;
-        } catch (e) {}
-        throw new Error(errDetail);
-      }
-
-      const json = await resp.json();
+      const json = await callGeminiWithAutoFallback(apiKey, requestBody);
       let rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
@@ -714,9 +779,7 @@ window.PillCounterModule = (function () {
       lastScanMethod = 'AI_BOX2D';
       checkTargetMatchFeedback();
     } catch (err) {
-      if (isManualTrigger) {
-        alert('⚠️ Gemini AI 스캔 중 오류가 발생했습니다:\n' + (err.message || err));
-      }
+      alert('⚠️ Gemini AI 스캔 중 오류가 발생했습니다:\n' + (err.message || err));
     } finally {
       isAiScanning = false;
       render('module-content');

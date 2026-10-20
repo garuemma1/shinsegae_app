@@ -214,6 +214,10 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       try {
         if (window.SheetsSync && typeof window.SheetsSync.savePrescriptionShortages === 'function') {
           window.SheetsSync.savePrescriptionShortages(list);
+          if (window.App) {
+            if (typeof window.App.markPatientOrdersRead === 'function') window.App.markPatientOrdersRead();
+            if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
+          }
           return;
         }
         localStorage.setItem('ssg_prescription_shortages_v1', JSON.stringify(list));
@@ -239,6 +243,10 @@ if (typeof window.PatientOrdersModule === 'undefined') {
       try {
         if (window.SheetsSync && typeof window.SheetsSync.savePatientOrders === 'function') {
           window.SheetsSync.savePatientOrders(list);
+          if (window.App) {
+            if (typeof window.App.markPatientOrdersRead === 'function') window.App.markPatientOrdersRead();
+            if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
+          }
           return;
         }
         localStorage.setItem('ssg_patient_orders_v1', JSON.stringify(list));
@@ -420,14 +428,14 @@ if (typeof window.PatientOrdersModule === 'undefined') {
             <button type="button" onclick="PatientOrdersModule.setSubTab('SHORTAGE')" class="flex-1 min-w-[160px] sm:min-w-[180px] px-3.5 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 ${activeSubTab === 'SHORTAGE' ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">
               <i class="fas fa-pills"></i>
               <span>💊 처방약 미출약 관리</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${pendingShortages > 0 ? (activeSubTab === 'SHORTAGE' ? 'bg-white text-teal-700' : 'bg-rose-500 text-white') : 'bg-slate-200 text-slate-700'}">${shortages.length}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${pendingShortages > 0 ? (activeSubTab === 'SHORTAGE' ? 'bg-white text-teal-700' : 'bg-rose-500 text-white') : 'bg-slate-200 text-slate-700'}">${pendingShortages}</span>
             </button>
 
             <!-- 서브탭 2: 일반약·건기식 예약 주문 -->
             <button type="button" onclick="PatientOrdersModule.setSubTab('ORDER')" class="flex-1 min-w-[160px] sm:min-w-[180px] px-3.5 py-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 ${activeSubTab === 'ORDER' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">
               <i class="fas fa-box-archive"></i>
               <span>📦 일반약 예약·선결제</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${pendingOrders > 0 ? (activeSubTab === 'ORDER' ? 'bg-white text-indigo-700' : 'bg-rose-500 text-white') : 'bg-slate-200 text-slate-700'}">${orders.length}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${pendingOrders > 0 ? (activeSubTab === 'ORDER' ? 'bg-white text-indigo-700' : 'bg-rose-500 text-white') : 'bg-slate-200 text-slate-700'}">${pendingOrders}</span>
             </button>
 
             <!-- 서브탭 3: 고객 안내 문자 발송 센터 -->
@@ -1714,6 +1722,10 @@ ${escapeHTML(h.content)}
 
       if (window.SheetsSync && typeof window.SheetsSync.deletePrescriptionShortage === 'function') {
         window.SheetsSync.deletePrescriptionShortage(id);
+        if (window.App) {
+          if (typeof window.App.markPatientOrdersRead === 'function') window.App.markPatientOrdersRead();
+          if (typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
+        }
       } else {
         if (window.SheetsSync && typeof window.SheetsSync.addDeletedId === 'function') {
           window.SheetsSync.addDeletedId(id);

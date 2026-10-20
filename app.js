@@ -617,7 +617,8 @@ window.App = (function () {
       const patientOrdersList = (window.SheetsSync.getPatientOrders ? window.SheetsSync.getPatientOrders() : (data.patientOrders || [])) || [];
       const pendingPatientOrders = patientOrdersList.filter(o => o.status === 'ARRIVED' || o.status === 'PENDING_ORDER');
       const rxShortagesList = (window.SheetsSync.getPrescriptionShortages ? window.SheetsSync.getPrescriptionShortages() : (data.prescriptionShortages || [])) || [];
-      const pendingRxShortages = rxShortagesList.filter(s => s.status !== '5. 수령 완료');
+      const isOrderOrShortageCompleted = (st) => { const s = String(st || '').trim(); return s === 'COMPLETED' || s === '5. 수령 완료' || s === '수령완료'; };
+      const pendingRxShortages = rxShortagesList.filter(s => s && !isOrderOrShortageCompleted(s.status));
       const totalPendingOrdersAndShortages = pendingPatientOrders.length + pendingRxShortages.length;
       const hasUnreadPatientOrders = _hasUnreadPatientOrders(currUser, [...patientOrdersList, ...rxShortagesList]);
 
@@ -2612,6 +2613,7 @@ function writeSheetData(sheet, dataList) {
     markNoticesRead,
     markWorklogRead,
     markSuppliesRead,
+    markPatientOrdersRead,
     markMedicineLocationRead,
     markExpiryReturnsRead,
     markApprovalRead,

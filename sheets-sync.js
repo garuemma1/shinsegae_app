@@ -1922,6 +1922,7 @@ window.SheetsSync = (function () {
 
   function savePatientOrders(data) {
     safeSetItem(STORAGE_KEYS.PATIENT_ORDERS, JSON.stringify(data));
+    if (typeof window !== 'undefined' && window.App && typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
     pushToCloud();
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
@@ -1940,6 +1941,7 @@ window.SheetsSync = (function () {
     const deletedIds = getDeletedIds();
     const cleanData = (data || []).filter(item => item && !deletedIds.includes(item.id));
     safeSetItem(STORAGE_KEYS.PRESCRIPTION_SHORTAGES, JSON.stringify(cleanData));
+    if (typeof window !== 'undefined' && window.App && typeof window.App.updateSidebarBadgesOnly === 'function') window.App.updateSidebarBadgesOnly();
     pushToCloud();
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));

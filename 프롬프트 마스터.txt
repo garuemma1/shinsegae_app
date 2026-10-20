@@ -1039,3 +1039,12 @@
 
 3. [소모품 상태 변경(예: `요청 대기` ➔ `주문 진행중`) 및 내용 수정 시 사이드바 `N` 배지 즉시 점등]
    - `app.js`에 `_supplyFingerprint`, `markSuppliesRead`, `_hasUnreadSupplies`를 탑재하여, `PENDING` 건수가 있을 때는 대기 건수 숫자 배지를 표시하고, `PENDING` ➔ `ORDERED`(주문 완료/진행중) 또는 `COMPLETED`로 상태가 변경되거나 수량·내용이 수정되었을 때 미확인 직원의 사이드바에 즉시 **`N` 배지**가 점등되도록 한다(탭 클릭 진입 시 `markSuppliesRead()`로 소거).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+제 187 조 [환자 예약·미출 & 고객문자 수령완료(`COMPLETED`) 시 사이드바 숫자 배지 즉시 소거 철칙]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. [처방약 미출약 및 일반약 예약 미완료 건수 판별 시 `COMPLETED` 코드 기준 일치]
+   - `patient-orders-module.js`에서 `5. 수령 완료` 처리 시 실제 저장되는 상태 코드값은 `'COMPLETED'`이므로, `app.js`의 `computeNotificationBadges()`에서 미출약·예약 미완료 건수를 집계할 때 반드시 `status === 'COMPLETED'`(및 레거시 `'5. 수령 완료'`, `'수령완료'`)를 완료 건으로 인식하여 배지 숫자에서 즉시 제외한다.
+
+2. [수령완료·단계변경·삭제 즉시 `markPatientOrdersRead()` 및 `updateSidebarBadgesOnly()` 0.01초 동기화]
+   - `patient-orders-module.js`의 `saveShortagesData`, `saveOrdersData`, `deleteShortage` 및 `sheets-sync.js`의 `savePatientOrders`, `savePrescriptionShortages` 실행 직후 `window.App.markPatientOrdersRead()`와 `window.App.updateSidebarBadgesOnly()`를 즉시 호출하여, 수령 완료 전환 즉시 사이드바 숫자 배지와 서브탭 배지가 잔상 없이 소거되도록 보장한다.

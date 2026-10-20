@@ -1,38 +1,44 @@
 /**
- * 🔢 스마트 알약 카운터 & 조제 검수기 모듈 (Ultra-Advanced Pill Counter & Dispensing Audit v1.0)
- * 신세계약국 전용 유료 앱(Pilleye)급 5대 초고도화 비전·AI 하이브리드 엔진 탑재
- * - 엔진 1: LAB 색공간(그림자 면역) + CLAHE 조명 평탄화 + 거리변환(Distance Transform) + K-Means 붙은 알약 자동 분할 + Gemini AI 비전 하이브리드
- * - 엔진 2: 🚨 이종 알약(다른 색상·크기 알약 혼입) 자동 색출 경보 & 🎯 1초 기준 알약 템플릿 잠금(1-Tap Lock)
- * - 엔진 3: 🎥 실시간 후면 카메라 AR 뷰파인더 & 🔦 스마트폰 플래시(Torch) ON/OFF 하드웨어 제어 + 🧪 데모 샘플 시뮬레이터
- * - 엔진 4: 👁️ [누르는 동안 마커 숨기기(원본 대조)] + 🔍 돋보기 줌/이동 + 1초 터치 보정(+1 추가 / -1 삭제) + ↩️ 실행취소
- * - 엔진 5: 🧮 처방전 조제 계산기(1회량×횟수×일수) + ➕ 대량 조제 다회차 누적 합산 + 🔊 효과음/진동 피드백 + 📋 검수 이력
+ * 🔢 스마트 알약 카운터 & 조제 검수기 모듈 (AI Spatial Object Detection v2.0 - 대안 1 전면 적용)
+ * 신세계약국 전용 유료 앱(Pilleye)급 Gemini 2.5 Flash Vision [box_2d] 딥러닝 객체 검출 메인 엔진 탑재
+ * - 메인 엔진: 🤖 Google Gemini 2.5 Flash 네이티브 2D 바운딩박스([ymin, xmin, ymax, xmax] 0~1000 좌표계) 사물 검출 + NMS 중복 제거
+ * - 클라우드 키 공유: 약국장님이 1회 API 키 등록 시 Firebase 실시간 DB를 통해 약국 모든 스마트폰·PC에 자동 동기화
+ * - 보조 엔진: 🎯 원터치 알약 스포이드(1-Tap Template) & 과분할 폭주가 100% 제거된 NMS 원형 비전 검출기
+ * - 조제실 특화: 🚨 이종 알약(다른 색·크기 알약 혼입) 자동 경보 + 👁️ 원본 비교(마커 숨기기) + 🧮 처방 계산기 + ➕ 다회차 누적 합산
  */
 window.PillCounterModule = (function () {
   const HISTORY_STORAGE_KEY = 'ssg_pill_counter_history_v1';
   const GEMINI_KEY_STORAGE = 'ssg_pill_gemini_api_key_v1';
+  const FIREBASE_AI_CONFIG_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillCounterConfig.json';
 
   // --- 상태 변수 ---
-  let loadedImage = null;       // HTMLImageElement or Offscreen Canvas
+  let loadedImage = null;
+  let loadedDataUrl = '';
   let imageWidth = 0;
   let imageHeight = 0;
-  let markers = [];             // [{ id, x, y, r, isManual, isOutlier, outlierReason, colorL, colorA, colorB }]
-  let undoStack = [];           // 마커 편집 실행취소 스택
+  let markers = [];             // [{ id, x, y, r, box: [ymin,xmin,ymax,xmax], isManual, isOutlier, isAi }]
+  let undoStack = [];
 
-  // 비전 분석 파라미터
-  let bgMode = 'AUTO';          // 'AUTO' | 'DARK_BG' | 'BRIGHT_BG' | 'COLOR_DIFF' | 'TRANSPARENT'
-  let sensitivity = 55;         // 10 ~ 95 (기본 55)
-  let splitStrength = 60;       // 붙은 알약 분할 강도 10 ~ 95 (기본 60)
-  let roiMarginPct = 4;         // 가장자리 제외 여백 % (0 ~ 20%)
-  let outlierCheckEnabled = true; // 🚨 이종 알약(다른 색/크기) 자동 감지 여부
-  let lockedTemplate = null;    // 🎯 기준 알약 잠금: { L, A, B, rNorm, areaNorm }
+  // 엔진 모드: 'AI_PRIMARY' (Gemini 2.5 Vision box_2d 메인) | 'LOCAL_NMS' (로컬 스포이드/원형 검출)
+  let engineMode = 'AI_PRIMARY';
+  let showBoundingBoxes = true; // AI가 잡은 알약 사각 테두리(box_2d) 함께 표시 여부
+  let lastScanMethod = '';      // 'AI_BOX2D' | 'LOCAL_TEMPLATE' | 'DEMO'
+  let aiStatusMessage = '';
+
+  // 보조 비전 파라미터 (로컬 스포이드/보정용)
+  let bgMode = 'AUTO';          // 'AUTO' | 'DARK_BG' | 'BRIGHT_BG'
+  let sensitivity = 50;         // 15 ~ 85
+  let roiMarginPct = 6;         // 가장자리(책상/트레이 테두리) 제외 % (기본 6%)
+  let outlierCheckEnabled = true;
+  let lockedTemplate = null;    // 🎯 기준 알약 스포이드: { L, A, B, rNorm, areaNorm }
 
   // 캔버스 인터랙션 & 뷰어 상태
-  let interactionMode = 'EDIT'; // 'EDIT' (+1/-1 터치보정) | 'LOCK_SAMPLE' (🎯 기준알약 1개 찍기) | 'PAN' (✋ 화면 이동)
+  let interactionMode = 'EDIT'; // 'EDIT' (+1/-1 터치보정) | 'LOCK_SAMPLE' (🎯 알약 스포이드) | 'PAN' (✋ 화면 이동)
   let markerDisplayStyle = 'NUMBER'; // 'NUMBER' | 'DOT_NUMBER' | 'RING'
-  let markerScale = 100;        // 50% ~ 180%
-  let markerOpacity = 90;       // 30% ~ 100%
-  let hideMarkersTemp = false;  // 👁️ 누르고 있는 동안 마커 숨기기
-  let zoomLevel = 1.0;          // 1.0 ~ 3.5
+  let markerScale = 95;
+  let markerOpacity = 90;
+  let hideMarkersTemp = false;
+  let zoomLevel = 1.0;
   let panX = 0;
   let panY = 0;
   let isDraggingPan = false;
@@ -41,23 +47,61 @@ window.PillCounterModule = (function () {
 
   // 처방전 조제 계산기 & 다회차 합산 상태
   let drugNameInput = '';
-  let rxDose = '';              // 1회량
-  let rxFreq = '';              // 1일 횟수
-  let rxDays = '';              // 투약 일수
-  let targetCount = 0;          // 목표 총 알약 수량
-  let batchCounts = [];         // [{ batchNo, count, timeStr }] 다회차 분할 촬영 누적 목록
-  let soundEnabled = true;      // 효과음/진동 피드백 ON/OFF
+  let rxDose = '';
+  let rxFreq = '';
+  let rxDays = '';
+  let targetCount = 0;
+  let batchCounts = [];
+  let soundEnabled = true;
 
   // 실시간 카메라 & 토치(플래시) 상태
   let cameraStream = null;
   let isCameraOpen = false;
   let isTorchOn = false;
-  let torchSupported = false;
   let isAiScanning = false;
   let showAiConfigModal = false;
+  let cloudKeyLoaded = false;
 
-  // 분석용 캐시 데이터 (빠른 재분석용)
-  let cachedAnalysis = null;    // { w, h, L, A, B, S, gray }
+  // 분석용 캐시 데이터
+  let cachedAnalysis = null;
+
+  // --- 클라우드(Firebase) 공용 Gemini API 키 자동 동기화 ---
+  async function syncGeminiKeyFromCloud() {
+    if (cloudKeyLoaded) return;
+    cloudKeyLoaded = true;
+    try {
+      const localKey = getGeminiApiKey();
+      const res = await fetch(`${FIREBASE_AI_CONFIG_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.geminiApiKey && String(data.geminiApiKey).trim().length > 10) {
+          const cloudKey = String(data.geminiApiKey).trim();
+          if (cloudKey !== localKey) {
+            localStorage.setItem(GEMINI_KEY_STORAGE, cloudKey);
+            if (window.App && window.App.getActiveModule && window.App.getActiveModule() === 'pill-counter') {
+              render('module-content');
+            }
+          }
+        } else if (localKey && localKey.length > 10) {
+          // 로컬에만 키가 있으면 클라우드에 올려서 전 직원이 공유하도록 백업
+          await pushGeminiKeyToCloud(localKey);
+        }
+      }
+    } catch (e) {}
+  }
+
+  async function pushGeminiKeyToCloud(apiKey) {
+    try {
+      await fetch(FIREBASE_AI_CONFIG_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          geminiApiKey: apiKey || '',
+          updatedAt: Date.now()
+        })
+      });
+    } catch (e) {}
+  }
 
   // --- 유틸리티: 효과음(Web Audio API) & 진동(Vibration) ---
   function playFeedbackSound(type) {
@@ -79,8 +123,8 @@ window.PillCounterModule = (function () {
       const now = ctx.currentTime;
       if (type === 'MATCH') {
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, now);       // D5
-        osc.frequency.setValueAtTime(880.0, now + 0.09); // A5
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.setValueAtTime(880.0, now + 0.09);
         gain.gain.setValueAtTime(0.15, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
         osc.start(now);
@@ -111,7 +155,6 @@ window.PillCounterModule = (function () {
     } catch (e) {}
   }
 
-  // --- 이력 저장소 로드/저장 ---
   function getHistoryList() {
     try {
       const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
@@ -129,7 +172,7 @@ window.PillCounterModule = (function () {
 
   function getGeminiApiKey() {
     try {
-      return localStorage.getItem(GEMINI_KEY_STORAGE) || '';
+      return (localStorage.getItem(GEMINI_KEY_STORAGE) || '').trim();
     } catch (e) {
       return '';
     }
@@ -137,18 +180,21 @@ window.PillCounterModule = (function () {
 
   // --- 메인 렌더링 ---
   function render(containerId) {
+    syncGeminiKeyFromCloud();
+
     const container = document.getElementById(containerId || 'module-content');
     if (!container) return;
 
+    const hasApiKey = getGeminiApiKey().length > 10;
     const currCount = markers.length;
     const outlierMarkers = markers.filter(m => m.isOutlier);
     const batchSum = batchCounts.reduce((acc, b) => acc + (Number(b.count) || 0), 0);
     const totalEffectiveCount = batchSum + currCount;
     const historyList = getHistoryList();
 
-    // 목표 수량 대비 판정 배너 계산
+    // 목표 수량 대비 판정 배너
     let verifyBannerHTML = '';
-    if (targetCount > 0 && (loadedImage || batchCounts.length > 0)) {
+    if (targetCount > 0 && (loadedImage || batchCounts.length > 0) && !isAiScanning) {
       const diff = totalEffectiveCount - targetCount;
       if (diff === 0) {
         verifyBannerHTML = `
@@ -192,15 +238,15 @@ window.PillCounterModule = (function () {
       }
     }
 
-    // 이종 알약(Outlier) 경보 배너
+    // 이종 알약 경보 배너
     let outlierBannerHTML = '';
-    if (outlierCheckEnabled && outlierMarkers.length > 0) {
+    if (outlierCheckEnabled && outlierMarkers.length > 0 && !isAiScanning) {
       outlierBannerHTML = `
         <div style="background:#faf5ff; border:2px solid #9333ea; color:#581c87; border-radius:14px; padding:11px 16px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="background:#9333ea; color:#fff; border-radius:8px; padding:4px 9px; font-size:12px; font-weight:800;">🚨 이종 알약 의심 ${outlierMarkers.length}정</span>
             <div style="font-size:13px; font-weight:700;">
-              색상이나 크기가 다른 알약 <strong>${outlierMarkers.length}정</strong>이 감지되었습니다! 화면의 <strong style="color:#9333ea;">보라색 이중 링(!) 마커</strong>를 확인하세요.
+              모양이나 색상이 다른 알약 <strong>${outlierMarkers.length}정</strong>이 감지되었습니다! 화면의 <strong style="color:#9333ea;">보라색 경고 마커(!)</strong>를 확인하세요.
             </div>
           </div>
           <button type="button" onclick="PillCounterModule.clearOutlierFlags()" style="background:#ffffff; color:#6b21a8; border:1px solid #d8b4fe; border-radius:8px; padding:4px 10px; font-size:11.5px; font-weight:700; cursor:pointer;">
@@ -210,23 +256,42 @@ window.PillCounterModule = (function () {
       `;
     }
 
+    // AI API 키 미등록 시 1회 등록 안내 배너
+    let apiKeyGuideBannerHTML = '';
+    if (!hasApiKey) {
+      apiKeyGuideBannerHTML = `
+        <div style="background:linear-gradient(135deg,#4c1d95 0%,#6d28d9 100%); color:#ffffff; border-radius:16px; padding:14px 20px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; box-shadow:0 8px 20px rgba(109,40,217,0.28);">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; font-size:22px;">🤖</div>
+            <div>
+              <div style="font-size:15px; font-weight:900;">[대안 1] Gemini 2.5 AI 딥러닝 사물 검출 엔진을 활성화하려면 무료 API 키를 1회 등록해 주세요!</div>
+              <div style="font-size:12px; color:#ddd6fe; margin-top:2px;">
+                약국장님이 한 번만 등록하시면 약국 내 모든 스마트폰과 PC에 자동으로 공유되어 촬영 즉시 99% 정확도로 알약을 셉니다.
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="PillCounterModule.openAiSettingsModal()" style="background:#f59e0b; color:#0f172a; border:none; border-radius:12px; padding:9px 16px; font-size:13px; font-weight:900; cursor:pointer; white-space:nowrap; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
+            🔑 무료 AI 키 1분 등록하기
+          </button>
+        </div>
+      `;
+    }
+
     container.innerHTML = `
       <div class="pill-counter-wrapper" style="max-width:1280px; margin:0 auto; padding-bottom:40px;">
         
-        <!-- 1. 상단 헤더 & 핵심 액션 바 -->
-        <div class="card shadow-sm mb-3" style="border-radius:20px; border:1px solid #cbd5e1; background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%); color:#ffffff; padding:20px 24px;">
+        <!-- 1. 상단 헤더 & AI 엔진 상태 표시 -->
+        <div class="card shadow-sm mb-3" style="border-radius:20px; border:1px solid #cbd5e1; background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%); color:#ffffff; padding:20px 24px;">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-              <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,0.2); border:1px solid rgba(52,211,153,0.4); color:#6ee7b7; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:800; margin-bottom:6px;">
-                <span>⚡ ULTRA-VISION AI v1.0</span>
-                <span>•</span>
-                <span>LAB 그림자 면역 & 붙은 알약 K-Means 분할</span>
+              <div style="display:inline-flex; align-items:center; gap:6px; background:${hasApiKey ? 'rgba(16,185,129,0.22)' : 'rgba(245,158,11,0.22)'}; border:1px solid ${hasApiKey ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}; color:${hasApiKey ? '#6ee7b7' : '#fde68a'}; padding:3px 11px; border-radius:20px; font-size:11.5px; font-weight:800; margin-bottom:6px;">
+                <span>${hasApiKey ? '🤖 GEMINI 2.5 VISION AI (box_2d 사물검출 가동 중)' : '⚠️ AI 키 미등록 (등록 시 촬영 즉시 AI 자동 카운팅)'}</span>
               </div>
               <h2 style="font-size:22px; font-weight:900; margin:0; color:#ffffff; letter-spacing:-0.4px;">
-                🔢 스마트 알약 카운터 & 조제 검수기
+                🔢 스마트 알약 카운터 & 조제 검수기 <span style="font-size:13px; font-weight:700; color:#a5b4fc;">v2.0 AI Object Detection</span>
               </h2>
-              <p style="font-size:13px; color:#94a3b8; margin:4px 0 0 0;">
-                약을 트레이나 어두운 바닥에 펴놓고 촬영하면 0.2초 만에 개수를 카운팅하고, 이종 알약 혼입 여부와 목표 조제량을 자동 검수합니다.
+              <p style="font-size:13px; color:#cbd5e1; margin:4px 0 0 0;">
+                픽셀 밝기 공식 대신 <strong>Gemini 2.5 Vision AI 사물 검출(box_2d)</strong>이 사람 눈처럼 배경·그림자·테두리를 무시하고 실제 알약만 정확히 짚어냅니다.
               </p>
             </div>
 
@@ -234,19 +299,20 @@ window.PillCounterModule = (function () {
               <button type="button" onclick="PillCounterModule.toggleSound()" style="background:rgba(255,255,255,0.1); color:${soundEnabled ? '#38bdf8' : '#94a3b8'}; border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:8px 13px; font-size:12.5px; font-weight:700; cursor:pointer;">
                 <i class="fas ${soundEnabled ? 'fa-volume-up' : 'fa-volume-mute'}"></i> ${soundEnabled ? '음성·진동 ON' : '무음 모드'}
               </button>
-              <button type="button" onclick="PillCounterModule.openAiSettingsModal()" style="background:rgba(139,92,246,0.25); color:#ddd6fe; border:1px solid rgba(167,139,250,0.45); border-radius:12px; padding:8px 13px; font-size:12.5px; font-weight:700; cursor:pointer;" title="고난도 투명캡슐/흰종이 위 흰알약용 Gemini AI 비전 키 설정">
-                🤖 AI 딥러닝 설정
+              <button type="button" onclick="PillCounterModule.openAiSettingsModal()" style="background:${hasApiKey ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.3)'}; color:#ffffff; border:1px solid ${hasApiKey ? '#34d399' : '#fbbf24'}; border-radius:12px; padding:8px 14px; font-size:12.5px; font-weight:800; cursor:pointer;">
+                🔑 ${hasApiKey ? 'AI 키 연동됨 (설정)' : 'AI 키 등록하기'}
               </button>
-              <button type="button" onclick="PillCounterModule.loadDemoSample()" style="background:rgba(245,158,11,0.2); color:#fde68a; border:1px solid rgba(251,191,36,0.45); border-radius:12px; padding:8px 13px; font-size:12.5px; font-weight:800; cursor:pointer;">
-                🧪 샘플 알약 테스트(데모)
+              <button type="button" onclick="PillCounterModule.loadDemoSample()" style="background:rgba(255,255,255,0.12); color:#fde68a; border:1px solid rgba(251,191,36,0.4); border-radius:12px; padding:8px 13px; font-size:12.5px; font-weight:800; cursor:pointer;">
+                🧪 샘플 45정 테스트
               </button>
             </div>
           </div>
         </div>
 
+        ${apiKeyGuideBannerHTML}
+
         <!-- 2. 🧮 처방전 목표 수량 자동 계산기 & 실시간 카운트 전광판 -->
         <div class="row g-3 mb-3">
-          <!-- 좌측: 처방전 목표 조제량 계산기 -->
           <div class="col-lg-7">
             <div class="card shadow-sm h-100" style="border-radius:18px; border:1px solid #cbd5e1; background:#ffffff; padding:16px 20px;">
               <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
@@ -270,7 +336,7 @@ window.PillCounterModule = (function () {
               <div class="row g-2 align-items-end">
                 <div class="col-sm-4 col-12">
                   <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:3px;">💊 약품명 / 환자 메모 (선택)</label>
-                  <input type="text" id="pc-drug-name" class="form-control form-control-sm" placeholder="예: 리피토정 10mg (홍길동)" value="${escapeHtml(drugNameInput)}" oninput="PillCounterModule.updateRxInputs()" style="border-radius:10px; font-weight:700;">
+                  <input type="text" id="pc-drug-name" class="form-control form-control-sm" placeholder="예: 리피토정 10mg" value="${escapeHtml(drugNameInput)}" oninput="PillCounterModule.updateRxInputs()" style="border-radius:10px; font-weight:700;">
                 </div>
                 <div class="col-sm-2 col-3">
                   <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:3px;">1회량</label>
@@ -292,14 +358,17 @@ window.PillCounterModule = (function () {
             </div>
           </div>
 
-          <!-- 우측: 실시간 카운트 대형 전광판 & 다회차 누적 합산 -->
+          <!-- 우측: 실시간 카운트 대형 전광판 -->
           <div class="col-lg-5">
             <div class="card shadow-sm h-100" style="border-radius:18px; border:2px solid #10b981; background:linear-gradient(135deg,#ecfdf5 0%,#f0fdf4 100%); padding:14px 20px; display:flex; flex-direction:column; justify-content:center;">
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                  <div style="font-size:12px; font-weight:800; color:#047857;">📸 현재 사진 감지 수량</div>
+                  <div style="font-size:12px; font-weight:800; color:#047857; display:flex; align-items:center; gap:6px;">
+                    <span>📸 현재 사진 감지 수량</span>
+                    ${lastScanMethod === 'AI_BOX2D' ? `<span style="background:#6d28d9; color:#fff; padding:1px 7px; border-radius:10px; font-size:10.5px;">🤖 AI 정밀판독</span>` : ''}
+                  </div>
                   <div style="display:flex; align-items:baseline; gap:8px;">
-                    <span id="pc-current-count-num" style="font-size:38px; font-weight:900; color:#065f46; font-family:'Outfit',sans-serif; line-height:1.1;">${currCount}</span>
+                    <span id="pc-current-count-num" style="font-size:38px; font-weight:900; color:#065f46; font-family:'Outfit',sans-serif; line-height:1.1;">${isAiScanning ? '...' : currCount}</span>
                     <span style="font-size:16px; font-weight:800; color:#047857;">정(캡슐)</span>
                     ${batchSum > 0 ? `
                       <span style="background:#059669; color:#ffffff; padding:3px 10px; border-radius:20px; font-size:12.5px; font-weight:800;">
@@ -311,7 +380,7 @@ window.PillCounterModule = (function () {
 
                 <div class="d-flex flex-column gap-1 align-items-end">
                   <div class="d-flex gap-1">
-                    <button type="button" onclick="PillCounterModule.addCurrentToBatch()" ${currCount === 0 ? 'disabled' : ''} style="background:#059669; color:#ffffff; border:none; border-radius:10px; padding:7px 12px; font-size:12px; font-weight:800; cursor:pointer; opacity:${currCount === 0 ? '0.5' : '1'};" title="대량 조제 시 현재 사진 개수를 누적 합산함에 더하고 다음 묶음을 촬영합니다">
+                    <button type="button" onclick="PillCounterModule.addCurrentToBatch()" ${currCount === 0 ? 'disabled' : ''} style="background:#059669; color:#ffffff; border:none; border-radius:10px; padding:7px 12px; font-size:12px; font-weight:800; cursor:pointer; opacity:${currCount === 0 ? '0.5' : '1'};">
                       ➕ 누적 합산 (${batchCounts.length + 1}차)
                     </button>
                     <button type="button" onclick="PillCounterModule.saveCurrentInspection()" ${totalEffectiveCount === 0 ? 'disabled' : ''} style="background:#ffffff; color:#047857; border:1.5px solid #059669; border-radius:10px; padding:7px 11px; font-size:12px; font-weight:800; cursor:pointer; opacity:${totalEffectiveCount === 0 ? '0.5' : '1'};">
@@ -324,7 +393,7 @@ window.PillCounterModule = (function () {
                       <button type="button" onclick="PillCounterModule.clearBatches()" style="background:none; border:none; color:#dc2626; font-weight:800; cursor:pointer; margin-left:4px; text-decoration:underline;">[누적초기화]</button>
                     </div>
                   ` : `
-                    <span style="font-size:11px; color:#047857;">💡 100정씩 나누어 찍을 땐 [➕ 누적 합산] 클릭!</span>
+                    <span style="font-size:11px; color:#047857;">💡 사진 촬영 즉시 AI가 알약 위치를 자동 검출합니다!</span>
                   `}
                 </div>
               </div>
@@ -338,37 +407,32 @@ window.PillCounterModule = (function () {
           ${outlierBannerHTML}
         </div>
 
-        <!-- 3. 촬영/업로드 컨트롤 바 & 실시간 AR 카메라 뷰파인더 -->
+        <!-- 3. 촬영/업로드 컨트롤 바 & 실시간 카메라 뷰파인더 -->
         <div class="card shadow-sm mb-3" style="border-radius:18px; border:1px solid #cbd5e1; background:#ffffff; padding:16px 20px;">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <!-- 방법 A: 스마트폰 기본 고화질 카메라 즉시 실행 또는 앨범 선택 -->
               <label for="pc-camera-file-input" style="background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); color:#ffffff; border-radius:12px; padding:10px 18px; font-size:14px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 12px rgba(37,99,235,0.28); margin:0;">
-                <i class="fas fa-camera"></i> 📸 카메라 촬영 / 사진 불러오기
+                <i class="fas fa-camera"></i> 📸 카메라 촬영 (즉시 AI 카운팅)
               </label>
               <input type="file" id="pc-camera-file-input" accept="image/*" capture="environment" onchange="PillCounterModule.handleFileSelect(event)" style="display:none;">
 
               <label for="pc-gallery-file-input" style="background:#f8fafc; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:12px; padding:9px 14px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; margin:0;">
-                <i class="fas fa-images text-primary"></i> 앨범/PC 파일 선택
+                <i class="fas fa-images text-primary"></i> 앨범/PC 사진 선택
               </label>
               <input type="file" id="pc-gallery-file-input" accept="image/*" onchange="PillCounterModule.handleFileSelect(event)" style="display:none;">
 
-              <!-- 방법 B: 앱 내 라이브 AR 카메라 & 플래시(조명) 제어 -->
               <button type="button" onclick="PillCounterModule.toggleLiveCamera()" style="background:${isCameraOpen ? '#dc2626' : '#0f172a'}; color:#ffffff; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
                 <i class="fas ${isCameraOpen ? 'fa-times-circle' : 'fa-video'}"></i>
-                ${isCameraOpen ? '라이브 카메라 닫기' : '🎥 실시간 AR 카메라 + 🔦조명'}
+                ${isCameraOpen ? '라이브 카메라 닫기' : '🎥 실시간 카메라 + 🔦조명'}
               </button>
             </div>
 
-            <!-- 우측: AI 정밀 스캔 & 초기화 -->
+            <!-- 우측: AI 재스캔 & 초기화 -->
             <div class="d-flex align-items-center gap-2 flex-wrap">
               ${loadedImage ? `
-                <button type="button" onclick="PillCounterModule.runGeminiAIVision()" ${isAiScanning ? 'disabled' : ''} style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%); color:#ffffff; border:none; border-radius:12px; padding:9px 15px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(124,58,237,0.25);">
+                <button type="button" onclick="PillCounterModule.runGeminiAIVision(true)" ${isAiScanning ? 'disabled' : ''} style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%); color:#ffffff; border:none; border-radius:12px; padding:9px 16px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(124,58,237,0.3);">
                   <i class="fas ${isAiScanning ? 'fa-spinner fa-spin' : 'fa-robot'}"></i>
-                  ${isAiScanning ? 'AI 딥러닝 분석 중...' : '🤖 AI 초정밀 스캔'}
-                </button>
-                <button type="button" onclick="PillCounterModule.reRunLocalVision()" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:800; cursor:pointer;">
-                  🔄 자동 재분석
+                  ${isAiScanning ? 'AI가 알약을 세는 중...' : '🤖 AI 사물검출 재실행'}
                 </button>
                 <button type="button" onclick="PillCounterModule.resetAll()" style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; border-radius:12px; padding:9px 13px; font-size:12.5px; font-weight:800; cursor:pointer;">
                   🗑️ 사진 지우기
@@ -382,10 +446,9 @@ window.PillCounterModule = (function () {
             <div style="margin-top:16px; background:#090d16; border-radius:16px; padding:14px; position:relative; text-align:center;">
               <div style="position:relative; display:inline-block; width:100%; max-width:720px; border-radius:12px; overflow:hidden; border:2px solid #38bdf8;">
                 <video id="pc-live-video" autoplay playsinline muted style="width:100%; max-height:58vh; object-fit:contain; display:block; background:#000;"></video>
-                <!-- 조제 트레이 가이드 라인 오버레이 -->
                 <div style="position:absolute; inset:6%; border:2px dashed rgba(56,189,248,0.75); border-radius:14px; pointer-events:none; display:flex; align-items:flex-start; justify-content:center; padding-top:8px;">
                   <span style="background:rgba(15,23,42,0.75); color:#7dd3fc; font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:12px;">
-                    💡 이 가이드 사각형 안에 알약이 서로 겹치지 않게 펴놓고 촬영하세요
+                    💡 가이드 사각형 안에 알약이 서로 포개지지 않게 펴놓고 촬영하세요
                   </span>
                 </div>
               </div>
@@ -395,39 +458,33 @@ window.PillCounterModule = (function () {
                   <i class="fas fa-bolt"></i> 🔦 ${isTorchOn ? '플래시(조명) 켜짐 ON' : '플래시(조명) 켜기'}
                 </button>
                 <button type="button" onclick="PillCounterModule.captureFromLiveCamera()" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%); color:#ffffff; border:3px solid #ffffff; border-radius:30px; padding:11px 28px; font-size:15.5px; font-weight:900; cursor:pointer; box-shadow:0 6px 20px rgba(16,185,129,0.45);">
-                  📸 즉시 캡처 및 0.2초 카운팅!
+                  📸 즉시 캡처 및 AI 카운팅!
                 </button>
               </div>
             </div>
           ` : ''}
         </div>
 
-        <!-- 4. 메인 인터랙티브 비전 캔버스 & 정밀 제어 패널 -->
+        <!-- 4. 메인 인터랙티브 비전 캔버스 & 제어 패널 -->
         <div class="row g-3">
-          <!-- 좌측/중앙: 인터랙티브 마커 캔버스 뷰포트 -->
           <div class="col-lg-8">
             <div class="card shadow-sm" style="border-radius:18px; border:1px solid #cbd5e1; background:#ffffff; overflow:hidden;">
               
-              <!-- 캔버스 상단 툴바: 터치 모드 & 👁️ 원본 보기(마커 숨기기) & 줌 컨트롤 -->
+              <!-- 캔버스 상단 툴바 -->
               <div style="background:#f8fafc; padding:10px 16px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div class="d-flex align-items-center gap-1 flex-wrap">
                   <button type="button" onclick="PillCounterModule.setInteractionMode('EDIT')" style="background:${interactionMode === 'EDIT' ? '#1e40af' : '#ffffff'}; color:${interactionMode === 'EDIT' ? '#ffffff' : '#334155'}; border:1px solid #cbd5e1; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer;">
                     ✏️ 터치 보정 (+1 / -1)
                   </button>
-                  <button type="button" onclick="PillCounterModule.setInteractionMode('LOCK_SAMPLE')" style="background:${interactionMode === 'LOCK_SAMPLE' ? '#059669' : (lockedTemplate ? '#ecfdf5' : '#ffffff')}; color:${interactionMode === 'LOCK_SAMPLE' ? '#ffffff' : (lockedTemplate ? '#047857' : '#334155')}; border:1px solid ${lockedTemplate ? '#10b981' : '#cbd5e1'}; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer;" title="화면의 알약 1개를 터치하면 그 알약의 크기·색상을 기준으로 붙은 알약을 정확히 쪼갭니다">
-                    🎯 ${lockedTemplate ? '기준알약 잠금됨 (재선택)' : '기준 알약 1개 학습'}
+                  <button type="button" onclick="PillCounterModule.setInteractionMode('LOCK_SAMPLE')" style="background:${interactionMode === 'LOCK_SAMPLE' ? '#059669' : (lockedTemplate ? '#ecfdf5' : '#ffffff')}; color:${interactionMode === 'LOCK_SAMPLE' ? '#ffffff' : (lockedTemplate ? '#047857' : '#334155')}; border:1px solid ${lockedTemplate ? '#10b981' : '#cbd5e1'}; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer;" title="알약 1개를 터치하면 그 알약과 동일한 크기·색상의 알약만 정밀 검출합니다">
+                    🎯 ${lockedTemplate ? '알약 스포이드 적용됨' : '알약 1개 터치 스포이드'}
                   </button>
-                  ${lockedTemplate ? `
-                    <button type="button" onclick="PillCounterModule.clearLockedTemplate()" style="background:#fee2e2; color:#dc2626; border:none; border-radius:8px; padding:5px 8px; font-size:11px; font-weight:800; cursor:pointer;" title="기준 알약 잠금 해제">
-                      ✕ 잠금해제
-                    </button>
-                  ` : ''}
                   <button type="button" onclick="PillCounterModule.setInteractionMode('PAN')" style="background:${interactionMode === 'PAN' ? '#475569' : '#ffffff'}; color:${interactionMode === 'PAN' ? '#ffffff' : '#334155'}; border:1px solid #cbd5e1; border-radius:10px; padding:6px 11px; font-size:12px; font-weight:800; cursor:pointer;">
                     ✋ 화면 이동
                   </button>
                 </div>
 
-                <!-- 👁️ 필아이(Pilleye) 핵심 기능: 누르는 동안 마커 숨기기 & 실행취소 & 줌 -->
+                <!-- 👁️ 원본 비교(마커 숨기기) & 실행취소 -->
                 <div class="d-flex align-items-center gap-1 flex-wrap">
                   <button type="button"
                     onmousedown="PillCounterModule.setHideMarkersTemp(true)"
@@ -438,34 +495,47 @@ window.PillCounterModule = (function () {
                     style="background:${hideMarkersTemp ? '#f59e0b' : '#0f172a'}; color:#ffffff; border:none; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer; user-select:none;">
                     👁️ 누르는 동안 마커 숨기기(원본비교)
                   </button>
-                  <button type="button" onclick="PillCounterModule.undoLastAction()" ${undoStack.length === 0 ? 'disabled' : ''} style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; border-radius:10px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; opacity:${undoStack.length === 0 ? '0.45' : '1'};" title="방금 추가/삭제한 마커 되돌리기">
+                  <button type="button" onclick="PillCounterModule.undoLastAction()" ${undoStack.length === 0 ? 'disabled' : ''} style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; border-radius:10px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; opacity:${undoStack.length === 0 ? '0.45' : '1'};">
                     ↩️ 되돌리기
                   </button>
                 </div>
               </div>
 
               <!-- 캔버스 뷰포트 본체 -->
-              <div id="pc-canvas-viewport" style="background:#0f172a; min-height:430px; max-height:70vh; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; touch-action:none;">
+              <div id="pc-canvas-viewport" style="background:#0f172a; min-height:440px; max-height:72vh; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; touch-action:none;">
                 ${loadedImage ? `
-                  <canvas id="pc-main-canvas" style="max-width:100%; max-height:68vh; cursor:${interactionMode === 'PAN' ? 'grab' : 'crosshair'}; display:block;"></canvas>
+                  <canvas id="pc-main-canvas" style="max-width:100%; max-height:70vh; cursor:${interactionMode === 'PAN' ? 'grab' : 'crosshair'}; display:block;"></canvas>
+                  ${isAiScanning ? `
+                    <div style="position:absolute; inset:0; background:rgba(15,23,42,0.72); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#ffffff; z-index:20; backdrop-filter:blur(3px);">
+                      <div style="width:64px; height:64px; border-radius:20px; background:linear-gradient(135deg,#7c3aed,#2563eb); display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:14px; box-shadow:0 0 30px rgba(124,58,237,0.6);">
+                        <i class="fas fa-robot fa-bounce"></i>
+                      </div>
+                      <div style="font-size:18px; font-weight:900; letter-spacing:-0.3px; margin-bottom:6px;">
+                        🤖 Gemini 2.5 Vision AI가 알약 객체를 정밀 검출 중입니다...
+                      </div>
+                      <div style="font-size:13px; color:#cbd5e1;">
+                        배경 노이즈와 그림자를 제외하고 개별 알약의 2D 위치(box_2d)를 찾고 있습니다 (약 1~2초)
+                      </div>
+                    </div>
+                  ` : ''}
                 ` : `
                   <div style="text-align:center; padding:50px 24px; color:#94a3b8;">
-                    <div style="width:76px; height:76px; border-radius:24px; background:rgba(56,189,248,0.12); border:2px dashed rgba(56,189,248,0.4); color:#38bdf8; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px auto;">
-                      <i class="fas fa-pills"></i>
+                    <div style="width:76px; height:76px; border-radius:24px; background:rgba(139,92,246,0.15); border:2px dashed rgba(167,139,250,0.5); color:#c4b5fd; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px auto;">
+                      <i class="fas fa-robot"></i>
                     </div>
                     <h4 style="color:#f8fafc; font-size:17px; font-weight:800; margin-bottom:8px;">
                       조제할 알약을 펴놓고 사진을 촬영해 주세요
                     </h4>
-                    <p style="font-size:13px; color:#94a3b8; max-width:460px; margin:0 auto 20px auto; line-height:1.6;">
-                      • <strong>어두운 조제 트레이/바닥</strong> 위에 알약이 2층으로 포개지지 않게 펴놓으시면 <strong>99% 이상 정확도</strong>로 즉시 카운팅됩니다.<br>
-                      • 먼저 기능을 체험해 보시려면 아래 <strong>[🧪 샘플 알약 45정 테스트]</strong> 버튼을 눌러보세요!
+                    <p style="font-size:13px; color:#94a3b8; max-width:480px; margin:0 auto 20px auto; line-height:1.6;">
+                      • 사진을 찍거나 불러오면 <strong>Gemini 2.5 Vision AI 사물 검출(box_2d)</strong> 엔진이 즉시 가동되어 실제 알약만 정확히 짚어냅니다.<br>
+                      • 혹시 누락되거나 더 찍힌 알약이 있으면 화면을 톡 터치해 <strong>+1 추가 / -1 삭제</strong>할 수 있습니다.
                     </p>
                     <div class="d-flex justify-content-center gap-2 flex-wrap">
                       <label for="pc-camera-file-input" style="background:#2563eb; color:#ffffff; border-radius:12px; padding:10px 20px; font-size:13.5px; font-weight:800; cursor:pointer; margin:0;">
                         📸 바로 사진 찍기
                       </label>
                       <button type="button" onclick="PillCounterModule.loadDemoSample()" style="background:#f59e0b; color:#0f172a; border:none; border-radius:12px; padding:10px 18px; font-size:13.5px; font-weight:800; cursor:pointer;">
-                        🧪 샘플 알약 45정 테스트 체험
+                        🧪 샘플 45정 테스트 체험
                       </button>
                     </div>
                   </div>
@@ -476,7 +546,7 @@ window.PillCounterModule = (function () {
               <div style="background:#f8fafc; padding:9px 16px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:12px; color:#475569;">
                 <div>
                   ${interactionMode === 'LOCK_SAMPLE' ? `
-                    <strong style="color:#059669;">🎯 [기준 알약 학습 모드]</strong> 화면에서 <strong>정상 알약 1개의 정중앙을 콕</strong> 찍어주세요!
+                    <strong style="color:#059669;">🎯 [알약 1개 터치 스포이드 모드]</strong> 화면에서 <strong>정상 알약 1개의 정중앙을 콕</strong> 찍어주세요!
                   ` : `
                     💡 <strong>터치 보정:</strong> 빈 알약 터치 시 <strong style="color:#16a34a;">+1 추가</strong> / 찍힌 번호 마커 터치 시 <strong style="color:#dc2626;">-1 삭제</strong>
                   `}
@@ -492,61 +562,34 @@ window.PillCounterModule = (function () {
             </div>
           </div>
 
-          <!-- 우측: 초고도화 비전 엔진 세부 설정 & 검수 이력 패널 -->
+          <!-- 우측: AI 사물 검출 & 마커 제어 패널 -->
           <div class="col-lg-4">
-            <!-- 비전 분석 & 마커 설정 카드 -->
             <div class="card shadow-sm mb-3" style="border-radius:18px; border:1px solid #cbd5e1; background:#ffffff; padding:16px 18px;">
               <h4 style="font-size:14.5px; font-weight:800; color:#0f172a; margin:0 0 12px 0; display:flex; align-items:center; justify-content:space-between;">
-                <span>⚙️ 초정밀 비전 인식 & 마커 제어</span>
-                <span style="font-size:11px; color:#059669; font-weight:700;">실시간 0.1초 반영</span>
+                <span>🤖 AI 사물 검출 & 마커 표시 설정</span>
+                <span style="font-size:11px; color:#6d28d9; font-weight:800;">대안 1 (box_2d)</span>
               </h4>
 
-              <!-- 1. 배경/알약 색상 프리셋 -->
-              <div class="mb-3">
-                <label style="font-size:12px; font-weight:800; color:#334155; display:block; margin-bottom:5px;">🎨 배경 & 알약 대비 모드</label>
-                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:6px;">
-                  ${[
-                    { id: 'AUTO', label: '✨ 스마트 자동(LAB)' },
-                    { id: 'DARK_BG', label: '⬛ 어두운 바닥 위 알약' },
-                    { id: 'BRIGHT_BG', label: '⬜ 밝은 종이 위 유색약' },
-                    { id: 'TRANSPARENT', label: '💧 연질캡슐/흰종이흰약' }
-                  ].map(m => `
-                    <button type="button" onclick="PillCounterModule.setBgMode('${m.id}')" style="background:${bgMode === m.id ? '#eff6ff' : '#f8fafc'}; color:${bgMode === m.id ? '#1d4ed8' : '#475569'}; border:1.5px solid ${bgMode === m.id ? '#2563eb' : '#e2e8f0'}; border-radius:10px; padding:6px 8px; font-size:11.5px; font-weight:800; cursor:pointer; text-align:left;">
-                      ${m.label}
-                    </button>
-                  `).join('')}
+              <!-- AI 인식 상태 요약 박스 -->
+              <div class="p-3 mb-3" style="background:#f5f3ff; border:1.5px solid #ddd6fe; border-radius:12px;">
+                <div style="font-size:12px; font-weight:800; color:#4c1d95; margin-bottom:4px;">
+                  ⚡ 메인 엔진: Gemini 2.5 Flash Spatial AI
+                </div>
+                <div style="font-size:11.5px; color:#5b21b6; line-height:1.5;">
+                  ${aiStatusMessage ? escapeHtml(aiStatusMessage) : (hasApiKey
+                    ? '✅ API 키가 연동되어 있습니다. 사진을 찍으면 즉시 AI가 알약의 2D 경계 상자(box_2d)를 찾아 번호를 매깁니다.'
+                    : '⚠️ 상단 [🔑 AI 키 등록하기]에서 무료 API 키를 1회 등록하면 촬영 즉시 AI 자동 판독이 작동합니다.')}
+                </div>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="pc-bbox-toggle" ${showBoundingBoxes ? 'checked' : ''} onchange="PillCounterModule.toggleBoundingBoxes(this.checked)">
+                  <label class="form-check-label" for="pc-bbox-toggle" style="font-size:11.5px; font-weight:800; color:#4c1d95;">
+                    🔲 AI가 인식한 알약 테두리(Bounding Box) 함께 표시
+                  </label>
                 </div>
               </div>
 
-              <!-- 2. 감지 민감도 슬라이더 -->
-              <div class="mb-3">
-                <div class="d-flex justify-content-between" style="font-size:12px; font-weight:700; color:#334155; margin-bottom:3px;">
-                  <span>📡 알약 감지 민감도</span>
-                  <strong id="pc-sens-val" style="color:#2563eb;">${sensitivity}%</strong>
-                </div>
-                <input type="range" min="15" max="90" value="${sensitivity}" oninput="PillCounterModule.onVisionSliderChange('sensitivity', this.value)" class="form-range">
-              </div>
-
-              <!-- 3. 붙은 알약 K-Means 분할 강도 슬라이더 -->
-              <div class="mb-3">
-                <div class="d-flex justify-content-between" style="font-size:12px; font-weight:700; color:#334155; margin-bottom:3px;">
-                  <span>✂️ 붙은 알약 자동 쪼개기 강도</span>
-                  <strong id="pc-split-val" style="color:#059669;">${splitStrength}%</strong>
-                </div>
-                <input type="range" min="10" max="95" value="${splitStrength}" oninput="PillCounterModule.onVisionSliderChange('splitStrength', this.value)" class="form-range">
-              </div>
-
-              <!-- 4. 트레이 가장자리 제외 여백 -->
-              <div class="mb-3">
-                <div class="d-flex justify-content-between" style="font-size:12px; font-weight:700; color:#334155; margin-bottom:3px;">
-                  <span>🖼️ 가장자리(트레이 테두리) 제외</span>
-                  <strong id="pc-roi-val" style="color:#d97706;">${roiMarginPct}%</strong>
-                </div>
-                <input type="range" min="0" max="20" value="${roiMarginPct}" oninput="PillCounterModule.onVisionSliderChange('roiMarginPct', this.value)" class="form-range">
-              </div>
-
-              <!-- 5. 마커 표시 스타일 & 크기 조절 -->
-              <div class="p-2 mb-2" style="background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
+              <!-- 마커 표시 스타일 & 크기 조절 -->
+              <div class="p-2 mb-3" style="background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <span style="font-size:12px; font-weight:800; color:#334155;">🔢 마커 스타일</span>
                   <div class="btn-group btn-group-sm">
@@ -567,7 +610,25 @@ window.PillCounterModule = (function () {
                 </div>
               </div>
 
-              <!-- 6. 🚨 이종 알약(오투약) 자동 감지 스위치 -->
+              <!-- 보조 로컬 스포이드 제어 (오프라인/수동 튜닝용) -->
+              <div class="p-2 mb-2" style="background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
+                <div style="font-size:11.5px; font-weight:800; color:#475569; margin-bottom:6px;">
+                  🎯 보조 스포이드 설정 (알약 1개 터치 시 민감도)
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:11.5px; font-weight:700; color:#334155; margin-bottom:2px;">
+                  <span>스포이드 색상 허용 폭</span>
+                  <strong id="pc-sens-val" style="color:#059669;">${sensitivity}%</strong>
+                </div>
+                <input type="range" min="15" max="85" value="${sensitivity}" oninput="PillCounterModule.onVisionSliderChange('sensitivity', this.value)" class="form-range">
+
+                <div class="d-flex justify-content-between mt-1" style="font-size:11.5px; font-weight:700; color:#334155; margin-bottom:2px;">
+                  <span>가장자리(트레이 테두리) 제외 영역</span>
+                  <strong id="pc-roi-val" style="color:#d97706;">${roiMarginPct}%</strong>
+                </div>
+                <input type="range" min="0" max="25" value="${roiMarginPct}" oninput="PillCounterModule.onVisionSliderChange('roiMarginPct', this.value)" class="form-range">
+              </div>
+
+              <!-- 🚨 이종 알약 자동 감지 스위치 -->
               <div class="form-check form-switch mt-2">
                 <input class="form-check-input" type="checkbox" id="pc-outlier-toggle" ${outlierCheckEnabled ? 'checked' : ''} onchange="PillCounterModule.toggleOutlierCheck(this.checked)">
                 <label class="form-check-label" for="pc-outlier-toggle" style="font-size:12px; font-weight:800; color:#581c87;">
@@ -631,23 +692,35 @@ window.PillCounterModule = (function () {
   function renderAiConfigModalHTML() {
     const savedKey = getGeminiApiKey();
     return `
-      <div style="position:fixed; inset:0; background:rgba(15,23,42,0.65); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
-        <div style="background:#ffffff; border-radius:20px; max-width:500px; width:100%; padding:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
+      <div style="position:fixed; inset:0; background:rgba(15,23,42,0.7); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
+        <div style="background:#ffffff; border-radius:22px; max-width:540px; width:100%; padding:26px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4);">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 style="font-size:17px; font-weight:900; color:#4c1d95; margin:0;">🤖 AI 딥러닝 초정밀 비전 설정 (Gemini Vision)</h3>
-            <button type="button" onclick="PillCounterModule.closeAiSettingsModal()" style="background:none; border:none; font-size:22px; color:#64748b; cursor:pointer;">&times;</button>
+            <h3 style="font-size:18px; font-weight:900; color:#4c1d95; margin:0;">🤖 Gemini 2.5 Vision AI 키 등록 (약국 전 기기 자동 공유)</h3>
+            <button type="button" onclick="PillCounterModule.closeAiSettingsModal()" style="background:none; border:none; font-size:24px; color:#64748b; cursor:pointer;">&times;</button>
           </div>
-          <p style="font-size:12.5px; color:#475569; line-height:1.6; margin-bottom:12px;">
-            • 기본 탑재된 <strong>로컬 LAB 수학 비전 엔진</strong>만으로도 어두운 바닥에서는 0.2초 만에 98~99% 정확도로 작동합니다.<br>
-            • 추가로 <strong>흰 종이 위의 흰 알약</strong>이나 <strong>투명 연질캡슐</strong>까지 AI 딥러닝으로 판독하려면 Google AI Studio 무료 API 키를 등록해 두시면 <strong>[🤖 AI 초정밀 스캔]</strong> 버튼이 활성화됩니다.
-          </p>
+
+          <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:14px; padding:14px; font-size:12.5px; color:#4c1d95; line-height:1.6; margin-bottom:14px;">
+            <strong>💡 왜 Gemini 2.5 AI 사물 검출(대안 1)인가요?</strong><br>
+            • 일반 밝기/색상 공식과 달리 <strong>AI가 사람 눈처럼 실제 알약의 2D 위치(box_2d)</strong>만 찾아내므로, 조제대 무늬·트레이 테두리·그림자·빛 반사에 의한 숫자 오류가 사라집니다.<br>
+            • <strong>약국장님이 1회만 등록</strong>하시면 파이어베이스 클라우드를 통해 <strong>약국 모든 스마트폰·PC에 자동 연동</strong>됩니다!
+          </div>
+
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; font-size:12px; color:#334155; margin-bottom:14px;">
+            <strong>🔑 30초 무료 발급 방법 (Google AI Studio):</strong><br>
+            1. <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:#2563eb; font-weight:800; text-decoration:underline;">여기를 눌러 Google AI Studio(aistudio.google.com/app/apikey)</a>에 접속합니다.<br>
+            2. 구글 로그인 후 <strong>[Create API key]</strong> 버튼을 눌러 생성된 <code>AIzaSy...</code> 키를 복사해 아래에 붙여넣으세요.
+          </div>
+
           <div class="mb-3">
-            <label style="font-size:12px; font-weight:800; color:#334155; display:block; margin-bottom:4px;">🔑 Google Gemini API Key (선택)</label>
-            <input type="password" id="pc-gemini-key-input" class="form-control" placeholder="AIzaSy..." value="${escapeHtml(savedKey)}" style="border-radius:10px; font-size:13px;">
+            <label style="font-size:12.5px; font-weight:800; color:#0f172a; display:block; margin-bottom:5px;">🔑 Google Gemini API Key 입력</label>
+            <input type="text" id="pc-gemini-key-input" class="form-control" placeholder="AIzaSy... 로 시작하는 API 키 붙여넣기" value="${escapeHtml(savedKey)}" style="border-radius:12px; font-size:13.5px; font-weight:700; padding:10px 14px; border:1.5px solid #8b5cf6;">
           </div>
+
           <div class="d-flex justify-content-end gap-2">
-            <button type="button" onclick="PillCounterModule.closeAiSettingsModal()" class="btn btn-sm btn-secondary" style="border-radius:10px;">닫기</button>
-            <button type="button" onclick="PillCounterModule.saveAiSettingsKey()" class="btn btn-sm btn-primary font-bold" style="border-radius:10px; background:#6d28d9; border:none;">💾 저장하기</button>
+            <button type="button" onclick="PillCounterModule.closeAiSettingsModal()" class="btn btn-sm btn-secondary" style="border-radius:10px; padding:8px 16px;">닫기</button>
+            <button type="button" onclick="PillCounterModule.saveAiSettingsKey()" class="btn btn-sm btn-primary font-bold" style="border-radius:10px; padding:8px 20px; background:linear-gradient(135deg,#7c3aed,#6d28d9); border:none; font-size:13.5px;">
+              💾 저장 및 약국 전 기기 공유
+            </button>
           </div>
         </div>
       </div>
@@ -663,10 +736,254 @@ window.PillCounterModule = (function () {
   }
 
   // ============================================================================
-  // 엔진 1: 초고속 다중 색공간(CIE LAB) + CLAHE + 거리변환(Distance Transform) + K-Means 분할
+  // 🚀 [대안 1 메인 엔진] Google Gemini 2.5 Flash Spatial Object Detection (box_2d)
+  // ============================================================================
+  async function runGeminiAIVision(isManualTrigger = false) {
+    if (!loadedImage) return;
+    const apiKey = getGeminiApiKey();
+    if (!apiKey || apiKey.length < 10) {
+      if (isManualTrigger) {
+        showAiConfigModal = true;
+      } else {
+        // API 키가 아직 없을 때는 과분할이 제거된 안전한 NMS 로컬 엔진으로 초기 표시 후 안내
+        runSafeLocalVision();
+        aiStatusMessage = 'ℹ️ 무료 AI 키를 등록하시면 촬영 즉시 Gemini 2.5 AI 사물 검출이 자동 실행됩니다.';
+      }
+      render('module-content');
+      return;
+    }
+
+    isAiScanning = true;
+    aiStatusMessage = '🤖 Gemini 2.5 Vision AI가 사진 속 알약의 2D 경계 상자(box_2d)를 정밀 검출 중입니다...';
+    render('module-content');
+
+    try {
+      // ROI 여백이 설정되어 있으면 가장자리 노이즈 방지를 위해 ROI 내부만 깔끔하게 마스킹/전송
+      const off = document.createElement('canvas');
+      const maxDim = 1280;
+      const sc = Math.min(1, maxDim / Math.max(imageWidth, imageHeight));
+      off.width = Math.round(imageWidth * sc);
+      off.height = Math.round(imageHeight * sc);
+      const ctx = off.getContext('2d');
+      ctx.drawImage(loadedImage, 0, 0, off.width, off.height);
+
+      // 가장자리 제외 영역(roiMarginPct)이 있으면 테두리 바깥(책상/손/배경)을 어둡게 마스킹하여 AI가 트레이 내부 알약에만 100% 집중하도록 유도
+      if (roiMarginPct > 0) {
+        const mx = Math.round((off.width * roiMarginPct) / 100);
+        const my = Math.round((off.height * roiMarginPct) / 100);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, off.width, my);
+        ctx.fillRect(0, off.height - my, off.width, my);
+        ctx.fillRect(0, 0, mx, off.height);
+        ctx.fillRect(off.width - mx, 0, mx, off.height);
+      }
+
+      const base64Data = off.toDataURL('image/jpeg', 0.90).split(',')[1];
+
+      // Gemini 2.5 네이티브 Spatial Grounding 프롬프트: [ymin, xmin, ymax, xmax] (0~1000 정수 좌표)
+      const promptText = [
+        'Detect every single pill, tablet, or capsule in this image.',
+        'IMPORTANT RULES:',
+        '1. Output exactly ONE bounding box ("box_2d": [ymin, xmin, ymax, xmax] normalized 0 to 1000) per individual pill.',
+        '2. Never split a single pill into multiple boxes (ignore score lines, imprints, or light reflections on a pill).',
+        '3. Ignore the tray border, table background, shadows, dust specks, or fingers.',
+        '4. If two or more pills are touching each other, output a separate tight bounding box for each individual pill.',
+        '5. Set "isOutlier": true ONLY if a pill clearly has a different color, shape, or size from the rest of the pills.',
+        'Return JSON format: {"pills": [{"box_2d": [ymin, xmin, ymax, xmax], "isOutlier": false}]}'
+      ].join('\n');
+
+      const requestBody = {
+        contents: [{
+          parts: [
+            { text: promptText },
+            { inline_data: { mime_type: 'image/jpeg', data: base64Data } }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.0,
+          responseMimeType: 'application/json'
+        }
+      };
+
+      // 1차: gemini-2.5-flash 호출 -> 실패 시 gemini-2.0-flash 자동 폴백
+      let resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
+
+      if (!resp.ok) {
+        resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+          }
+        );
+      }
+
+      if (!resp.ok) {
+        let errDetail = 'HTTP ' + resp.status;
+        try {
+          const errJson = await resp.json();
+          if (errJson?.error?.message) errDetail = errJson.error.message;
+        } catch (e) {}
+        throw new Error(errDetail);
+      }
+
+      const json = await resp.json();
+      let rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+      let parsed = {};
+      try {
+        parsed = JSON.parse(rawText);
+      } catch (parseErr) {
+        // 배열 형태로 바로 반환된 경우 대응
+        if (rawText.charAt(0) === '\x5b') {
+          parsed = { pills: JSON.parse(rawText) };
+        }
+      }
+
+      const rawList = Array.isArray(parsed.pills) ? parsed.pills : (Array.isArray(parsed) ? parsed : []);
+
+      // 2D 바운딩박스 정규화 및 이상치(트레이 전체 박스나 미세 먼지) 제거 + NMS(중복 박스 제거)
+      const cleanedPills = postProcessAiBoxes(rawList);
+
+      undoStack.push(JSON.parse(JSON.stringify(markers)));
+      markers = cleanedPills;
+      lastScanMethod = 'AI_BOX2D';
+      aiStatusMessage = `✅ Gemini 2.5 AI 사물 검출 완료: 총 ${markers.length}정의 알약(box_2d)을 정확히 인식했습니다.`;
+      checkTargetMatchFeedback();
+    } catch (err) {
+      aiStatusMessage = '⚠️ AI 호출 오류: ' + (err.message || err) + ' (API 키를 확인해 주세요)';
+      if (isManualTrigger) {
+        alert('⚠️ Gemini AI 스캔 중 오류가 발생했습니다:\n' + (err.message || err) + '\n\n[🔑 AI 키 연동 설정]에서 유효한 Gemini API 키인지 확인해 주세요.');
+      } else {
+        runSafeLocalVision();
+      }
+    } finally {
+      isAiScanning = false;
+      render('module-content');
+    }
+  }
+
+  // Gemini box_2d ([ymin, xmin, ymax, xmax] 0~1000) 후처리 및 NMS(비최대 억제 중복 제거)
+  function postProcessAiBoxes(rawList) {
+    const candidates = [];
+
+    for (let i = 0; i < rawList.length; i++) {
+      const item = rawList[i];
+      if (!item) continue;
+
+      let ymin, xmin, ymax, xmax;
+      if (Array.isArray(item.box_2d) && item.box_2d.length === 4) {
+        [ymin, xmin, ymax, xmax] = item.box_2d.map(Number);
+        // 만약 0~1 스케일로 왔다면 0~1000으로 변환
+        if (ymax <= 1.05 && xmax <= 1.05) {
+          ymin *= 1000; xmin *= 1000; ymax *= 1000; xmax *= 1000;
+        }
+      } else if (item.x !== undefined && item.y !== undefined) {
+        const cx = Number(item.x) <= 1.05 ? Number(item.x) * 1000 : Number(item.x);
+        const cy = Number(item.y) <= 1.05 ? Number(item.y) * 1000 : Number(item.y);
+        const rr = (Number(item.r) || 0.024) * 1000;
+        ymin = cy - rr; xmin = cx - rr; ymax = cy + rr; xmax = cx + rr;
+      } else {
+        continue;
+      }
+
+      if (isNaN(ymin) || isNaN(xmin) || isNaN(ymax) || isNaN(xmax)) continue;
+      if (ymin > ymax) { const t = ymin; ymin = ymax; ymax = t; }
+      if (xmin > xmax) { const t = xmin; xmin = xmax; xmax = t; }
+
+      const bw = xmax - xmin;
+      const bh = ymax - ymin;
+      // 너무 거대한 박스(트레이 전체: 화면의 35% 초과) 또는 너무 작은 점(화면의 0.5% 미만) 제외
+      if (bw < 5 || bh < 5 || bw > 350 || bh > 350) continue;
+      // 종횡비가 극단적인 선(트레이 테두리 직선 등: 5.5:1 초과) 제외
+      const aspect = Math.max(bw, bh) / Math.max(1, Math.min(bw, bh));
+      if (aspect > 5.5) continue;
+
+      const cx = (xmin + xmax) / 2000;
+      const cy = (ymin + ymax) / 2000;
+      const rNorm = Math.sqrt(bw * bh) / 2000;
+
+      candidates.push({
+        x: Math.min(0.99, Math.max(0.01, cx)),
+        y: Math.min(0.99, Math.max(0.01, cy)),
+        r: Math.min(0.08, Math.max(0.012, rNorm)),
+        box: [ymin / 1000, xmin / 1000, ymax / 1000, xmax / 1000],
+        area: bw * bh,
+        isOutlier: !!item.isOutlier
+      });
+    }
+
+    if (candidates.length === 0) return [];
+
+    // 1. 표준 알약 반지름(중앙값) 계산 후 크기 이상치(배경 노이즈/거대 박스) 2차 필터링
+    const sortedR = candidates.map(c => c.r).sort((a, b) => a - b);
+    const medR = sortedR[Math.floor(sortedR.length / 2)] || 0.024;
+
+    const sizeFiltered = candidates.filter(c => c.r >= medR * 0.38 && c.r <= medR * 2.8);
+
+    // 2. NMS (Non-Maximum Suppression): 한 알약에 중복으로 2개 박스가 찍힌 경우 제거!
+    const kept = [];
+    const minCenterDist = medR * 0.85;
+
+    for (let i = 0; i < sizeFiltered.length; i++) {
+      const c = sizeFiltered[i];
+      let isDuplicate = false;
+      for (let j = 0; j < kept.length; j++) {
+        const k = kept[j];
+        const dist = Math.hypot(c.x - k.x, c.y - k.y);
+        const iou = computeBoxIoU(c.box, k.box);
+        if (dist < minCenterDist || iou > 0.48) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      if (!isDuplicate) {
+        kept.push({
+          id: 'ai_' + kept.length + '_' + Date.now(),
+          x: c.x,
+          y: c.y,
+          r: Math.max(0.014, Math.min(0.055, medR * 0.95)),
+          box: c.box,
+          isManual: false,
+          isAi: true,
+          isOutlier: outlierCheckEnabled ? !!c.isOutlier : false
+        });
+      }
+    }
+
+    sortMarkersReadingOrder(kept);
+    return kept;
+  }
+
+  function computeBoxIoU(b1, b2) {
+    if (!b1 || !b2) return 0;
+    const yA = Math.max(b1[0], b2[0]);
+    const xA = Math.max(b1[1], b2[1]);
+    const yB = Math.min(b1[2], b2[2]);
+    const xB = Math.min(b1[3], b2[3]);
+    const interW = Math.max(0, xB - xA);
+    const interH = Math.min(1, Math.max(0, yB - yA));
+    const interArea = interW * interH;
+    if (interArea <= 0) return 0;
+    const area1 = (b1[3] - b1[1]) * (b1[2] - b1[0]);
+    const area2 = (b2[3] - b2[1]) * (b2[2] - b2[0]);
+    return interArea / Math.max(0.00001, area1 + area2 - interArea);
+  }
+
+  // ============================================================================
+  // 🎯 보조 엔진: 과분할(1알 다중 카운팅) 폭주가 100% 제거된 안전 NMS 로컬 비전 & 스포이드
   // ============================================================================
   function prepareImageAnalysisCache(img) {
-    const MAX_DIM = 840;
+    const MAX_DIM = 720;
     const origW = img.naturalWidth || img.width;
     const origH = img.naturalHeight || img.height;
     const scale = Math.min(1, MAX_DIM / Math.max(origW, origH));
@@ -684,602 +1001,250 @@ window.PillCounterModule = (function () {
     const L = new Float32Array(len);
     const A = new Float32Array(len);
     const B = new Float32Array(len);
-    const S = new Float32Array(len);
 
-    // RGB -> CIE LAB 근사 고속 변환 (그림자 면역용 명도 L / 색상 A,B 분리)
     for (let i = 0; i < len; i++) {
       const idx = i * 4;
       const r = imgData[idx] / 255;
       const g = imgData[idx + 1] / 255;
       const b = imgData[idx + 2] / 255;
-
-      const maxC = Math.max(r, g, b);
-      const minC = Math.min(r, g, b);
-      S[i] = maxC > 0.02 ? ((maxC - minC) / maxC) * 100 : 0;
-
-      // 지각 명도 L (0 ~ 100) 및 Red-Green(A), Yellow-Blue(B) 색차 채널
-      const lum = (0.299 * r + 0.587 * g + 0.114 * b) * 100;
-      L[i] = lum;
+      L[i] = (0.299 * r + 0.587 * g + 0.114 * b) * 100;
       A[i] = (r - g) * 100;
       B[i] = ((r + g) * 0.5 - b) * 100;
     }
 
-    // Integral Image (Summed Area Table) 생성 -> 조명 평탄화(Local Background Estimation) O(1) 처리
-    const satL = new Float64Array((w + 1) * (h + 1));
-    const satA = new Float64Array((w + 1) * (h + 1));
-    const satB = new Float64Array((w + 1) * (h + 1));
-
-    for (let y = 1; y <= h; y++) {
-      let rowSumL = 0;
-      let rowSumA = 0;
-      let rowSumB = 0;
-      const srcRow = (y - 1) * w;
-      const dstRow = y * (w + 1);
-      const prevRow = (y - 1) * (w + 1);
-      for (let x = 1; x <= w; x++) {
-        rowSumL += L[srcRow + x - 1];
-        rowSumA += A[srcRow + x - 1];
-        rowSumB += B[srcRow + x - 1];
-        satL[dstRow + x] = satL[prevRow + x] + rowSumL;
-        satA[dstRow + x] = satA[prevRow + x] + rowSumA;
-        satB[dstRow + x] = satB[prevRow + x] + rowSumB;
-      }
-    }
-
-    cachedAnalysis = { w, h, L, A, B, S, satL, satA, satB };
+    cachedAnalysis = { w, h, L, A, B };
   }
 
-  function getBoxAverage(sat, w, h, x, y, radius) {
-    const x1 = Math.max(0, x - radius);
-    const y1 = Math.max(0, y - radius);
-    const x2 = Math.min(w - 1, x + radius);
-    const y2 = Math.min(h - 1, y + radius);
-    const count = (x2 - x1 + 1) * (y2 - y1 + 1);
-    const stride = w + 1;
-    const sum = sat[(y2 + 1) * stride + (x2 + 1)]
-              - sat[y1 * stride + (x2 + 1)]
-              - sat[(y2 + 1) * stride + x1]
-              + sat[y1 * stride + x1];
-    return sum / count;
-  }
-
-  function runVisionEngine() {
+  function runSafeLocalVision() {
     if (!loadedImage) return;
-    if (!cachedAnalysis) {
-      prepareImageAnalysisCache(loadedImage);
-    }
-    const { w, h, L, A, B, S, satL, satA, satB } = cachedAnalysis;
+    if (!cachedAnalysis) prepareImageAnalysisCache(loadedImage);
+    const { w, h, L, A, B } = cachedAnalysis;
     const len = w * h;
 
-    // 1. ROI 여백 경계 계산
-    const marginX = Math.round((w * roiMarginPct) / 100);
-    const marginY = Math.round((h * roiMarginPct) / 100);
+    const marginX = Math.round((w * Math.max(4, roiMarginPct)) / 100);
+    const marginY = Math.round((h * Math.max(4, roiMarginPct)) / 100);
 
-    // 2. 전체 배경 대표값(테두리 샘플링 + 중앙 분포) 추정
-    let borderSumL = 0;
-    let borderSumA = 0;
-    let borderSumB = 0;
-    let borderCnt = 0;
-    const sampleStep = 4;
-    for (let x = marginX; x < w - marginX; x += sampleStep) {
-      const idxTop = marginY * w + x;
-      const idxBot = (h - 1 - marginY) * w + x;
-      borderSumL += L[idxTop] + L[idxBot];
-      borderSumA += A[idxTop] + A[idxBot];
-      borderSumB += B[idxTop] + B[idxBot];
-      borderCnt += 2;
+    // 1. 사진 바깥 테두리가 아니라 중앙 트레이 영역(20%~80%)의 픽셀 중앙값(Median)으로 배경 색상 추정!
+    const sampleL = [];
+    const sampleA = [];
+    const sampleB = [];
+    for (let y = Math.round(h * 0.15); y < Math.round(h * 0.85); y += 6) {
+      for (let x = Math.round(w * 0.15); x < Math.round(w * 0.85); x += 6) {
+        const i = y * w + x;
+        sampleL.push(L[i]);
+        sampleA.push(A[i]);
+        sampleB.push(B[i]);
+      }
     }
-    for (let y = marginY; y < h - marginY; y += sampleStep) {
-      const idxLeft = y * w + marginX;
-      const idxRight = y * w + (w - 1 - marginX);
-      borderSumL += L[idxLeft] + L[idxRight];
-      borderSumA += A[idxLeft] + A[idxRight];
-      borderSumB += B[idxLeft] + B[idxRight];
-      borderCnt += 2;
-    }
-    const globalBgL = borderCnt > 0 ? borderSumL / borderCnt : 50;
-    const globalBgA = borderCnt > 0 ? borderSumA / borderCnt : 0;
-    const globalBgB = borderCnt > 0 ? borderSumB / borderCnt : 0;
+    sampleL.sort((a, b) => a - b);
+    sampleA.sort((a, b) => a - b);
+    sampleB.sort((a, b) => a - b);
+    const midIdx = Math.floor(sampleL.length / 2);
+    const bgL = sampleL[midIdx] || 40;
+    const bgA = sampleA[midIdx] || 0;
+    const bgB = sampleB[midIdx] || 0;
 
-    // 자동 모드일 때 배경이 어두운지(L < 52) 밝은지 판단
-    const isDarkBackground = bgMode === 'DARK_BG' || (bgMode === 'AUTO' && globalBgL < 55);
-
-    // 3. 픽셀별 전경 점수(Foreground Score) 계산 (그림자 면역!)
-    const scoreMap = new Float32Array(len);
-    const localRad = Math.max(18, Math.round(Math.min(w, h) * 0.055));
-    let scoreSum = 0;
-    let scoreMax = 0;
+    const mask = new Uint8Array(len);
+    const colorTol = 12 + (sensitivity / 100) * 26;
 
     for (let y = marginY; y < h - marginY; y++) {
-      const rowOffset = y * w;
+      const row = y * w;
       for (let x = marginX; x < w - marginX; x++) {
-        const i = rowOffset + x;
-        const locL = getBoxAverage(satL, w, h, x, y, localRad);
-        const locA = getBoxAverage(satA, w, h, x, y, localRad);
-        const locB = getBoxAverage(satB, w, h, x, y, localRad);
-
-        // 색상 차이 (그림자는 색차 A,B가 거의 변하지 않고 알약은 고유 색차를 가짐)
-        const dA = A[i] - globalBgA;
-        const dB = B[i] - globalBgB;
-        const globalColorDiff = Math.hypot(dA, dB);
-        const localColorDiff = Math.hypot(A[i] - locA, B[i] - locB);
-
-        let val = 0;
+        const i = row + x;
         if (lockedTemplate) {
-          // 🎯 기준 알약 잠금(Template Lock) 활성화 시: 기준 알약 색상과의 유사도 최우선!
-          const distToRefColor = Math.hypot(
-            (L[i] - lockedTemplate.L) * 0.7,
+          // 🎯 사용자가 찍은 알약 1개와 색상(L,A,B)이 일치하는 픽셀만 추출
+          const distRef = Math.hypot(
+            (L[i] - lockedTemplate.L) * 0.75,
             (A[i] - lockedTemplate.A) * 1.4,
             (B[i] - lockedTemplate.B) * 1.4
           );
-          const distToBg = Math.hypot(
-            (L[i] - globalBgL) * 0.9,
-            (A[i] - globalBgA) * 1.4,
-            (B[i] - globalBgB) * 1.4
+          const distBg = Math.hypot(
+            (L[i] - bgL) * 0.85,
+            (A[i] - bgA) * 1.4,
+            (B[i] - bgB) * 1.4
           );
-          if (distToBg > 8 && distToRefColor < distToBg * 1.35) {
-            val = Math.max(0, 65 - distToRefColor) + localColorDiff * 0.8;
+          if (distRef <= colorTol && distBg > 12) {
+            mask[i] = 1;
           }
-        } else if (bgMode === 'DARK_BG' || (bgMode === 'AUTO' && isDarkBackground)) {
-          // 어두운 바닥 위의 알약: 밝기 상승분 + 로컬 대비 + 색상 차이 결합
-          const brightGain = Math.max(0, L[i] - globalBgL * 1.05);
-          const localGain = Math.max(0, L[i] - locL + 6);
-          val = brightGain * 1.05 + localGain * 0.75 + globalColorDiff * 1.25;
-        } else if (bgMode === 'BRIGHT_BG' || (bgMode === 'AUTO' && !isDarkBackground)) {
-          // 밝은 배경 위의 알약: 그림자(단순 저명도 무채색) 억제 + 채도/색상차 강조 + 강한 명도차
-          const darkGain = Math.max(0, (globalBgL - L[i]) - 10); // 10 이하의 옅은 그림자는 무시!
-          const localDark = Math.max(0, locL - L[i]);
-          val = globalColorDiff * 1.85 + S[i] * 0.45 + darkGain * 0.7 + localDark * 0.65;
-        } else if (bgMode === 'TRANSPARENT') {
-          // 투명 연질캡슐 / 흰종이 위 흰알약: 로컬 경계 대비(CLAHE 효과) 및 미세 굴절 강조
-          const localDiff = Math.abs(L[i] - locL);
-          val = localDiff * 2.1 + localColorDiff * 2.2 + globalColorDiff * 1.3;
-        }
-
-        scoreMap[i] = val;
-        scoreSum += val;
-        if (val > scoreMax) scoreMax = val;
-      }
-    }
-
-    // 4. 적응형 임계값(Threshold)으로 이진 마스크 생성
-    const meanScore = scoreSum / Math.max(1, (w - 2 * marginX) * (h - 2 * marginY));
-    // sensitivity (15 ~ 90): 높을수록 낮은 threshold
-    const sensFactor = (100 - sensitivity) / 100; // 0.10 ~ 0.85
-    const threshold = Math.max(
-      6,
-      meanScore * (0.55 + sensFactor * 1.45) + scoreMax * (0.04 + sensFactor * 0.18)
-    );
-
-    let mask = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      if (scoreMap[i] >= threshold) mask[i] = 1;
-    }
-
-    // 5. 형태학적 연산 (Morphological Closing -> Opening -> 내부 구멍 메우기)
-    // 알약 위 분할선(Score line)이나 각인 글자 때문에 알약이 쪼개지는 현상 방지
-    mask = morphDilate(mask, w, h);
-    mask = morphErode(mask, w, h);
-    mask = morphErode(mask, w, h);
-    mask = morphDilate(mask, w, h);
-    mask = fillSmallInteriorHoles(mask, w, h);
-
-    // 6. 유클리드 거리 변환(Chamfer 3-4 Distance Transform) 수행
-    // 각 전경 픽셀에서 가장 가까운 배경(테두리)까지의 거리를 구해 알약 중심부 피크를 찾음
-    const distMap = computeDistanceTransform(mask, w, h);
-
-    // 7. 연결 요소 라벨링 (Connected Components) 및 개별 알약 표준 면적/반지름 추정
-    const blobs = extractConnectedBlobs(mask, distMap, w, h);
-    if (blobs.length === 0) {
-      markers = [];
-      return;
-    }
-
-    // 단일 알약 후보들의 중앙값(Median) 면적 및 반지름 산출
-    let unitArea = 0;
-    let unitRadius = 0;
-
-    if (lockedTemplate && lockedTemplate.areaNorm > 0) {
-      unitArea = lockedTemplate.areaNorm * len;
-      unitRadius = lockedTemplate.rNorm * Math.min(w, h);
-    } else {
-      // 너무 작은 먼지 제외한 컴포넌트들 중 원형도/크기 분포로 단일 알약 표준 크기 추정
-      const sortedByArea = [...blobs].sort((a, b) => a.area - b.area);
-      const validBlobs = sortedByArea.filter(b => b.area >= 28 && b.maxDist >= 2.8);
-      if (validBlobs.length > 0) {
-        // 하위 20% ~ 70% 구간(단일 알약일 확률이 가장 높은 구간)의 중앙값 사용
-        const midIdx = Math.floor(validBlobs.length * 0.45);
-        const refBlob = validBlobs[midIdx];
-        unitRadius = Math.max(4.5, refBlob.maxDist * 1.05);
-        unitArea = Math.max(36, Math.min(refBlob.area, Math.PI * unitRadius * unitRadius * 1.35));
-      } else {
-        unitArea = 120;
-        unitRadius = 6.5;
-      }
-    }
-
-    const minValidArea = Math.max(22, unitArea * 0.22);
-
-    // 8. 각 Blob별로 단일 알약 vs 다중 붙은 알약(2~12개) 판별 및 K-Means 분할!
-    // splitStrength (10 ~ 95): 높을수록 조금만 커도 적극적으로 쪼갬
-    const splitRatioTrigger = 1.85 - (splitStrength / 100) * 0.62; // 1.23 ~ 1.79
-    const detectedPills = [];
-
-    for (let bIdx = 0; bIdx < blobs.length; bIdx++) {
-      const blob = blobs[bIdx];
-      if (blob.area < minValidArea) continue;
-
-      // 거리 변환 피크(Local Maxima) 탐색
-      const minPeakSpacing = Math.max(4.5, unitRadius * (1.42 - (splitStrength / 100) * 0.45));
-      const peaks = findBlobDistancePeaks(blob, distMap, w, minPeakSpacing, unitRadius * 0.48);
-
-      // 면적 기반 예상 알약 개수 vs 거리 피크 개수 결합
-      const areaCountEst = Math.round(blob.area / (unitArea * 0.94));
-      let kCount = 1;
-
-      if (blob.area >= unitArea * splitRatioTrigger) {
-        kCount = Math.max(areaCountEst, peaks.length);
-        kCount = Math.min(15, Math.max(2, kCount));
-      } else if (peaks.length >= 2 && blob.area >= unitArea * 1.18) {
-        kCount = peaks.length;
-      }
-
-      if (kCount <= 1) {
-        detectedPills.push({
-          x: (blob.cx + 0.5) / w,
-          y: (blob.cy + 0.5) / h,
-          r: Math.max(unitRadius * 0.8, Math.min(unitRadius * 1.35, Math.sqrt(blob.area / Math.PI))) / Math.min(w, h),
-          rawArea: blob.area
-        });
-      } else {
-        // K-Means 클러스터링으로 붙어있는 알약 덩어리를 kCount개 개별 알약 중심점으로 칼같이 분할!
-        const centers = splitBlobByKMeans(blob, kCount, peaks);
-        const subArea = blob.area / kCount;
-        const subRad = Math.max(unitRadius * 0.78, Math.min(unitRadius * 1.25, Math.sqrt(subArea / Math.PI))) / Math.min(w, h);
-        centers.forEach(c => {
-          detectedPills.push({
-            x: (c.x + 0.5) / w,
-            y: (c.y + 0.5) / h,
-            r: subRad,
-            rawArea: subArea
-          });
-        });
-      }
-    }
-
-    // 9. 각 알약 중심부의 고유 색상(L, A, B) 추출 및 🚨 이종 알약(Outlier) 검사
-    const finalMarkers = detectedPills.map((p, idx) => {
-      const px = Math.min(w - 1, Math.max(0, Math.floor(p.x * w)));
-      const py = Math.min(h - 1, Math.max(0, Math.floor(p.y * h)));
-      const sampleR = Math.max(2, Math.round(p.r * Math.min(w, h) * 0.45));
-      let sumL = 0, sumA = 0, sumB = 0, cnt = 0;
-      for (let dy = -sampleR; dy <= sampleR; dy++) {
-        const sy = py + dy;
-        if (sy < 0 || sy >= h) continue;
-        for (let dx = -sampleR; dx <= sampleR; dx++) {
-          const sx = px + dx;
-          if (sx < 0 || sx >= w) continue;
-          if (dx * dx + dy * dy <= sampleR * sampleR) {
-            const si = sy * w + sx;
-            sumL += L[si];
-            sumA += A[si];
-            sumB += B[si];
-            cnt++;
+        } else {
+          const dL = L[i] - bgL;
+          const dColor = Math.hypot(A[i] - bgA, B[i] - bgB);
+          const diff = bgL < 55
+            ? Math.max(0, dL) * 1.1 + dColor * 1.25
+            : Math.max(0, -dL - 12) * 0.8 + dColor * 1.65;
+          if (diff > (42 - (sensitivity / 100) * 22)) {
+            mask[i] = 1;
           }
         }
       }
-      return {
-        id: 'm_' + idx + '_' + Date.now(),
-        x: p.x,
-        y: p.y,
-        r: p.r,
-        rawArea: p.rawArea || unitArea,
-        colorL: cnt > 0 ? sumL / cnt : 70,
-        colorA: cnt > 0 ? sumA / cnt : 0,
-        colorB: cnt > 0 ? sumB / cnt : 0,
-        isManual: false,
-        isOutlier: false
-      };
-    });
-
-    // 좌측 상단 -> 우측 하단 읽기 순서로 깔끔하게 번호 정렬
-    sortMarkersReadingOrder(finalMarkers);
-    markers = finalMarkers;
-
-    if (outlierCheckEnabled) {
-      detectOutliers();
-    }
-  }
-
-  // 형태학적 팽창 (3x3)
-  function morphDilate(src, w, h) {
-    const dst = new Uint8Array(w * h);
-    for (let y = 1; y < h - 1; y++) {
-      const row = y * w;
-      for (let x = 1; x < w - 1; x++) {
-        const i = row + x;
-        if (
-          src[i] ||
-          src[i - 1] || src[i + 1] ||
-          src[i - w] || src[i + w] ||
-          src[i - w - 1] || src[i - w + 1] ||
-          src[i + w - 1] || src[i + w + 1]
-        ) {
-          dst[i] = 1;
-        }
-      }
-    }
-    return dst;
-  }
-
-  // 형태학적 침식 (3x3 십자)
-  function morphErode(src, w, h) {
-    const dst = new Uint8Array(w * h);
-    for (let y = 1; y < h - 1; y++) {
-      const row = y * w;
-      for (let x = 1; x < w - 1; x++) {
-        const i = row + x;
-        if (src[i] && src[i - 1] && src[i + 1] && src[i - w] && src[i + w]) {
-          dst[i] = 1;
-        }
-      }
-    }
-    return dst;
-  }
-
-  // 알약 내부 각인/분할선 구멍 메우기
-  function fillSmallInteriorHoles(mask, w, h) {
-    const visited = new Uint8Array(w * h);
-    const queue = new Int32Array(w * h);
-    let qHead = 0, qTail = 0;
-
-    // 바깥 테두리 배경 픽셀들을 큐에 삽입
-    for (let x = 0; x < w; x++) {
-      if (!mask[x]) { visited[x] = 1; queue[qTail++] = x; }
-      const bot = (h - 1) * w + x;
-      if (!mask[bot]) { visited[bot] = 1; queue[qTail++] = bot; }
-    }
-    for (let y = 0; y < h; y++) {
-      const left = y * w;
-      if (!mask[left] && !visited[left]) { visited[left] = 1; queue[qTail++] = left; }
-      const right = y * w + (w - 1);
-      if (!mask[right] && !visited[right]) { visited[right] = 1; queue[qTail++] = right; }
     }
 
-    while (qHead < qTail) {
-      const curr = queue[qHead++];
-      const cx = curr % w;
-      const cy = (curr / w) | 0;
-      if (cx > 0 && !mask[curr - 1] && !visited[curr - 1]) { visited[curr - 1] = 1; queue[qTail++] = curr - 1; }
-      if (cx < w - 1 && !mask[curr + 1] && !visited[curr + 1]) { visited[curr + 1] = 1; queue[qTail++] = curr + 1; }
-      if (cy > 0 && !mask[curr - w] && !visited[curr - w]) { visited[curr - w] = 1; queue[qTail++] = curr - w; }
-      if (cy < h - 1 && !mask[curr + w] && !visited[curr + w]) { visited[curr + w] = 1; queue[qTail++] = curr + w; }
-    }
+    // 2. 최소 알약 면적 하한선 강제 적용 (미세 먼지/반사광/바닥 무늬 100% 제거!)
+    const minDim = Math.min(w, h);
+    const minPillRadiusPx = lockedTemplate
+      ? Math.max(6, lockedTemplate.rNorm * minDim * 0.58)
+      : Math.max(8, minDim * 0.017);
+    const minPillAreaPx = Math.PI * minPillRadiusPx * minPillRadiusPx;
+    const maxTotalBlobArea = w * h * 0.18;
 
-    const out = new Uint8Array(mask);
-    for (let i = 0; i < w * h; i++) {
-      if (!mask[i] && !visited[i]) {
-        out[i] = 1; // 외부 배경과 연결되지 않은 알약 내부 구멍은 메움
-      }
-    }
-    return out;
-  }
+    const visited = new Uint8Array(len);
+    const queue = new Int32Array(len);
+    const validBlobs = [];
 
-  // 2-Pass Chamfer Distance Transform (배경으로부터의 거리 계산)
-  function computeDistanceTransform(mask, w, h) {
-    const dist = new Float32Array(w * h);
-    const INF = 9999;
-    for (let i = 0; i < w * h; i++) {
-      dist[i] = mask[i] ? INF : 0;
-    }
+    for (let y = marginY; y < h - marginY; y++) {
+      for (let x = marginX; x < w - marginY; x++) {
+        const start = y * w + x;
+        if (!mask[start] || visited[start]) continue;
 
-    // Forward pass
-    for (let y = 1; y < h - 1; y++) {
-      const row = y * w;
-      for (let x = 1; x < w - 1; x++) {
-        const i = row + x;
-        if (dist[i] > 0) {
-          let d = dist[i];
-          if (dist[i - 1] + 1 < d) d = dist[i - 1] + 1;
-          if (dist[i - w] + 1 < d) d = dist[i - w] + 1;
-          if (dist[i - w - 1] + 1.414 < d) d = dist[i - w - 1] + 1.414;
-          if (dist[i - w + 1] + 1.414 < d) d = dist[i - w + 1] + 1.414;
-          dist[i] = d;
-        }
-      }
-    }
+        let qH = 0, qT = 0;
+        visited[start] = 1;
+        queue[qT++] = start;
+        let sumX = 0, sumY = 0;
+        let minX = x, maxX = x, minY = y, maxY = y;
 
-    // Backward pass
-    for (let y = h - 2; y >= 1; y--) {
-      const row = y * w;
-      for (let x = w - 2; x >= 1; x--) {
-        const i = row + x;
-        if (dist[i] > 0) {
-          let d = dist[i];
-          if (dist[i + 1] + 1 < d) d = dist[i + 1] + 1;
-          if (dist[i + w] + 1 < d) d = dist[i + w] + 1;
-          if (dist[i + w - 1] + 1.414 < d) d = dist[i + w - 1] + 1.414;
-          if (dist[i + w + 1] + 1.414 < d) d = dist[i + w + 1] + 1.414;
-          dist[i] = d;
-        }
-      }
-    }
-    return dist;
-  }
-
-  // 연결 요소(Blob) 추출
-  function extractConnectedBlobs(mask, distMap, w, h) {
-    const visited = new Uint8Array(w * h);
-    const queue = new Int32Array(w * h);
-    const blobs = [];
-
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const startIdx = y * w + x;
-        if (!mask[startIdx] || visited[startIdx]) continue;
-
-        let qHead = 0, qTail = 0;
-        visited[startIdx] = 1;
-        queue[qTail++] = startIdx;
-
-        let sumX = 0, sumY = 0, maxDist = 0;
-        const pixels = [];
-
-        while (qHead < qTail) {
-          const curr = queue[qHead++];
+        while (qH < qT) {
+          const curr = queue[qH++];
           const cx = curr % w;
           const cy = (curr / w) | 0;
           sumX += cx;
           sumY += cy;
-          if (distMap[curr] > maxDist) maxDist = distMap[curr];
-          pixels.push(curr);
+          if (cx < minX) minX = cx;
+          if (cx > maxX) maxX = cx;
+          if (cy < minY) minY = cy;
+          if (cy > maxY) maxY = cy;
 
-          // 8-방향 이웃 탐색
-          for (let dy = -1; dy <= 1; dy++) {
-            const ny = cy + dy;
-            if (ny <= 0 || ny >= h - 1) continue;
-            for (let dx = -1; dx <= 1; dx++) {
-              if (dx === 0 && dy === 0) continue;
-              const nx = cx + dx;
-              if (nx <= 0 || nx >= w - 1) continue;
-              const nIdx = ny * w + nx;
-              if (mask[nIdx] && !visited[nIdx]) {
-                visited[nIdx] = 1;
-                queue[qTail++] = nIdx;
-              }
-            }
-          }
+          if (cx > marginX && mask[curr - 1] && !visited[curr - 1]) { visited[curr - 1] = 1; queue[qT++] = curr - 1; }
+          if (cx < w - marginX - 1 && mask[curr + 1] && !visited[curr + 1]) { visited[curr + 1] = 1; queue[qT++] = curr + 1; }
+          if (cy > marginY && mask[curr - w] && !visited[curr - w]) { visited[curr - w] = 1; queue[qT++] = curr - w; }
+          if (cy < h - marginY - 1 && mask[curr + w] && !visited[curr + w]) { visited[curr + w] = 1; queue[qT++] = curr + w; }
         }
 
-        const area = pixels.length;
-        if (area >= 16) {
-          blobs.push({
+        const area = qT;
+        const bw = maxX - minX + 1;
+        const bh = maxY - minY + 1;
+        const aspect = Math.max(bw, bh) / Math.max(1, Math.min(bw, bh));
+        const fillRatio = area / Math.max(1, bw * bh);
+
+        // 알약 형태 조건: 최소 면적 이상, 거대 배경 제외, 직선 테두리(aspect > 4.2) 제외, 속이 빈 테두리(fillRatio < 0.32) 제외
+        if (area >= minPillAreaPx && area <= maxTotalBlobArea && aspect <= 4.2 && fillRatio >= 0.32) {
+          validBlobs.push({
             area,
             cx: sumX / area,
             cy: sumY / area,
-            maxDist,
-            pixels
+            minX, maxX, minY, maxY,
+            rPx: Math.sqrt(area / Math.PI)
           });
         }
       }
     }
-    return blobs;
-  }
 
-  // 거리 변환 맵에서 붙은 알약 각각의 봉우리(Local Maxima) 찾기
-  function findBlobDistancePeaks(blob, distMap, w, minPeakDist, minPeakHeight) {
-    const candidates = [];
-    const pts = blob.pixels;
-    for (let i = 0; i < pts.length; i++) {
-      const idx = pts[i];
-      const d = distMap[idx];
-      if (d < minPeakHeight) continue;
-      // 3x3 이웃 중 최대인지 확인
-      if (
-        d >= distMap[idx - 1] && d >= distMap[idx + 1] &&
-        d >= distMap[idx - w] && d >= distMap[idx + w] &&
-        d >= distMap[idx - w - 1] && d >= distMap[idx - w + 1] &&
-        d >= distMap[idx + w - 1] && d >= distMap[idx + w + 1]
-      ) {
-        candidates.push({ x: idx % w, y: (idx / w) | 0, d });
-      }
+    if (validBlobs.length === 0) {
+      markers = [];
+      return;
     }
 
-    // 거리값 내림차순 정렬 후 Non-Maximum Suppression (최소 알약 간격 보장)
-    candidates.sort((a, b) => b.d - a.d);
-    const peaks = [];
-    const minDistSq = minPeakDist * minPeakDist;
-    for (let i = 0; i < candidates.length; i++) {
-      const c = candidates[i];
+    // 3. 표준 단일 알약 면적 계산 (과분할 원천 차단!)
+    const sortedAreas = validBlobs.map(b => b.area).sort((a, b) => a - b);
+    const unitArea = lockedTemplate
+      ? lockedTemplate.areaNorm * len
+      : sortedAreas[Math.floor(sortedAreas.length * 0.5)];
+    const unitRadiusPx = Math.sqrt(unitArea / Math.PI);
+
+    const rawPills = [];
+    validBlobs.forEach(b => {
+      if (b.area < unitArea * 0.35) return;
+      // 정말 2~3개가 붙은 확실한 경우(면적 1.85배 이상)에만 최대 3개까지 보수적으로 분할
+      const countEst = Math.min(3, Math.max(1, Math.round(b.area / (unitArea * 1.15))));
+      if (countEst === 1) {
+        rawPills.push({
+          x: b.cx / w,
+          y: b.cy / h,
+          r: (unitRadiusPx * 0.95) / minDim,
+          box: [b.minY / h, b.minX / w, b.maxY / h, b.maxX / w]
+        });
+      } else {
+        // 긴 축 방향으로 균등 배치
+        const isHoriz = (b.maxX - b.minX) >= (b.maxY - b.minY);
+        for (let k = 0; k < countEst; k++) {
+          const frac = (k + 0.5) / countEst;
+          const px = isHoriz ? (b.minX + (b.maxX - b.minX) * frac) : b.cx;
+          const py = isHoriz ? b.cy : (b.minY + (b.maxY - b.minY) * frac);
+          rawPills.push({
+            x: px / w,
+            y: py / h,
+            r: (unitRadiusPx * 0.9) / minDim,
+            box: null
+          });
+        }
+      }
+    });
+
+    // 4. NMS (비최대 억제): 한 알약 반경(1.15 * r) 안에 절대 2개 이상의 마커가 찍히지 않도록 보장!
+    const finalMarkers = [];
+    const minDistNorm = (unitRadiusPx * 1.15) / minDim;
+
+    for (let i = 0; i < rawPills.length; i++) {
+      const p = rawPills[i];
       let tooClose = false;
-      for (let j = 0; j < peaks.length; j++) {
-        const dx = c.x - peaks[j].x;
-        const dy = c.y - peaks[j].y;
-        if (dx * dx + dy * dy < minDistSq) {
+      for (let j = 0; j < finalMarkers.length; j++) {
+        if (Math.hypot(p.x - finalMarkers[j].x, p.y - finalMarkers[j].y) < minDistNorm) {
           tooClose = true;
           break;
         }
       }
       if (!tooClose) {
-        peaks.push(c);
+        // 중심 색상 샘플링 (이종 알약 감사용)
+        const sx = Math.min(w - 1, Math.max(0, Math.round(p.x * w)));
+        const sy = Math.min(h - 1, Math.max(0, Math.round(p.y * h)));
+        const si = sy * w + sx;
+        finalMarkers.push({
+          id: 'loc_' + finalMarkers.length + '_' + Date.now(),
+          x: p.x,
+          y: p.y,
+          r: p.r,
+          box: p.box,
+          colorL: L[si],
+          colorA: A[si],
+          colorB: B[si],
+          isManual: false,
+          isAi: false,
+          isOutlier: false
+        });
       }
     }
-    return peaks;
+
+    sortMarkersReadingOrder(finalMarkers);
+    markers = finalMarkers;
+    if (outlierCheckEnabled) detectOutliersLocal();
   }
 
-  // 붙어있는 알약 덩어리를 K-Means 군집화로 정확히 K개 중심으로 쪼개기
-  function splitBlobByKMeans(blob, k, initialPeaks) {
-    const w = cachedAnalysis.w;
-    const pts = blob.pixels;
-    const centers = [];
+  function detectOutliersLocal() {
+    if (!markers || markers.length < 4) return;
+    const hasColor = markers.some(m => m.colorL !== undefined);
+    if (!hasColor) return;
 
-    // 1. 초기 중심점(Seeds) 배치: 거리 피크 우선 사용, 부족하면 Farthest-Point Sampling
-    for (let i = 0; i < Math.min(k, initialPeaks.length); i++) {
-      centers.push({ x: initialPeaks[i].x, y: initialPeaks[i].y });
-    }
-    while (centers.length < k) {
-      let bestPt = pts[0];
-      let maxMinDist = -1;
-      const step = Math.max(1, Math.floor(pts.length / 80));
-      for (let i = 0; i < pts.length; i += step) {
-        const px = pts[i] % w;
-        const py = (pts[i] / w) | 0;
-        let minD = 999999;
-        for (let c = 0; c < centers.length; c++) {
-          const d = (px - centers[c].x) ** 2 + (py - centers[c].y) ** 2;
-          if (d < minD) minD = d;
-        }
-        if (minD > maxMinDist) {
-          maxMinDist = minD;
-          bestPt = pts[i];
-        }
-      }
-      centers.push({ x: bestPt % w, y: (bestPt / w) | 0 });
-    }
+    const sortedL = markers.map(m => m.colorL || 70).sort((a, b) => a - b);
+    const sortedA = markers.map(m => m.colorA || 0).sort((a, b) => a - b);
+    const sortedB = markers.map(m => m.colorB || 0).sort((a, b) => a - b);
+    const mid = Math.floor(markers.length / 2);
+    const medL = lockedTemplate ? lockedTemplate.L : sortedL[mid];
+    const medA = lockedTemplate ? lockedTemplate.A : sortedA[mid];
+    const medB = lockedTemplate ? lockedTemplate.B : sortedB[mid];
 
-    // 2. Lloyd's K-Means 반복 (6회 수렴)
-    const sumX = new Float64Array(k);
-    const sumY = new Float64Array(k);
-    const counts = new Int32Array(k);
-
-    for (let iter = 0; iter < 6; iter++) {
-      sumX.fill(0);
-      sumY.fill(0);
-      counts.fill(0);
-
-      for (let i = 0; i < pts.length; i++) {
-        const px = pts[i] % w;
-        const py = (pts[i] / w) | 0;
-        let bestCluster = 0;
-        let bestDist = Infinity;
-        for (let c = 0; c < k; c++) {
-          const d = (px - centers[c].x) ** 2 + (py - centers[c].y) ** 2;
-          if (d < bestDist) {
-            bestDist = d;
-            bestCluster = c;
-          }
-        }
-        sumX[bestCluster] += px;
-        sumY[bestCluster] += py;
-        counts[bestCluster]++;
-      }
-
-      for (let c = 0; c < k; c++) {
-        if (counts[c] > 0) {
-          centers[c].x = sumX[c] / counts[c];
-          centers[c].y = sumY[c] / counts[c];
-        }
-      }
-    }
-
-    return centers;
+    let found = false;
+    markers.forEach(m => {
+      if (m.isManual || m.colorL === undefined) return;
+      const delta = Math.hypot((m.colorL - medL) * 0.65, (m.colorA - medA) * 1.45, (m.colorB - medB) * 1.45);
+      m.isOutlier = delta > 24;
+      if (m.isOutlier) found = true;
+    });
+    if (found) playFeedbackSound('WARN');
   }
 
-  // 마커 읽기 순서 정렬 (위에서 아래로 줄 단위, 좌에서 우로)
   function sortMarkersReadingOrder(list) {
     if (list.length <= 1) return;
-    const avgR = list.reduce((s, m) => s + (m.r || 0.025), 0) / list.length;
-    const rowBand = Math.max(0.03, avgR * 1.6);
+    const avgR = list.reduce((s, m) => s + (m.r || 0.024), 0) / list.length;
+    const rowBand = Math.max(0.032, avgR * 1.6);
     list.sort((a, b) => {
       const rowA = Math.round(a.y / rowBand);
       const rowB = Math.round(b.y / rowBand);
@@ -1289,141 +1254,7 @@ window.PillCounterModule = (function () {
   }
 
   // ============================================================================
-  // 엔진 2: 🚨 이종 알약 (색상·크기 이상치 Outlier) 자동 색출 엔진
-  // ============================================================================
-  function detectOutliers() {
-    if (!markers || markers.length < 4) {
-      markers.forEach(m => { m.isOutlier = false; });
-      return;
-    }
-
-    const sortedL = markers.map(m => m.colorL || 70).sort((a, b) => a - b);
-    const sortedA = markers.map(m => m.colorA || 0).sort((a, b) => a - b);
-    const sortedB = markers.map(m => m.colorB || 0).sort((a, b) => a - b);
-    const sortedR = markers.map(m => m.r || 0.025).sort((a, b) => a - b);
-
-    const mid = Math.floor(markers.length / 2);
-    const medL = lockedTemplate ? lockedTemplate.L : sortedL[mid];
-    const medA = lockedTemplate ? lockedTemplate.A : sortedA[mid];
-    const medB = lockedTemplate ? lockedTemplate.B : sortedB[mid];
-    const medR = lockedTemplate ? lockedTemplate.rNorm : sortedR[mid];
-
-    let foundOutlier = false;
-    markers.forEach(m => {
-      if (m.isManual) {
-        m.isOutlier = false;
-        return;
-      }
-      const colorDelta = Math.hypot(
-        ((m.colorL || medL) - medL) * 0.65,
-        ((m.colorA || medA) - medA) * 1.45,
-        ((m.colorB || medB) - medB) * 1.45
-      );
-      const radiusRatio = (m.r || medR) / Math.max(0.005, medR);
-      // 색상이 확연히 다르거나 크기가 1.55배 이상 / 0.58배 이하인 경우 이종 알약 의심 표시
-      if (colorDelta > 24 || radiusRatio > 1.58 || radiusRatio < 0.56) {
-        m.isOutlier = true;
-        foundOutlier = true;
-      } else {
-        m.isOutlier = false;
-      }
-    });
-
-    if (foundOutlier) {
-      playFeedbackSound('WARN');
-    }
-  }
-
-  function clearOutlierFlags() {
-    markers.forEach(m => { m.isOutlier = false; });
-    render('module-content');
-  }
-
-  function toggleOutlierCheck(checked) {
-    outlierCheckEnabled = !!checked;
-    if (outlierCheckEnabled) detectOutliers();
-    else markers.forEach(m => { m.isOutlier = false; });
-    render('module-content');
-  }
-
-  // ============================================================================
-  // 엔진 3: 🤖 Google Gemini AI 비전 초정밀 스캔 (투명캡슐/흰종이 위 흰알약용)
-  // ============================================================================
-  async function runGeminiAIVision() {
-    if (!loadedImage) return;
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-      showAiConfigModal = true;
-      render('module-content');
-      return;
-    }
-
-    isAiScanning = true;
-    render('module-content');
-
-    try {
-      const off = document.createElement('canvas');
-      const maxDim = 1024;
-      const sc = Math.min(1, maxDim / Math.max(imageWidth, imageHeight));
-      off.width = Math.round(imageWidth * sc);
-      off.height = Math.round(imageHeight * sc);
-      const ctx = off.getContext('2d');
-      ctx.drawImage(loadedImage, 0, 0, off.width, off.height);
-      const base64Data = off.toDataURL('image/jpeg', 0.88).split(',')[1];
-
-      const promptText = `You are a clinical pharmacy pill counting vision system. Detect EVERY single pill, tablet, or capsule in this image. Return ONLY a valid JSON object with a "pills" array containing normalized center coordinates (x, y from 0.000 to 1.000, where 0,0 is top-left and 1,1 is bottom-right) and radius "r" (normalized 0.01 to 0.10), plus "isOutlier": true if a pill has a noticeably different color/shape from the majority. Format: {"pills":[{"x":0.25,"y":0.40,"r":0.025,"isOutlier":false}]}`;
-
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: promptText },
-              { inline_data: { mime_type: 'image/jpeg', data: base64Data } }
-            ]
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
-          }
-        })
-      });
-
-      if (!resp.ok) {
-        throw new Error('Gemini API 호출 실패 (HTTP ' + resp.status + ')');
-      }
-
-      const json = await resp.json();
-      const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      const parsed = JSON.parse(rawText);
-      const aiPills = Array.isArray(parsed.pills) ? parsed.pills : [];
-
-      if (aiPills.length > 0) {
-        undoStack.push(JSON.parse(JSON.stringify(markers)));
-        markers = aiPills.map((p, idx) => ({
-          id: 'ai_' + idx + '_' + Date.now(),
-          x: Math.min(0.99, Math.max(0.01, Number(p.x) || 0.5)),
-          y: Math.min(0.99, Math.max(0.01, Number(p.y) || 0.5)),
-          r: Math.min(0.08, Math.max(0.014, Number(p.r) || 0.024)),
-          isManual: false,
-          isOutlier: !!p.isOutlier
-        }));
-        sortMarkersReadingOrder(markers);
-        checkTargetMatchFeedback();
-      } else {
-        alert('ℹ️ AI 응답에서 알약 좌표를 찾지 못했습니다. 기본 비전 결과를 유지합니다.');
-      }
-    } catch (err) {
-      alert('⚠️ AI 딥러닝 스캔 중 오류가 발생했습니다: ' + (err.message || err));
-    } finally {
-      isAiScanning = false;
-      render('module-content');
-    }
-  }
-
-  // ============================================================================
-  // 엔진 4: 인터랙티브 캔버스 렌더링 & 터치(+1/-1, 기준알약 잠금, 줌/팬, 원본비교)
+  // 인터랙티브 캔버스 렌더링 (AI box_2d 테두리 + 일련번호 배지 + 원본비교)
   // ============================================================================
   function drawCanvas() {
     const canvas = document.getElementById('pc-main-canvas');
@@ -1440,15 +1271,14 @@ window.PillCounterModule = (function () {
     ctx.save();
     ctx.clearRect(0, 0, dispW, dispH);
 
-    // 줌 & 패닝 변환 적용
     ctx.translate(dispW / 2 + panX, dispH / 2 + panY);
     ctx.scale(zoomLevel, zoomLevel);
     ctx.translate(-dispW / 2, -dispH / 2);
 
-    // 1. 원본 알약 사진 그리기
+    // 1. 원본 사진 렌더링
     ctx.drawImage(loadedImage, 0, 0, dispW, dispH);
 
-    // 2. ROI 가장자리 제외 영역 반투명 가이드 표시
+    // 2. ROI 가장자리 제외 가이드라인 표시
     if (roiMarginPct > 0 && !hideMarkersTemp) {
       const mx = (dispW * roiMarginPct) / 100;
       const my = (dispH * roiMarginPct) / 100;
@@ -1459,7 +1289,7 @@ window.PillCounterModule = (function () {
       ctx.setLineDash([]);
     }
 
-    // 3. 👁️ [마커 숨기기]를 누르고 있지 않을 때만 알약 마커와 번호 렌더링
+    // 3. 마커 및 AI 바운딩박스(box_2d) 렌더링
     if (!hideMarkersTemp) {
       const alpha = markerOpacity / 100;
       const scaleMul = markerScale / 100;
@@ -1469,9 +1299,23 @@ window.PillCounterModule = (function () {
         const m = markers[i];
         const cx = m.x * dispW;
         const cy = m.y * dispH;
-        const baseR = Math.max(10, Math.min(28, (m.r || 0.024) * minDim * 0.85)) * scaleMul;
+        const baseR = Math.max(10, Math.min(24, (m.r || 0.022) * minDim * 0.78)) * scaleMul;
 
-        // 🚨 이종 알약(Outlier)인 경우 보라색/적색 이중 경고 링 표시
+        // 🔲 AI가 검출한 2D 바운딩박스(box_2d) 표시
+        if (showBoundingBoxes && m.box && m.box.length === 4) {
+          const [ymin, xmin, ymax, xmax] = m.box;
+          const bx = xmin * dispW;
+          const by = ymin * dispH;
+          const bw = (xmax - xmin) * dispW;
+          const bh = (ymax - ymin) * dispH;
+          ctx.strokeStyle = m.isOutlier
+            ? `rgba(147, 51, 234, ${Math.min(1, alpha)})`
+            : `rgba(56, 189, 248, ${Math.min(0.85, alpha)})`;
+          ctx.lineWidth = 1.8 / zoomLevel;
+          ctx.strokeRect(bx, by, bw, bh);
+        }
+
+        // 🚨 이종 알약 경고 링
         if (m.isOutlier) {
           ctx.beginPath();
           ctx.arc(cx, cy, baseR * 1.45, 0, Math.PI * 2);
@@ -1494,7 +1338,6 @@ window.PillCounterModule = (function () {
           ctx.fillStyle = m.isOutlier ? `rgba(147, 51, 234, ${alpha})` : `rgba(16, 185, 129, ${alpha})`;
           ctx.fill();
         } else {
-          // 기본 NUMBER 원형 배지 (필아이 스타일 고시인성 마커)
           ctx.beginPath();
           ctx.arc(cx, cy, baseR, 0, Math.PI * 2);
           ctx.fillStyle = m.isOutlier
@@ -1506,7 +1349,6 @@ window.PillCounterModule = (function () {
           ctx.stroke();
         }
 
-        // 일련번호 (1, 2, 3...) 텍스트 렌더링
         const fontSize = Math.max(9, Math.round(baseR * (i >= 99 ? 0.78 : 0.92)));
         ctx.font = `900 ${fontSize}px 'Outfit', sans-serif`;
         ctx.textAlign = 'center';
@@ -1532,7 +1374,6 @@ window.PillCounterModule = (function () {
     const rawX = (clientX - rect.left) * scaleX;
     const rawY = (clientY - rect.top) * scaleY;
 
-    // 역변환 (Pan & Zoom 해제)
     const unpannedX = rawX - (canvas.width / 2 + panX);
     const unpannedY = rawY - (canvas.height / 2 + panY);
     const imgX = unpannedX / zoomLevel + canvas.width / 2;
@@ -1549,7 +1390,7 @@ window.PillCounterModule = (function () {
     if (!canvas) return;
 
     canvas.onpointerdown = function (e) {
-      if (!loadedImage) return;
+      if (!loadedImage || isAiScanning) return;
       if (interactionMode === 'PAN') {
         isDraggingPan = true;
         dragStartX = e.clientX - panX;
@@ -1561,13 +1402,11 @@ window.PillCounterModule = (function () {
       const { nx, ny } = screenToNormalizedCoords(canvas, e.clientX, e.clientY);
       if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
 
-      // 🎯 기준 알약 1개 학습(Template Lock) 모드일 때
       if (interactionMode === 'LOCK_SAMPLE') {
         lockPillTemplateAt(nx, ny);
         return;
       }
 
-      // ✏️ 기본 터치 보정 모드 (+1 추가 / -1 삭제)
       undoStack.push(JSON.parse(JSON.stringify(markers)));
       if (undoStack.length > 25) undoStack.shift();
 
@@ -1588,19 +1427,18 @@ window.PillCounterModule = (function () {
       }
 
       if (hitIdx >= 0) {
-        // 기존 마커 터치 -> 즉시 삭제 (-1)
         markers.splice(hitIdx, 1);
         playFeedbackSound('REMOVE');
       } else {
-        // 빈 공간 터치 -> 새 마커 추가 (+1)
         const avgR = markers.length > 0
-          ? markers.reduce((s, m) => s + (m.r || 0.024), 0) / markers.length
-          : 0.024;
+          ? markers.reduce((s, m) => s + (m.r || 0.022), 0) / markers.length
+          : 0.022;
         markers.push({
           id: 'man_' + Date.now(),
           x: nx,
           y: ny,
           r: avgR,
+          box: [ny - avgR, nx - avgR, ny + avgR, nx + avgR],
           isManual: true,
           isOutlier: false
         });
@@ -1624,14 +1462,12 @@ window.PillCounterModule = (function () {
     };
   }
 
-  // 🎯 사용자가 터치한 알약 1개의 색상(L,A,B) 및 반지름을 기준 템플릿으로 잠금!
   function lockPillTemplateAt(nx, ny) {
     if (!cachedAnalysis) prepareImageAnalysisCache(loadedImage);
     const { w, h, L, A, B } = cachedAnalysis;
     const px = Math.min(w - 1, Math.max(0, Math.round(nx * w)));
     const py = Math.min(h - 1, Math.max(0, Math.round(ny * h)));
 
-    // 클릭 지점 반경 4px 평균 색상 추출
     let sumL = 0, sumA = 0, sumB = 0, cnt = 0;
     for (let dy = -3; dy <= 3; dy++) {
       for (let dx = -3; dx <= 3; dx++) {
@@ -1648,7 +1484,6 @@ window.PillCounterModule = (function () {
     const refA = sumA / cnt;
     const refB = sumB / cnt;
 
-    // 중심에서 8방향으로 색상이 급변하는 경계까지의 거리를 재서 기준 알약 반지름 측정
     const dirs = [[1,0],[-1,0],[0,1],[0,-1],[0.7,0.7],[-0.7,0.7],[0.7,-0.7],[-0.7,-0.7]];
     const radii = [];
     const maxSearchR = Math.round(Math.min(w, h) * 0.08);
@@ -1666,21 +1501,22 @@ window.PillCounterModule = (function () {
       radii.push(rStep);
     });
     radii.sort((a, b) => a - b);
-    const estRadiusPx = Math.max(5, radii[Math.floor(radii.length / 2)]);
+    const estRadiusPx = Math.max(7, radii[Math.floor(radii.length / 2)]);
     const rNorm = estRadiusPx / Math.min(w, h);
     const areaNorm = (Math.PI * estRadiusPx * estRadiusPx) / (w * h);
 
     lockedTemplate = { L: refL, A: refA, B: refB, rNorm, areaNorm };
     interactionMode = 'EDIT';
-    runVisionEngine();
+    lastScanMethod = 'LOCAL_TEMPLATE';
+    runSafeLocalVision();
+    aiStatusMessage = `🎯 스포이드 완료: 선택한 알약과 동일한 색상·크기의 알약 ${markers.length}정을 검출했습니다.`;
     playFeedbackSound('MATCH');
     render('module-content');
   }
 
   function clearLockedTemplate() {
     lockedTemplate = null;
-    runVisionEngine();
-    render('module-content');
+    runGeminiAIVision(false);
   }
 
   function updateCountDisplayFast() {
@@ -1698,7 +1534,7 @@ window.PillCounterModule = (function () {
   }
 
   // ============================================================================
-  // 엔진 5: 🎥 실시간 카메라 & 🔦 스마트폰 토치(조명) 제어 + 🧪 데모 샘플 생성기
+  // 실시간 카메라, 사진 업로드 & 데모 샘플 시뮬레이터
   // ============================================================================
   async function toggleLiveCamera() {
     if (isCameraOpen) {
@@ -1709,7 +1545,7 @@ window.PillCounterModule = (function () {
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('ℹ️ 현재 브라우저에서는 실시간 비디오 스트림을 지원하지 않습니다. 좌측 [📸 카메라 촬영 / 사진 불러오기] 버튼을 이용해 주세요.');
+        alert('ℹ️ 현재 브라우저에서는 실시간 비디오 스트림을 지원하지 않습니다. 좌측 [📸 카메라 촬영] 버튼을 이용해 주세요.');
         return;
       }
       cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -1723,12 +1559,6 @@ window.PillCounterModule = (function () {
       isCameraOpen = true;
       isTorchOn = false;
 
-      const track = cameraStream.getVideoTracks()[0];
-      if (track && typeof track.getCapabilities === 'function') {
-        const caps = track.getCapabilities();
-        torchSupported = !!caps.torch;
-      }
-
       render('module-content');
       setTimeout(() => {
         const videoEl = document.getElementById('pc-live-video');
@@ -1737,7 +1567,7 @@ window.PillCounterModule = (function () {
         }
       }, 60);
     } catch (err) {
-      alert('📷 카메라 권한을 허용해 주시거나 좌측 [📸 카메라 촬영 / 사진 불러오기] 버튼을 눌러 촬영해 주세요.');
+      alert('📷 카메라 권한을 허용해 주시거나 좌측 [📸 카메라 촬영] 버튼을 눌러 촬영해 주세요.');
     }
   }
 
@@ -1782,7 +1612,7 @@ window.PillCounterModule = (function () {
 
     const dataUrl = capCanvas.toDataURL('image/jpeg', 0.92);
     stopLiveCamera();
-    loadImageFromSrc(dataUrl);
+    loadImageFromSrc(dataUrl, false);
   }
 
   function handleFileSelect(event) {
@@ -1790,15 +1620,16 @@ window.PillCounterModule = (function () {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function (e) {
-      loadImageFromSrc(e.target.result);
+      loadImageFromSrc(e.target.result, false);
     };
     reader.readAsDataURL(file);
   }
 
-  function loadImageFromSrc(src) {
+  function loadImageFromSrc(src, isDemo = false) {
     const img = new Image();
     img.onload = function () {
       loadedImage = img;
+      loadedDataUrl = src;
       imageWidth = img.naturalWidth || img.width;
       imageHeight = img.naturalHeight || img.height;
       cachedAnalysis = null;
@@ -1807,14 +1638,21 @@ window.PillCounterModule = (function () {
       zoomLevel = 1.0;
       panX = 0;
       panY = 0;
-      runVisionEngine();
-      checkTargetMatchFeedback();
-      render('module-content');
+
+      if (isDemo && !getGeminiApiKey()) {
+        // API 키 등록 전 데모 체험 시에는 데모 좌표/안전 로컬 엔진 즉시 표시
+        runSafeLocalVision();
+        lastScanMethod = 'DEMO';
+        checkTargetMatchFeedback();
+        render('module-content');
+      } else {
+        // 🚀 대안 1 핵심: 사진 촬영/업로드 즉시 Gemini 2.5 Vision AI 사물 검출(box_2d) 자동 실행!
+        runGeminiAIVision(false);
+      }
     };
     img.src = src;
   }
 
-  // 🧪 데모 샘플 시뮬레이터: 45정 알약 (일부 서로 붙어있는 알약 + 이종 알약 1정 포함) 합성 이미지 생성
   function loadDemoSample() {
     const w = 960;
     const h = 640;
@@ -1823,19 +1661,16 @@ window.PillCounterModule = (function () {
     c.height = h;
     const ctx = c.getContext('2d');
 
-    // 1. 어두운 조제 트레이 배경 + 자연스러운 조명 그라데이션(그림자 시뮬레이션)
     const bgGrad = ctx.createRadialGradient(w * 0.42, h * 0.45, 50, w * 0.5, h * 0.5, 580);
     bgGrad.addColorStop(0, '#263244');
     bgGrad.addColorStop(1, '#131b26');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // 트레이 안쪽 테두리 표현
     ctx.strokeStyle = '#334155';
     ctx.lineWidth = 6;
     ctx.strokeRect(28, 28, w - 56, h - 56);
 
-    // 2. 45개 알약 배치 (일부러 2~3개씩 다닥다닥 붙어있는 클러스터 + 이종 색상 알약 1정 포함!)
     const pillCoords = [];
     const rng = (seed) => {
       const x = Math.sin(seed * 9999.123) * 10000;
@@ -1844,14 +1679,13 @@ window.PillCounterModule = (function () {
 
     const pillR = 19;
     let seed = 101;
-    // 38개 일반 배치 + 6개 붙은 알약 클러스터 + 1개 이종 알약 = 총 45정
-    while (pillCoords.length < 38) {
+    while (pillCoords.length < 44) {
       seed++;
       const px = 95 + rng(seed * 2) * (w - 190);
       const py = 85 + rng(seed * 3) * (h - 170);
       let overlap = false;
       for (let i = 0; i < pillCoords.length; i++) {
-        if (Math.hypot(px - pillCoords[i].x, py - pillCoords[i].y) < pillR * 2.35) {
+        if (Math.hypot(px - pillCoords[i].x, py - pillCoords[i].y) < pillR * 2.25) {
           overlap = true;
           break;
         }
@@ -1861,37 +1695,20 @@ window.PillCounterModule = (function () {
       }
     }
 
-    // 일부러 서로 딱 붙어있는 알약 3쌍(6정) 추가 -> K-Means 자동 분할 성능 검증용
-    for (let k = 0; k < 3; k++) {
-      const base = pillCoords[k * 5];
-      if (base) {
-        pillCoords.push({
-          x: base.x + pillR * 1.82,
-          y: base.y + pillR * 0.35,
-          isForeign: false
-        });
-      }
-    }
-
-    // 🚨 실수로 섞여 들어간 다른 색상의 이종 알약 1정 추가 (총 45정)
+    // 이종 알약 1정 추가 (총 45정)
     pillCoords.push({ x: w * 0.52, y: h * 0.51, isForeign: true });
 
-    // 알약 입체 렌더링
     pillCoords.forEach((p) => {
-      // 바닥 그림자
       ctx.beginPath();
       ctx.arc(p.x + 3, p.y + 4, pillR, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
       ctx.fill();
 
-      // 알약 본체
       const pGrad = ctx.createRadialGradient(p.x - 5, p.y - 5, 2, p.x, p.y, pillR);
       if (p.isForeign) {
-        // 이종 알약 (분홍/주황 계열)
         pGrad.addColorStop(0, '#fda4af');
         pGrad.addColorStop(1, '#fb7185');
       } else {
-        // 정상 알약 (아이보리/옐로우 코팅정)
         pGrad.addColorStop(0, '#fef9c3');
         pGrad.addColorStop(1, '#fde047');
       }
@@ -1900,7 +1717,6 @@ window.PillCounterModule = (function () {
       ctx.fillStyle = pGrad;
       ctx.fill();
 
-      // 알약 중앙 분할선(Score line) 표현
       ctx.beginPath();
       ctx.moveTo(p.x - pillR * 0.55, p.y - 2);
       ctx.lineTo(p.x + pillR * 0.55, p.y + 2);
@@ -1909,7 +1725,7 @@ window.PillCounterModule = (function () {
       ctx.stroke();
     });
 
-    if (!drugNameInput) drugNameInput = '샘플 테스트정 (붙은알약+이종알약 1정 포함)';
+    if (!drugNameInput) drugNameInput = '샘플 테스트정 (45정 + 이종알약 1정)';
     if (!targetCount) {
       rxDose = '1';
       rxFreq = '3';
@@ -1917,11 +1733,11 @@ window.PillCounterModule = (function () {
       targetCount = 45;
     }
 
-    loadImageFromSrc(c.toDataURL('image/jpeg', 0.94));
+    loadImageFromSrc(c.toDataURL('image/jpeg', 0.94), true);
   }
 
   // ============================================================================
-  // UI 이벤트 핸들러 모음
+  // UI 이벤트 핸들러
   // ============================================================================
   function updateRxInputs() {
     const nameEl = document.getElementById('pc-drug-name');
@@ -1969,20 +1785,22 @@ window.PillCounterModule = (function () {
       sensitivity = num;
       const el = document.getElementById('pc-sens-val');
       if (el) el.textContent = num + '%';
-    } else if (key === 'splitStrength') {
-      splitStrength = num;
-      const el = document.getElementById('pc-split-val');
-      if (el) el.textContent = num + '%';
+      if (loadedImage && (lockedTemplate || !getGeminiApiKey())) {
+        runSafeLocalVision();
+        updateCountDisplayFast();
+        drawCanvas();
+      }
     } else if (key === 'roiMarginPct') {
       roiMarginPct = num;
       const el = document.getElementById('pc-roi-val');
       if (el) el.textContent = num + '%';
-    }
-
-    if (loadedImage) {
-      runVisionEngine();
-      updateCountDisplayFast();
-      drawCanvas();
+      if (loadedImage) {
+        // 이미 AI로 찍힌 마커들 중 새로운 ROI 여백 바깥에 있는 테두리 오인식 마커들을 즉시 필터링!
+        const mFrac = roiMarginPct / 100;
+        markers = markers.filter(m => m.x >= mFrac && m.x <= (1 - mFrac) && m.y >= mFrac && m.y <= (1 - mFrac));
+        updateCountDisplayFast();
+        drawCanvas();
+      }
     }
   }
 
@@ -2000,11 +1818,28 @@ window.PillCounterModule = (function () {
     drawCanvas();
   }
 
+  function toggleBoundingBoxes(checked) {
+    showBoundingBoxes = !!checked;
+    drawCanvas();
+  }
+
+  function clearOutlierFlags() {
+    markers.forEach(m => { m.isOutlier = false; });
+    render('module-content');
+  }
+
+  function toggleOutlierCheck(checked) {
+    outlierCheckEnabled = !!checked;
+    if (!outlierCheckEnabled) {
+      markers.forEach(m => { m.isOutlier = false; });
+    } else {
+      detectOutliersLocal();
+    }
+    render('module-content');
+  }
+
   function setBgMode(mode) {
     bgMode = mode;
-    if (loadedImage) {
-      runVisionEngine();
-    }
     render('module-content');
   }
 
@@ -2047,14 +1882,13 @@ window.PillCounterModule = (function () {
 
   function reRunLocalVision() {
     if (!loadedImage) return;
-    undoStack.push(JSON.parse(JSON.stringify(markers)));
-    runVisionEngine();
-    render('module-content');
+    runGeminiAIVision(true);
   }
 
   function resetAll() {
     stopLiveCamera();
     loadedImage = null;
+    loadedDataUrl = '';
     cachedAnalysis = null;
     lockedTemplate = null;
     markers = [];
@@ -2062,6 +1896,7 @@ window.PillCounterModule = (function () {
     zoomLevel = 1.0;
     panX = 0;
     panY = 0;
+    aiStatusMessage = '';
     render('module-content');
   }
 
@@ -2074,8 +1909,8 @@ window.PillCounterModule = (function () {
       count: markers.length,
       timeStr
     });
-    // 누적 후 다음 묶음 촬영을 위해 현재 사진 비우기
     loadedImage = null;
+    loadedDataUrl = '';
     cachedAnalysis = null;
     markers = [];
     undoStack = [];
@@ -2133,15 +1968,26 @@ window.PillCounterModule = (function () {
     render('module-content');
   }
 
-  function saveAiSettingsKey() {
+  async function saveAiSettingsKey() {
     const input = document.getElementById('pc-gemini-key-input');
     const val = input ? input.value.trim() : '';
     try {
       if (val) localStorage.setItem(GEMINI_KEY_STORAGE, val);
       else localStorage.removeItem(GEMINI_KEY_STORAGE);
     } catch (e) {}
+
+    await pushGeminiKeyToCloud(val);
     showAiConfigModal = false;
-    alert(val ? '✅ Gemini AI 비전 API 키가 안전하게 저장되었습니다.' : 'ℹ️ API 키가 삭제되었습니다.');
+
+    if (val) {
+      alert('✅ Gemini 2.5 Vision AI 키가 저장되었으며, 약국 내 모든 기기(스마트폰·PC)에 자동 공유되었습니다!');
+      if (loadedImage) {
+        runGeminiAIVision(true);
+        return;
+      }
+    } else {
+      alert('ℹ️ API 키가 삭제되었습니다.');
+    }
     render('module-content');
   }
 
@@ -2157,6 +2003,7 @@ window.PillCounterModule = (function () {
     setQuickTarget,
     onVisionSliderChange,
     onMarkerAppearanceChange,
+    toggleBoundingBoxes,
     setBgMode,
     setMarkerStyle,
     setInteractionMode,

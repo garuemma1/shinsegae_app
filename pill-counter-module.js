@@ -514,13 +514,20 @@ window.PillCounterModule = (function () {
         <!-- 3. 올인원 카운팅 보드 (상단 원버튼 촬영 + 인터랙티브 캔버스 통합) -->
         <div class="card shadow-sm mb-3" style="border-radius:18px; border:1px solid #cbd5e1; background:#ffffff; overflow:hidden;">
           
-          <!-- 상단 통합 컨트롤 바: 중복 촬영 버튼을 [📸 알약 촬영 / 사진 선택] 단 1개로 통합 -->
+          <!-- 상단 컨트롤 바: 스마트폰 직통 카메라(capture="environment") + 앨범/PC 사진 선택 -->
           <div style="background:#f8fafc; padding:10px 14px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <label for="pc-unified-file-input" style="background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); color:#ffffff; border-radius:10px; padding:8px 15px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; margin:0; box-shadow:0 3px 10px rgba(37,99,235,0.25);">
-                <i class="fas fa-camera"></i> 📸 알약 촬영 / 사진 선택
+              <!-- 📸 1. 스마트폰 바로 카메라 촬영 (capture="environment" 필수 적용) -->
+              <label for="pc-camera-input" style="background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); color:#ffffff; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; margin:0; box-shadow:0 3px 10px rgba(37,99,235,0.25);">
+                <i class="fas fa-camera"></i> 📸 바로 카메라 촬영
               </label>
-              <input type="file" id="pc-unified-file-input" accept="image/*" onchange="PillCounterModule.handleFileSelect(event)" style="display:none;">
+              <input type="file" id="pc-camera-input" accept="image/*" capture="environment" onchange="PillCounterModule.handleFileSelect(event)" style="display:none;">
+
+              <!-- 📁 2. 앨범 / PC 사진 선택 -->
+              <label for="pc-gallery-input" style="background:#ffffff; color:#334155; border:1.5px solid #cbd5e1; border-radius:10px; padding:7px 13px; font-size:12.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; margin:0;">
+                <i class="fas fa-images" style="color:#64748b;"></i> 📁 앨범/사진 선택
+              </label>
+              <input type="file" id="pc-gallery-input" accept="image/*" onchange="PillCounterModule.handleFileSelect(event)" style="display:none;">
 
               ${loadedImage ? `
                 <button type="button" onclick="PillCounterModule.setInteractionMode('${interactionMode === 'EDIT' ? 'PAN' : 'EDIT'}')" style="background:${interactionMode === 'PAN' ? '#475569' : '#ffffff'}; color:${interactionMode === 'PAN' ? '#ffffff' : '#1e40af'}; border:1px solid #cbd5e1; border-radius:10px; padding:7px 12px; font-size:12px; font-weight:800; cursor:pointer;">
@@ -576,7 +583,7 @@ window.PillCounterModule = (function () {
                   <i class="fas fa-pills"></i>
                 </div>
                 <h4 style="color:#f8fafc; font-size:16.5px; font-weight:800; margin-bottom:6px;">
-                  상단 [📸 알약 촬영 / 사진 선택] 버튼을 눌러주세요
+                  상단 [📸 바로 카메라 촬영] 또는 [📁 앨범/사진 선택]을 눌러주세요
                 </h4>
                 <p style="font-size:12.5px; color:#94a3b8; max-width:460px; margin:0 auto 16px auto; line-height:1.5;">
                   • 어두운 바닥 위에 알약이 겹치지 않게 한 겹으로 펴놓고 찍으면 가장 빠르고 정확합니다.<br>

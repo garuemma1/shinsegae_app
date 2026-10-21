@@ -2044,7 +2044,9 @@ window.PillCounterModule = (function () {
     rfModel = rfModel.replace(/^https?:\/\/[^/]+\//i, '').replace(/\/model\//i, '/').replace(/\?.*$/, '');
     const rfParts = rfModel.split('/').filter(Boolean);
     if (rfParts.length >= 3) rfModel = rfParts.slice(-2).join('/');
-    const rfConf = rfConfEl ? (parseInt(rfConfEl.value, 10) || 40) : 40;
+    // 끝이 버전 번호(숫자)가 아니면 잘못된 ID (예: 작업공간/프로젝트 주소만 복사한 경우)
+    const rfModelInvalid = !!rfModel && !/^[^/]+\/\d+$/.test(rfModel);
+    const rfConf = rfConfEl ? (parseInt(rfConfEl.value, 10) || 50) : 50;
 
     try {
       if (val) localStorage.setItem(GEMINI_KEY_STORAGE, val);
@@ -2059,8 +2061,10 @@ window.PillCounterModule = (function () {
     await pushAiConfigToCloud();
     showAiConfigModal = false;
 
-    if (rfKey && rfModel && rfModel.indexOf('/') < 0) {
-      alert('⚠️ Roboflow 모델 ID는 "프로젝트명/버전번호" 형식이어야 합니다. (예: pill-counting-abcd/3)');
+    if (rfModelInvalid) {
+      try { localStorage.removeItem(ROBOFLOW_MODEL_STORAGE); } catch (e) {}
+      await pushAiConfigToCloud();
+      alert('⚠️ Roboflow 모델 ID 끝에 버전 번호가 없습니다.\n\n"프로젝트명/버전번호" 형식으로 넣어주세요.\n예: pill-counting-wys30/2\n\n(Roboflow 페이지의 코드 예시에서 model_id="..." 부분을 확인하세요)');
     }
 
     if (val || isRoboflowReady()) {

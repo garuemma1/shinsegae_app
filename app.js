@@ -348,6 +348,45 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
+  // ─── 🔢 스마트 알약 카운터 읽음 상태 관리 헬퍼 ─────────────────────────────
+  function _pillCounterFingerprint(item) {
+    if (!item) return '';
+    return [
+      item.id || '',
+      item.createdAt || '',
+      item.totalCount || 0,
+      item.patientName || '',
+      item.drugName || ''
+    ].join('|');
+  }
+
+  function markPillCounterRead() {
+    const currUser = window.SheetsSync ? window.SheetsSync.getCurrentUser() : null;
+    if (!currUser) return;
+    try {
+      const rawHistory = localStorage.getItem('ssg_pill_counter_history_v1');
+      const items = rawHistory ? JSON.parse(rawHistory) : [];
+      const fingerprints = (Array.isArray(items) ? items : []).map(_pillCounterFingerprint);
+      localStorage.setItem('ssg_read_pill_counter_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadPillCounter(currUser, items) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_pill_counter_' + currUser.id);
+      if (raw === null) {
+        // 앱 재실행/최초 세션 시 억지 N 방어: 현재 상태를 초기 기준점으로 등록
+        const fingerprints = (items || []).map(_pillCounterFingerprint);
+        localStorage.setItem('ssg_read_pill_counter_' + currUser.id, JSON.stringify(fingerprints));
+        return false;
+      }
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return (items || []).some(item => !savedSet.has(_pillCounterFingerprint(item)));
+    } catch(e) { return false; }
+  }
+
   // ─── ⏳ 유효기간 & 제약사 반품 대장 읽음 상태 관리 헬퍼 ────────────────────────
   function _expiryReturnFingerprint(item) {
     if (!item) return '';
@@ -624,6 +663,14 @@ window.App = (function () {
       const totalPendingOrdersAndShortages = pendingPatientOrders.length + pendingRxShortages.length;
       const hasUnreadPatientOrders = _hasUnreadPatientOrders(currUser, [...patientOrdersList, ...rxShortagesList]);
 
+      // 🔢 스마트 알약 카운터 (pill-counter: 신규 검수 기록 저장 시 N 뱃지)
+      let pillCounterHistory = [];
+      try {
+        const rawHistory = localStorage.getItem('ssg_pill_counter_history_v1');
+        if (rawHistory) pillCounterHistory = JSON.parse(rawHistory);
+      } catch(e) {}
+      const hasUnreadPillCounter = _hasUnreadPillCounter(currUser, pillCounterHistory);
+
       return {
         notices: hasNewNotice ? 'N' : null,
         worklog: hasUnreadLog ? 'N' : null,
@@ -631,6 +678,7 @@ window.App = (function () {
         'patient-orders': totalPendingOrdersAndShortages > 0 ? totalPendingOrdersAndShortages : (hasUnreadPatientOrders ? 'N' : null),
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
+        'pill-counter': hasUnreadPillCounter ? 'N' : null,
         'pharmacy-exchange': pendingExchanges.length > 0 ? pendingExchanges.length : (hasUnreadPE ? 'N' : null),
         'expiry-returns': criticalExpiryList.length > 0 ? criticalExpiryList.length : (hasUnreadExpiryReturns ? 'N' : null),
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
@@ -817,6 +865,7 @@ window.App = (function () {
         <button class="menu-item ${activeModule === 'pill-counter' ? 'active' : ''}" data-module="pill-counter" onclick="App.switchModule('pill-counter', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-calculator" style="color:#8b5cf6;"></i>
+            ${badges['pill-counter'] ? `<span class="menu-item-badge">${badges['pill-counter']}</span>` : ''}
           </div>
           <span>스마트 알약 카운터</span>
         </button>
@@ -1611,6 +1660,9 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'approval') {
         markApprovalRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'pill-counter') {
+        markPillCounterRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'discount-purchase') {
         markDiscountPurchaseRead();
@@ -2635,6 +2687,7 @@ function writeSheetData(sheet, dataList) {
     markMedicineLocationRead,
     markExpiryReturnsRead,
     markApprovalRead,
+    markPillCounterRead,
     quickSelectLogin,
     showLoginModal,
     closeLoginModal,

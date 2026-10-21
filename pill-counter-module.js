@@ -166,6 +166,9 @@ window.PillCounterModule = (function () {
         const merged = Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 500);
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(merged));
         renderHistoryItemsOnly();
+        if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+          window.App.updateSidebarBadgesOnly();
+        }
       } else if (localList.length > 0) {
         await pushHistoryToCloud(localList);
       }
@@ -1848,6 +1851,9 @@ window.PillCounterModule = (function () {
 
     isSavingCloud = false;
     render('module-content');
+    if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
+    }
   }
 
   async function attachCurrentPhotoToRecord(recordId) {
@@ -1911,6 +1917,12 @@ window.PillCounterModule = (function () {
     if (!found) return;
     previewRecord = found;
     render('module-content');
+    if (window.App && typeof window.App.markPillCounterRead === 'function') {
+      window.App.markPillCounterRead();
+    }
+    if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
+    }
   }
 
   function closePhotoModal() {
@@ -1941,6 +1953,9 @@ window.PillCounterModule = (function () {
     const list = getHistoryList().filter(item => item.id !== recordId);
     saveHistoryList(list);
     renderHistoryItemsOnly();
+    if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
+    }
   }
 
   function setQuickTarget(num) {
@@ -2020,6 +2035,12 @@ window.PillCounterModule = (function () {
     if (!confirm('저장된 조제 검수 근거 기록을 모두 비우시겠습니까?')) return;
     saveHistoryList([]);
     renderHistoryItemsOnly();
+    if (window.App && typeof window.App.markPillCounterRead === 'function') {
+      window.App.markPillCounterRead();
+    }
+    if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
+    }
   }
 
   function openAiSettingsModal() {

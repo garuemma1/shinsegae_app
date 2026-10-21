@@ -1,10 +1,11 @@
-/**
+﻿﻿﻿/**
  * 1. 공지사항 모듈 컨트롤러 (Notice Board Controller)
  * 신세계약국 공지사항 & 업무 SOP 최고급 정갈 리디자인
  */
 window.NoticesModule = (function () {
 
   let selectedCategory = 'ALL';
+  let editingNoticeId = null; // null이면 신규 등록, id가 있으면 해당 공지 수정 모드
 
   function render(containerId) {
     const container = document.getElementById(containerId || 'module-content');
@@ -128,7 +129,7 @@ window.NoticesModule = (function () {
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="NoticesModule.closeModal()">취소</button>
-                <button type="submit" class="btn btn-primary">등록하기</button>
+                <button type="submit" id="notice-submit-btn" class="btn btn-primary">등록하기</button>
               </div>
             </form>
           </div>
@@ -187,6 +188,7 @@ window.NoticesModule = (function () {
         (notice.authorName && notice.authorName.trim() === currUser.name.trim())
       );
       const canDelete = isDirector || isMyNotice;
+      const canEdit = isDirector || isMyNotice;
 
       const noticeTitle = String(notice.title || '').replace(/\+/g, ' ');
       const noticeContent = String(notice.content || '').replace(/\+/g, ' ').replace(/\n/g, '<br>');
@@ -210,11 +212,18 @@ window.NoticesModule = (function () {
               <i class="fas fa-user-circle text-primary"></i> ${noticeAuthor}
               ${isMyNotice && !isDirector ? '<span class="badge" style="background:#eff6ff; color:#2563eb; font-size:10.5px; padding:2px 7px; border-radius:10px; font-weight:700; border:1px solid #bfdbfe;">내 작성글</span>' : ''}
             </span>
-            ${canDelete ? `
-              <button type="button" class="link-btn text-danger" onclick="NoticesModule.deleteNotice('${notice.id}')" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:4px 9px; border-radius:6px; background:#fff1f2; border:1px solid #fecdd3; color:#e11d48; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='#ffe4e6'" onmouseout="this.style.background='#fff1f2'">
-                <i class="fas fa-trash-alt"></i> 삭제
-              </button>
-            ` : ''}
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${canEdit ? `
+                <button type="button" class="link-btn text-primary" onclick="NoticesModule.openEditModal('${notice.id}')" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:4px 9px; border-radius:6px; background:#eff6ff; border:1px solid #bfdbfe; color:#2563eb; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                  <i class="fas fa-edit"></i> 수정
+                </button>
+              ` : ''}
+              ${canDelete ? `
+                <button type="button" class="link-btn text-danger" onclick="NoticesModule.deleteNotice('${notice.id}')" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:4px 9px; border-radius:6px; background:#fff1f2; border:1px solid #fecdd3; color:#e11d48; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='#ffe4e6'" onmouseout="this.style.background='#fff1f2'">
+                  <i class="fas fa-trash-alt"></i> 삭제
+                </button>
+              ` : ''}
+            </div>
           </div>
         </div>
       `;
@@ -263,6 +272,7 @@ window.NoticesModule = (function () {
   }
 
   function openCreateModal() {
+    editingNoticeId = null;
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) {
       alert('⚠️ 공지사항 작성을 위해 먼저 로그인해 주세요.');
@@ -271,6 +281,12 @@ window.NoticesModule = (function () {
       }
       return;
     }
+
+    const titleEl = document.getElementById('notice-modal-title');
+    if (titleEl) titleEl.innerHTML = '📢 새 공지사항 / 업무 SOP 등록';
+
+    const submitBtn = document.getElementById('notice-submit-btn');
+    if (submitBtn) submitBtn.textContent = '등록하기';
 
     const form = document.getElementById('notice-form');
     if (form) form.reset();
@@ -284,7 +300,64 @@ window.NoticesModule = (function () {
     if (modal) modal.style.display = 'flex';
   }
 
+  function openEditModal(noticeId) {
+    const currUser = window.SheetsSync.getCurrentUser();
+    if (!currUser) {
+      alert('⚠️ 공지사항 수정을 위해 먼저 로그인해 주세요.');
+      if (window.App && typeof window.App.showLoginModal === 'function') {
+        window.App.showLoginModal();
+      }
+      return;
+    }
+
+    const data = window.SheetsSync.getData();
+    const target = (data.notices || []).find(n => n.id === noticeId);
+    if (!target) {
+      alert('수정할 공지사항을 찾을 수 없습니다.');
+      return;
+    }
+
+    const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
+    const isMyNotice = (
+      (target.authorId && target.authorId === currUser.id) ||
+      (target.author && (target.author.includes(currUser.name) || target.author.trim() === currUser.name.trim())) ||
+      (target.authorName && target.authorName.trim() === currUser.name.trim())
+    );
+
+    if (!isDirector && !isMyNotice) {
+      alert('🚨 본인이 작성한 공지사항만 수정할 수 있습니다.\n(약국장은 전체 공지사항을 수정할 수 있습니다.)');
+      return;
+    }
+
+    editingNoticeId = noticeId;
+
+    const titleEl = document.getElementById('notice-modal-title');
+    if (titleEl) titleEl.innerHTML = '✏️ 공지사항 / 업무 SOP 수정';
+
+    const submitBtn = document.getElementById('notice-submit-btn');
+    if (submitBtn) submitBtn.textContent = '수정 완료';
+
+    const titleInput = document.getElementById('form-notice-title');
+    if (titleInput) titleInput.value = String(target.title || '').replace(/\+/g, ' ');
+
+    const catSelect = document.getElementById('form-notice-category');
+    if (catSelect) catSelect.value = target.category || '일반공지';
+
+    const authorInput = document.getElementById('form-notice-author');
+    if (authorInput) authorInput.value = String(target.author || currUser.name).replace(/\+/g, ' ');
+
+    const pinCheckbox = document.getElementById('form-notice-pinned');
+    if (pinCheckbox) pinCheckbox.checked = !!target.isPinned;
+
+    const contentArea = document.getElementById('form-notice-content');
+    if (contentArea) contentArea.value = String(target.content || '').replace(/\+/g, ' ');
+
+    const modal = document.getElementById('notice-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+
   function closeModal() {
+    editingNoticeId = null;
     const modal = document.getElementById('notice-modal');
     if (modal) modal.style.display = 'none';
   }
@@ -314,21 +387,38 @@ window.NoticesModule = (function () {
     const now = new Date();
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    const newNotice = {
-      id: 'not_' + Date.now(),
-      title,
-      category,
-      author,
-      authorId: currUser ? currUser.id : (author.includes('문성도') ? 'emp_1' : ''),
-      authorName: currUser ? currUser.name : author,
-      isPinned,
-      content,
-      date: dateStr,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
+    if (editingNoticeId) {
+      // ✏️ 기존 공지사항 수정 모드
+      const idx = data.notices.findIndex(n => n.id === editingNoticeId);
+      if (idx >= 0) {
+        data.notices[idx].title = title;
+        data.notices[idx].category = category;
+        data.notices[idx].author = author;
+        data.notices[idx].authorName = author;
+        data.notices[idx].isPinned = isPinned;
+        data.notices[idx].content = content;
+        data.notices[idx].updatedAt = Date.now();
+        data.notices[idx].date = dateStr + ' (수정됨)';
+      }
+      editingNoticeId = null;
+    } else {
+      // ➕ 신규 등록 모드
+      const newNotice = {
+        id: 'not_' + Date.now(),
+        title,
+        category,
+        author,
+        authorId: currUser ? currUser.id : (author.includes('문성도') ? 'emp_1' : ''),
+        authorName: currUser ? currUser.name : author,
+        isPinned,
+        content,
+        date: dateStr,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      data.notices.unshift(newNotice);
+    }
 
-    data.notices.unshift(newNotice);
     if (window.SheetsSync) {
       if (typeof window.SheetsSync.saveNotices === 'function') {
         window.SheetsSync.saveNotices(data.notices);
@@ -339,7 +429,7 @@ window.NoticesModule = (function () {
 
     closeModal();
     render('module-content');
-    alert('새 공지사항이 성공적으로 등록되었습니다.');
+    alert('공지사항이 성공적으로 저장되었습니다.');
   }
 
   function deleteNotice(id) {
@@ -388,6 +478,7 @@ window.NoticesModule = (function () {
     filterNotices,
     filterCategory,
     openCreateModal,
+    openEditModal,
     closeModal,
     saveNotice,
     deleteNotice

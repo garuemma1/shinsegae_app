@@ -16,6 +16,10 @@ window.PillCounterModule = (function () {
   // 2단계 전용 AI 모델 학습용 데이터 (원본 사진 URL + 보정 완료 알약 박스). 기록 1건당 POST로 추가만 함
   const FIREBASE_TRAIN_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillCounterTrainingData.json';
   const AI_MODEL_QUEUE = ['gemini-2.5-flash', 'gemini-flash-latest'];
+  // 알약 전용 YOLO AI (Roboflow) 설정 — 약국 전 기기 공유 (Firebase pillCounterConfig에 함께 저장)
+  const ROBOFLOW_KEY_STORAGE = 'ssg_pill_roboflow_key_v1';
+  const ROBOFLOW_MODEL_STORAGE = 'ssg_pill_roboflow_model_v1';
+  const ROBOFLOW_CONF_STORAGE = 'ssg_pill_roboflow_conf_v1';
 
   // --- 상태 변수 ---
   let loadedImage = null;
@@ -67,33 +71,76 @@ window.PillCounterModule = (function () {
     cloudKeyLoaded = true;
     try {
       const localKey = getGeminiApiKey();
+      const localRf = getRoboflowConfig();
       const res = await fetch(`${FIREBASE_AI_CONFIG_URL}?t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
-        const data = await res.json();
-        if (data && data.geminiApiKey && String(data.geminiApiKey).trim().length > 10) {
+        const data = (await res.json()) || {};
+        let changed = false;
+        let needPush = false;
+
+        if (data.geminiApiKey && String(data.geminiApiKey).trim().length > 10) {
           const cloudKey = String(data.geminiApiKey).trim();
           if (cloudKey !== localKey) {
             localStorage.setItem(GEMINI_KEY_STORAGE, cloudKey);
-            updateAiStatusBadgeOnly();
+            changed = true;
           }
         } else if (localKey && localKey.length > 10) {
-          await pushGeminiKeyToCloud(localKey);
+          needPush = true;
         }
+
+        if (data.roboflowApiKey && data.roboflowModelId) {
+          localStorage.setItem(ROBOFLOW_KEY_STORAGE, String(data.roboflowApiKey).trim());
+          localStorage.setItem(ROBOFLOW_MODEL_STORAGE, String(data.roboflowModelId).trim());
+          if (data.roboflowConfidence) localStorage.setItem(ROBOFLOW_CONF_STORAGE, String(data.roboflowConfidence));
+          changed = true;
+        } else if (localRf.apiKey && localRf.modelId) {
+          needPush = true;
+        }
+
+        if (changed) updateAiStatusBadgeOnly();
+        if (needPush) await pushAiConfigToCloud();
       }
     } catch (e) {}
   }
 
-  async function pushGeminiKeyToCloud(apiKey) {
+  // Gemini 키 + Roboflow 설정을 한 번에 저장 (한쪽만 PUT 하면 다른 쪽이 지워지므로 항상 전체 저장)
+  async function pushAiConfigToCloud() {
     try {
+      const rf = getRoboflowConfig();
       await fetch(FIREBASE_AI_CONFIG_URL, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          geminiApiKey: apiKey || '',
+          geminiApiKey: getGeminiApiKey() || '',
+          roboflowApiKey: rf.apiKey || '',
+          roboflowModelId: rf.modelId || '',
+          roboflowConfidence: rf.confidence,
           updatedAt: Date.now()
         })
       });
     } catch (e) {}
+  }
+
+  function getRoboflowConfig() {
+    try {
+      const conf = parseInt(localStorage.getItem(ROBOFLOW_CONF_STORAGE) || '40', 10);
+      return {
+        apiKey: (localStorage.getItem(ROBOFLOW_KEY_STORAGE) || '').trim(),
+        modelId: (localStorage.getItem(ROBOFLOW_MODEL_STORAGE) || '').trim(),
+        confidence: isNaN(conf) ? 40 : Math.max(5, Math.min(90, conf))
+      };
+    } catch (e) {
+      return { apiKey: '', modelId: '', confidence: 40 };
+    }
+  }
+
+  function isRoboflowReady() {
+    const rf = getRoboflowConfig();
+    return rf.apiKey.length > 5 && rf.modelId.indexOf('/') > 0;
+  }
+
+  function updateScanNoticeOnly() {
+    render('module-content');
   }
 
   // --- 클라우드(Firebase) 검수 근거 기록 동기화 ---
@@ -186,14 +233,24 @@ window.PillCounterModule = (function () {
       .replace(/"/g, '&quot;');
   }
 
+  function getAiBadgeInfo() {
+    if (isRoboflowReady()) {
+      return { ok: true, text: '🎯 YOLO 1~2초 판독' };
+    }
+    if (getGeminiApiKey().length > 10) {
+      return { ok: true, text: '🤖 Gemini 고속 판독' };
+    }
+    return { ok: false, text: '⚠️ AI 키 등록 필요' };
+  }
+
   function updateAiStatusBadgeOnly() {
     const badge = document.getElementById('pc-ai-status-badge');
     if (!badge) return;
-    const hasApiKey = getGeminiApiKey().length > 10;
-    badge.style.background = hasApiKey ? 'rgba(16,185,129,0.22)' : 'rgba(245,158,11,0.25)';
-    badge.style.borderColor = hasApiKey ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)';
-    badge.style.color = hasApiKey ? '#6ee7b7' : '#fde68a';
-    badge.textContent = hasApiKey ? '🤖 AI 실시간 판독' : '⚠️ AI 키 등록 필요';
+    const info = getAiBadgeInfo();
+    badge.style.background = info.ok ? 'rgba(16,185,129,0.22)' : 'rgba(245,158,11,0.25)';
+    badge.style.borderColor = info.ok ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)';
+    badge.style.color = info.ok ? '#6ee7b7' : '#fde68a';
+    badge.textContent = info.text;
   }
 
   // --- 학습 데이터 수집 개수 조회 (shallow=true: 키 목록만 받아서 가볍게 셈) ---
@@ -399,7 +456,8 @@ window.PillCounterModule = (function () {
     const savedScrollY = window.scrollY || window.pageYOffset || 0;
     const savedContainerScroll = container.scrollTop || 0;
 
-    const hasApiKey = getGeminiApiKey().length > 10;
+    const hasApiKey = getGeminiApiKey().length > 10 || isRoboflowReady();
+    const badgeInfo = getAiBadgeInfo();
     const currCount = markers.length;
     const batchSum = batchCounts.reduce((acc, b) => acc + (Number(b.count) || 0), 0);
     const totalEffectiveCount = batchSum + currCount;
@@ -417,7 +475,7 @@ window.PillCounterModule = (function () {
                 🔢 스마트 알약 카운터 & 조제 근거 보관함
               </h2>
               <span id="pc-ai-status-badge" style="background:${hasApiKey ? 'rgba(16,185,129,0.22)' : 'rgba(245,158,11,0.25)'}; border:1px solid ${hasApiKey ? 'rgba(52,211,153,0.5)' : 'rgba(251,191,36,0.5)'}; color:${hasApiKey ? '#6ee7b7' : '#fde68a'}; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:800;">
-                ${hasApiKey ? '🤖 AI 실시간 판독' : '⚠️ AI 키 등록 필요'}
+                ${badgeInfo.text}
               </span>
               <span id="pc-training-count" style="background:rgba(124,58,237,0.25); border:1px solid rgba(167,139,250,0.5); color:#ddd6fe; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:800;">
                 🧠 학습 데이터 ${trainingCount !== null ? trainingCount : '...'}장 수집 (목표 100장)
@@ -733,6 +791,7 @@ window.PillCounterModule = (function () {
 
   function renderAiConfigModalHTML() {
     const savedKey = getGeminiApiKey();
+    const rf = getRoboflowConfig();
     return `
       <div style="position:fixed; inset:0; background:rgba(15,23,42,0.7); z-index:999999; display:flex; align-items:center; justify-content:center; padding:16px;">
         <div style="background:#ffffff; border-radius:20px; max-width:500px; width:100%; padding:22px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.4);">
@@ -745,6 +804,21 @@ window.PillCounterModule = (function () {
           </div>
           <div class="mb-3">
             <input type="text" id="pc-gemini-key-input" class="form-control" placeholder="AIzaSy... API 키 붙여넣기" value="${escapeHtml(savedKey)}" style="width:100%; border-radius:10px; font-size:13px; font-weight:700; padding:9px 12px; border:1.5px solid #8b5cf6;">
+          </div>
+
+          <div style="border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:12px;">
+            <div style="font-size:14px; font-weight:900; color:#047857; margin-bottom:6px;">🎯 알약 전용 YOLO AI (Roboflow) — 1~2초 판독 (선택)</div>
+            <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:9px 12px; font-size:11.5px; color:#065f46; margin-bottom:8px; line-height:1.55;">
+              • 입력하면 <strong>1순위 YOLO(1~2초) → 실패 시 Gemini → 간이분석</strong> 순으로 자동 전환됩니다.<br>
+              • <a href="https://app.roboflow.com" target="_blank" rel="noopener" style="color:#047857; font-weight:800; text-decoration:underline;">Roboflow</a> 무료 가입 → Settings → API Keys에서 <strong>Private API Key</strong> 복사<br>
+              • <a href="https://universe.roboflow.com/search?q=pill%20counting" target="_blank" rel="noopener" style="color:#047857; font-weight:800; text-decoration:underline;">Roboflow Universe</a>에서 알약 모델을 골라 우리 약 사진으로 먼저 테스트 후, 모델 ID(<code>프로젝트명/버전번호</code>)를 복사
+            </div>
+            <input type="text" id="pc-roboflow-key-input" class="form-control mb-2" placeholder="Roboflow Private API Key" value="${escapeHtml(rf.apiKey)}" style="width:100%; border-radius:10px; font-size:13px; font-weight:700; padding:8px 12px; border:1.5px solid #10b981;">
+            <div style="display:grid; grid-template-columns:1fr 110px; gap:8px;">
+              <input type="text" id="pc-roboflow-model-input" class="form-control" placeholder="모델 ID 예: pill-counting-xxxx/3" value="${escapeHtml(rf.modelId)}" style="width:100%; border-radius:10px; font-size:13px; font-weight:700; padding:8px 12px; border:1.5px solid #10b981;">
+              <input type="number" min="5" max="90" step="5" id="pc-roboflow-conf-input" class="form-control text-center" title="확신도 기준(%) — 낮추면 더 많이 잡고, 높이면 엄격해짐" value="${rf.confidence}" style="width:100%; border-radius:10px; font-size:13px; font-weight:800; padding:8px 6px; border:1.5px solid #10b981;">
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">우측 숫자 = 확신도 기준(%) · 덜 세면 낮추고(예: 30), 더 세면 높이세요(예: 55)</div>
           </div>
           <div style="display:flex; justify-content:flex-end; gap:8px;">
             <button type="button" onclick="PillCounterModule.closeAiSettingsModal()" class="btn btn-sm btn-secondary" style="border-radius:8px; padding:7px 14px;">닫기</button>
@@ -937,15 +1011,81 @@ window.PillCounterModule = (function () {
   }
 
   // ============================================================================
-  // 🤖 [엔진 2] Gemini AI 실시간 스트리밍 판독 엔진 (streamGeminiVision)
-  // - 1회 직통 스트리밍: tokens 도착 즉시 번호 마커가 1, 2, 3... 실시간으로 화면에 뜸
-  // - 1024px 정밀 해상도: 미세한 알약 및 반알까지 정밀 분별
+  // 🎯 [엔진 1순위] 알약 전용 YOLO AI (Roboflow 클라우드) — 필아이와 같은 방식, 1~2초
+  // - 사진을 1번만 보내면 모든 알약 위치를 한 번에 돌려받음 (글자 타이핑 방식이 아님)
+  // - 실패하거나 키가 없으면 자동으로 Gemini AI(2순위)로 넘어감
+  // ============================================================================
+  async function runRoboflowYolo(currentToken) {
+    const cfg = getRoboflowConfig();
+    if (!cfg.apiKey || !cfg.modelId) throw new Error('Roboflow 미설정');
+
+    const off = document.createElement('canvas');
+    const maxDim = 1024;
+    const sc = Math.min(1, maxDim / Math.max(imageWidth, imageHeight));
+    off.width = Math.round(imageWidth * sc);
+    off.height = Math.round(imageHeight * sc);
+    off.getContext('2d').drawImage(loadedImage, 0, 0, off.width, off.height);
+    const base64Data = off.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+    const modelPath = cfg.modelId.replace(/^\/+|\/+$/g, '');
+    const query = `api_key=${encodeURIComponent(cfg.apiKey)}&confidence=${cfg.confidence}&overlap=30`;
+    const hosts = ['https://serverless.roboflow.com', 'https://detect.roboflow.com'];
+    let lastErr = '';
+
+    for (let h = 0; h < hosts.length; h++) {
+      if (currentToken !== scanToken) return [];
+      try {
+        const resp = await fetch(`${hosts[h]}/${modelPath}?${query}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: base64Data,
+          signal: scanAbortController ? scanAbortController.signal : undefined
+        });
+        if (!resp.ok) {
+          lastErr = 'HTTP ' + resp.status;
+          if (resp.status === 401 || resp.status === 403) break;
+          continue;
+        }
+        const data = await resp.json();
+        const preds = Array.isArray(data.predictions) ? data.predictions : [];
+        const imgW = (data.image && Number(data.image.width)) || off.width;
+        const imgH = (data.image && Number(data.image.height)) || off.height;
+        const minDim = Math.min(imgW, imgH);
+
+        const list = [];
+        for (let i = 0; i < preds.length; i++) {
+          const p = preds[i];
+          const cx = Number(p.x) / imgW;
+          const cy = Number(p.y) / imgH;
+          if (isNaN(cx) || isNaN(cy) || cx < 0 || cx > 1 || cy < 0 || cy > 1) continue;
+          const halfSize = Math.max(Number(p.width) || 0, Number(p.height) || 0) / 2 / minDim;
+          list.push({
+            id: 'yolo_' + i + '_' + Date.now(),
+            x: cx,
+            y: cy,
+            r: Math.max(0.012, Math.min(0.038, halfSize || 0.022)),
+            isManual: false
+          });
+        }
+        return list;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return [];
+        lastErr = e.message || String(e);
+      }
+    }
+    throw new Error(lastErr || 'Roboflow 응답 실패');
+  }
+
+  // ============================================================================
+  // 🤖 [통합 판독] 1순위 YOLO(Roboflow) → 2순위 Gemini 고속 스트리밍 → 3순위 간이분석
+  // - Gemini는 속생각(thinking) 0초 강제 차단 + 768px 단일 타일로 30초 → 수 초로 단축
   // - NMS 후처리: 겹침/이중 카운팅/절단선 분할 오인식 자동 병합
   // ============================================================================
   async function streamGeminiVision() {
     if (!loadedImage) return;
     const apiKey = getGeminiApiKey();
-    if (!apiKey || apiKey.length < 10) {
+    const hasRoboflow = isRoboflowReady();
+    if ((!apiKey || apiKey.length < 10) && !hasRoboflow) {
       showAiConfigModal = true;
       render('module-content');
       return;
@@ -967,8 +1107,34 @@ window.PillCounterModule = (function () {
     render('module-content');
 
     try {
+      // ---- 1순위: 알약 전용 YOLO (1~2초) ----
+      if (hasRoboflow) {
+        try {
+          const yoloMarkers = await runRoboflowYolo(currentToken);
+          if (currentToken !== scanToken) return;
+          if (yoloMarkers.length > 0) {
+            markers = postProcessAiBoxes(yoloMarkers);
+            lastScanElapsedSec = ((performance.now() - startTime) / 1000).toFixed(1);
+            lastScanEngineName = '🎯YOLO';
+            return;
+          }
+          scanNotice = 'ℹ️ YOLO가 알약을 찾지 못해 Gemini AI로 다시 판독합니다.';
+        } catch (yoloErr) {
+          if (currentToken !== scanToken) return;
+          scanNotice = 'ℹ️ YOLO 연결 실패(' + (yoloErr.message || '오류') + ') → Gemini AI로 판독합니다.';
+        }
+        if (!apiKey || apiKey.length < 10) {
+          scanNotice = '⚠️ YOLO 판독 실패 → 비상 간이분석이 적용되었습니다.';
+          runLocalVisionFallback();
+          return;
+        }
+        updateScanNoticeOnly();
+      }
+
+      // ---- 2순위: Gemini 고속 스트리밍 ----
+      // 768px 이하 = 구글 서버가 사진을 여러 조각으로 쪼개지 않는 크기 (처리량 최소화)
       const off = document.createElement('canvas');
-      const maxDim = 1024;
+      const maxDim = 768;
       const sc = Math.min(1, maxDim / Math.max(imageWidth, imageHeight));
       off.width = Math.round(imageWidth * sc);
       off.height = Math.round(imageHeight * sc);
@@ -1058,7 +1224,9 @@ window.PillCounterModule = (function () {
         }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 4096
+          maxOutputTokens: 4096,
+          // ⚠️ 30초 지연의 주범: 2.5 모델의 '속생각(thinking)'을 0초로 강제 차단
+          thinkingConfig: { thinkingBudget: 0 }
         }
       }),
       signal: scanAbortController.signal
@@ -1211,7 +1379,8 @@ window.PillCounterModule = (function () {
   async function callGeminiSingleDirect(apiKey, base64Data, promptText) {
     const genConfig = {
       temperature: 0.1,
-      responseMimeType: 'application/json'
+      responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: 0 }
     };
 
     let lastErr = '';
@@ -1430,7 +1599,7 @@ window.PillCounterModule = (function () {
       } else {
         // 🤖 기본값으로 클라우드 Gemini AI 실시간 스트리밍 판독 자동 실행 (1~2초 내 실시간 마킹)
         const apiKey = getGeminiApiKey();
-        if (apiKey && apiKey.length > 10) {
+        if ((apiKey && apiKey.length > 10) || isRoboflowReady()) {
           streamGeminiVision();
         } else {
           runLocalVisionFallback();
@@ -1866,22 +2035,45 @@ window.PillCounterModule = (function () {
   async function saveAiSettingsKey() {
     const input = document.getElementById('pc-gemini-key-input');
     const val = input ? input.value.trim() : '';
+    const rfKeyEl = document.getElementById('pc-roboflow-key-input');
+    const rfModelEl = document.getElementById('pc-roboflow-model-input');
+    const rfConfEl = document.getElementById('pc-roboflow-conf-input');
+    const rfKey = rfKeyEl ? rfKeyEl.value.trim() : '';
+    // 사용자가 Universe 주소 전체를 붙여넣어도 "프로젝트/버전" 형태로 정리
+    let rfModel = rfModelEl ? rfModelEl.value.trim() : '';
+    rfModel = rfModel.replace(/^https?:\/\/[^/]+\//i, '').replace(/\/model\//i, '/').replace(/\?.*$/, '');
+    const rfParts = rfModel.split('/').filter(Boolean);
+    if (rfParts.length >= 3) rfModel = rfParts.slice(-2).join('/');
+    const rfConf = rfConfEl ? (parseInt(rfConfEl.value, 10) || 40) : 40;
+
     try {
       if (val) localStorage.setItem(GEMINI_KEY_STORAGE, val);
       else localStorage.removeItem(GEMINI_KEY_STORAGE);
+      if (rfKey) localStorage.setItem(ROBOFLOW_KEY_STORAGE, rfKey);
+      else localStorage.removeItem(ROBOFLOW_KEY_STORAGE);
+      if (rfModel) localStorage.setItem(ROBOFLOW_MODEL_STORAGE, rfModel);
+      else localStorage.removeItem(ROBOFLOW_MODEL_STORAGE);
+      localStorage.setItem(ROBOFLOW_CONF_STORAGE, String(Math.max(5, Math.min(90, rfConf))));
     } catch (e) {}
 
-    await pushGeminiKeyToCloud(val);
+    await pushAiConfigToCloud();
     showAiConfigModal = false;
 
-    if (val) {
-      alert('✅ Gemini AI 키가 저장되었으며 약국 내 모든 기기에 공유되었습니다!');
+    if (rfKey && rfModel && rfModel.indexOf('/') < 0) {
+      alert('⚠️ Roboflow 모델 ID는 "프로젝트명/버전번호" 형식이어야 합니다. (예: pill-counting-abcd/3)');
+    }
+
+    if (val || isRoboflowReady()) {
+      const parts = [];
+      if (isRoboflowReady()) parts.push('🎯 YOLO(1순위)');
+      if (val) parts.push('🤖 Gemini(2순위)');
+      alert('✅ AI 설정이 저장되어 약국 내 모든 기기에 공유되었습니다!\n사용 엔진: ' + parts.join(' → '));
       if (loadedImage) {
         streamGeminiVision();
         return;
       }
     } else {
-      alert('ℹ️ API 키가 삭제되었습니다.');
+      alert('ℹ️ AI 키가 모두 삭제되었습니다.');
     }
     render('module-content');
   }

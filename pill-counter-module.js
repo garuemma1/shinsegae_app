@@ -476,7 +476,6 @@ window.PillCounterModule = (function () {
     const totalEffectiveCount = batchSum + currCount;
     const historyList = getHistoryList();
     const filteredHistory = getFilteredHistoryList();
-    const currentUser = (window.Auth && window.Auth.getCurrentUser && window.Auth.getCurrentUser()) || localStorage.getItem('shinsegae_user') || '약사';
 
     container.innerHTML = `
       <div class="pill-counter-wrapper" style="max-width:980px; margin:0 auto; padding-bottom:36px;">
@@ -520,9 +519,6 @@ window.PillCounterModule = (function () {
                 ${targetCount > 0 ? `
                   <button type="button" onclick="PillCounterModule.setQuickTarget(0)" style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">목표 초기화</button>
                 ` : ''}
-              </span>
-              <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:3px 9px; border-radius:8px; font-size:11.5px; font-weight:800; white-space:nowrap;">
-                ✍️ ${escapeHtml(currentUser)}
               </span>
             </div>
           </div>
@@ -1993,8 +1989,10 @@ window.PillCounterModule = (function () {
 
     const pName = (patientNameInput || '').trim() || '미입력';
     const dName = (drugNameInput || '').trim() || '조제 알약';
-    const currUser = (window.SheetsSync && window.SheetsSync.getCurrentUser) ? window.SheetsSync.getCurrentUser() : null;
-    const uName = currUser ? currUser.name : '약사';
+    const currUser = (window.App && window.App.state && window.App.state.currentUser)
+      ? window.App.state.currentUser
+      : ((window.SheetsSync && window.SheetsSync.getCurrentUser) ? window.SheetsSync.getCurrentUser() : null);
+    const uName = (currUser && currUser.name) ? currUser.name : '약사';
     const now = new Date();
     const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 

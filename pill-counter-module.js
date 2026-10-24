@@ -149,32 +149,62 @@ window.PillCounterModule = (function () {
     render('module-content');
   }
 
-  // --- 클라우드(Firebase) 검수 근거 기록 동기화 ---
-  async function syncHistoryFromCloud() {
-    if (cloudHistoryLoaded) return;
-    cloudHistoryLoaded = true;
+  // --- 클라우드(Firebase) 검수 근거 기록 실시간 동기화 (전 기기 N 배지 0.05초 연동) ---
+  let historyRealtimeAttached = false;
+  let lastHistorySyncAt = 0;
+
+  function applyCloudHistoryArray(cloudData) {
+    if (!Array.isArray(cloudData)) return;
+    const cleaned = cloudData
+      .filter(item => item && item.id)
+      .map(sanitizeHistoryItem)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .slice(0, 500);
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(cleaned));
+    renderHistoryItemsOnly();
+    if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
+    }
+  }
+
+  function attachRealtimeHistoryListener() {
+    if (historyRealtimeAttached || typeof window === 'undefined') return;
     try {
-      const res = await fetch(`${FIREBASE_HISTORY_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && typeof firebase.database === 'function') {
+        historyRealtimeAttached = true;
+        const ref = firebase.database().ref('shinsegae_master_db/pillCounterHistory');
+        ref.on('value', (snap) => {
+          const val = snap ? snap.val() : null;
+          if (Array.isArray(val)) {
+            applyCloudHistoryArray(val);
+          } else if (val && typeof val === 'object') {
+            applyCloudHistoryArray(Object.values(val));
+          }
+        });
+      }
+    } catch (e) {
+      historyRealtimeAttached = false;
+    }
+  }
+
+  async function syncHistoryFromCloud(force = false) {
+    attachRealtimeHistoryListener();
+    const now = Date.now();
+    if (!force && cloudHistoryLoaded && (now - lastHistorySyncAt < 4000)) return;
+    cloudHistoryLoaded = true;
+    lastHistorySyncAt = now;
+    try {
+      const res = await fetch(`${FIREBASE_HISTORY_URL}?t=${now}`, { cache: 'no-store' });
       if (!res.ok) return;
       const cloudData = await res.json();
       const localList = getHistoryList();
 
-      if (Array.isArray(cloudData) && cloudData.length > 0) {
-        const mergedMap = new Map();
-        cloudData.forEach(item => {
-          if (item && item.id) mergedMap.set(item.id, sanitizeHistoryItem(item));
-        });
-        localList.forEach(item => {
-          if (item && item.id && !mergedMap.has(item.id)) {
-            mergedMap.set(item.id, sanitizeHistoryItem(item));
-          }
-        });
-        const merged = Array.from(mergedMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 500);
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(merged));
-        renderHistoryItemsOnly();
-        if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
-          window.App.updateSidebarBadgesOnly();
-        }
+      const cloudArr = Array.isArray(cloudData)
+        ? cloudData
+        : (cloudData && typeof cloudData === 'object' ? Object.values(cloudData) : []);
+
+      if (cloudArr.length > 0) {
+        applyCloudHistoryArray(cloudArr);
       } else if (localList.length > 0) {
         await pushHistoryToCloud(localList);
       }
@@ -189,7 +219,27 @@ window.PillCounterModule = (function () {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(clean)
       });
+      // 타 기기 깨우기용 pushSignal 타임스탬프 동시 갱신
+      const currUser = (window.App && window.App.state && window.App.state.currentUser)
+        ? window.App.state.currentUser
+        : ((window.SheetsSync && window.SheetsSync.getCurrentUser) ? window.SheetsSync.getCurrentUser() : null);
+      fetch('https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pushSignal.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          timestamp: Date.now(),
+          senderId: currUser && currUser.id ? currUser.id : 'pill_counter',
+          module: 'pill-counter'
+        })
+      }).catch(() => {});
     } catch (e) {}
+  }
+
+  // 앱 최초 로드 시 다른 탭(공지사항 등)에 있더라도 백그라운드에서 즉시 검수 기록 동기화 및 실시간 리스너 연결
+  if (typeof window !== 'undefined') {
+    setTimeout(() => { syncHistoryFromCloud(true); }, 600);
+    window.addEventListener('focus', () => { syncHistoryFromCloud(true); });
+    window.addEventListener('ssg_cloud_updated', () => { syncHistoryFromCloud(true); });
   }
 
   function sanitizeHistoryItem(item) {
@@ -2326,6 +2376,7 @@ window.PillCounterModule = (function () {
 
   return {
     render,
+    syncHistoryFromCloud,
     onMainCountButtonClick,
     startLiveTrayCamera,
     stopLiveTrayCamera,

@@ -377,6 +377,7 @@ window.App = (function () {
       const raw = localStorage.getItem('ssg_read_pill_counter_' + currUser.id);
       if (raw === null) {
         // 앱 재실행/최초 세션 시 억지 N 방어: 현재 상태를 초기 기준점으로 등록
+        if (!items || items.length === 0) return false;
         const fingerprints = (items || []).map(_pillCounterFingerprint);
         localStorage.setItem('ssg_read_pill_counter_' + currUser.id, JSON.stringify(fingerprints));
         return false;

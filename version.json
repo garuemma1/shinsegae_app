@@ -1,10 +1,16 @@
 {
-  "version": "v5.050",
-  "displayVersion": "v5.050",
-  "name": "🔢 좌측 상단 버전 배지(v5.050) 실시간 연동 및 스마트 알약 카운터 모바일 정돈·작성자 배지 정리",
-  "buildTime": 1792817180000,
-  "updatedAt": "2026-10-24 13:46",
+  "version": "v5.051",
+  "displayVersion": "v5.051",
+  "name": "🔔 스마트 알약 카운터 사이드바 N 배지 실시간 웹소켓 연동 (타 기기/타 탭에서도 저장 즉시 0.05초 N 배지 점등)",
+  "buildTime": 1792819680000,
+  "updatedAt": "2026-10-24 14:28",
   "history": [
+    {
+      "version": "v5.051",
+      "updatedAt": "2026-10-24 14:28",
+      "files": ["pill-counter-module.js", "app.js", "index.html"],
+      "summary": "스마트 알약 카운터 검수 기록(pillCounterHistory) 실시간 Firebase WebSocket 리스너 및 pushSignal 연동 추가 (다른 탭이나 다른 기기에서 저장 시에도 0.05초 만에 사이드바 N 배지 즉시 점등)"
+    },
     {
       "version": "v5.050",
       "updatedAt": "2026-10-24 13:46",

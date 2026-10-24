@@ -381,7 +381,7 @@ window.PillCounterModule = (function () {
     }
 
     return `
-      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(310px, 1fr)); gap:10px; max-height:380px; overflow-y:auto; padding-right:2px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px; max-height:380px; overflow-y:auto; padding-right:2px;">
         ${filtered.map(item => {
           const hasPhoto = item.photoUrl && (item.photoUrl.startsWith('http') || item.photoUrl.startsWith('data:image'));
           const pName = item.patientName && item.patientName !== '미입력' ? item.patientName : '이름 미입력';
@@ -390,45 +390,44 @@ window.PillCounterModule = (function () {
             <div onclick="PillCounterModule.openPhotoModal('${escapeHtml(item.id)}')" title="클릭하면 번호가 찍힌 검수 증거 사진이 크게 열립니다" style="padding:10px 12px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'; this.style.background='#eff6ff';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc';">
               <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
                 ${hasPhoto ? `
-                  <div style="width:56px; height:56px; border-radius:10px; overflow:hidden; flex-shrink:0; border:1.5px solid #2563eb; position:relative; background:#0f172a;">
+                  <div style="width:52px; height:52px; border-radius:10px; overflow:hidden; flex-shrink:0; border:1.5px solid #2563eb; position:relative; background:#0f172a;">
                     <img src="${escapeHtml(item.photoUrl)}" alt="검수사진" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;">
                     <span style="position:absolute; bottom:0; right:0; background:rgba(37,99,235,0.9); color:#fff; font-size:9px; padding:1px 4px; font-weight:800;">🔍사진</span>
                   </div>
                 ` : `
-                  <div style="width:56px; height:56px; border-radius:10px; background:#e2e8f0; color:#64748b; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; border:1px dashed #94a3b8;">
+                  <div style="width:52px; height:52px; border-radius:10px; background:#e2e8f0; color:#64748b; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; border:1px dashed #94a3b8;">
                     <span>📷</span>
                     <span style="font-size:9px; font-weight:800;">클릭</span>
                   </div>
                 `}
 
                 <div style="min-width:0; flex:1;">
-                  <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:2px;">
-                    <span style="background:${isNameMissing ? '#f1f5f9' : '#dbeafe'}; color:${isNameMissing ? '#64748b' : '#1e40af'}; border:1px solid ${isNameMissing ? '#cbd5e1' : '#93c5fd'}; padding:1px 7px; border-radius:6px; font-size:12px; font-weight:900;">
+                  <div style="display:flex; align-items:center; gap:5px; flex-wrap:nowrap; margin-bottom:3px; overflow:hidden;">
+                    <span style="background:${isNameMissing ? '#f1f5f9' : '#dbeafe'}; color:${isNameMissing ? '#64748b' : '#1e40af'}; border:1px solid ${isNameMissing ? '#cbd5e1' : '#93c5fd'}; padding:1px 6px; border-radius:6px; font-size:11.5px; font-weight:900; white-space:nowrap; flex-shrink:0;">
                       👤 ${escapeHtml(pName)}
                     </span>
-                    <span style="font-size:13px; font-weight:900; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    <span style="font-size:12.5px; font-weight:900; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                       💊 ${escapeHtml(item.drugName || '조제 알약')}
                     </span>
                   </div>
 
-                  <div style="font-size:11px; color:#64748b; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                    <span>🕒 ${escapeHtml(item.timeStr || '')}</span>
-                    <span>• ${escapeHtml(item.userName || '약사')}</span>
-                    <button type="button" onclick="event.stopPropagation(); PillCounterModule.editHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#2563eb; font-size:11px; font-weight:800; padding:0; cursor:pointer;">[✏️수정]</button>
-                    <button type="button" onclick="event.stopPropagation(); PillCounterModule.deleteHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#dc2626; font-size:11px; font-weight:800; padding:0; cursor:pointer;">[삭제]</button>
+                  <div style="font-size:11px; color:#64748b; display:flex; align-items:center; gap:5px; flex-wrap:nowrap; white-space:nowrap; overflow:hidden;">
+                    <span style="overflow:hidden; text-overflow:ellipsis;">🕒 ${escapeHtml(item.timeStr || '')}</span>
+                    <button type="button" onclick="event.stopPropagation(); PillCounterModule.editHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#2563eb; font-size:11px; font-weight:800; padding:0; cursor:pointer; flex-shrink:0;">[✏️수정]</button>
+                    <button type="button" onclick="event.stopPropagation(); PillCounterModule.deleteHistoryItem('${escapeHtml(item.id)}')" style="background:none; border:none; color:#dc2626; font-size:11px; font-weight:800; padding:0; cursor:pointer; flex-shrink:0;">[삭제]</button>
                   </div>
                 </div>
               </div>
 
               <div style="text-align:right; flex-shrink:0;">
-                <div style="font-size:18px; font-weight:900; color:#047857; line-height:1.1;">
-                  ${item.totalCount}<span style="font-size:12px; font-weight:800; margin-left:1px;">정</span>
+                <div style="font-size:17px; font-weight:900; color:#047857; line-height:1.1; white-space:nowrap;">
+                  ${item.totalCount}<span style="font-size:11.5px; font-weight:800; margin-left:1px;">정</span>
                 </div>
                 ${item.targetCount > 0 ? (item.totalCount === item.targetCount
-                  ? `<div style="font-size:10.5px; font-weight:800; color:#059669;">✅ 목표(${item.targetCount}) 일치</div>`
-                  : `<div style="font-size:10.5px; font-weight:800; color:#d97706;">목표 ${item.targetCount}정</div>`
+                  ? `<div style="font-size:10px; font-weight:800; color:#059669; white-space:nowrap;">✅ 목표(${item.targetCount})</div>`
+                  : `<div style="font-size:10px; font-weight:800; color:#d97706; white-space:nowrap;">목표 ${item.targetCount}정</div>`
                 ) : ''}
-                <div style="margin-top:3px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:6px; padding:2px 7px; font-size:10.5px; font-weight:800; display:inline-block;">
+                <div style="margin-top:3px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:6px; padding:2px 6px; font-size:10px; font-weight:800; display:inline-block; white-space:nowrap;">
                   🖼️ 사진보기
                 </div>
               </div>
@@ -482,99 +481,102 @@ window.PillCounterModule = (function () {
     container.innerHTML = `
       <div class="pill-counter-wrapper" style="max-width:980px; margin:0 auto; padding-bottom:36px;">
         
-        <!-- 1. 사용자 중심 화이트 슬림 헤더 -->
-        <div class="card shadow-sm mb-3" style="border-radius:16px; border:1px solid #e2e8f0; background:#ffffff; padding:12px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <div style="width:32px; height:32px; border-radius:9px; background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; display:flex; align-items:center; justify-content:center; font-size:16px;">
+        <!-- 1. 사용자 중심 화이트 슬림 헤더 (모바일/PC 2단 정돈 배열) -->
+        <div class="card shadow-sm mb-3" style="border-radius:16px; border:1px solid #e2e8f0; background:#ffffff; padding:12px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+              <div style="width:30px; height:30px; border-radius:8px; background:#ecfdf5; border:1px solid #a7f3d0; color:#059669; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">
                 <i class="fas fa-capsules"></i>
               </div>
-              <h2 style="font-size:16.5px; font-weight:900; margin:0; color:#0f172a; letter-spacing:-0.3px;">
+              <h2 style="font-size:15.5px; font-weight:900; margin:0; color:#0f172a; letter-spacing:-0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                 알약 카운터 & 조제 근거 보관함
               </h2>
-              <span id="pc-ai-status-badge" style="background:${hasApiKey ? '#ecfdf5' : '#fef3c7'}; border:1px solid ${hasApiKey ? '#a7f3d0' : '#fde68a'}; color:${hasApiKey ? '#047857' : '#b45309'}; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:800;">
-                ${badgeInfo.text}
-              </span>
-              <span id="pc-training-count" style="background:#f5f3ff; border:1px solid #ddd6fe; color:#6d28d9; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:800;">
-                🧠 학습 데이터 ${trainingCount !== null ? trainingCount : '...'}장 수집 (목표 100장)
-              </span>
             </div>
 
-            <button type="button" onclick="PillCounterModule.openAiSettingsModal()" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+            <button type="button" onclick="PillCounterModule.openAiSettingsModal()" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; border-radius:10px; padding:6px 11px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; flex-shrink:0;">
               <i class="fas fa-cog" style="color:#64748b;"></i> 설정
-              <span id="pc-ai-status-dot" style="width:8px; height:8px; border-radius:50%; background:${hasApiKey ? '#10b981' : '#f59e0b'}; display:inline-block;"></span>
+              <span id="pc-ai-status-dot" style="width:7px; height:7px; border-radius:50%; background:${hasApiKey ? '#10b981' : '#f59e0b'}; display:inline-block;"></span>
             </button>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:6px; margin-top:8px; overflow-x:auto; white-space:nowrap; scrollbar-width:none;">
+            <span id="pc-ai-status-badge" style="background:${hasApiKey ? '#ecfdf5' : '#fef3c7'}; border:1px solid ${hasApiKey ? '#a7f3d0' : '#fde68a'}; color:${hasApiKey ? '#047857' : '#b45309'}; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:800; flex-shrink:0;">
+              ${badgeInfo.text}
+            </span>
+            <span id="pc-training-count" style="background:#f5f3ff; border:1px solid #ddd6fe; color:#6d28d9; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:800; flex-shrink:0;">
+              🧠 학습 데이터 ${trainingCount !== null ? trainingCount : '...'}장 수집 (목표 100장)
+            </span>
           </div>
         </div>
 
-        <!-- 2. 처방약 계수 기록 카드 (이름 / 처방약 / 수량) -->
-        <div class="card shadow-sm mb-3" style="border-radius:16px; border:1px solid #e2e8f0; background:#ffffff; padding:14px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
-            <span style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; padding:3px 10px; border-radius:8px; font-size:11.5px; font-weight:800;">
+        <!-- 2. 처방약 계수 기록 카드 (이름 / 처방약 / 수량 1줄 고정 그리드) -->
+        <div class="card shadow-sm mb-3" style="border-radius:16px; border:1px solid #e2e8f0; background:#ffffff; padding:12px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:nowrap; gap:6px;">
+            <span style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; padding:3px 9px; border-radius:8px; font-size:11.5px; font-weight:800; white-space:nowrap;">
               처방약 계수 기록
             </span>
-            <div style="display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap;">
               <span id="pc-reset-target-wrap">
                 ${targetCount > 0 ? `
-                  <button type="button" onclick="PillCounterModule.setQuickTarget(0)" style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:800; cursor:pointer;">목표 초기화</button>
+                  <button type="button" onclick="PillCounterModule.setQuickTarget(0)" style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">목표 초기화</button>
                 ` : ''}
               </span>
-              <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:3px 10px; border-radius:8px; font-size:11.5px; font-weight:800;">
+              <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:3px 9px; border-radius:8px; font-size:11.5px; font-weight:800; white-space:nowrap;">
                 ✍️ ${escapeHtml(currentUser)}
               </span>
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1.35fr 92px; gap:10px; align-items:end;">
-            <div>
-              <label style="font-size:11px; font-weight:800; color:#64748b; display:block; margin-bottom:4px;">이름</label>
-              <input type="text" id="pc-patient-name" class="form-control form-control-sm" placeholder="예: 홍길동" value="${escapeHtml(patientNameInput)}" oninput="PillCounterModule.onTextMetaInput()" style="width:100%; border-radius:10px; font-weight:800; border:1px solid #cbd5e1; background:#ffffff; padding:8px 11px; font-size:13px;">
+          <div style="display:grid; grid-template-columns:1fr 1.25fr 72px; gap:8px; align-items:end;">
+            <div style="min-width:0;">
+              <label style="font-size:11px; font-weight:800; color:#64748b; display:block; margin-bottom:4px; white-space:nowrap;">이름</label>
+              <input type="text" id="pc-patient-name" class="form-control form-control-sm" placeholder="예: 홍길동" value="${escapeHtml(patientNameInput)}" oninput="PillCounterModule.onTextMetaInput()" style="width:100%; border-radius:10px; font-weight:800; border:1px solid #cbd5e1; background:#ffffff; padding:7px 9px; font-size:13px;">
             </div>
-            <div>
-              <label style="font-size:11px; font-weight:800; color:#64748b; display:block; margin-bottom:4px;">처방약</label>
-              <input type="text" id="pc-drug-name" class="form-control form-control-sm" placeholder="예: 타이레놀" value="${escapeHtml(drugNameInput)}" oninput="PillCounterModule.onTextMetaInput()" style="width:100%; border-radius:10px; font-weight:800; border:1px solid #cbd5e1; background:#ffffff; padding:8px 11px; font-size:13px;">
+            <div style="min-width:0;">
+              <label style="font-size:11px; font-weight:800; color:#64748b; display:block; margin-bottom:4px; white-space:nowrap;">처방약</label>
+              <input type="text" id="pc-drug-name" class="form-control form-control-sm" placeholder="예: 타이레놀" value="${escapeHtml(drugNameInput)}" oninput="PillCounterModule.onTextMetaInput()" style="width:100%; border-radius:10px; font-weight:800; border:1px solid #cbd5e1; background:#ffffff; padding:7px 9px; font-size:13px;">
             </div>
-            <div>
-              <label style="font-size:11px; font-weight:800; color:#64748b; display:block; margin-bottom:4px;">수량</label>
-              <input type="number" step="1" min="0" id="pc-target-count" class="form-control form-control-sm text-center" placeholder="목표" value="${targetCount || ''}" oninput="PillCounterModule.onDirectTargetInput(this.value)" style="width:100%; border-radius:10px; font-weight:900; border:1px solid #cbd5e1; background:#ffffff; color:#0f172a; padding:8px 6px; font-size:13px; text-align:center;">
+            <div style="min-width:0;">
+              <label style="font-size:11px; font-weight:800; color:#64748b; display:block; margin-bottom:4px; white-space:nowrap;">수량</label>
+              <input type="number" step="1" min="0" id="pc-target-count" class="form-control form-control-sm text-center" placeholder="목표" value="${targetCount || ''}" oninput="PillCounterModule.onDirectTargetInput(this.value)" style="width:100%; border-radius:10px; font-weight:900; border:1px solid #cbd5e1; background:#ffffff; color:#0f172a; padding:7px 4px; font-size:13px; text-align:center;">
             </div>
           </div>
         </div>
 
-        <!-- 3. 감지된 알약 개수 & 저장 카드 -->
-        <div class="card shadow-sm mb-3" style="border-radius:16px; border:2px solid #10b981; background:#ffffff; padding:14px 18px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div>
-              <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px; flex-wrap:wrap;">
-                <span style="font-size:12px; font-weight:800; color:#047857;">감지된 알약 개수</span>
-                <span style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:1px 8px; border-radius:6px; font-size:10.5px; font-weight:800;">
+        <!-- 3. 감지된 알약 개수 & 저장 카드 (모바일에서도 좌측 개수 · 우측 버튼 1줄 정돈 고정) -->
+        <div class="card shadow-sm mb-3" style="border-radius:16px; border:2px solid #10b981; background:#ffffff; padding:12px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px;">
+            <div style="min-width:0; flex:1;">
+              <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px; flex-wrap:nowrap; overflow:hidden;">
+                <span style="font-size:11.5px; font-weight:800; color:#047857; white-space:nowrap; flex-shrink:0;">감지된 알약 개수</span>
+                <span style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                   ${badgeInfo.text}${lastScanElapsedSec ? ` · ${lastScanElapsedSec}초` : ''}
                 </span>
               </div>
-              <div style="display:flex; align-items:baseline; gap:6px;">
-                <span id="pc-current-count-num" style="font-size:36px; font-weight:900; color:#0f172a; font-family:'Outfit',sans-serif; line-height:1.05;">${isAiScanning ? '...' : currCount}</span>
-                <span style="font-size:15px; font-weight:800; color:#475569;">정</span>
+              <div style="display:flex; align-items:baseline; gap:5px; flex-wrap:nowrap; white-space:nowrap;">
+                <span id="pc-current-count-num" style="font-size:32px; font-weight:900; color:#0f172a; font-family:'Outfit',sans-serif; line-height:1.05;">${isAiScanning ? '...' : currCount}</span>
+                <span style="font-size:14px; font-weight:800; color:#475569;">정</span>
                 ${batchSum > 0 ? `
-                  <span style="background:#059669; color:#ffffff; padding:2px 9px; border-radius:20px; font-size:12px; font-weight:800;">
+                  <span style="background:#059669; color:#ffffff; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:800;">
                     누적 총 ${totalEffectiveCount}정
                   </span>
                 ` : ''}
               </div>
             </div>
 
-            <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-              <div style="display:flex; gap:8px;">
-                <button type="button" onclick="PillCounterModule.addCurrentToBatch()" ${currCount === 0 || isAiScanning ? 'disabled' : ''} style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:10px; padding:9px 13px; font-size:12px; font-weight:800; cursor:pointer; opacity:${currCount === 0 ? '0.45' : '1'};">
+            <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end; flex-shrink:0;">
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
+                <button type="button" onclick="PillCounterModule.addCurrentToBatch()" ${currCount === 0 || isAiScanning ? 'disabled' : ''} style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; border-radius:10px; padding:8px 11px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; opacity:${currCount === 0 ? '0.45' : '1'};">
                   + 누적(${batchCounts.length + 1}차)
                 </button>
-                <button type="button" onclick="PillCounterModule.saveCurrentInspection()" ${totalEffectiveCount === 0 || isSavingCloud ? 'disabled' : ''} style="background:#10b981; color:#ffffff; border:none; border-radius:10px; padding:9px 16px; font-size:12.5px; font-weight:900; cursor:pointer; box-shadow:0 3px 10px rgba(16,185,129,0.28); opacity:${totalEffectiveCount === 0 ? '0.45' : '1'};">
-                  ${isSavingCloud ? '☁️ 저장중...' : '💾 저장'}
+                <button type="button" onclick="PillCounterModule.saveCurrentInspection()" ${totalEffectiveCount === 0 || isSavingCloud ? 'disabled' : ''} style="background:#10b981; color:#ffffff; border:none; border-radius:10px; padding:8px 14px; font-size:12.5px; font-weight:900; cursor:pointer; white-space:nowrap; box-shadow:0 3px 10px rgba(16,185,129,0.28); opacity:${totalEffectiveCount === 0 ? '0.45' : '1'};">
+                  ${isSavingCloud ? '☁️ 저장중' : '💾 저장'}
                 </button>
               </div>
               ${batchCounts.length > 0 ? `
-                <div style="font-size:11px; color:#065f46; font-weight:700;">
+                <div style="font-size:11px; color:#065f46; font-weight:700; white-space:nowrap;">
                   ${batchCounts.map(b => `${b.batchNo}차(${b.count})`).join('+')}
-                  <button type="button" onclick="PillCounterModule.clearBatches()" style="background:none; border:none; color:#dc2626; font-weight:800; cursor:pointer;">[초기화]</button>
+                  <button type="button" onclick="PillCounterModule.clearBatches()" style="background:none; border:none; color:#dc2626; font-weight:800; cursor:pointer; padding:0 0 0 4px;">[초기화]</button>
                 </div>
               ` : ''}
             </div>
@@ -584,101 +586,101 @@ window.PillCounterModule = (function () {
         <!-- 목표 대비 일치/부족/초과 배너 영역 -->
         <div id="pc-verify-banner-zone">${buildVerifyBannerHTML()}</div>
 
-        <!-- 4. 정사각(1:1) 트레이 집중형 알약 세기 보드 (앨범 선택 제거 · 원버튼 촬영/판독) -->
+        <!-- 4. 정사각(1:1) 트레이 집중형 알약 세기 보드 (모바일/PC 조작부 완벽 정돈) -->
         <div class="card shadow-sm mb-3" style="border-radius:18px; border:1px solid #e2e8f0; background:#ffffff; overflow:hidden;">
           
-          <!-- 촬영된 사진이 있을 때만 노출되는 슬림 보정 툴바 -->
+          <!-- 촬영된 사진이 있을 때만 노출되는 슬림 보정 툴바 (모바일 1줄 가로 스크롤 없이 정돈) -->
           ${loadedImage && !isCameraActive ? `
-            <div style="background:#f8fafc; padding:8px 14px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <button type="button" onclick="PillCounterModule.setInteractionMode('${interactionMode === 'EDIT' ? 'PAN' : 'EDIT'}')" style="background:${interactionMode === 'PAN' ? '#475569' : '#ffffff'}; color:${interactionMode === 'PAN' ? '#ffffff' : '#1e40af'}; border:1px solid #cbd5e1; border-radius:8px; padding:5px 10px; font-size:11.5px; font-weight:800; cursor:pointer;">
-                  ${interactionMode === 'EDIT' ? '✏️ 터치보정 모드' : '✋ 화면이동 모드'}
+            <div style="background:#f8fafc; padding:8px 10px; border-bottom:1px solid #e2e8f0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:4px; overflow-x:auto; white-space:nowrap; scrollbar-width:none;">
+                <button type="button" onclick="PillCounterModule.setInteractionMode('${interactionMode === 'EDIT' ? 'PAN' : 'EDIT'}')" style="background:${interactionMode === 'PAN' ? '#475569' : '#ffffff'}; color:${interactionMode === 'PAN' ? '#ffffff' : '#1e40af'}; border:1px solid #cbd5e1; border-radius:8px; padding:5px 8px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; flex-shrink:0;">
+                  ${interactionMode === 'EDIT' ? '✏️ 터치보정' : '✋ 화면이동'}
                 </button>
-                <span style="font-size:11.5px; color:#64748b; font-weight:700;">
-                  빈 알약 터치 <strong style="color:#16a34a;">+1</strong> · 번호 터치 <strong style="color:#dc2626;">-1</strong>
-                </span>
-              </div>
 
-              <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
-                <button type="button" onclick="PillCounterModule.streamGeminiVision()" ${isAiScanning ? 'disabled' : ''} style="background:#7c3aed; color:#ffffff; border:none; border-radius:8px; padding:5px 10px; font-size:11.5px; font-weight:800; cursor:pointer;" title="AI로 다시 판독합니다">
-                  🔄 AI 재분석
-                </button>
-                <button type="button" onclick="PillCounterModule.runLocalVisionFallback()" ${isAiScanning ? 'disabled' : ''} style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px; padding:5px 9px; font-size:11px; font-weight:800; cursor:pointer;">
-                  ⚡ 간이분석
-                </button>
-                <button type="button"
-                  onmousedown="PillCounterModule.setHideMarkersTemp(true)"
-                  onmouseup="PillCounterModule.setHideMarkersTemp(false)"
-                  onmouseleave="PillCounterModule.setHideMarkersTemp(false)"
-                  ontouchstart="PillCounterModule.setHideMarkersTemp(true); event.preventDefault();"
-                  ontouchend="PillCounterModule.setHideMarkersTemp(false); event.preventDefault();"
-                  style="background:${hideMarkersTemp ? '#f59e0b' : '#0f172a'}; color:#ffffff; border:none; border-radius:8px; padding:5px 9px; font-size:11.5px; font-weight:800; cursor:pointer; user-select:none;">
-                  👁️ 원본비교
-                </button>
-                <button type="button" onclick="PillCounterModule.undoLastAction()" ${undoStack.length === 0 ? 'disabled' : ''} style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; border-radius:8px; padding:5px 8px; font-size:11.5px; font-weight:700; cursor:pointer; opacity:${undoStack.length === 0 ? '0.4' : '1'};">
-                  ↩️
-                </button>
-                <button type="button" onclick="PillCounterModule.resetAll()" style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; border-radius:8px; padding:5px 8px; font-size:11.5px; font-weight:800; cursor:pointer;">
-                  🗑️
-                </button>
+                <div style="display:flex; align-items:center; gap:4px; flex-wrap:nowrap; flex-shrink:0;">
+                  <button type="button" onclick="PillCounterModule.streamGeminiVision()" ${isAiScanning ? 'disabled' : ''} style="background:#7c3aed; color:#ffffff; border:none; border-radius:8px; padding:5px 8px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;" title="AI로 다시 판독합니다">
+                    🔄 AI재분석
+                  </button>
+                  <button type="button" onclick="PillCounterModule.runLocalVisionFallback()" ${isAiScanning ? 'disabled' : ''} style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px; padding:5px 7px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">
+                    ⚡ 간이
+                  </button>
+                  <button type="button"
+                    onmousedown="PillCounterModule.setHideMarkersTemp(true)"
+                    onmouseup="PillCounterModule.setHideMarkersTemp(false)"
+                    onmouseleave="PillCounterModule.setHideMarkersTemp(false)"
+                    ontouchstart="PillCounterModule.setHideMarkersTemp(true); event.preventDefault();"
+                    ontouchend="PillCounterModule.setHideMarkersTemp(false); event.preventDefault();"
+                    style="background:${hideMarkersTemp ? '#f59e0b' : '#0f172a'}; color:#ffffff; border:none; border-radius:8px; padding:5px 8px; font-size:11px; font-weight:800; cursor:pointer; user-select:none; white-space:nowrap;">
+                    👁️ 원본
+                  </button>
+                  <button type="button" onclick="PillCounterModule.undoLastAction()" ${undoStack.length === 0 ? 'disabled' : ''} style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; border-radius:8px; padding:5px 7px; font-size:11px; font-weight:700; cursor:pointer; opacity:${undoStack.length === 0 ? '0.4' : '1'};">
+                    ↩️
+                  </button>
+                  <button type="button" onclick="PillCounterModule.resetAll()" style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; border-radius:8px; padding:5px 7px; font-size:11px; font-weight:800; cursor:pointer;">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div style="text-align:center; font-size:11px; color:#64748b; font-weight:700; margin-top:5px; white-space:nowrap;">
+                💡 빈 알약 터치 <strong style="color:#16a34a;">+1 추가</strong> · 잘못 찍힌 번호 터치 <strong style="color:#dc2626;">-1 삭제</strong>
               </div>
             </div>
           ` : ''}
 
           <!-- 캔버스 / 정사각(1:1) 라이브 카메라 뷰포트 본체 -->
-          <div id="pc-canvas-viewport" style="background:#0f172a; min-height:380px; max-height:70vh; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; touch-action:none; padding:12px;">
+          <div id="pc-canvas-viewport" style="background:#0f172a; min-height:350px; max-height:68vh; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; touch-action:none; padding:12px;">
             ${isCameraActive ? `
               <!-- 📷 정사각(1:1) 알약 트레이 전용 라이브 카메라 뷰파인더 -->
-              <div style="position:relative; width:min(100%, 480px); aspect-ratio:1/1; border-radius:18px; overflow:hidden; background:#000000; box-shadow:0 12px 32px rgba(0,0,0,0.5); border:2.5px solid #10b981;">
+              <div style="position:relative; width:min(100%, 460px); aspect-ratio:1/1; border-radius:18px; overflow:hidden; background:#000000; box-shadow:0 12px 32px rgba(0,0,0,0.5); border:2.5px solid #10b981;">
                 <video id="pc-live-video" autoplay playsinline muted onclick="PillCounterModule.captureFromLiveCameraAndCount()"
                   style="width:100%; height:100%; object-fit:cover; transform:scale(${cameraZoomFactor}); transform-origin:center center; transition:transform 0.18s ease-out; cursor:pointer; display:block;"></video>
 
-                <!-- 상단 화각(Zoom) 및 조명 컨트롤 오버레이 -->
-                <div style="position:absolute; top:10px; left:10px; right:10px; display:flex; justify-content:space-between; align-items:center; z-index:15; gap:6px; flex-wrap:wrap;">
-                  <div style="display:flex; align-items:center; gap:4px; background:rgba(15,23,42,0.82); padding:4px; border-radius:10px; backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.18);">
+                <!-- 상단 화각(Zoom) 및 조명 컨트롤 오버레이 (모바일 1줄 고정 정렬) -->
+                <div style="position:absolute; top:8px; left:8px; right:8px; display:flex; justify-content:space-between; align-items:center; z-index:15; gap:4px; flex-wrap:nowrap; white-space:nowrap;">
+                  <div style="display:flex; align-items:center; gap:2px; background:rgba(15,23,42,0.84); padding:3px; border-radius:9px; backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.18);">
                     <button type="button" onclick="event.stopPropagation(); PillCounterModule.setCameraZoom(1.0)"
-                      style="background:${cameraZoomFactor === 1.0 ? '#10b981' : 'transparent'}; color:#ffffff; border:none; border-radius:7px; padding:4px 8px; font-size:11px; font-weight:800; cursor:pointer;">
+                      style="background:${cameraZoomFactor === 1.0 ? '#10b981' : 'transparent'}; color:#ffffff; border:none; border-radius:6px; padding:4px 7px; font-size:10.5px; font-weight:800; cursor:pointer; white-space:nowrap;">
                       1.0x
                     </button>
                     <button type="button" onclick="event.stopPropagation(); PillCounterModule.setCameraZoom(1.35)"
-                      style="background:${cameraZoomFactor === 1.35 ? '#10b981' : 'transparent'}; color:#ffffff; border:none; border-radius:7px; padding:4px 9px; font-size:11px; font-weight:900; cursor:pointer;">
-                      🎯 1.35x 트레이집중
+                      style="background:${cameraZoomFactor === 1.35 ? '#10b981' : 'transparent'}; color:#ffffff; border:none; border-radius:6px; padding:4px 7px; font-size:10.5px; font-weight:900; cursor:pointer; white-space:nowrap;">
+                      🎯1.35x
                     </button>
                     <button type="button" onclick="event.stopPropagation(); PillCounterModule.setCameraZoom(1.7)"
-                      style="background:${cameraZoomFactor === 1.7 ? '#10b981' : 'transparent'}; color:#ffffff; border:none; border-radius:7px; padding:4px 8px; font-size:11px; font-weight:800; cursor:pointer;">
-                      🔍 1.7x 확대
+                      style="background:${cameraZoomFactor === 1.7 ? '#10b981' : 'transparent'}; color:#ffffff; border:none; border-radius:6px; padding:4px 7px; font-size:10.5px; font-weight:800; cursor:pointer; white-space:nowrap;">
+                      🔍1.7x
                     </button>
                   </div>
 
-                  <div style="display:flex; align-items:center; gap:5px;">
+                  <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
                     <button type="button" onclick="event.stopPropagation(); PillCounterModule.toggleCameraTorch()"
-                      style="background:${isTorchOn ? '#f59e0b' : 'rgba(15,23,42,0.82)'}; color:#ffffff; border:1px solid rgba(255,255,255,0.22); border-radius:9px; padding:5px 10px; font-size:11px; font-weight:800; cursor:pointer; backdrop-filter:blur(6px);">
-                      🔦 조명
+                      style="background:${isTorchOn ? '#f59e0b' : 'rgba(15,23,42,0.84)'}; color:#ffffff; border:1px solid rgba(255,255,255,0.22); border-radius:8px; padding:4px 8px; font-size:10.5px; font-weight:800; cursor:pointer; backdrop-filter:blur(6px); white-space:nowrap;">
+                      🔦조명
                     </button>
                     <button type="button" onclick="event.stopPropagation(); PillCounterModule.stopLiveTrayCamera()"
-                      style="background:rgba(239,68,68,0.88); color:#ffffff; border:none; border-radius:9px; padding:5px 10px; font-size:11px; font-weight:800; cursor:pointer;">
-                      ✕ 닫기
+                      style="background:rgba(239,68,68,0.88); color:#ffffff; border:none; border-radius:8px; padding:4px 8px; font-size:10.5px; font-weight:800; cursor:pointer; white-space:nowrap;">
+                      ✕닫기
                     </button>
                   </div>
                 </div>
 
                 <!-- 정사각 트레이 4모서리 포커스 가이드 라인 -->
-                <div style="position:absolute; inset:22px; pointer-events:none; border:1.5px dashed rgba(16,185,129,0.55); border-radius:14px;">
-                  <div style="position:absolute; top:-2px; left:-2px; width:26px; height:26px; border-top:4px solid #10b981; border-left:4px solid #10b981; border-top-left-radius:10px;"></div>
-                  <div style="position:absolute; top:-2px; right:-2px; width:26px; height:26px; border-top:4px solid #10b981; border-right:4px solid #10b981; border-top-right-radius:10px;"></div>
-                  <div style="position:absolute; bottom:-2px; left:-2px; width:26px; height:26px; border-bottom:4px solid #10b981; border-left:4px solid #10b981; border-bottom-left-radius:10px;"></div>
-                  <div style="position:absolute; bottom:-2px; right:-2px; width:26px; height:26px; border-bottom:4px solid #10b981; border-right:4px solid #10b981; border-bottom-right-radius:10px;"></div>
+                <div style="position:absolute; inset:20px; pointer-events:none; border:1.5px dashed rgba(16,185,129,0.55); border-radius:14px;">
+                  <div style="position:absolute; top:-2px; left:-2px; width:24px; height:24px; border-top:4px solid #10b981; border-left:4px solid #10b981; border-top-left-radius:10px;"></div>
+                  <div style="position:absolute; top:-2px; right:-2px; width:24px; height:24px; border-top:4px solid #10b981; border-right:4px solid #10b981; border-top-right-radius:10px;"></div>
+                  <div style="position:absolute; bottom:-2px; left:-2px; width:24px; height:24px; border-bottom:4px solid #10b981; border-left:4px solid #10b981; border-bottom-left-radius:10px;"></div>
+                  <div style="position:absolute; bottom:-2px; right:-2px; width:24px; height:24px; border-bottom:4px solid #10b981; border-right:4px solid #10b981; border-bottom-right-radius:10px;"></div>
                 </div>
 
                 <!-- 하단 촬영 안내 배지 -->
-                <div style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.82); color:#ecfdf5; padding:5px 14px; border-radius:20px; font-size:11.5px; font-weight:800; white-space:nowrap; pointer-events:none; border:1px solid rgba(16,185,129,0.45);">
-                  정사각 트레이에 알약을 맞추고 아래 <strong>[📸 알약 세기]</strong> 또는 화면을 터치하세요
+                <div style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.84); color:#ecfdf5; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap; pointer-events:none; border:1px solid rgba(16,185,129,0.45);">
+                  정사각 트레이에 맞추고 <strong>[📸 알약 세기]</strong> 또는 화면 터치
                 </div>
               </div>
             ` : loadedImage ? `
-              <canvas id="pc-main-canvas" style="max-width:100%; max-height:64vh; cursor:${interactionMode === 'PAN' ? 'grab' : 'crosshair'}; display:block; border-radius:10px;"></canvas>
+              <canvas id="pc-main-canvas" style="max-width:100%; max-height:62vh; cursor:${interactionMode === 'PAN' ? 'grab' : 'crosshair'}; display:block; border-radius:10px;"></canvas>
               ${isAiScanning ? `
-                <div id="pc-stream-status-overlay" style="position:absolute; top:14px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.88); color:#ffffff; padding:8px 20px; border-radius:24px; border:1.5px solid rgba(16,185,129,0.75); display:flex; align-items:center; gap:10px; z-index:20; backdrop-filter:blur(6px); box-shadow:0 8px 24px rgba(0,0,0,0.45); pointer-events:none;">
+                <div id="pc-stream-status-overlay" style="position:absolute; top:14px; left:50%; transform:translateX(-50%); background:rgba(15,23,42,0.88); color:#ffffff; padding:8px 18px; border-radius:24px; border:1.5px solid rgba(16,185,129,0.75); display:flex; align-items:center; gap:10px; z-index:20; backdrop-filter:blur(6px); box-shadow:0 8px 24px rgba(0,0,0,0.45); pointer-events:none; white-space:nowrap;">
                   <span class="fas fa-spinner fa-spin" style="color:#34d399; font-size:15px;"></span>
                   <div style="display:flex; align-items:center; gap:8px;">
                     <span style="font-size:13px; font-weight:900; letter-spacing:-0.2px;">알약 정밀 판독 중...</span>
@@ -689,97 +691,99 @@ window.PillCounterModule = (function () {
                 </div>
               ` : ''}
               ${scanNotice ? `
-                <div style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(217,119,6,0.92); color:#ffffff; padding:5px 14px; border-radius:12px; font-size:12px; font-weight:800; z-index:18; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                <div style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(217,119,6,0.92); color:#ffffff; padding:5px 14px; border-radius:12px; font-size:11.5px; font-weight:800; z-index:18; box-shadow:0 4px 12px rgba(0,0,0,0.3); white-space:nowrap;">
                   ${escapeHtml(scanNotice)}
                 </div>
               ` : ''}
             ` : `
               <!-- 대기 화면: 정사각 알약 트레이 가이드 프레임 -->
-              <div onclick="PillCounterModule.onMainCountButtonClick()" style="width:min(100%, 360px); aspect-ratio:1/1; border:2px dashed rgba(148,163,184,0.32); border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; position:relative; cursor:pointer;">
+              <div onclick="PillCounterModule.onMainCountButtonClick()" style="width:min(100%, 340px); aspect-ratio:1/1; border:2px dashed rgba(148,163,184,0.32); border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; position:relative; cursor:pointer;">
                 <div style="position:absolute; top:14px; left:14px; width:22px; height:22px; border-top:3px solid #10b981; border-left:3px solid #10b981; border-top-left-radius:6px; opacity:0.7;"></div>
                 <div style="position:absolute; top:14px; right:14px; width:22px; height:22px; border-top:3px solid #10b981; border-right:3px solid #10b981; border-top-right-radius:6px; opacity:0.7;"></div>
                 <div style="position:absolute; bottom:14px; left:14px; width:22px; height:22px; border-bottom:3px solid #10b981; border-left:3px solid #10b981; border-bottom-left-radius:6px; opacity:0.7;"></div>
                 <div style="position:absolute; bottom:14px; right:14px; width:22px; height:22px; border-bottom:3px solid #10b981; border-right:3px solid #10b981; border-bottom-right-radius:6px; opacity:0.7;"></div>
 
-                <div style="width:54px; height:54px; border-radius:16px; background:rgba(16,185,129,0.12); border:1.5px solid rgba(16,185,129,0.35); color:#34d399; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:12px;">
+                <div style="width:52px; height:52px; border-radius:16px; background:rgba(16,185,129,0.12); border:1.5px solid rgba(16,185,129,0.35); color:#34d399; display:flex; align-items:center; justify-content:center; font-size:21px; margin-bottom:12px;">
                   <i class="fas fa-camera"></i>
                 </div>
-                <div style="color:#e2e8f0; font-size:14.5px; font-weight:800; margin-bottom:6px;">
+                <div style="color:#e2e8f0; font-size:14px; font-weight:800; margin-bottom:6px; word-keep:keep-all;">
                   아래 [알약 세기] 버튼을 눌러 촬영해 주세요
                 </div>
-                <div style="color:#64748b; font-size:12px; font-weight:600; line-height:1.45;">
+                <div style="color:#64748b; font-size:11.5px; font-weight:600; line-height:1.45; word-keep:keep-all;">
                   정사각(1:1) 알약 트레이에 화각(1.35x)이 자동 고정되어<br>주변 배경 없이 약만 선명하게 카운팅합니다
                 </div>
               </div>
             `}
           </div>
 
-          <!-- 하단 중앙 [📷 알약 세기] 원버튼 액션 바 -->
-          <div style="background:#ffffff; padding:14px 18px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="min-width:110px;">
-              ${loadedImage && !isCameraActive ? `
-                <div style="display:flex; align-items:center; gap:4px; font-size:12px; color:#475569;">
-                  <span style="font-weight:700;">🔍</span>
-                  <button type="button" onclick="PillCounterModule.changeZoom(-0.25)" style="border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:1px 7px; font-weight:800;">-</button>
-                  <span style="font-weight:800; min-width:36px; text-align:center;">${Math.round(zoomLevel * 100)}%</span>
-                  <button type="button" onclick="PillCounterModule.changeZoom(0.25)" style="border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:1px 7px; font-weight:800;">+</button>
-                  <button type="button" onclick="PillCounterModule.resetZoomPan()" style="border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:1px 7px; font-size:11px; font-weight:700;">맞춤</button>
-                </div>
-              ` : `
-                <button type="button" onclick="PillCounterModule.loadDemoSample()" style="background:none; border:none; color:#94a3b8; font-size:11.5px; font-weight:700; cursor:pointer; padding:4px 0;">
-                  🧪 샘플 45정 테스트
-                </button>
-              `}
-            </div>
-
-            <!-- 메인 [📷 알약 세기] 원버튼 -->
-            <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+          <!-- 하단 중앙 [📷 알약 세기] 원버튼 & 보조도구 정돈 바 (모바일/PC 중앙 대칭 정렬) -->
+          <div style="background:#ffffff; padding:12px 16px; border-top:1px solid #e2e8f0; display:flex; flex-direction:column; align-items:center; gap:9px;">
+            
+            <!-- 1단: 메인 [📷 알약 세기] 풀와이드/중앙 원버튼 -->
+            <div style="width:100%; max-width:340px; display:flex; justify-content:center;">
               <button type="button" onclick="PillCounterModule.onMainCountButtonClick()" ${isAiScanning ? 'disabled' : ''}
-                style="background:${isCameraActive ? 'linear-gradient(135deg,#059669 0%,#047857 100%)' : '#10b981'}; color:#ffffff; border:none; border-radius:999px; padding:12px 34px; font-size:15px; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); transition:all 0.15s;">
+                style="width:100%; background:${isCameraActive ? 'linear-gradient(135deg,#059669 0%,#047857 100%)' : '#10b981'}; color:#ffffff; border:none; border-radius:999px; padding:12px 24px; font-size:15px; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); transition:all 0.15s; white-space:nowrap;">
                 <i class="fas fa-camera"></i>
                 <span>${isCameraActive ? '알약 세기 (터치하여 촬영)' : (loadedImage ? '다시 알약 세기' : '알약 세기')}</span>
               </button>
               <input type="file" id="pc-camera-input" accept="image/*" capture="environment" onchange="PillCounterModule.handleFileSelect(event)" style="display:none;">
             </div>
 
-            <div style="min-width:110px; text-align:right;">
-              <button type="button" onclick="PillCounterModule.triggerFallbackCameraInput()" title="인앱 카메라 대신 휴대폰 기본 카메라 앱으로 촬영 후 정사각 트레이 영역만 자동 크롭합니다" style="background:none; border:none; color:#94a3b8; font-size:11.5px; font-weight:700; cursor:pointer; padding:4px 0;">
+            <!-- 2단: 보조 조작부 (줌 컨트롤 또는 샘플테스트 | 기본카메라 1줄 중앙 대칭 배치) -->
+            <div style="width:100%; max-width:360px; display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px; padding:0 4px;">
+              ${loadedImage && !isCameraActive ? `
+                <div style="display:flex; align-items:center; gap:4px; font-size:11.5px; color:#475569; white-space:nowrap;">
+                  <span style="font-weight:700;">🔍</span>
+                  <button type="button" onclick="PillCounterModule.changeZoom(-0.25)" style="border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:2px 8px; font-weight:800; cursor:pointer;">-</button>
+                  <span style="font-weight:800; min-width:36px; text-align:center;">${Math.round(zoomLevel * 100)}%</span>
+                  <button type="button" onclick="PillCounterModule.changeZoom(0.25)" style="border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:2px 8px; font-weight:800; cursor:pointer;">+</button>
+                  <button type="button" onclick="PillCounterModule.resetZoomPan()" style="border:1px solid #cbd5e1; background:#fff; border-radius:6px; padding:2px 7px; font-size:11px; font-weight:700; cursor:pointer;">맞춤</button>
+                </div>
+              ` : `
+                <button type="button" onclick="PillCounterModule.loadDemoSample()" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; color:#64748b; font-size:11.5px; font-weight:800; cursor:pointer; padding:4px 10px; white-space:nowrap;">
+                  🧪 샘플 45정 테스트
+                </button>
+              `}
+
+              <button type="button" onclick="PillCounterModule.triggerFallbackCameraInput()" title="인앱 카메라 대신 휴대폰 기본 카메라 앱으로 촬영 후 정사각 트레이 영역만 자동 크롭합니다" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; color:#64748b; font-size:11.5px; font-weight:800; cursor:pointer; padding:4px 10px; white-space:nowrap;">
                 📱 기본카메라
               </button>
             </div>
           </div>
         </div>
 
-        <!-- 5. 📂 조제 검수 근거 보관함 -->
-        <div class="card shadow-sm" style="border-radius:16px; border:1px solid #e2e8f0; background:#ffffff; padding:16px 18px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-            <div>
-              <h4 style="font-size:15px; font-weight:900; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span>📂 조제 검수 근거 보관함</span>
-                <span id="pc-history-total-count" style="background:#e0f2fe; color:#0369a1; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:800;">
-                  ${historySearchQuery.trim() ? `검색 ${filteredHistory.length}건 / 전체 ${historyList.length}건` : `총 ${historyList.length}건`}
-                </span>
-                <span style="font-size:11px; font-weight:700; color:#059669;">• ☁️ Cloudinary 사진 저장 (앱 속도 영향 0%)</span>
+        <!-- 5. 📂 조제 검수 근거 보관함 (모바일 헤더 1줄 정돈) -->
+        <div class="card shadow-sm" style="border-radius:16px; border:1px solid #e2e8f0; background:#ffffff; padding:14px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:6px; min-width:0; flex:1; flex-wrap:nowrap;">
+              <h4 style="font-size:14.5px; font-weight:900; color:#0f172a; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                📂 조제 검수 근거 보관함
               </h4>
+              <span id="pc-history-total-count" style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap; flex-shrink:0;">
+                ${historySearchQuery.trim() ? `검색 ${filteredHistory.length}건 / 전체 ${historyList.length}건` : `총 ${historyList.length}건`}
+              </span>
             </div>
 
             ${historyList.length > 0 ? `
-              <button type="button" onclick="PillCounterModule.clearHistory()" style="background:none; border:none; color:#ef4444; font-size:11.5px; font-weight:800; cursor:pointer;">전체 비우기</button>
+              <button type="button" onclick="PillCounterModule.clearHistory()" style="background:#fff1f2; border:1px solid #fecdd3; border-radius:8px; color:#e11d48; font-size:11px; font-weight:800; padding:3px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0;">전체 비우기</button>
             ` : ''}
+          </div>
+          <div style="font-size:11px; font-weight:700; color:#059669; margin-bottom:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            ☁️ Cloudinary 사진 영구 보관 (앱 속도 영향 0%)
           </div>
 
           <!-- 🔍 실시간 검색바 -->
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
             <div style="position:relative; flex:1;">
               <input type="text" id="pc-history-search" class="form-control form-control-sm"
-                placeholder="🔍 사람이름(환자명), 약이름(약품명), 알약 개수, 날짜로 검색하세요... (예: 홍길동, 리피토, 45)"
+                placeholder="🔍 환자명, 약품명, 알약 개수, 날짜 검색 (예: 홍길동, 타이레놀)"
                 value="${escapeHtml(historySearchQuery)}"
                 oninput="PillCounterModule.onHistorySearchInput(this.value)"
-                style="width:100%; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700; border:1px solid #cbd5e1; background:#f8fafc;">
+                style="width:100%; border-radius:10px; padding:8px 12px; font-size:12.5px; font-weight:700; border:1px solid #cbd5e1; background:#f8fafc;">
             </div>
             <button type="button" id="pc-clear-search-btn" onclick="PillCounterModule.clearHistorySearch()"
-              style="display:${historySearchQuery.trim() ? 'inline-block' : 'none'}; background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; border-radius:10px; padding:7px 12px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap;">
-              ✕ 검색초기화
+              style="display:${historySearchQuery.trim() ? 'inline-block' : 'none'}; background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; border-radius:10px; padding:7px 10px; font-size:11.5px; font-weight:800; cursor:pointer; white-space:nowrap; flex-shrink:0;">
+              ✕ 초기화
             </button>
           </div>
 

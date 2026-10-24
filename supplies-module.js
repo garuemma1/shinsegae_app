@@ -7,6 +7,9 @@ window.SuppliesModule = (function () {
   let statusFilter = 'ALL';   // 'ALL' | 'PENDING' | 'ORDERED' | 'COMPLETED' | 'REJECTED'
   let searchQuery = '';
   let urgentOnlyFilter = false;
+  let selectedCompletePhotos = [];
+  let selectedEditPhotos = [];
+  const LOCATION_QUICK_TAGS = ['창고 선반', '조제실 하단 서랍', '매대 하단 서랍', '탕비실/다용도실', '전산봉투 보관함', 'ATC 옆 수납장'];
 
   function renderHTML() {
     const currUser = window.SheetsSync.getCurrentUser();
@@ -145,7 +148,7 @@ window.SuppliesModule = (function () {
               <div class="relative flex-grow sm:w-60">
                 <input 
                   type="text"
-                  placeholder="품목명, 신청자 검색..."
+                  placeholder="품목명, 신청자, 보관위치 검색..."
                   value="${searchQuery}"
                   oninput="SuppliesModule.handleSearch(this.value)"
                   class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-emerald-500 pl-8 text-slate-900 dark:text-white"
@@ -218,7 +221,8 @@ window.SuppliesModule = (function () {
         (s.itemName && s.itemName.toLowerCase().includes(q)) ||
         (s.applicantName && s.applicantName.toLowerCase().includes(q)) ||
         (s.vendor && s.vendor.toLowerCase().includes(q)) ||
-        (s.memo && s.memo.toLowerCase().includes(q))
+        (s.memo && s.memo.toLowerCase().includes(q)) ||
+        (s.storageLocation && s.storageLocation.toLowerCase().includes(q))
       );
     }
 
@@ -280,6 +284,10 @@ window.SuppliesModule = (function () {
     const isOrdered = item.status === 'ORDERED';
     const isCompleted = item.status === 'COMPLETED';
     const isRejected = item.status === 'REJECTED';
+    const itemPhotos = (Array.isArray(item.photos) && item.photos.length > 0)
+      ? item.photos.filter(Boolean)
+      : (item.photoUrl ? [item.photoUrl] : []);
+    const hasLocationInfo = Boolean((item.storageLocation && item.storageLocation.trim()) || itemPhotos.length > 0);
 
     return `
       <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border ${isUrgent ? 'border-red-400 dark:border-red-600/60 shadow-red-500/5' : 'border-slate-200 dark:border-slate-800'} shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4 relative">
@@ -318,6 +326,32 @@ window.SuppliesModule = (function () {
           ${isRejected && item.rejectReason ? `
             <div class="text-rose-600 dark:text-rose-400 font-bold leading-relaxed bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-800/60">
               <i class="fas fa-exclamation-circle mr-1"></i> 반려 사유: ${escapeHTML(item.rejectReason)}
+            </div>
+          ` : ''}
+
+          ${hasLocationInfo ? `
+            <div class="bg-emerald-50/90 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/70 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-emerald-800 dark:text-emerald-200 font-extrabold text-xs flex items-center gap-1.5">
+                  <i class="fas fa-map-marker-alt text-emerald-600 dark:text-emerald-400"></i>
+                  <span>보관위치: ${escapeHTML(item.storageLocation || '현장 보관 사진 참조')}</span>
+                </div>
+                ${itemPhotos.length > 0 ? `
+                  <button type="button" onclick="SuppliesModule.openSupplyPhoto('${item.id}', 0)" class="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-[10px] font-extrabold hover:bg-emerald-600 hover:text-white transition whitespace-nowrap">
+                    🔍 크게보기 (${itemPhotos.length}장)
+                  </button>
+                ` : ''}
+              </div>
+              ${itemPhotos.length > 0 ? `
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  ${itemPhotos.map((pUrl, pIdx) => `
+                    <div onclick="SuppliesModule.openSupplyPhoto('${item.id}', ${pIdx})" class="relative w-14 h-14 rounded-lg overflow-hidden border-2 border-emerald-400 dark:border-emerald-600 cursor-pointer flex-shrink-0 shadow-sm hover:opacity-90 transition" title="클릭하여 보관 위치 사진 크게보기">
+                      <img src="${pUrl}" alt="보관위치 사진 ${pIdx + 1}" class="w-full h-full object-cover" loading="lazy" />
+                      <span class="absolute bottom-0 right-0 bg-emerald-700/90 text-white text-[9px] font-black px-1 rounded-tl">${pIdx + 1}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
             </div>
           ` : ''}
 
@@ -363,7 +397,7 @@ window.SuppliesModule = (function () {
                 class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center gap-1"
                 title="물품 수령 및 입고 완료 처리"
               >
-                <i class="fas fa-box-open"></i> 물품 수령 / 입고 확정
+                <i class="fas fa-camera"></i> 물품 수령 / 입고완료 (위치·사진)
               </button>
 
               <button 
@@ -379,6 +413,14 @@ window.SuppliesModule = (function () {
               <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mr-1">
                 <i class="fas fa-check-double"></i> 입고 완료 (${item.completedAt || '처리됨'})
               </span>
+
+              <button 
+                onclick="SuppliesModule.openCompleteModal('${item.id}')"
+                class="px-2.5 py-1 rounded-lg ${hasLocationInfo ? 'bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-600 hover:text-white text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'} font-bold text-[11px] transition flex items-center gap-1"
+                title="입고된 소모품의 보관 위치 및 사진 첨부/수정"
+              >
+                <i class="fas fa-camera text-[10px]"></i> ${hasLocationInfo ? '위치/사진 변경' : '📸 보관위치 사진첨부'}
+              </button>
 
               <button 
                 onclick="SuppliesModule.revertStatus('${item.id}', 'ORDERED')"
@@ -638,7 +680,7 @@ window.SuppliesModule = (function () {
           <div class="modal-header">
             <h3 class="font-bold text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
               <i class="fas fa-box-open"></i>
-              <span>약국 소모품 입고 완료 확인</span>
+              <span id="sup-complete-modal-title">약국 소모품 입고 완료 & 보관 위치 등록</span>
             </h3>
             <button class="close-btn" onclick="SuppliesModule.closeCompleteModal()">&times;</button>
           </div>
@@ -652,12 +694,58 @@ window.SuppliesModule = (function () {
             </div>
 
             <p class="text-xs font-bold text-slate-700 dark:text-slate-200 leading-relaxed">
-              위 소모품 물품을 약국에서 실제 수령하여 <strong class="text-emerald-600 dark:text-emerald-400">[입고 완료]</strong> 상태로 변경하시겠습니까?
+              위 소모품이 약국에 입고되었습니다. <strong class="text-emerald-600 dark:text-emerald-400">보관해 둔 위치와 현장 사진</strong>을 함께 기록해 두면 전 직원이 쉽게 찾을 수 있습니다!
             </p>
+
+            <!-- 📍 입고 보관 위치 설명 -->
+            <div class="form-group space-y-1.5">
+              <label class="block text-xs font-extrabold text-slate-700 dark:text-slate-200">
+                📍 입고 물품 보관 위치 <span class="text-slate-400 font-normal">(선택 · 1초 태그 클릭 또는 직접 입력)</span>
+              </label>
+              <div class="flex items-center gap-1 flex-wrap">
+                ${LOCATION_QUICK_TAGS.map(tag => `
+                  <button type="button" onclick="SuppliesModule.setQuickLocation('complete', '${tag}')" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-600 dark:text-slate-300 hover:text-emerald-700 border border-slate-200 dark:border-slate-700 text-[11px] font-bold transition">
+                    +${tag}
+                  </button>
+                `).join('')}
+              </div>
+              <input type="text" id="sup-complete-location" placeholder="예: 탕비실 선반 2층 우측 박스칸 / 조제실 ATC 하단 서랍" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <!-- 📸 보관 위치 사진 첨부 (카메라 직통 / 갤러리) -->
+            <div class="form-group space-y-2">
+              <label class="block text-xs font-extrabold text-slate-700 dark:text-slate-200">
+                📸 보관 위치 사진 첨부 <span class="text-slate-400 font-normal">(선택 · 최대 5장)</span>
+              </label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <label for="sup-complete-photo-cam" class="flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 border-dashed border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs cursor-pointer hover:bg-emerald-100/70 transition text-center">
+                  <i class="fas fa-camera text-lg text-emerald-600"></i>
+                  <span>📸 바로 카메라 촬영</span>
+                  <span class="text-[10px] font-normal text-emerald-600/80">(모바일 현장 촬영)</span>
+                </label>
+                <input type="file" id="sup-complete-photo-cam" accept="image/*" capture="environment" style="display:none;" onchange="SuppliesModule.handleSupplyPhotoSelect('complete', this)">
+
+                <label for="sup-complete-photo-gal" class="flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-extrabold text-xs cursor-pointer hover:bg-slate-100 transition text-center">
+                  <i class="fas fa-images text-lg text-slate-500"></i>
+                  <span>📁 앨범/사진 선택</span>
+                  <span class="text-[10px] font-normal text-slate-400">(갤러리 / PC)</span>
+                </label>
+                <input type="file" id="sup-complete-photo-gal" accept="image/*" multiple style="display:none;" onchange="SuppliesModule.handleSupplyPhotoSelect('complete', this)">
+              </div>
+
+              <!-- 첨부 사진 썸네일 미리보기 -->
+              <div id="sup-complete-photo-preview" style="display:none;" class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span id="sup-complete-photo-count" class="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400">📷 첨부된 사진 (0/5장)</span>
+                  <button type="button" onclick="SuppliesModule.resetSupplyPhotos('complete')" class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold hover:bg-rose-200">전체 취소 ✖</button>
+                </div>
+                <div id="sup-complete-photo-grid" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar"></div>
+              </div>
+            </div>
 
             <div class="modal-footer flex items-center justify-end gap-2 pt-2">
               <button type="button" class="btn btn-secondary text-xs" onclick="SuppliesModule.closeCompleteModal()">취소</button>
-              <button type="submit" class="btn btn-primary bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1">
+              <button type="submit" data-role="sup-submit-btn" class="btn btn-primary bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1">
                 <i class="fas fa-check-double"></i> 입고 완료 확정
               </button>
             </div>
@@ -828,9 +916,52 @@ window.SuppliesModule = (function () {
               <textarea id="sup-edit-memo" rows="2" placeholder="특이사항 또는 메모를 입력하세요." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 dark:text-white"></textarea>
             </div>
 
+            <!-- 📍 입고 보관 위치 설명 (수정 모달) -->
+            <div class="form-group space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <label class="block text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                📍 입고 물품 보관 위치 <span class="text-slate-400 font-normal">(선택 · 입고 완료 시 보관 장소)</span>
+              </label>
+              <div class="flex items-center gap-1 flex-wrap">
+                ${LOCATION_QUICK_TAGS.map(tag => `
+                  <button type="button" onclick="SuppliesModule.setQuickLocation('edit', '${tag}')" class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-950 text-slate-600 dark:text-slate-300 hover:text-emerald-700 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition">
+                    +${tag}
+                  </button>
+                `).join('')}
+              </div>
+              <input type="text" id="sup-edit-location" placeholder="예: 탕비실 선반 2층 우측 박스칸 / 조제실 하단 서랍" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white">
+            </div>
+
+            <!-- 📸 보관 위치 사진 첨부/수정 (수정 모달) -->
+            <div class="form-group space-y-2">
+              <label class="block text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                📸 보관 위치 사진 첨부 / 수정 <span class="text-slate-400 font-normal">(선택 · 최대 5장)</span>
+              </label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <label for="sup-edit-photo-cam" class="flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border-2 border-dashed border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs cursor-pointer hover:bg-emerald-100/70 transition text-center">
+                  <i class="fas fa-camera text-base text-emerald-600"></i>
+                  <span>📸 바로 카메라 촬영</span>
+                </label>
+                <input type="file" id="sup-edit-photo-cam" accept="image/*" capture="environment" style="display:none;" onchange="SuppliesModule.handleSupplyPhotoSelect('edit', this)">
+
+                <label for="sup-edit-photo-gal" class="flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-extrabold text-xs cursor-pointer hover:bg-slate-100 transition text-center">
+                  <i class="fas fa-images text-base text-slate-500"></i>
+                  <span>📁 앨범/사진 선택</span>
+                </label>
+                <input type="file" id="sup-edit-photo-gal" accept="image/*" multiple style="display:none;" onchange="SuppliesModule.handleSupplyPhotoSelect('edit', this)">
+              </div>
+
+              <div id="sup-edit-photo-preview" style="display:none;" class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span id="sup-edit-photo-count" class="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400">📷 첨부된 사진 (0/5장)</span>
+                  <button type="button" onclick="SuppliesModule.resetSupplyPhotos('edit')" class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold hover:bg-rose-200">전체 취소 ✖</button>
+                </div>
+                <div id="sup-edit-photo-grid" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar"></div>
+              </div>
+            </div>
+
             <div class="modal-footer flex items-center justify-end gap-2 pt-3">
               <button type="button" class="btn btn-secondary text-xs" onclick="SuppliesModule.closeEditModal()">취소</button>
-              <button type="submit" class="btn btn-primary bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1">
+              <button type="submit" data-role="sup-submit-btn" class="btn btn-primary bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1">
                 <i class="fas fa-save"></i> 수정 내용 저장
               </button>
             </div>
@@ -1041,6 +1172,168 @@ window.SuppliesModule = (function () {
     }
   }
 
+  function setQuickLocation(mode, tag) {
+    const inputId = mode === 'edit' ? 'sup-edit-location' : 'sup-complete-location';
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    const cur = el.value.trim();
+    if (!cur) {
+      el.value = tag;
+    } else if (!cur.includes(tag)) {
+      el.value = cur + ' · ' + tag;
+    }
+    el.focus();
+  }
+
+  function compressLocalSupplyImage(file) {
+    return new Promise((resolve) => {
+      if (window.App && typeof window.App.compressPhotoFile === 'function') {
+        window.App.compressPhotoFile(file).then(resolve).catch(() => resolve(''));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 720;
+              let width = img.width || MAX_WIDTH;
+              let height = img.height || 540;
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.65));
+            } catch (err) {
+              resolve(e.target.result);
+            }
+          };
+          img.onerror = () => resolve('');
+          img.src = e.target.result;
+        } catch (err) {
+          resolve('');
+        }
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleSupplyPhotoSelect(mode, input) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const targetArr = mode === 'edit' ? selectedEditPhotos : selectedCompletePhotos;
+    const files = Array.from(input.files);
+    for (const file of files) {
+      if (targetArr.length >= 5) {
+        alert('보관 위치 사진은 최대 5장까지 첨부할 수 있습니다.');
+        break;
+      }
+      const dataUrl = await compressLocalSupplyImage(file);
+      if (dataUrl) {
+        targetArr.push({
+          id: 'sup_p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          data: dataUrl,
+          isNew: true
+        });
+      }
+    }
+    input.value = '';
+    renderSupplyPhotoPreviews(mode);
+  }
+
+  function renderSupplyPhotoPreviews(mode) {
+    const prefix = mode === 'edit' ? 'sup-edit-photo' : 'sup-complete-photo';
+    const targetArr = mode === 'edit' ? selectedEditPhotos : selectedCompletePhotos;
+    const previewBox = document.getElementById(prefix + '-preview');
+    const countEl = document.getElementById(prefix + '-count');
+    const gridEl = document.getElementById(prefix + '-grid');
+    if (!previewBox || !gridEl) return;
+
+    if (targetArr.length === 0) {
+      previewBox.style.display = 'none';
+      gridEl.innerHTML = '';
+      return;
+    }
+
+    previewBox.style.display = 'block';
+    if (countEl) countEl.textContent = `📷 첨부된 사진 (${targetArr.length}/5장)`;
+    gridEl.innerHTML = targetArr.map((p, idx) => `
+      <div class="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 bg-white flex-shrink-0 shadow-sm">
+        <img src="${p.data}" alt="첨부사진 ${idx + 1}" class="w-full h-full object-cover" />
+        <button type="button" onclick="SuppliesModule.removeSupplyPhoto('${mode}', ${idx})" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center shadow">✕</button>
+        <span class="absolute bottom-0.5 left-0.5 bg-slate-900/75 text-white text-[9px] font-bold px-1 rounded">${idx + 1}</span>
+      </div>
+    `).join('');
+  }
+
+  function removeSupplyPhoto(mode, idx) {
+    const targetArr = mode === 'edit' ? selectedEditPhotos : selectedCompletePhotos;
+    if (idx >= 0 && idx < targetArr.length) {
+      targetArr.splice(idx, 1);
+      renderSupplyPhotoPreviews(mode);
+    }
+  }
+
+  function resetSupplyPhotos(mode) {
+    if (mode === 'edit') {
+      selectedEditPhotos = [];
+      const cam = document.getElementById('sup-edit-photo-cam');
+      const gal = document.getElementById('sup-edit-photo-gal');
+      if (cam) cam.value = '';
+      if (gal) gal.value = '';
+    } else {
+      selectedCompletePhotos = [];
+      const cam = document.getElementById('sup-complete-photo-cam');
+      const gal = document.getElementById('sup-complete-photo-gal');
+      if (cam) cam.value = '';
+      if (gal) gal.value = '';
+    }
+    renderSupplyPhotoPreviews(mode);
+  }
+
+  async function uploadSupplyPhotoArray(photoObjArr) {
+    if (!photoObjArr || photoObjArr.length === 0) return [];
+    const uploaded = await Promise.all(photoObjArr.map(async (p) => {
+      if (!p || !p.data) return '';
+      if (!p.isNew && (p.data.startsWith('http') || p.data.startsWith('assets/'))) {
+        return p.data;
+      }
+      if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
+        try {
+          const cloudUrl = await window.App.processAndUploadPhoto(p.data);
+          return cloudUrl || p.data;
+        } catch (e) {
+          return p.data;
+        }
+      }
+      return p.data;
+    }));
+    return uploaded.filter(Boolean);
+  }
+
+  function openSupplyPhoto(id, photoIndex = 0) {
+    const supplies = window.SheetsSync.getSupplies() || [];
+    const target = supplies.find(s => String(s.id) === String(id));
+    if (!target) return;
+    const photos = (Array.isArray(target.photos) && target.photos.length > 0)
+      ? target.photos.filter(Boolean)
+      : (target.photoUrl ? [target.photoUrl] : []);
+    if (photos.length === 0) return;
+
+    if (window.App && typeof window.App.openImageLightbox === 'function') {
+      const title = `📦 [${target.itemName}] 보관 위치: ${target.storageLocation || '현장 사진'}`;
+      window.App.openImageLightbox(photos, title, photoIndex);
+    } else {
+      window.open(photos[photoIndex] || photos[0], '_blank');
+    }
+  }
+
   function openCompleteModal(id) {
     const supplies = window.SheetsSync.getSupplies() || [];
     const target = supplies.find(s => s.id === id);
@@ -1053,6 +1346,20 @@ window.SuppliesModule = (function () {
     if (idEl) idEl.value = target.id;
     if (summaryEl) summaryEl.innerText = `📦 ${target.itemName} (${target.qty}${target.unit || '개'})`;
     if (detailsEl) detailsEl.innerText = `주문처: ${target.vendor || '미지정'} · 결제금액: ₩${(target.actualPrice || target.estimatedPrice || 0).toLocaleString()}`;
+    const titleEl = document.getElementById('sup-complete-modal-title');
+    if (titleEl) {
+      titleEl.textContent = target.status === 'COMPLETED' ? '입고 물품 보관 위치 & 사진 등록/수정' : '약국 소모품 입고 완료 & 보관 위치 등록';
+    }
+    const locEl = document.getElementById('sup-complete-location');
+    if (locEl) locEl.value = target.storageLocation || '';
+    resetSupplyPhotos('complete');
+    const existingPhotos = (Array.isArray(target.photos) && target.photos.length > 0)
+      ? target.photos.filter(Boolean)
+      : (target.photoUrl ? [target.photoUrl] : []);
+    existingPhotos.forEach((url, idx) => {
+      selectedCompletePhotos.push({ id: 'sup_exist_c_' + idx, data: url, isNew: false });
+    });
+    renderSupplyPhotoPreviews('complete');
 
     const modal = document.getElementById('supplies-complete-modal');
     if (modal) modal.style.display = 'flex';
@@ -1063,12 +1370,33 @@ window.SuppliesModule = (function () {
     if (modal) modal.style.display = 'none';
   }
 
-  function handleCompleteSubmit(e) {
+  async function handleCompleteSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('sup-complete-id').value;
     if (!id) return;
 
-    window.SheetsSync.updateSupplyStatus(id, 'COMPLETED');
+    const locEl = document.getElementById('sup-complete-location');
+    const storageLocation = locEl ? locEl.value.trim() : '';
+    const submitBtn = e.target ? e.target.querySelector('button[type="submit"]') : null;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 사진 업로드 및 저장 중...';
+    }
+
+    try {
+      const uploadedUrls = await uploadSupplyPhotoArray(selectedCompletePhotos);
+      window.SheetsSync.updateSupplyStatus(id, 'COMPLETED', {
+        storageLocation,
+        photoUrl: uploadedUrls[0] || '',
+        photos: uploadedUrls
+      });
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check-double"></i> 입고 완료 확정';
+      }
+      resetSupplyPhotos('complete');
+    }
     closeCompleteModal();
 
     if (window.App && typeof window.App.renderActiveModule === 'function') {
@@ -1113,6 +1441,16 @@ window.SuppliesModule = (function () {
     if (priceEl) priceEl.value = Number(target.actualPrice || target.estimatedPrice) || 0;
     if (completedDateEl) completedDateEl.value = target.completedAt || '';
     if (memoEl) memoEl.value = target.memo || '';
+    const locEl = document.getElementById('sup-edit-location');
+    if (locEl) locEl.value = target.storageLocation || '';
+    resetSupplyPhotos('edit');
+    const existingPhotos = (Array.isArray(target.photos) && target.photos.length > 0)
+      ? target.photos.filter(Boolean)
+      : (target.photoUrl ? [target.photoUrl] : []);
+    existingPhotos.forEach((url, idx) => {
+      selectedEditPhotos.push({ id: 'sup_exist_e_' + idx, data: url, isNew: false });
+    });
+    renderSupplyPhotoPreviews('edit');
 
     const modal = document.getElementById('supplies-edit-modal');
     if (modal) modal.style.display = 'flex';
@@ -1123,7 +1461,7 @@ window.SuppliesModule = (function () {
     if (modal) modal.style.display = 'none';
   }
 
-  function handleEditSubmit(e) {
+  async function handleEditSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('sup-edit-id').value;
     if (!id) return;
@@ -1139,25 +1477,45 @@ window.SuppliesModule = (function () {
     const price = Math.max(0, Number(document.getElementById('sup-edit-price').value) || 0);
     const completedAt = document.getElementById('sup-edit-completed-date').value.trim();
     const memo = document.getElementById('sup-edit-memo').value.trim();
+    const locEl = document.getElementById('sup-edit-location');
+    const storageLocation = locEl ? locEl.value.trim() : '';
 
     if (!itemName) {
       alert('소모품 품목명을 입력해 주세요.');
       return;
     }
 
-    window.SheetsSync.updateSupplyStatus(id, newStatus, {
-      itemName,
-      category,
-      urgency,
-      qty,
-      unit,
-      applicantName,
-      vendor,
-      actualPrice: price,
-      estimatedPrice: price,
-      completedAt,
-      memo
-    });
+    const submitBtn = e.target ? e.target.querySelector('button[type="submit"]') : null;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+    }
+
+    try {
+      const uploadedUrls = await uploadSupplyPhotoArray(selectedEditPhotos);
+      window.SheetsSync.updateSupplyStatus(id, newStatus, {
+        itemName,
+        category,
+        urgency,
+        qty,
+        unit,
+        applicantName,
+        vendor,
+        actualPrice: price,
+        estimatedPrice: price,
+        completedAt,
+        memo,
+        storageLocation,
+        photoUrl: uploadedUrls[0] || '',
+        photos: uploadedUrls
+      });
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> 수정 내용 저장';
+      }
+      resetSupplyPhotos('edit');
+    }
 
     closeEditModal();
 
@@ -1331,6 +1689,11 @@ window.SuppliesModule = (function () {
     closeCompleteModal,
     handleCompleteSubmit,
     completeOrderPrompt,
+    setQuickLocation,
+    handleSupplyPhotoSelect,
+    removeSupplyPhoto,
+    resetSupplyPhotos,
+    openSupplyPhoto,
     openEditModal,
     closeEditModal,
     handleEditSubmit,

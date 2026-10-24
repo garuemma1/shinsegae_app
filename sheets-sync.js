@@ -1675,6 +1675,9 @@ window.SheetsSync = (function () {
       vendor: item.vendor || '',
       estimatedPrice: Number(item.estimatedPrice) || 0,
       actualPrice: 0,
+      storageLocation: item.storageLocation || '',
+      photoUrl: item.photoUrl || '',
+      photos: Array.isArray(item.photos) ? item.photos : (item.photoUrl ? [item.photoUrl] : []),
       createdAt: dateStr,
       updatedAt: Date.now()
     };
@@ -1703,6 +1706,9 @@ window.SheetsSync = (function () {
     if (extraData.memo !== undefined) target.memo = extraData.memo;
     if (extraData.payMethod !== undefined) target.payMethod = extraData.payMethod;
     if (extraData.ledgerCategory !== undefined) target.ledgerCategory = extraData.ledgerCategory;
+    if (extraData.storageLocation !== undefined) target.storageLocation = extraData.storageLocation;
+    if (extraData.photoUrl !== undefined) target.photoUrl = extraData.photoUrl;
+    if (extraData.photos !== undefined) target.photos = extraData.photos;
 
     if (newStatus === 'PENDING') {
       target.completedAt = '';

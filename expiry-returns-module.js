@@ -11,7 +11,8 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
     // 모듈 내부 상태
     let activeView = 'list';         // 'list' (전체 대장) | 'vendors' (도매상별 집계) | 'matrix' (D-Day 위험도)
-    let statusFilter = 'ALL';        // 'ALL' | 'PENDING_RETURN' | 'PROCESSING_RETURN' | 'COMPLETED'
+    let statusFilter = 'ACTIVE';     // 'ACTIVE' (진행중: 대기+처리중, 완료 제외) | 'PENDING_RETURN' | 'PROCESSING_RETURN' | 'COMPLETED' | 'ALL'
+    let smsFilter = 'ALL';           // 'ALL' | 'UNSENT' (문자 미발송) | 'SENT' (문자 완료)
     let drugTypeFilter = 'ALL';      // 'ALL' | 'OTC' | 'ETC'
     let vendorFilter = 'ALL';        // 'ALL' | 특정 거래처명
     let periodFilter = 'ALL';        // 'ALL' | 'EXPIRED' | '3M' | '6M'
@@ -186,7 +187,14 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
       const totalPendingAmount = pendingList.reduce((sum, r) => sum + parseVal(r.estimatedReturnAmount), 0);
       const totalProcessingAmount = processingList.reduce((sum, r) => sum + parseVal(r.estimatedReturnAmount), 0);
+      const totalActiveAmount = totalPendingAmount + totalProcessingAmount;
       const totalSettledAmount = completedList.reduce((sum, r) => sum + parseVal(r.actualSettledAmount || r.estimatedReturnAmount), 0);
+
+      // 📱 담당자 반품요청 문자 발송 체크 통계 (진행중 건 기준)
+      const activeSmsSentCount = activeReturns.filter(r => !!r.smsSent).length;
+      const activeSmsUnsentCount = activeReturns.length - activeSmsSentCount;
+      const procSmsSentCount = processingList.filter(r => !!r.smsSent).length;
+      const procSmsUnsentCount = processingList.length - procSmsSentCount;
 
       // 고유 거래처 목록 추출
       const vendorSet = new Set();
@@ -194,36 +202,29 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       const currentVendors = Array.from(vendorSet);
 
       target.innerHTML = `
-        <div class="expiry-returns-wrapper p-3 sm:p-5 md:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto" style="min-height: 100dvh;">
+        <div class="expiry-returns-wrapper p-3 sm:p-5 md:p-6 space-y-4 max-w-7xl mx-auto" style="min-height: 100dvh;">
 
-          <!-- 1. 상단 마스터 헤더 -->
-          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="space-y-1">
+          <!-- 1. 상단 심플 헤더 -->
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="space-y-0.5">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xl sm:text-2xl">⏳</span>
-                <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <span class="text-xl">⏳</span>
+                <h2 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
                   유효기간 임박 & 제약사 반품 대장
                 </h2>
-                <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300 whitespace-nowrap">
-                  실시간 반품 파이프라인
-                </span>
                 ${criticalList.length > 0 ? `
-                  <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black border border-red-700 animate-pulse shadow-sm">
-                    🚨 1단계 초긴급 ${criticalList.length}건
+                  <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black border border-red-700 shadow-sm">
+                    🚨 1개월이내·만료 ${criticalList.length}건
                   </span>
-                ` : (urgentList.length > 0 ? `
-                  <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-bold border border-amber-600">
-                    ⚠️ 2단계 경고 ${urgentList.length}건
-                  </span>
-                ` : '')}
+                ` : ''}
               </div>
-              <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed break-keep">
-                조제실/매대 3~6개월 전 유효기간 임박약 등록 ➔ 각 도매상·제약사별 반품 요청서 자동 집계 ➔ 약국장 최종 정산 승인
+              <p class="text-xs text-slate-500 dark:text-slate-400 break-keep">
+                진행 중인 반품 약품만 기본 표시되며, 정산이 끝난 약품은 우측 <strong>[③ 반품·정산 완료 보관함]</strong>으로 자동 분리됩니다.
               </p>
             </div>
 
             <!-- 신규 등록 & 액션 버튼 그룹 -->
-            <div class="flex items-center gap-2 w-full sm:w-auto pt-1 sm:pt-0">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onclick="ExpiryReturnsModule.openAddModal()"
@@ -245,109 +246,33 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
             </div>
           </div>
 
-          <!-- 🚨 D-Day 3단계 조기경보 대시보드 (Early Warning Center) -->
-          <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-md border border-indigo-900/50 space-y-3">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-indigo-800/40 pb-2.5">
-              <div class="flex items-center gap-2">
-                <span class="text-base sm:text-lg">⚠️</span>
-                <span class="text-sm sm:text-base font-extrabold tracking-tight">유효기간 D-Day 3단계 조기경보 센터</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40">
-                  실시간 재고 손실 방어
-                </span>
-              </div>
-              <div class="flex items-center gap-2 text-xs flex-wrap">
-                ${criticalList.length > 0 ? `
-                  <span class="text-rose-400 font-bold flex items-center gap-1">
-                    <i class="fas fa-exclamation-triangle animate-pulse"></i> 초긴급 반품 요망 (${criticalList.length}건)
-                  </span>
-                  <button type="button" onclick="ExpiryReturnsModule.copyCriticalReturnSms()" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] shadow transition flex items-center gap-1">
-                    <i class="fas fa-comment-dots"></i> <span>도매상 수거요청 문자복사</span>
-                  </button>
-                ` : `
-                  <span class="text-emerald-400 font-bold flex items-center gap-1">
-                    <i class="fas fa-shield-alt"></i> 초긴급 만료약 없음 (안전)
-                  </span>
-                `}
-              </div>
-            </div>
-
-            <!-- 3단계 위험도 원터치 필터 카드 -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-              <!-- 1단계: 초긴급 -->
-              <div 
-                onclick="ExpiryReturnsModule.setPeriodFilter('CRITICAL')"
-                class="cursor-pointer bg-red-950/40 hover:bg-red-900/50 p-3 rounded-xl border border-red-500/40 transition group ${periodFilter === 'CRITICAL' ? 'ring-2 ring-red-400 bg-red-900/60' : ''}"
-              >
-                <div class="flex items-center justify-between text-xs mb-1">
-                  <span class="font-extrabold text-red-300 flex items-center gap-1">
-                    <i class="fas fa-skull-crossbones text-red-400"></i> 🔴 1단계: D-30 초긴급
-                  </span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/30 text-red-200 font-bold">즉시반품</span>
-                </div>
-                <div class="flex items-baseline justify-between mt-1">
-                  <span class="text-2xl font-black text-red-200">
-                    ${criticalList.length}<span class="text-xs font-normal ml-0.5 text-red-300/80">건</span>
-                  </span>
-                  <span class="text-xs font-semibold text-red-300">
-                    ${formatKRW(totalCriticalAmount)}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 2단계: 경고 (3개월 이내) -->
-              <div 
-                onclick="ExpiryReturnsModule.setPeriodFilter('URGENT')"
-                class="cursor-pointer bg-amber-950/40 hover:bg-amber-900/50 p-3 rounded-xl border border-amber-500/40 transition group ${periodFilter === 'URGENT' ? 'ring-2 ring-amber-400 bg-amber-900/60' : ''}"
-              >
-                <div class="flex items-center justify-between text-xs mb-1">
-                  <span class="font-extrabold text-amber-300 flex items-center gap-1">
-                    <i class="fas fa-exclamation-circle text-amber-400"></i> 🟠 2단계: D-90 경고 (3개월)
-                  </span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 font-bold">소진·반품준비</span>
-                </div>
-                <div class="flex items-baseline justify-between mt-1">
-                  <span class="text-2xl font-black text-amber-200">
-                    ${urgentList.length}<span class="text-xs font-normal ml-0.5 text-amber-300/80">건</span>
-                  </span>
-                  <span class="text-xs font-semibold text-amber-300">
-                    ${formatKRW(totalUrgentAmount)}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 3단계: 주의 (6개월 이내) -->
-              <div 
-                onclick="ExpiryReturnsModule.setPeriodFilter('WARNING')"
-                class="cursor-pointer bg-yellow-950/40 hover:bg-yellow-900/50 p-3 rounded-xl border border-yellow-500/40 transition group ${periodFilter === 'WARNING' ? 'ring-2 ring-yellow-400 bg-yellow-900/60' : ''}"
-              >
-                <div class="flex items-center justify-between text-xs mb-1">
-                  <span class="font-extrabold text-yellow-300 flex items-center gap-1">
-                    <i class="fas fa-eye text-yellow-400"></i> 🟡 3단계: D-180 주의 (6개월)
-                  </span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/30 text-yellow-200 font-bold">처방동향 점검</span>
-                </div>
-                <div class="flex items-baseline justify-between mt-1">
-                  <span class="text-2xl font-black text-yellow-200">
-                    ${warningList.length}<span class="text-xs font-normal ml-0.5 text-yellow-300/80">건</span>
-                  </span>
-                  <span class="text-xs font-semibold text-yellow-300">
-                    ${formatKRW(totalWarningAmount)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 2. 3대 핵심 요약 지표 카드 (KPI Dashboard) -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <!-- 1단계 대기 -->
+          <!-- 2. 한눈에 보는 반품 진행 단계 카드 (진행중 vs 완료 별도 분리) -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <!-- 진행중 전체 (기본 화면) -->
             <div 
-              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'PENDING_RETURN' ? 'ALL' : 'PENDING_RETURN'}')" 
+              onclick="ExpiryReturnsModule.setStatusFilter('ACTIVE')" 
+              class="cursor-pointer bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border ${statusFilter === 'ACTIVE' ? 'border-2 border-slate-800 ring-2 ring-slate-400/40 bg-slate-50' : 'border-slate-200'} shadow-sm hover:shadow transition"
+            >
+              <div class="flex items-center justify-between text-xs font-extrabold text-slate-700 dark:text-slate-200 mb-1">
+                <span>📋 진행중 전체</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 font-bold">완료제외</span>
+              </div>
+              <div class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                ${activeReturns.length}<span class="text-xs font-normal ml-0.5">건</span>
+              </div>
+              <div class="text-[11px] font-semibold text-slate-500 mt-1 truncate">
+                대기 ${pendingList.length}건 + 처리중 ${processingList.length}건 (${formatKRW(totalActiveAmount)})
+              </div>
+            </div>
+
+            <!-- 1단계: 임박·반품대기 -->
+            <div 
+              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'PENDING_RETURN' ? 'ACTIVE' : 'PENDING_RETURN'}')" 
               class="cursor-pointer bg-amber-50/70 dark:bg-amber-950/30 p-3.5 sm:p-4 rounded-2xl border border-amber-200 dark:border-amber-900/60 shadow-sm hover:shadow transition ${statusFilter === 'PENDING_RETURN' ? 'ring-2 ring-amber-500 bg-amber-100/80' : ''}"
             >
               <div class="flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">
                 <span>⏳ ① 임박·반품대기</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-200/80 dark:bg-amber-900/60">등록단계</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-200/80 dark:bg-amber-900/60">수거전</span>
               </div>
               <div class="text-xl sm:text-2xl font-black text-amber-900 dark:text-amber-100">
                 ${pendingList.length}<span class="text-xs font-normal ml-0.5">건</span>
@@ -357,63 +282,46 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
               </div>
             </div>
 
-            <!-- 2단계 처리중 -->
+            <!-- 2단계: 반품처리중 (담당자 문자 체크 현황 표시) -->
             <div 
-              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'PROCESSING_RETURN' ? 'ALL' : 'PROCESSING_RETURN'}')" 
+              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'PROCESSING_RETURN' ? 'ACTIVE' : 'PROCESSING_RETURN'}')" 
               class="cursor-pointer bg-blue-50/70 dark:bg-blue-950/30 p-3.5 sm:p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 shadow-sm hover:shadow transition ${statusFilter === 'PROCESSING_RETURN' ? 'ring-2 ring-blue-500 bg-blue-100/80' : ''}"
             >
               <div class="flex items-center justify-between text-xs font-bold text-blue-800 dark:text-blue-300 mb-1">
                 <span>📦 ② 반품처리중</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-200/80 dark:bg-blue-900/60">영업인계</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-200/80 dark:bg-blue-900/60">정산대기</span>
               </div>
               <div class="text-xl sm:text-2xl font-black text-blue-900 dark:text-blue-100">
                 ${processingList.length}<span class="text-xs font-normal ml-0.5">건</span>
               </div>
-              <div class="text-[11px] font-semibold text-blue-700 dark:text-blue-400 mt-1 truncate">
-                진행 ${formatKRW(totalProcessingAmount)}
+              <div class="text-[11px] font-bold text-blue-700 dark:text-blue-400 mt-1 truncate">
+                📱문자완료 ${procSmsSentCount}건 · ⬜미발송 ${procSmsUnsentCount}건
               </div>
             </div>
 
-            <!-- 3단계 완료/정산 -->
+            <!-- 3단계: 반품·정산 완료 (별도 분리 보관함) -->
             <div 
-              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED'}')" 
-              class="cursor-pointer bg-emerald-50/70 dark:bg-emerald-950/30 p-3.5 sm:p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 shadow-sm hover:shadow transition ${statusFilter === 'COMPLETED' ? 'ring-2 ring-emerald-500 bg-emerald-100/80' : ''}"
+              onclick="ExpiryReturnsModule.setStatusFilter('${statusFilter === 'COMPLETED' ? 'ACTIVE' : 'COMPLETED'}')" 
+              class="cursor-pointer bg-emerald-50/50 dark:bg-emerald-950/20 p-3.5 sm:p-4 rounded-2xl border-2 border-dashed border-emerald-300 dark:border-emerald-800 shadow-sm hover:shadow transition ${statusFilter === 'COMPLETED' ? 'ring-2 ring-emerald-500 bg-emerald-100/80 border-solid' : ''}"
             >
               <div class="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">
-                <span>✅ ③ 반품완료·정산</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200/80 dark:bg-emerald-900/60">정산마감</span>
+                <span>✅ ③ 반품·정산 완료</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-900 font-extrabold">별도보관함</span>
               </div>
               <div class="text-xl sm:text-2xl font-black text-emerald-900 dark:text-emerald-100">
                 ${completedList.length}<span class="text-xs font-normal ml-0.5">건</span>
               </div>
               <div class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-1 truncate">
-                정산 ${formatKRW(totalSettledAmount)}
-              </div>
-            </div>
-
-            <!-- 위험도 요약 -->
-            <div 
-              onclick="ExpiryReturnsModule.setPeriodFilter('${periodFilter === '3M' ? 'ALL' : '3M'}')" 
-              class="cursor-pointer bg-rose-50/70 dark:bg-rose-950/30 p-3.5 sm:p-4 rounded-2xl border border-rose-200 dark:border-rose-900/60 shadow-sm hover:shadow transition ${periodFilter === '3M' ? 'ring-2 ring-rose-500 bg-rose-100/80' : ''}"
-            >
-              <div class="flex items-center justify-between text-xs font-bold text-rose-800 dark:text-rose-300 mb-1">
-                <span>🚨 임박 및 만료약</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-200/80 dark:bg-rose-900/60">주의관찰</span>
-              </div>
-              <div class="text-xl sm:text-2xl font-black text-rose-900 dark:text-rose-100">
-                ${urgent3MCount + expiredCount}<span class="text-xs font-normal ml-0.5">건</span>
-              </div>
-              <div class="text-[11px] font-semibold text-rose-700 dark:text-rose-400 mt-1 truncate">
-                만료 ${expiredCount}건 / 3M임박 ${urgent3MCount}건
+                클릭 시 완료 내역 열람 (${formatKRW(totalSettledAmount)})
               </div>
             </div>
           </div>
 
-          <!-- 3. 뷰 모드 탭 스위처 & 통합 필터 컨트롤러 (규칙 58 모바일 가로스크롤) -->
-          <div class="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <!-- 3. 심플 통합 필터 바 (D-Day 신호등 + 문자발송 체크 필터 + 검색) -->
+          <div class="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5">
             
-            <!-- 3대 뷰 모드 전환 버튼 -->
-            <div class="flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <!-- 상단: 뷰 모드 전환 & 검색창 -->
+            <div class="flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
               <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                 <button
                   type="button"
@@ -438,75 +346,73 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                 </button>
               </div>
 
-              <!-- 실시간 검색창 (한글 IME 보존 & 120ms 디바운스 - 규칙 50, 92) -->
-              <div class="relative w-full sm:w-72">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input
-                  type="text"
-                  id="exp-search-input"
-                  value="${escapeHTML(searchQuery)}"
-                  oninput="ExpiryReturnsModule.handleSearchInput(this.value)"
-                  placeholder="약품명, 거래처, 제조사 검색..."
-                  class="w-full pl-8 pr-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                ${criticalList.length > 0 ? `
+                  <button type="button" onclick="ExpiryReturnsModule.copyCriticalReturnSms()" class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1 whitespace-nowrap">
+                    <i class="fas fa-comment-dots"></i> <span>초긴급 수거문자 복사</span>
+                  </button>
+                ` : ''}
+                <div class="relative flex-1 sm:w-64">
+                  <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                  <input
+                    type="text"
+                    id="exp-search-input"
+                    value="${escapeHTML(searchQuery)}"
+                    oninput="ExpiryReturnsModule.handleSearchInput(this.value)"
+                    placeholder="약품명, 거래처, 제조사 검색..."
+                    class="w-full pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                </div>
               </div>
             </div>
 
-            <!-- 세부 필터 칩 (가로 터치 스크롤 - 규칙 58) -->
-            <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar py-1 text-xs">
+            <!-- 하단: 유효기간 신호등 & 담당자 문자발송 여부 & 구분/거래처 필터 (중복 상태칩 제거) -->
+            <div class="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap no-scrollbar py-0.5 text-xs">
               
-              <!-- 상태 필터 -->
-              <span class="text-[11px] font-bold text-slate-400 pl-1">상태:</span>
-              <button onclick="ExpiryReturnsModule.setStatusFilter('ALL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${statusFilter === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-600 border-slate-200'}">
-                전체 (${allReturns.length})
-              </button>
-              <button onclick="ExpiryReturnsModule.setStatusFilter('PENDING_RETURN')" class="px-2.5 py-1 rounded-lg font-bold border transition ${statusFilter === 'PENDING_RETURN' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-amber-700 border-slate-200'}">
-                ⏳ 임박대기 (${pendingList.length})
-              </button>
-              <button onclick="ExpiryReturnsModule.setStatusFilter('PROCESSING_RETURN')" class="px-2.5 py-1 rounded-lg font-bold border transition ${statusFilter === 'PROCESSING_RETURN' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-blue-700 border-slate-200'}">
-                📦 반품처리중 (${processingList.length})
-              </button>
-              <button onclick="ExpiryReturnsModule.setStatusFilter('COMPLETED')" class="px-2.5 py-1 rounded-lg font-bold border transition ${statusFilter === 'COMPLETED' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-emerald-700 border-slate-200'}">
-                ✅ 정산완료 (${completedList.length})
-              </button>
-
-              <span class="text-slate-300">|</span>
-
-              <!-- 유효기간 3단계 조기경보 필터 -->
-              <span class="text-[11px] font-bold text-slate-400">D-Day 조기경보:</span>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('ALL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'ALL' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-600 border-slate-200'}">
+              <!-- 유효기간 신호등 필터 -->
+              <span class="text-[11px] font-extrabold text-slate-500 pl-1">📅 유효기간:</span>
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('ALL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-600 border-slate-200'}">
                 전체기한
               </button>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('CRITICAL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'CRITICAL' ? 'bg-red-600 text-white border-red-600' : 'bg-slate-50 text-red-600 border-slate-200'}">
-                🔴 1단계: D-30 초긴급 (${criticalList.length})
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('${periodFilter === 'CRITICAL' ? 'ALL' : 'CRITICAL'}')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'CRITICAL' ? 'bg-red-600 text-white border-red-600' : 'bg-red-50 text-red-700 border-red-200'}">
+                🔴 1개월이내·만료 (${criticalList.length})
               </button>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('URGENT')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'URGENT' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-amber-700 border-slate-200'}">
-                🟠 2단계: D-90 경고 (${urgentList.length})
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('${periodFilter === 'URGENT' ? 'ALL' : 'URGENT'}')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'URGENT' ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-800 border-amber-200'}">
+                🟠 3개월이내 (${urgentList.length})
               </button>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('WARNING')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'WARNING' ? 'bg-yellow-500 text-yellow-950 border-yellow-500' : 'bg-slate-50 text-yellow-800 border-slate-200'}">
-                🟡 3단계: D-180 주의 (${warningList.length})
-              </button>
-              <button onclick="ExpiryReturnsModule.setPeriodFilter('EXPIRED')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'EXPIRED' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-700 border-slate-200'}">
-                만료초과 (${expiredCount})
+              <button onclick="ExpiryReturnsModule.setPeriodFilter('${periodFilter === 'WARNING' ? 'ALL' : 'WARNING'}')" class="px-2.5 py-1 rounded-lg font-bold border transition ${periodFilter === 'WARNING' ? 'bg-yellow-400 text-yellow-950 border-yellow-500' : 'bg-yellow-50 text-yellow-800 border-yellow-200'}">
+                🟡 6개월이내 (${warningList.length})
               </button>
 
-              <span class="text-slate-300">|</span>
+              <span class="text-slate-300 mx-0.5">|</span>
 
-              <!-- 약품 구분 필터 -->
-              <span class="text-[11px] font-bold text-slate-400">구분:</span>
-              <button onclick="ExpiryReturnsModule.setDrugTypeFilter('ALL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${drugTypeFilter === 'ALL' ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 text-slate-600 border-slate-200'}">
+              <!-- 📱 담당자 반품요청 문자 체크 필터 -->
+              <span class="text-[11px] font-extrabold text-slate-500">📱 담당자문자:</span>
+              <button onclick="ExpiryReturnsModule.setSmsFilter('ALL')" class="px-2.5 py-1 rounded-lg font-bold border transition ${smsFilter === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-600 border-slate-200'}">
                 전체
               </button>
-              <button onclick="ExpiryReturnsModule.setDrugTypeFilter('OTC')" class="px-2.5 py-1 rounded-lg font-bold border transition ${drugTypeFilter === 'OTC' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-blue-700 border-slate-200'}">
-                💊 일반약
+              <button onclick="ExpiryReturnsModule.setSmsFilter('${smsFilter === 'UNSENT' ? 'ALL' : 'UNSENT'}')" class="px-2.5 py-1 rounded-lg font-bold border transition ${smsFilter === 'UNSENT' ? 'bg-rose-600 text-white border-rose-600' : 'bg-rose-50 text-rose-700 border-rose-200'}">
+                ⬜ 문자 미발송 (${activeSmsUnsentCount})
               </button>
-              <button onclick="ExpiryReturnsModule.setDrugTypeFilter('ETC')" class="px-2.5 py-1 rounded-lg font-bold border transition ${drugTypeFilter === 'ETC' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-emerald-700 border-slate-200'}">
-                💉 전문약
+              <button onclick="ExpiryReturnsModule.setSmsFilter('${smsFilter === 'SENT' ? 'ALL' : 'SENT'}')" class="px-2.5 py-1 rounded-lg font-bold border transition ${smsFilter === 'SENT' ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-700 border-blue-200'}">
+                ✅ 문자 완료 (${activeSmsSentCount})
+              </button>
+
+              <span class="text-slate-300 mx-0.5">|</span>
+
+              <!-- 약품 구분 필터 -->
+              <button onclick="ExpiryReturnsModule.setDrugTypeFilter('ALL')" class="px-2 py-1 rounded-lg font-bold border transition ${drugTypeFilter === 'ALL' ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 text-slate-600 border-slate-200'}">
+                전체약
+              </button>
+              <button onclick="ExpiryReturnsModule.setDrugTypeFilter('${drugTypeFilter === 'OTC' ? 'ALL' : 'OTC'}')" class="px-2 py-1 rounded-lg font-bold border transition ${drugTypeFilter === 'OTC' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-blue-700 border-slate-200'}">
+                💊일반약
+              </button>
+              <button onclick="ExpiryReturnsModule.setDrugTypeFilter('${drugTypeFilter === 'ETC' ? 'ALL' : 'ETC'}')" class="px-2 py-1 rounded-lg font-bold border transition ${drugTypeFilter === 'ETC' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-emerald-700 border-slate-200'}">
+                💉전문약
               </button>
 
               <!-- 거래처 선택 드롭다운 -->
               ${currentVendors.length > 0 ? `
-                <span class="text-slate-300">|</span>
                 <select 
                   onchange="ExpiryReturnsModule.setVendorFilter(this.value)"
                   class="px-2 py-1 rounded-lg font-bold border border-slate-200 bg-slate-50 text-slate-700 text-xs focus:outline-none"
@@ -519,6 +425,16 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
             </div>
 
           </div>
+
+          <!-- 완료 내역 보관함 열람 안내 배너 (완료 탭 클릭 시에만 표시) -->
+          ${statusFilter === 'COMPLETED' ? `
+            <div class="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-2.5 rounded-xl flex items-center justify-between flex-wrap gap-2 text-xs font-bold">
+              <span>✅ 현재 <strong>[③ 반품·정산 완료 별도 보관함]</strong>을 보고 계십니다. (총 ${completedList.length}건 완료)</span>
+              <button type="button" onclick="ExpiryReturnsModule.setStatusFilter('ACTIVE')" class="px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs">
+                📋 진행중 반품 목록으로 돌아가기
+              </button>
+            </div>
+          ` : ''}
 
           <!-- 4. 메인 콘텐츠 컨테이너 (3대 뷰 모드별 렌더링) -->
           <div id="exp-main-content-container">
@@ -540,8 +456,16 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       let filtered = allReturns.filter(item => {
         if (!item) return false;
 
-        // 상태 필터
-        if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+        // 상태 필터 ('ACTIVE' = 완료된 건은 별도로 빼고 진행중 건만 표시)
+        if (statusFilter === 'ACTIVE') {
+          if (item.status === 'COMPLETED') return false;
+        } else if (statusFilter !== 'ALL' && item.status !== statusFilter) {
+          return false;
+        }
+
+        // 📱 담당자 반품요청 문자 발송 여부 필터
+        if (smsFilter === 'SENT' && !item.smsSent) return false;
+        if (smsFilter === 'UNSENT' && (item.smsSent || item.status === 'COMPLETED')) return false;
 
         // 약품 구분 필터
         if (drugTypeFilter !== 'ALL' && item.drugType !== drugTypeFilter) return false;
@@ -707,6 +631,28 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                 </div>
               ` : ''}
             </div>
+
+            <!-- 📱 담당자 반품요청 문자 완료 체크란 (1단계 대기 / 2단계 처리중 카드에서 원클릭 체크) -->
+            ${item.status !== 'COMPLETED' ? `
+              <div
+                onclick="ExpiryReturnsModule.toggleSmsSent('${item.id}')"
+                title="클릭하면 담당자에게 반품요청 문자를 보냈는지 체크/해제할 수 있습니다"
+                class="cursor-pointer select-none px-3 py-2 rounded-xl border transition flex items-center justify-between gap-2 text-xs font-extrabold ${item.smsSent ? 'bg-blue-50/90 border-blue-300 text-blue-800 dark:bg-blue-950/40 dark:border-blue-700 dark:text-blue-200' : 'bg-rose-50/70 hover:bg-rose-100/70 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300'}"
+              >
+                <div class="flex items-center gap-2 min-w-0">
+                  <input
+                    type="checkbox"
+                    ${item.smsSent ? 'checked' : ''}
+                    onclick="event.stopPropagation(); ExpiryReturnsModule.toggleSmsSent('${item.id}')"
+                    class="w-4 h-4 accent-blue-600 rounded cursor-pointer shrink-0"
+                  >
+                  <span class="truncate">📱 담당자 반품요청 문자</span>
+                </div>
+                <span class="px-2 py-0.5 rounded-md text-[10.5px] font-black shrink-0 ${item.smsSent ? 'bg-blue-600 text-white' : 'bg-white text-rose-600 border border-rose-200'}">
+                  ${item.smsSent ? `✅ 완료${item.smsSentAt ? ' (' + escapeHTML(item.smsSentAt) + ')' : ''}` : '⬜ 미발송'}
+                </span>
+              </div>
+            ` : ''}
 
             <!-- 사진 썸네일 그리드 (규칙 120 - 최대 5장 전역 라이트박스 갤러리) -->
             ${photos.length > 0 ? `
@@ -1354,8 +1300,13 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
               <div>
                 <label class="block font-bold text-slate-700 mb-1">인계 메모 (송장번호 또는 특이사항)</label>
-                <input type="text" id="exp-handover-memo" placeholder="예: 반품 전표 서명 완료" class="w-full h-10 px-3 rounded-xl border border-slate-300 bg-white">
+                <input type="text" id="exp-handover-memo" value="${escapeHTML(item.memo || '')}" placeholder="예: 반품 전표 서명 완료 / 택배 요청 완료" class="w-full h-10 px-3 rounded-xl border border-slate-300 bg-white">
               </div>
+
+              <label class="flex items-center gap-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200 cursor-pointer font-bold text-blue-900">
+                <input type="checkbox" id="exp-handover-sms-sent" ${item.smsSent !== false ? 'checked' : ''} class="w-4 h-4 accent-blue-600 rounded">
+                <span>📱 담당자 반품요청 문자 발송 완료 체크</span>
+              </label>
 
               <div class="flex items-center justify-end gap-2 pt-2 border-t">
                 <button type="button" onclick="ExpiryReturnsModule.closeModal()" class="px-3.5 py-2 rounded-xl font-bold bg-slate-100 text-slate-700">취소</button>
@@ -1375,11 +1326,16 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       const handoverDate = document.getElementById('exp-handover-date').value.trim();
       const collector = document.getElementById('exp-handover-collector').value.trim();
       const memo = document.getElementById('exp-handover-memo').value.trim();
+      const smsChecked = !!document.getElementById('exp-handover-sms-sent')?.checked;
+      const now = new Date();
+      const shortDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
       window.SheetsSync.updateExpiryReturnStatus(id, 'PROCESSING_RETURN', {
         returnHandoverDate: handoverDate,
         returnCollector: collector,
-        memo: memo
+        memo: memo,
+        smsSent: smsChecked,
+        smsSentAt: smsChecked ? shortDate : ''
       });
 
       closeModal();
@@ -1796,6 +1752,10 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                     <input type="date" id="exp-edit-settled-date" value="${escapeHTML(item.settledDate || '')}" class="w-full h-9 px-3 rounded-xl border border-emerald-300 bg-white font-bold text-emerald-800">
                   </div>
                 </div>
+                <label class="flex items-center gap-2 pt-1 cursor-pointer font-bold text-blue-800 dark:text-blue-300">
+                  <input type="checkbox" id="exp-edit-sms-sent" ${item.smsSent ? 'checked' : ''} class="w-4 h-4 accent-blue-600 rounded">
+                  <span>📱 담당자 반품요청 문자 발송 완료 여부</span>
+                </label>
               </div>
 
               <!-- 사진 관리 -->
@@ -1863,6 +1823,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
         const collector = document.getElementById('exp-edit-collector')?.value.trim() || '';
         const settledAmount = parseVal(document.getElementById('exp-edit-settled-amount')?.value);
         const settledDate = document.getElementById('exp-edit-settled-date')?.value.trim() || '';
+        const smsSent = !!document.getElementById('exp-edit-sms-sent')?.checked;
 
         let photoUrls = [];
         if (selectedPhotos.length > 0 && window.App && typeof window.App.processAndUploadPhoto === 'function') {
@@ -1890,6 +1851,13 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
           target.estimatedReturnAmount = Math.round(qty * costPrice);
           target.memo = memo;
           target.photos = photoUrls;
+          target.smsSent = smsSent;
+          if (smsSent && !target.smsSentAt) {
+            const now = new Date();
+            target.smsSentAt = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+          } else if (!smsSent) {
+            target.smsSentAt = '';
+          }
 
           if (newStatus === 'PENDING_RETURN') {
             target.returnHandoverDate = '';
@@ -2013,6 +1981,36 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       render();
     }
 
+    function setSmsFilter(f) {
+      smsFilter = f;
+      render();
+    }
+
+    function toggleSmsSent(id) {
+      const allReturns = window.SheetsSync.getExpiryReturns() || [];
+      const target = allReturns.find(r => String(r.id) === String(id));
+      if (!target) return;
+
+      const nextState = !target.smsSent;
+      const now = new Date();
+      const shortDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+
+      target.smsSent = nextState;
+      target.smsSentAt = nextState ? shortDate : '';
+      target.updatedAt = Date.now();
+
+      window.SheetsSync.saveExpiryReturns(allReturns);
+      render();
+
+      if (window.App && typeof window.App.showToast === 'function') {
+        window.App.showToast(
+          nextState
+            ? `✅ [${target.drugName}] 담당자 반품요청 문자 완료로 체크되었습니다.`
+            : `⬜ [${target.drugName}] 담당자 반품요청 문자 미발송으로 변경되었습니다.`
+        );
+      }
+    }
+
     function setPeriodFilter(p) {
       periodFilter = p;
       render();
@@ -2101,6 +2099,8 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       render,
       setView,
       setStatusFilter,
+      setSmsFilter,
+      toggleSmsSent,
       setPeriodFilter,
       setDrugTypeFilter,
       setVendorFilter,

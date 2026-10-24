@@ -1709,6 +1709,8 @@ window.SheetsSync = (function () {
     if (extraData.storageLocation !== undefined) target.storageLocation = extraData.storageLocation;
     if (extraData.photoUrl !== undefined) target.photoUrl = extraData.photoUrl;
     if (extraData.photos !== undefined) target.photos = extraData.photos;
+    if (extraData.smsSent !== undefined) target.smsSent = !!extraData.smsSent;
+    if (extraData.smsSentAt !== undefined) target.smsSentAt = extraData.smsSentAt;
 
     if (newStatus === 'PENDING') {
       target.completedAt = '';
@@ -1837,12 +1839,16 @@ window.SheetsSync = (function () {
     }
     if (extraData.memo !== undefined) target.memo = extraData.memo;
     if (extraData.photos !== undefined) target.photos = extraData.photos;
+    if (extraData.smsSent !== undefined) target.smsSent = !!extraData.smsSent;
+    if (extraData.smsSentAt !== undefined) target.smsSentAt = extraData.smsSentAt;
     
     if (newStatus === 'PENDING_RETURN') {
       target.returnHandoverDate = extraData.returnHandoverDate !== undefined ? extraData.returnHandoverDate : '';
       target.returnCollector = extraData.returnCollector !== undefined ? extraData.returnCollector : '';
       target.actualSettledAmount = extraData.actualSettledAmount !== undefined ? Number(extraData.actualSettledAmount) || 0 : 0;
       target.settledDate = extraData.settledDate !== undefined ? extraData.settledDate : '';
+      target.pickupRequestDate = '';
+      target.pickupNote = '';
     } else if (newStatus === 'PROCESSING_RETURN') {
       const now = new Date();
       target.returnHandoverDate = extraData.returnHandoverDate !== undefined

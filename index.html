@@ -64,7 +64,7 @@
     // ⚡ 안전 버전 관리 (무한 루프 방지 & 정상 배포 연동)
     (function safeVersionTracker() {
       try {
-        var CURRENT_CLIENT_VERSION = "2026.08.25.049";
+        var CURRENT_CLIENT_VERSION = "v5.050";
         localStorage.setItem('ssg_client_version', CURRENT_CLIENT_VERSION);
       } catch(e) {}
     })();
@@ -96,7 +96,7 @@
           <img src="logo.jpg" alt="신세계약국 로고" class="brand-logo-img">
         </div>
         <div class="brand-title">
-          <h1>신세계약국 <span class="badge badge-success" style="font-size: 11px; padding: 2px 6px; vertical-align: middle;">v5.049</span></h1>
+          <h1>신세계약국 <span id="app-version-badge" class="badge badge-success" style="font-size: 11px; padding: 2px 6px; vertical-align: middle;">v5.050</span></h1>
           <p>HR / OPS Platform</p>
         </div>
         <button class="drawer-close-mobile-btn" onclick="App.closeDrawer()">&times;</button>
@@ -726,7 +726,7 @@
   <script src="approval-module.js?v=20260902_2330"></script>
   <script src="rules-module.js?v=20260902_2330"></script>
   <script src="daily-briefing-widget.js?v=20261024_1300"></script>
-  <script src="app.js?v=20261024_1300"></script>
+  <script src="app.js?v=20261024_1346"></script>
 
 </body>
 </html>

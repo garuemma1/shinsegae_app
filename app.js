@@ -2368,6 +2368,11 @@ function writeSheetData(sheet, dataList) {
       if (res && res.ok) {
         const data = await res.json();
         if (data && data.version) {
+          const verBadge = document.getElementById('app-version-badge');
+          if (verBadge) {
+            verBadge.textContent = data.displayVersion || data.version;
+            if (data.name) verBadge.title = data.name;
+          }
           const storedVersion = localStorage.getItem('ssg_app_version');
           if (!storedVersion) {
             localStorage.setItem('ssg_app_version', data.version);

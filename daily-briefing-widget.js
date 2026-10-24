@@ -339,12 +339,13 @@ window.DailyBriefingWidget = (function () {
     // 결재 대기 건수 (연차/휴가 미결재)
     const pendingLeavesCount = leaveRequests.filter(l => l.status === 'PENDING').length;
 
-    // 🚨 유효기간 3단계 조기경보 실시간 집계 (미정산 건 대상)
-    const activeReturns = expiryReturns.filter(e => e.status !== 'COMPLETED');
+    // 🚨 유효기간 초긴급 조기경보 실시간 집계 (아직 처리중으로 넘어가지 않은 '1단계: 임박·반품대기' 상태이면서 미인지 신규 건만 대상)
+    const pendingOnlyReturns = expiryReturns.filter(e => !e.status || e.status === 'PENDING_RETURN');
+    const savedDismissedKeys = getSavedDismissedKeys();
     const nowTime = Date.now();
     const criticalReturns = [];
     const urgentReturns = [];
-    activeReturns.forEach(e => {
+    pendingOnlyReturns.forEach(e => {
       if (!e.expiryDate) return;
       const clean = String(e.expiryDate).trim().replace(/\./g, '-').replace(/\//g, '-');
       let target;
@@ -357,7 +358,12 @@ window.DailyBriefingWidget = (function () {
       if (isNaN(target.getTime())) return;
       const diffDays = Math.ceil((target.getTime() - nowTime) / (1000 * 60 * 60 * 24));
       if (diffDays <= 30) {
-        criticalReturns.push(e);
+        // 이미 인지 완료(닫기) 처리한 기존 품목은 제외하고 처음 등록된 미인지 대기 건만 포함
+        const itemKeys = getCriticalItemKeys(e);
+        const isAlreadyDismissed = itemKeys.length > 0 && itemKeys.some(k => savedDismissedKeys.has(k));
+        if (!isAlreadyDismissed) {
+          criticalReturns.push(e);
+        }
       } else if (diffDays <= 90) {
         urgentReturns.push(e);
       }
@@ -901,7 +907,7 @@ window.DailyBriefingWidget = (function () {
             ` : ''}
 
             ${b.criticalReturns.length > 0 ? `
-              <div class="briefing-chip" onclick="App.switchModule('expiry-returns', true)" style="background:#fee2e2; color:#b91c1c; border:1.5px solid #ef4444; cursor:pointer;" title="클릭 시 유효기간/반품대장으로 이동">
+              <div class="briefing-chip" onclick="DailyBriefingWidget.dismissCriticalBanner(); App.switchModule('expiry-returns', true);" style="background:#fee2e2; color:#b91c1c; border:1.5px solid #ef4444; cursor:pointer;" title="클릭 시 확인 완료 처리 후 유효기간/반품대장으로 이동">
                 🚨 초긴급반품 <strong style="color:#dc2626;">${b.criticalReturns.length}건</strong>
               </div>
             ` : `
@@ -925,7 +931,7 @@ window.DailyBriefingWidget = (function () {
 
           <!-- 🚨 유효기간 3단계 초긴급 조기경보 알림 배너 (전 직원 즉각 인지, 인지 완료 시 신규 품목 등록 전까지 숨김) -->
           ${(b.criticalReturns.length > 0 && !isCriticalBannerDismissed(b.criticalReturns)) ? `
-            <div id="critical-return-alert-banner" onclick="App.switchModule('expiry-returns', true)" style="margin-top:10px; padding:10px 14px; background:linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius:10px; color:#ffffff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(185,28,28,0.25);">
+            <div id="critical-return-alert-banner" onclick="DailyBriefingWidget.dismissCriticalBanner(); App.switchModule('expiry-returns', true);" style="margin-top:10px; padding:10px 14px; background:linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius:10px; color:#ffffff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 8px rgba(185,28,28,0.25);">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:16px;">🚨</span>
                 <div>

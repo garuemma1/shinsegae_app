@@ -410,6 +410,7 @@ window.App = (function () {
     const fingerprints = items.map(_expiryReturnFingerprint);
     try {
       localStorage.setItem('ssg_read_expiry_ret_' + currUser.id, JSON.stringify(fingerprints));
+      if (window.DailyBriefingWidget && typeof window.DailyBriefingWidget.dismissCriticalBanner === 'function') window.DailyBriefingWidget.dismissCriticalBanner();
     } catch(e) {}
     updateSidebarBadgesOnly();
   }
@@ -634,7 +635,7 @@ window.App = (function () {
       // ⏳ 유효기간 & 제약사 반품 대장 (3단계 조기경보: D-30 초긴급/만료 건수 숫자 뱃지, 미확인 시 N 뱃지)
       const expiryReturnsList = (window.SheetsSync.getExpiryReturns ? window.SheetsSync.getExpiryReturns() : data.expiryReturns) || [];
       const hasUnreadExpiryReturns = _hasUnreadExpiryReturns(currUser, expiryReturnsList);
-      const activeExpiryList = expiryReturnsList.filter(r => r.status !== 'COMPLETED');
+      const activeExpiryList = expiryReturnsList.filter(r => !r.status || r.status === 'PENDING_RETURN');
       const nowTime = Date.now();
       const criticalExpiryList = activeExpiryList.filter(r => {
         if (!r.expiryDate) return false;

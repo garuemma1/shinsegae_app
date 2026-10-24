@@ -347,12 +347,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
               </div>
 
               <div class="flex items-center gap-2 w-full sm:w-auto">
-                ${criticalList.length > 0 ? `
-                  <button type="button" onclick="ExpiryReturnsModule.copyCriticalReturnSms()" class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm transition flex items-center gap-1 whitespace-nowrap">
-                    <i class="fas fa-comment-dots"></i> <span>초긴급 수거문자 복사</span>
-                  </button>
-                ` : ''}
-                <div class="relative flex-1 sm:w-64">
+                <div class="relative flex-1 sm:w-72">
                   <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                   <input
                     type="text"

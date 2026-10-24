@@ -1,7 +1,21 @@
 {
   "version": "v5.050",
   "displayVersion": "v5.050",
-  "name": "🔢 좌측 상단 버전 배지(v5.050) 실시간 연동: 신규 탭 추가 시 앞자리 증가 / 탭 내부 수정 시 뒷자리 증가",
+  "name": "🔢 좌측 상단 버전 배지(v5.050) 실시간 연동 및 스마트 알약 카운터 모바일 정돈·작성자 배지 정리",
   "buildTime": 1792817180000,
-  "updatedAt": "2026-10-24 13:46"
+  "updatedAt": "2026-10-24 13:46",
+  "history": [
+    {
+      "version": "v5.050",
+      "updatedAt": "2026-10-24 13:46",
+      "files": ["pill-counter-module.js", "expiry-returns-module.js", "daily-briefing-widget.js", "supplies-module.js", "app.js", "index.html"],
+      "summary": "스마트 알약 카운터 정사각(1:1) 라이브 카메라·모바일 조작부 1줄 정돈·우측 약사 배지 제거, 유효기간 반품대장 문자발송 체크란 및 완료건 별도보관함 분리, 3초 브리핑 초긴급반품 1단계 미인지건 한정 표시, 소모품 입고완료 시 보관위치 및 사진 첨부"
+    },
+    {
+      "version": "v5.049",
+      "updatedAt": "2026-08-25 00:00",
+      "files": ["index.html"],
+      "summary": "기존 고정 버전 기준점 (v5.049)"
+    }
+  ]
 }

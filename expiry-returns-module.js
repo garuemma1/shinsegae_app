@@ -1114,34 +1114,54 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                 <span id="exp-form-total-preview" class="text-base font-black text-blue-700">0원</span>
               </div>
 
-              <!-- 4. 사진 첨부 (규칙 120: Cloudinary 영구 호스팅 기반 최대 5장) -->
-              <div class="space-y-1.5">
+              <!-- 4. 사진 첨부 (규칙 120: Cloudinary 영구 호스팅 기반 최대 5장 - 카메라 직통 촬영 & 앨범 선택 분리) -->
+              <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <label class="font-bold text-slate-700 flex items-center gap-1.5">
+                  <label class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
                     <i class="fas fa-camera text-blue-600"></i>
                     <span>약품 및 유효기간 인쇄면 사진 첨부 (최대 5장)</span>
                   </label>
-                  <span id="exp-photo-counter" class="text-[11px] font-bold text-slate-400">0 / 5장</span>
+                  <div class="flex items-center gap-2">
+                    <span id="exp-photo-counter" class="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">0 / 5장</span>
+                    <button type="button" onclick="ExpiryReturnsModule.resetPhotos()" class="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[10px] font-extrabold transition">전체 초기화</button>
+                  </div>
                 </div>
                 
-                <div class="flex items-center gap-2">
-                  <label class="cursor-pointer px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 font-bold text-slate-700 text-xs flex items-center gap-1.5 transition">
-                    <i class="fas fa-images"></i>
-                    <span>사진 선택 / 촬영</span>
-                    <input 
-                      type="file" 
-                      id="exp-photo-file-input" 
-                      accept="image/*" 
-                      multiple 
-                      onchange="ExpiryReturnsModule.handlePhotoSelect(event)" 
-                      style="display:none;"
-                    >
+                <div class="grid grid-cols-2 gap-2.5">
+                  <!-- 📸 1. 바로 카메라 촬영 버튼 (스마트폰 후면 카메라 직통: capture="environment") -->
+                  <label for="exp-photo-camera-input" class="cursor-pointer p-3 rounded-xl border-2 border-dashed border-blue-500 bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-100/70 text-blue-700 dark:text-blue-300 font-extrabold text-xs flex flex-col items-center justify-center gap-1 transition text-center active:scale-95">
+                    <i class="fas fa-camera text-lg text-blue-600"></i>
+                    <span>📸 바로 카메라 촬영</span>
+                    <span class="text-[10px] font-semibold text-blue-500">(모바일 현장 즉시 촬영)</span>
                   </label>
-                  <span class="text-[11px] text-slate-400">약품명과 유효기간 글씨가 선명하게 나오도록 촬영해 주세요.</span>
+                  <input 
+                    type="file" 
+                    id="exp-photo-camera-input" 
+                    accept="image/*" 
+                    capture="environment" 
+                    onchange="ExpiryReturnsModule.handlePhotoSelect(event)" 
+                    style="display:none;"
+                  >
+
+                  <!-- 📁 2. 앨범/사진 다중 선택 버튼 -->
+                  <label for="exp-photo-file-input" class="cursor-pointer p-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-700 dark:text-slate-300 font-extrabold text-xs flex flex-col items-center justify-center gap-1 transition text-center active:scale-95">
+                    <i class="fas fa-images text-lg text-slate-500"></i>
+                    <span>📁 앨범/사진 선택</span>
+                    <span class="text-[10px] font-semibold text-slate-400">(갤러리 다중선택 / PC)</span>
+                  </label>
+                  <input 
+                    type="file" 
+                    id="exp-photo-file-input" 
+                    accept="image/*" 
+                    multiple 
+                    onchange="ExpiryReturnsModule.handlePhotoSelect(event)" 
+                    style="display:none;"
+                  >
                 </div>
+                <p class="text-[11px] text-slate-400">💡 약품명과 유효기간 인쇄면이 선명하게 나오도록 촬영해 주세요. (연속 5장까지 촬영·추가 가능)</p>
 
                 <!-- 사진 미리보기 그리드 -->
-                <div id="exp-photo-preview-grid" class="flex items-center gap-2 overflow-x-auto py-2">
+                <div id="exp-photo-preview-grid" class="flex items-center gap-2 overflow-x-auto py-1">
                   <!-- 동적 프리뷰 렌더링 -->
                 </div>
               </div>
@@ -1176,16 +1196,20 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
     // 📸 사진 첨부 처리 핸들러 (규칙 108, 120 - Cloudinary 파이프라인)
     // ────────────────────────────────────────────────────────────
     function handlePhotoSelect(event) {
-      const files = event.target.files;
+      const inputEl = event && event.target ? event.target : null;
+      const files = inputEl ? inputEl.files : null;
       if (!files || files.length === 0) return;
 
       const remainingSlots = 5 - selectedPhotos.length;
       if (remainingSlots <= 0) {
         alert('사진은 최대 5장까지만 등록 가능합니다.');
+        if (inputEl) inputEl.value = '';
         return;
       }
 
       const filesToProcess = Array.from(files).slice(0, remainingSlots);
+      // 연속 카메라 촬영 시에도 onchange가 항상 동작하도록 input value 즉시 초기화
+      if (inputEl) inputEl.value = '';
 
       filesToProcess.forEach(file => {
         const reader = new FileReader();
@@ -1248,6 +1272,19 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
 
     function removePhoto(index) {
       selectedPhotos.splice(index, 1);
+      renderPhotoPreviews();
+    }
+
+    function resetPhotos() {
+      selectedPhotos = [];
+      const cam1 = document.getElementById('exp-photo-camera-input');
+      const gal1 = document.getElementById('exp-photo-file-input');
+      const cam2 = document.getElementById('exp-edit-photo-camera-input');
+      const gal2 = document.getElementById('exp-edit-photo-file-input');
+      if (cam1) cam1.value = '';
+      if (gal1) gal1.value = '';
+      if (cam2) cam2.value = '';
+      if (gal2) gal2.value = '';
       renderPhotoPreviews();
     }
 
@@ -1753,23 +1790,38 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
                 </label>
               </div>
 
-              <!-- 사진 관리 -->
-              <div class="space-y-1.5">
+              <!-- 사진 관리 (카메라 직통 촬영 & 앨범 선택 분리) -->
+              <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <label class="font-bold text-slate-700">첨부 사진 (최대 5장)</label>
-                  <span id="exp-photo-counter" class="text-[11px] font-bold text-slate-400">${selectedPhotos.length} / 5장</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 font-bold text-slate-700 text-xs flex items-center gap-1.5">
-                    <i class="fas fa-camera"></i> 사진 추가
-                    <input type="file" accept="image/*" multiple onchange="ExpiryReturnsModule.handlePhotoSelect(event)" style="display:none;">
+                  <label class="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <i class="fas fa-camera text-blue-600"></i>
+                    <span>첨부 사진 (최대 5장)</span>
                   </label>
+                  <div class="flex items-center gap-2">
+                    <span id="exp-photo-counter" class="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">${selectedPhotos.length} / 5장</span>
+                    <button type="button" onclick="ExpiryReturnsModule.resetPhotos()" class="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[10px] font-extrabold transition">전체 초기화</button>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <label for="exp-edit-photo-camera-input" class="cursor-pointer p-2.5 rounded-xl border-2 border-dashed border-blue-500 bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-100/70 text-blue-700 dark:text-blue-300 font-extrabold text-xs flex flex-col items-center justify-center gap-1 transition text-center active:scale-95">
+                    <i class="fas fa-camera text-base text-blue-600"></i>
+                    <span>📸 바로 카메라 촬영</span>
+                    <span class="text-[10px] font-semibold text-blue-500">(모바일 현장 추가 촬영)</span>
+                  </label>
+                  <input type="file" id="exp-edit-photo-camera-input" accept="image/*" capture="environment" onchange="ExpiryReturnsModule.handlePhotoSelect(event)" style="display:none;">
+
+                  <label for="exp-edit-photo-file-input" class="cursor-pointer p-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-700 dark:text-slate-300 font-extrabold text-xs flex flex-col items-center justify-center gap-1 transition text-center active:scale-95">
+                    <i class="fas fa-images text-base text-slate-500"></i>
+                    <span>📁 앨범/사진 선택</span>
+                    <span class="text-[10px] font-semibold text-slate-400">(갤러리 다중선택 / PC)</span>
+                  </label>
+                  <input type="file" id="exp-edit-photo-file-input" accept="image/*" multiple onchange="ExpiryReturnsModule.handlePhotoSelect(event)" style="display:none;">
                 </div>
                 <div id="exp-photo-preview-grid" class="flex items-center gap-2 overflow-x-auto py-1">
                   ${selectedPhotos.map((p, idx) => `
-                    <div class="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-300 shrink-0">
+                    <div class="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-300 shadow-sm shrink-0">
                       <img src="${p.data}" class="w-full h-full object-cover">
-                      <button type="button" onclick="ExpiryReturnsModule.removePhoto(${idx})" class="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-red-600 text-white font-bold text-[10px] flex items-center justify-center">&times;</button>
+                      <button type="button" onclick="ExpiryReturnsModule.removePhoto(${idx})" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white font-black text-xs flex items-center justify-center shadow">&times;</button>
                     </div>
                   `).join('')}
                 </div>
@@ -2115,6 +2167,7 @@ if (typeof window.ExpiryReturnsModule === 'undefined') {
       confirmDelete,
       handlePhotoSelect,
       removePhoto,
+      resetPhotos,
       openPhotoLightbox,
       updateFormDDayPreview,
       updateEstimatedAmount,

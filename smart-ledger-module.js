@@ -427,7 +427,7 @@ var DEFAULT_CASH_VENDORS = [
   { name: '훼밀리팜일반', amount: 282500, cell: 'V10' },
   { name: '훼밀리팜전문', amount: 31863682, cell: 'V11' },
   { name: '맥스포스', amount: 0, cell: 'V12' },
-  { name: '종율약', amount: 0, cell: 'V13' },
+  { name: '동물약', amount: 0, cell: 'V13' },
   { name: '현매', amount: 3060000, cell: 'V14' }
 ];
 
@@ -1247,11 +1247,14 @@ window.PharmacyStore = class PharmacyStore {
     // 3. 지출 부문 (S3:U18) - 구글 시트 실제 기장 데이터 100% 일치
     let cashVendorSum = 0;
     if (m.cashVendors && Array.isArray(m.cashVendors)) {
-      // 🛡️ 2610 이후 신규 거래처(종율약 V13) 누락 시 자동 보강 및 구버전 i===9 인덱스 하드코딩 오염 자동 치유
+      // 🛡️ 2610 이후 신규 거래처(동물약 V13) 누락 시 자동 보강 및 구버전 i===9 인덱스 하드코딩 오염 자동 치유
       if (parseInt(m.yymm, 10) >= 2610) {
-        const hasJongyul = m.cashVendors.some(v => v && v.name && v.name.includes('종율약'));
-        if (!hasJongyul && m.cashVendors.length === 10) {
-          m.cashVendors.splice(9, 0, { name: '종율약', amount: m.yymm === '2610' ? 410000 : 0, cell: 'V13' });
+        m.cashVendors.forEach(v => {
+          if (v && v.name === '종율약') v.name = '동물약';
+        });
+        const hasAnimalMed = m.cashVendors.some(v => v && v.name && v.name.includes('동물약'));
+        if (!hasAnimalMed && m.cashVendors.length === 10) {
+          m.cashVendors.splice(9, 0, { name: '동물약', amount: m.yymm === '2610' ? 410000 : 0, cell: 'V13' });
         }
       }
       const hyunmaeItem = m.cashVendors.find(v => v && v.name && v.name.includes('현매'));
@@ -1266,9 +1269,9 @@ window.PharmacyStore = class PharmacyStore {
           const sheetVal = this.parseMoney(v.amount);
           v.amount = is2608 ? 3060000 : (sheetVal > 0 ? sheetVal : (s.cashBuySum || 0));
         } else if (i === 9 && !vName.includes('현매')) {
-          // 과거 i===9 하드코딩 버그로 인해 10번째 거래처(종율약 등)에 현매 금액이 덮어써진 경우 즉시 복구
+          // 과거 i===9 하드코딩 버그로 인해 10번째 거래처(동물약 등)에 현매 금액이 덮어써진 경우 즉시 복구
           const curAmt = this.parseMoney(v.amount);
-          if (m.yymm === '2610' && vName.includes('종율약') && (curAmt === 2666000 || curAmt === 2665000 || (s.cashBuySum > 0 && curAmt === s.cashBuySum))) {
+          if (m.yymm === '2610' && vName.includes('동물약') && (curAmt === 2666000 || curAmt === 2665000 || (s.cashBuySum > 0 && curAmt === s.cashBuySum))) {
             v.amount = 410000;
           } else if (curAmt > 0 && ((hyunmaeAmt > 0 && curAmt === hyunmaeAmt) || (s.cashBuySum > 0 && curAmt === s.cashBuySum))) {
             v.amount = 0;

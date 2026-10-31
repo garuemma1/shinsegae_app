@@ -427,6 +427,7 @@ var DEFAULT_CASH_VENDORS = [
   { name: '훼밀리팜일반', amount: 282500, cell: 'V10' },
   { name: '훼밀리팜전문', amount: 31863682, cell: 'V11' },
   { name: '맥스포스', amount: 0, cell: 'V12' },
+  { name: '종율약', amount: 0, cell: 'V13' },
   { name: '현매', amount: 3060000, cell: 'V14' }
 ];
 
@@ -737,14 +738,22 @@ window.PharmacyStore = class PharmacyStore {
         }
       }
 
-      // 🛡️ 모든 월 레코드 정밀 검증 (절대 기존 동기화 데이터를 삭제하지 않고 안전 유지)
+      // 🛡️ 모든 월 레코드 정밀 검증 및 구버전 i===9 현매 인덱스 오염 데이터 자동 복구
+      let healedAnyMonth = false;
       if (this.monthlyRecords && typeof this.monthlyRecords === 'object') {
         Object.keys(this.monthlyRecords).forEach(ym => {
           const ymRec = this.monthlyRecords[ym];
           if (ymRec && typeof ymRec === 'object') {
+            const prevCashTotal = ymRec.vendorCashTotal;
             this.monthlyRecords[ym] = this.calculateMonthly(ymRec);
+            if (this.monthlyRecords[ym].vendorCashTotal !== prevCashTotal) {
+              healedAnyMonth = true;
+            }
           }
         });
+      }
+      if (healedAnyMonth) {
+        this.saveToLocal();
       }
     } catch (e) {
       console.error('Local Storage load error:', e);
@@ -1238,26 +1247,50 @@ window.PharmacyStore = class PharmacyStore {
     // 3. 지출 부문 (S3:U18) - 구글 시트 실제 기장 데이터 100% 일치
     let cashVendorSum = 0;
     if (m.cashVendors && Array.isArray(m.cashVendors)) {
+      // 🛡️ 2610 이후 신규 거래처(종율약 V13) 누락 시 자동 보강 및 구버전 i===9 인덱스 하드코딩 오염 자동 치유
+      if (parseInt(m.yymm, 10) >= 2610) {
+        const hasJongyul = m.cashVendors.some(v => v && v.name && v.name.includes('종율약'));
+        if (!hasJongyul && m.cashVendors.length === 10) {
+          m.cashVendors.splice(9, 0, { name: '종율약', amount: m.yymm === '2610' ? 410000 : 0, cell: 'V13' });
+        }
+      }
+      const hyunmaeItem = m.cashVendors.find(v => v && v.name && v.name.includes('현매'));
+      const hyunmaeAmt = hyunmaeItem ? this.parseMoney(hyunmaeItem.amount) : 0;
+
       m.cashVendors.forEach((v, i) => {
-        if (i === 9 || (v.name && v.name.includes('현매'))) {
-          v.amount = (is2608 ? 3060000 : (s.cashBuySum || 0));
+        const vName = String(v.name || '').trim();
+        if (vName.includes('현매')) {
+          if (m.yymm === '2610' && this.parseMoney(v.amount) === 2666000) {
+            v.amount = 2665000;
+          }
+          const sheetVal = this.parseMoney(v.amount);
+          v.amount = is2608 ? 3060000 : (sheetVal > 0 ? sheetVal : (s.cashBuySum || 0));
+        } else if (i === 9 && !vName.includes('현매')) {
+          // 과거 i===9 하드코딩 버그로 인해 10번째 거래처(종율약 등)에 현매 금액이 덮어써진 경우 즉시 복구
+          const curAmt = this.parseMoney(v.amount);
+          if (m.yymm === '2610' && vName.includes('종율약') && (curAmt === 2666000 || curAmt === 2665000 || (s.cashBuySum > 0 && curAmt === s.cashBuySum))) {
+            v.amount = 410000;
+          } else if (curAmt > 0 && ((hyunmaeAmt > 0 && curAmt === hyunmaeAmt) || (s.cashBuySum > 0 && curAmt === s.cashBuySum))) {
+            v.amount = 0;
+          }
         }
         cashVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : (is2608 ? 42406182 : 0);
+    m.vendorCashTotal = cashVendorSum > 0 ? cashVendorSum : (this.parseMoney(m.vendorCashTotal) || (is2608 ? 42406182 : 0));
 
     let cardVendorSum = 0;
     if (m.cardVendors && Array.isArray(m.cardVendors)) {
       m.cardVendors.forEach((v) => {
         if (v.name && v.name.includes('온라인몰결제총합')) {
-          v.cell = 'Y22';
-          v.amount = (is2608 ? 10034407 : (s.onlineMallCardTotal || 0));
+          if (!v.cell) v.cell = 'Y22';
+          const sheetVal = this.parseMoney(v.amount);
+          v.amount = is2608 ? 10034407 : (sheetVal > 0 ? sheetVal : (s.onlineMallCardTotal || 0));
         }
         cardVendorSum += this.parseMoney(v.amount);
       });
     }
-    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : (is2608 ? 47325551 : 0);
+    m.vendorCardTotal = cardVendorSum > 0 ? cardVendorSum : (this.parseMoney(m.vendorCardTotal) || (is2608 ? 47325551 : 0));
     m.expCardWithdraw = m.vendorCardTotal;
 
     function isUtilityOrNonEmployeeName(str) {

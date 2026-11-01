@@ -1,10 +1,16 @@
 {
-  "version": "v5.053",
-  "displayVersion": "v5.053",
-  "name": "📸 유효기간 & 반품 대장 등록/수정 모달에 [바로 카메라 촬영(capture=environment)] 직통 버튼 추가 및 연속 촬영 지원",
-  "buildTime": 1793459280000,
-  "updatedAt": "2026-11-01 00:08",
+  "version": "v5.054",
+  "displayVersion": "v5.054",
+  "name": "📧 급여명세서 이메일 100% 인라인 반응형 테이블 규격 전환 (PC/모바일 웹/앱 배열 및 디자인 완벽 일치)",
+  "buildTime": 1793511500000,
+  "updatedAt": "2026-11-01 14:38",
   "history": [
+    {
+      "version": "v5.054",
+      "updatedAt": "2026-11-01 14:38",
+      "files": ["Code.gs", "sheets-sync.js", "index.html", "version.json"],
+      "summary": "모바일 웹 메일(Gmail/네이버 등)에서 <style> 태그가 제거되어 초록색 배너, 표 우측 정렬, 실수령액 강조 박스 및 다운로드 버튼 디자인이 풀리던 문제를 해결하기 위해 100% 인라인 스타일 및 이메일 표준 테이블 레이아웃으로 전면 재설계"
+    },
     {
       "version": "v5.053",
       "updatedAt": "2026-11-01 00:08",

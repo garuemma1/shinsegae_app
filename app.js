@@ -556,7 +556,7 @@ window.App = (function () {
       item.unit || '',
       item.vendor || '',
       item.actualPrice || item.estimatedPrice || '',
-      item.storageLocation || '',
+      item.storageLocation || '', item.memo || '', item.urgency || '',
       Array.isArray(item.photos) ? item.photos.length : (item.photoUrl ? 1 : 0)
     ].join('|');
   }

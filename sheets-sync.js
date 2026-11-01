@@ -2101,18 +2101,118 @@ window.SheetsSync = (function () {
     setTimeout(() => {
       try {
         const gasUrl = getGasUrl('ssg') || DIRECT_GAS_URL;
+        const staffName = String(paystubData.name || '직원');
+        const year = paystubData.year || 2026;
+        const month = paystubData.month || 8;
+        const netSalary = parseInt(paystubData.netSalary || 0, 10);
+        const preTax = parseInt(paystubData.preTax || 0, 10);
+        const totalDeduction = parseInt(paystubData.totalDeduction || 0, 10);
+        const fileUrl = String(paystubData.fileUrl || paystubData.pdfUrl || paystubData.fileData || '').trim();
+        const note = String(paystubData.note || (month + '월 세무사 확정 급여명세서입니다. 노고에 감사드립니다!'));
+        const appUrl = "https://garuemma1.github.io/shinsegae_app/";
+
+        const hasPreTax = preTax > 0;
+        const hasDeduction = totalDeduction > 0;
+        const ymRowBorder = (hasPreTax || hasDeduction) ? 'border-bottom:1px solid #e2e8f0;' : 'border-bottom:none;';
+        const preTaxRowBorder = hasDeduction ? 'border-bottom:1px solid #e2e8f0;' : 'border-bottom:none;';
+
+        const htmlBody = '<!DOCTYPE html>' +
+          '<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
+          '<body style="margin:0; padding:0; background-color:#f1f5f9; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">' +
+          '<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f1f5f9" style="width:100%; background-color:#f1f5f9; margin:0; padding:20px 10px; font-family:-apple-system,BlinkMacSystemFont,\'Apple SD Gothic Neo\',\'Pretendard\',\'Malgun Gothic\',sans-serif; color:#1e293b;">' +
+          '  <tr>' +
+          '    <td align="center" style="padding:0;">' +
+          '      <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="max-width:520px; width:100%; margin:0 auto; background-color:#ffffff; border-radius:20px; border:1.5px solid #cbd5e1; box-shadow:0 10px 25px rgba(0,0,0,0.06); overflow:hidden; border-collapse:separate;">' +
+          '        <tr>' +
+          '          <td align="center" bgcolor="#059669" style="background-color:#059669; color:#ffffff; padding:26px 20px; text-align:center; border-radius:18px 18px 0 0;">' +
+          '            <div style="display:inline-block; background-color:#047857; border:1px solid #34d399; color:#ffffff; font-size:12px; font-weight:700; padding:4px 12px; border-radius:9999px; margin-bottom:10px;">🏥 신세계약국 HR/OPS</div>' +
+          '            <div style="font-size:21px; font-weight:900; color:#ffffff; margin:0; letter-spacing:-0.5px; line-height:1.3; word-break:keep-all;">' + year + '년 ' + month + '월 정식 급여명세서</div>' +
+          '          </td>' +
+          '        </tr>' +
+          '        <tr>' +
+          '          <td style="padding:24px 20px; background-color:#ffffff;">' +
+          '            <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f8fafc" style="width:100%; background-color:#f8fafc; border-radius:14px; border:1px solid #e2e8f0; padding:6px 16px; margin-bottom:18px; border-collapse:separate;">' +
+          '              <tr>' +
+          '                <td align="left" width="54%" style="padding:11px 4px; border-bottom:1px solid #e2e8f0; color:#64748b; font-size:13.5px; font-weight:600; text-align:left; white-space:nowrap;">성명</td>' +
+          '                <td align="right" width="46%" style="padding:11px 4px; border-bottom:1px solid #e2e8f0; color:#0f172a; font-size:14px; font-weight:800; text-align:right; white-space:nowrap;">' + staffName + ' 님</td>' +
+          '              </tr>' +
+          '              <tr>' +
+          '                <td align="left" width="54%" style="padding:11px 4px; ' + ymRowBorder + ' color:#64748b; font-size:13.5px; font-weight:600; text-align:left; white-space:nowrap;">지급 연월</td>' +
+          '                <td align="right" width="46%" style="padding:11px 4px; ' + ymRowBorder + ' color:#0f172a; font-size:14px; font-weight:800; text-align:right; white-space:nowrap;">' + year + '년 ' + month + '월</td>' +
+          '              </tr>' +
+          (hasPreTax ? (
+          '              <tr>' +
+          '                <td align="left" width="54%" style="padding:11px 4px; ' + preTaxRowBorder + ' color:#64748b; font-size:13.5px; font-weight:600; text-align:left; white-space:nowrap;">세전 총급여액</td>' +
+          '                <td align="right" width="46%" style="padding:11px 4px; ' + preTaxRowBorder + ' color:#0f172a; font-size:14px; font-weight:800; text-align:right; white-space:nowrap;">' + preTax.toLocaleString() + ' 원</td>' +
+          '              </tr>'
+          ) : '') +
+          (hasDeduction ? (
+          '              <tr>' +
+          '                <td align="left" width="54%" style="padding:11px 4px; border-bottom:none; color:#64748b; font-size:13.5px; font-weight:600; text-align:left; white-space:nowrap;">4대보험 및 세금 공제액</td>' +
+          '                <td align="right" width="46%" style="padding:11px 4px; border-bottom:none; color:#dc2626; font-size:14px; font-weight:800; text-align:right; white-space:nowrap;">- ' + totalDeduction.toLocaleString() + ' 원</td>' +
+          '              </tr>'
+          ) : '') +
+          '            </table>' +
+          '            <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ecfdf5" style="width:100%; background-color:#ecfdf5; border:2px solid #10b981; border-radius:16px; margin-bottom:18px; border-collapse:separate;">' +
+          '              <tr>' +
+          '                <td align="center" style="padding:18px 14px; text-align:center;">' +
+          '                  <div style="font-size:13px; font-weight:800; color:#065f46; margin-bottom:6px; word-break:keep-all;">💰 통장 입금 실수령액 (세후 확정)</div>' +
+          '                  <div style="font-size:26px; font-weight:900; color:#047857; letter-spacing:-0.5px; line-height:1.2; white-space:nowrap;">' + netSalary.toLocaleString() + ' 원</div>' +
+          '                </td>' +
+          '              </tr>' +
+          '            </table>' +
+          (note ? (
+          '            <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eff6ff" style="width:100%; background-color:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; margin-bottom:20px; border-collapse:separate;">' +
+          '              <tr>' +
+          '                <td align="left" style="padding:14px 16px; font-size:13.5px; color:#1e40af; line-height:1.6; text-align:left; word-break:keep-all;">💬 <strong>약국장 전달 메시지:</strong><br>' + note.replace(/\n/g, '<br>') + '</td>' +
+          '              </tr>' +
+          '            </table>'
+          ) : '') +
+          (fileUrl && fileUrl.indexOf('http') === 0 ? (
+          '            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin-bottom:20px;">' +
+          '              <tr>' +
+          '                <td align="center">' +
+          '                  <table cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#059669" style="background-color:#059669; border-radius:12px; border-collapse:separate;">' +
+          '                    <tr>' +
+          '                      <td align="center" bgcolor="#059669" style="background-color:#059669; border-radius:12px; padding:13px 22px; text-align:center;">' +
+          '                        <a href="' + fileUrl + '" target="_blank" style="color:#ffffff !important; font-size:14px; font-weight:800; text-decoration:none; display:inline-block; white-space:nowrap;"><span style="color:#ffffff;">📄 세무사 원본 명세서 고화질 열람 / 다운로드</span></a>' +
+          '                      </td>' +
+          '                    </tr>' +
+          '                  </table>' +
+          '                </td>' +
+          '              </tr>' +
+          '            </table>'
+          ) : '') +
+          '            <div style="text-align:center; margin-bottom:4px;">' +
+          '              <a href="' + appUrl + '" target="_blank" style="color:#059669; font-size:13px; font-weight:700; text-decoration:none;">🔗 신세계약국 HR/OPS 플랫폼 바로가기</a>' +
+          '            </div>' +
+          '          </td>' +
+          '        </tr>' +
+          '        <tr>' +
+          '          <td align="center" bgcolor="#f8fafc" style="padding:18px 16px; background-color:#f8fafc; border-top:1px solid #e2e8f0; font-size:11.5px; color:#64748b; text-align:center; line-height:1.6; word-break:keep-all; border-radius:0 0 18px 18px;">' +
+          '            본 메일은 신세계약국 급여 시스템(근로기준법 제48조)에 따라 개인 금융정보 보안을 위해 등록된 개인 이메일로 1:1 자동 발송되었습니다.<br>' +
+          '            문의사항은 약국장(문성도)에게 문의해 주시기 바랍니다.' +
+          '          </td>' +
+          '        </tr>' +
+          '      </table>' +
+          '    </td>' +
+          '  </tr>' +
+          '</table>' +
+          '</body></html>';
+
         const payload = {
           action: 'sendPaystubEmail',
           email: paystubData.email,
-          name: encodeURIComponent(paystubData.name || '직원'),
-          year: paystubData.year || 2026,
-          month: paystubData.month || 8,
-          netSalary: paystubData.netSalary || 0,
-          preTax: paystubData.preTax || 0,
-          totalDeduction: paystubData.totalDeduction || 0,
-          fileUrl: paystubData.fileUrl || paystubData.pdfUrl || paystubData.fileData || '',
-          note: encodeURIComponent(paystubData.note || ''),
-          url: "https://garuemma1.github.io/shinsegae_app/"
+          name: encodeURIComponent(staffName),
+          year: year,
+          month: month,
+          netSalary: netSalary,
+          preTax: preTax,
+          totalDeduction: totalDeduction,
+          fileUrl: fileUrl,
+          note: encodeURIComponent(note),
+          htmlBody: encodeURIComponent(htmlBody),
+          url: appUrl
         };
 
         if (typeof fetch === 'function') {

@@ -2722,7 +2722,7 @@ window.SheetsSync = (function () {
 
           // 개별 직원 상태 타임스탬프 정밀 병합 (약국장의 반려 DRAFT 상태가 과거 APPROVED에 덮어써지지 않도록 보호)
           Object.keys(base).forEach(k => {
-            if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed') && !k.includes('_updatedAt') && !k.includes('_lastSubmittedAt')) {
+            if (k.startsWith('emp_') && !k.includes('_comment') && !k.includes('_dismissed') && !k.includes('_updatedAt') && !k.includes('_lastSubmittedAt') && !k.includes('_signed')) {
               const lEmpTime = parseTime(localMonth[k + '_updatedAt']) || parseTime(localMonth[k + '_lastSubmittedAt']) || lTime;
               const cEmpTime = parseTime(cloudMonth[k + '_updatedAt']) || parseTime(cloudMonth[k + '_lastSubmittedAt']) || cTime;
               if (cEmpTime >= lEmpTime) {
@@ -2732,6 +2732,25 @@ window.SheetsSync = (function () {
               }
             }
           });
+
+          // 전자서명(signatures) 보관 데이터 개별 타임스탬프 정밀 병합
+          if (localMonth.signatures || cloudMonth.signatures) {
+            const lSigs = localMonth.signatures || {};
+            const cSigs = cloudMonth.signatures || {};
+            const mergedSigs = { ...lSigs, ...cSigs };
+            Object.keys(mergedSigs).forEach(empId => {
+              const lSig = lSigs[empId];
+              const cSig = cSigs[empId];
+              if (lSig && cSig) {
+                const lSigTime = parseTime(lSig.updatedAt) || parseTime(lSig.signedTimestamp) || lTime;
+                const cSigTime = parseTime(cSig.updatedAt) || parseTime(cSig.signedTimestamp) || cTime;
+                mergedSigs[empId] = (cSigTime >= lSigTime) ? cSig : lSig;
+              } else {
+                mergedSigs[empId] = cSig || lSig;
+              }
+            });
+            base.signatures = mergedSigs;
+          }
 
           mergedStatus[monthKey] = base;
         });

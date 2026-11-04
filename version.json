@@ -1,10 +1,16 @@
 {
-  "version": "v5.057",
-  "displayVersion": "v5.057",
-  "name": "📱 근무약사 전자서명 확인서·보관함 모바일 최적화 (좌우 스크롤 제거 및 대표약국장 전용 보관본 해제)",
-  "buildTime": 1793766480000,
-  "updatedAt": "2026-11-04 13:28",
+  "version": "v6.000",
+  "displayVersion": "v6.000",
+  "name": "🔎 식약처 의약품 낱알 식별기 신규 탭 개설 (공공데이터포털 OpenAPI + Gemini Vision AI + 약국 진열위치 자동 매칭)",
+  "buildTime": 1793805900000,
+  "updatedAt": "2026-11-05 00:25",
   "history": [
+    {
+      "version": "v6.000",
+      "updatedAt": "2026-11-05 00:25",
+      "files": ["pill-identifier-module.js", "sheets-sync.js", "app.js", "staff-directory-module.js", "index.html", "guide.html", "프롬프트 마스터.txt", "version.json"],
+      "summary": "신규 사이드바 탭 [🔎 의약품 낱알 식별기] 개설 (식약처 MdcinGrnIdntfcInfoService03 공식 OpenAPI 실시간 연동, 86종 다빈도 의약품 오프라인·각인 시드 내장, Gemini 2.5 Flash 카메라 AI 판독, 모양·색상·각인문자·제형·분할선 비주얼 필터, 우리 약국 일반약·전문약 진열 위치 자동 매칭, 손님 안내용 큰글씨 카드 모달, Cloudinary 상담 기록 영구 보관함)"
+    },
     {
       "version": "v5.057",
       "updatedAt": "2026-11-04 13:34",

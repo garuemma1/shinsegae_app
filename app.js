@@ -15,6 +15,7 @@ window.App = (function () {
     'medicine-location': '💊 일반약 위치 관리 & 위치 검색',
     'rx-medicine-location': '💉 전문약(조제실) 위치 관리 & 위치 검색',
     'pill-counter': '🔢 스마트 알약 카운터 & 조제 검수기',
+    'pill-identifier': '🔎 의약품 낱알 식별기 (식약처 API & AI)',
     'pharmacy-exchange': '💊 인근약국 교품 & 불용재고 대장',
     'expiry-returns': '⏳ 유효기간 & 제약사 반품 대장',
     'schedule': '📅 월간 근무 스케줄',
@@ -36,6 +37,7 @@ window.App = (function () {
     'medicine-location': 'fa-boxes-packing',
     'rx-medicine-location': 'fa-pills',
     'pill-counter': 'fa-calculator',
+    'pill-identifier': 'fa-capsules',
     'pharmacy-exchange': 'fa-handshake',
     'expiry-returns': 'fa-hourglass-half',
     'schedule': 'fa-calendar-alt',
@@ -388,6 +390,46 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
+  // ─── 🔎 의약품 낱알 식별기 읽음 상태 관리 헬퍼 ─────────────────────────────
+  function _pillIdentifierFingerprint(item) {
+    if (!item) return '';
+    return [
+      item.id || '',
+      item.createdAt || '',
+      item.itemSeq || '',
+      item.itemName || '',
+      item.customerNote || ''
+    ].join('|');
+  }
+
+  function markPillIdentifierRead() {
+    const currUser = window.SheetsSync ? window.SheetsSync.getCurrentUser() : null;
+    if (!currUser) return;
+    try {
+      const items = (window.SheetsSync && typeof window.SheetsSync.getPillIdentifications === 'function')
+        ? (window.SheetsSync.getPillIdentifications() || [])
+        : [];
+      const fingerprints = (Array.isArray(items) ? items : []).map(_pillIdentifierFingerprint);
+      localStorage.setItem('ssg_read_pill_identifier_' + currUser.id, JSON.stringify(fingerprints));
+    } catch(e) {}
+  }
+
+  function _hasUnreadPillIdentifier(currUser, items) {
+    if (!currUser) return false;
+    try {
+      const raw = localStorage.getItem('ssg_read_pill_identifier_' + currUser.id);
+      if (raw === null) {
+        if (!items || items.length === 0) return false;
+        const fingerprints = (items || []).map(_pillIdentifierFingerprint);
+        localStorage.setItem('ssg_read_pill_identifier_' + currUser.id, JSON.stringify(fingerprints));
+        return false;
+      }
+      const savedFPs = JSON.parse(raw);
+      const savedSet = new Set(savedFPs);
+      return (items || []).some(item => !savedSet.has(_pillIdentifierFingerprint(item)));
+    } catch(e) { return false; }
+  }
+
   // ─── ⏳ 유효기간 & 제약사 반품 대장 읽음 상태 관리 헬퍼 ────────────────────────
   function _expiryReturnFingerprint(item) {
     if (!item) return '';
@@ -674,6 +716,8 @@ window.App = (function () {
         if (rawHistory) pillCounterHistory = JSON.parse(rawHistory);
       } catch(e) {}
       const hasUnreadPillCounter = _hasUnreadPillCounter(currUser, pillCounterHistory);
+      const pillIdHistory = (window.SheetsSync && typeof window.SheetsSync.getPillIdentifications === 'function') ? (window.SheetsSync.getPillIdentifications() || []) : (data.pillIdentifications || []);
+      const hasUnreadPillIdentifier = _hasUnreadPillIdentifier(currUser, pillIdHistory);
 
       return {
         notices: hasNewNotice ? 'N' : null,
@@ -683,6 +727,7 @@ window.App = (function () {
         'medicine-location': hasUnreadMedLoc ? 'N' : null,
         'rx-medicine-location': hasUnreadRxMedLoc ? 'N' : null,
         'pill-counter': hasUnreadPillCounter ? 'N' : null,
+        'pill-identifier': hasUnreadPillIdentifier ? 'N' : null,
         'pharmacy-exchange': pendingExchanges.length > 0 ? pendingExchanges.length : (hasUnreadPE ? 'N' : null),
         'expiry-returns': criticalExpiryList.length > 0 ? criticalExpiryList.length : (hasUnreadExpiryReturns ? 'N' : null),
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
@@ -776,7 +821,7 @@ window.App = (function () {
       'pharmacy-exchange-module', 'expiry-returns-module', 'schedule-module', 'annual-leave-module', 'discount-purchase-module', 'rules-module', 'emergency-contacts-module'
     ];
     // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
-    ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
+    ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module', 'pill-identifier-module'].forEach(mTab => {
       if (!allowed.includes(mTab)) allowed.push(mTab);
     });
 
@@ -872,6 +917,18 @@ window.App = (function () {
             ${badges['pill-counter'] ? `<span class="menu-item-badge">${badges['pill-counter']}</span>` : ''}
           </div>
           <span>스마트 알약 카운터</span>
+        </button>
+      `;
+    }
+
+    if (isDirector || allowed.includes('pill-identifier-module')) {
+      html += `
+        <button class="menu-item ${activeModule === 'pill-identifier' ? 'active' : ''}" data-module="pill-identifier" onclick="App.switchModule('pill-identifier', true)">
+          <div class="menu-icon-wrapper">
+            <i class="fas fa-capsules" style="color:#0284c7;"></i>
+            ${badges['pill-identifier'] ? `<span class="menu-item-badge">${badges['pill-identifier']}</span>` : ''}
+          </div>
+          <span>의약품 낱알 식별기</span>
         </button>
       `;
     }
@@ -1353,6 +1410,9 @@ window.App = (function () {
       case 'pill-counter':
         if (window.PillCounterModule) window.PillCounterModule.render('module-content');
         break;
+      case 'pill-identifier':
+        if (window.PillIdentifierModule) window.PillIdentifierModule.render('module-content');
+        break;
         if (window.RxMedicineLocationModule) window.RxMedicineLocationModule.render('module-content');
         break;
       case 'pharmacy-exchange':
@@ -1611,7 +1671,7 @@ window.App = (function () {
     if (!isDirector && curr) {
       let allowed = Array.isArray(curr.allowedTabs) ? [...curr.allowedTabs] : [];
       // 🛡️ 전 직원 필수 공용 탭 강제 보존 (환자예약주문 & 교품불용재고 절대 유실 방지)
-      ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
+      ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module', 'pill-identifier-module'].forEach(mTab => {
         if (!allowed.includes(mTab)) allowed.push(mTab);
       });
       const targetTabId = moduleName + '-module';
@@ -1667,6 +1727,9 @@ window.App = (function () {
         updateSidebarBadgesOnly();
       } else if (moduleName === 'pill-counter') {
         markPillCounterRead();
+        updateSidebarBadgesOnly();
+      } else if (moduleName === 'pill-identifier') {
+        markPillIdentifierRead();
         updateSidebarBadgesOnly();
       } else if (moduleName === 'discount-purchase') {
         markDiscountPurchaseRead();
@@ -2697,6 +2760,7 @@ function writeSheetData(sheet, dataList) {
     markExpiryReturnsRead,
     markApprovalRead,
     markPillCounterRead,
+    markPillIdentifierRead,
     quickSelectLogin,
     showLoginModal,
     closeLoginModal,

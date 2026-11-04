@@ -27,6 +27,7 @@ window.SheetsSync = (function () {
     PATIENT_ORDERS: 'ssg_patient_orders_v1',
     PRESCRIPTION_SHORTAGES: 'ssg_prescription_shortages_v1',
     SMS_DISPATCH_HISTORY: 'ssg_sms_dispatch_history_v1',
+    PILL_IDENTIFICATIONS: 'ssg_pill_identifications_v1',
     CURRENT_USER: 'ssg_current_user_v1',
     SHEET_URL: 'ssg_sheet_url',
     LAST_SYNC: 'ssg_last_sync',
@@ -43,6 +44,7 @@ window.SheetsSync = (function () {
     'medicine-location-module',
     'rx-medicine-location-module',
     'pill-counter-module',
+    'pill-identifier-module',
     'pharmacy-exchange-module',
     'patient-orders-module',
     'expiry-returns-module',
@@ -944,7 +946,7 @@ window.SheetsSync = (function () {
                 : (Array.isArray(u.allowedTabs) ? [...u.allowedTabs] : [...ALL_COMMON_TABS]));
 
           // 🛡️ 전 직원 필수 공용 탭 보장 (환자예약주문 & 교품불용재고 절대 유실 방지)
-          ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module'].forEach(mTab => {
+          ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module', 'pill-identifier-module'].forEach(mTab => {
             if (!currentAllowed.includes(mTab)) currentAllowed.push(mTab);
           });
 
@@ -1994,6 +1996,31 @@ window.SheetsSync = (function () {
     saveSmsDispatchHistory(list);
   }
 
+  function getPillIdentifications() {
+    const deletedIds = getDeletedIds();
+    try {
+      const raw = safeGetItem(STORAGE_KEYS.PILL_IDENTIFICATIONS);
+      const list = raw ? JSON.parse(raw) : [];
+      return (list || []).filter(item => item && !deletedIds.includes(item.id));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function savePillIdentifications(data) {
+    const deletedIds = getDeletedIds();
+    const cleanData = (data || []).filter(item => item && !deletedIds.includes(item.id));
+    safeSetItem(STORAGE_KEYS.PILL_IDENTIFICATIONS, JSON.stringify(cleanData));
+    if (typeof window !== 'undefined' && window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
+    }
+    pushToCloud();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
+  }
+
   // ⚡ 신세계약국-일일결산26 정식 배포 Apps Script 웹앱 URL (메일 발송, 일일결산, 스마트정산 전용)
   const DIRECT_GAS_URL = "https://script.google.com/macros/s/AKfycbyhPnLdy53ExpzHW66U0m7hqmcBksBfKpFYkILQTUjxtng30FLevf9cdMSbqbeYQ97x/exec";
   const CLOUD_SYNC_RELAY_URL = "https://script.google.com/macros/s/AKfycbx3JgVr9e_wGnO6Bvp2uE_7lamAf_Ii22cLpCyo5OGquAiNypiWA1FCDJSHnw4qqFPMJg/exec";
@@ -2645,6 +2672,16 @@ window.SheetsSync = (function () {
         }
       }
 
+      // 4-8. 🔎 의약품 낱알 식별 상담 기록 스마트 비파괴 병합
+      if (cloudData.pillIdentifications && Array.isArray(cloudData.pillIdentifications)) {
+        const localPillIds = getPillIdentifications() || [];
+        const mergedPillIds = mergeById(localPillIds, cloudData.pillIdentifications, 'createdAt');
+        if (isListDifferent(localPillIds, mergedPillIds)) {
+          safeSetItem(STORAGE_KEYS.PILL_IDENTIFICATIONS, JSON.stringify(mergedPillIds));
+          updated = true;
+        }
+      }
+
       // 5. 월간 근무 스케줄 스마트 비파괴 병합 (날짜 + 직원ID 고유키 & 타임스탬프 기반 최신 수정 우선)
       if (cloudData.schedule && Array.isArray(cloudData.schedule)) {
         const localSched = getSchedule() || [];
@@ -3074,6 +3111,7 @@ window.SheetsSync = (function () {
           patientOrders: getPatientOrders(),
           prescriptionShortages: getPrescriptionShortages(),
           smsDispatchHistory: getSmsDispatchHistory(),
+          pillIdentifications: getPillIdentifications(),
           smartLedger: getSmartLedgerCloudData(),
           gasUrls: getGasUrls(),
           buildingRentalDashboard: (() => {
@@ -3473,7 +3511,8 @@ window.SheetsSync = (function () {
       pharmacyExchange: getPharmacyExchange(),
       patientOrders: getPatientOrders(),
       prescriptionShortages: getPrescriptionShortages(),
-      smsDispatchHistory: getSmsDispatchHistory()
+      smsDispatchHistory: getSmsDispatchHistory(),
+      pillIdentifications: getPillIdentifications()
     };
   }
 
@@ -3556,7 +3595,7 @@ window.SheetsSync = (function () {
       } catch(e) {}
 
       let changed = false;
-      const mandatory = ['patient-orders-module', 'pharmacy-exchange-module'];
+      const mandatory = ['patient-orders-module', 'pharmacy-exchange-module', 'pill-counter-module', 'pill-identifier-module'];
 
       if (Array.isArray(emps) && emps.length > 0) {
         emps.forEach(e => {
@@ -3649,6 +3688,8 @@ window.SheetsSync = (function () {
     getSmsDispatchHistory,
     saveSmsDispatchHistory,
     deleteSmsDispatchHistory,
+    getPillIdentifications,
+    savePillIdentifications,
     getPharmacySettlement,
     savePharmacySettlement,
     getBuildingRental,

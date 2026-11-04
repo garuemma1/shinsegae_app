@@ -1458,6 +1458,18 @@
               <p><strong>👤 사람이름</strong>(환자명)과 <strong>💊 약이름</strong>을 입력한 후 <strong>[💾 근거 기록저장]</strong>을 누르면, 고유 번호 마커와 하단 조제 검수 스탬프가 찍힌 증거 사진이 Cloudinary에 영구 보관되며 하단 <strong>📂 조제 검수 근거 보관함</strong>에서 언제든 환자명으로 검색 및 확대 열람이 가능합니다.</p>
             </div>
           </div>
+
+          <div class="step-card" style="border-left: 6px solid #0284c7; background:#f0f9ff;">
+            <div class="step-num" style="background:#0284c7;">🔎</div>
+            <div class="step-content">
+              <h4>🔎 [의약품 낱알 식별기] 손님이 가져온 알약! 사진 촬영 또는 모양·색상·각인문자로 1초 판독!</h4>
+              <p>
+                • <strong>📸 1단계 AI 카메라 촬영</strong> : 손님이 가져온 정체불명의 알약을 <strong>[📸 바로 카메라 촬영]</strong> 또는 <strong>[🎥 인앱 접사 뷰파인더]</strong>로 찍으면 Gemini Vision AI가 각인문자·모양·색상·제형을 자동 추출하고 식약처 공식 OpenAPI와 교차 검증합니다.<br>
+                • <strong>🎨 2단계 모양·색상·각인문자 필터</strong> : 각인 글씨(예: <code>TYLENOL</code>, <code>ATV</code>, <code>OG33</code>)나 모양(원형·타원형·장방형·팔각형 등), 색상 스와치를 터치하면 식약처 공식 이미지·성상·효능과 함께 <strong>🏥 우리 약국 보유 진열 위치(일반약/전문약)</strong>까지 자동 매칭되어 표시됩니다.<br>
+                • <strong>🗣️ 손님 안내 큰글씨 & 💾 상담기록 보관</strong> : <strong>[🗣️ 손님 안내 큰글씨]</strong>를 눌러 손님께 큰 화면으로 약 정보를 보여드리고, <strong>[💾 상담기록 보관]</strong>을 누르면 촬영 사진이 클라우디너리에 영구 저장됩니다.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div class="pop-tip-box" style="background:#f5f3ff; border-color:#8b5cf6;">
@@ -2021,6 +2033,7 @@
         'medicine-location': 7,
         'rx-medicine-location': 8,
         'pill-counter': 9,
+        'pill-identifier': 9,
         'pharmacy-exchange': 10,
         'expiry-returns': 11,
         'schedule': 12,

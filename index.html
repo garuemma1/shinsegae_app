@@ -64,7 +64,7 @@
     // ⚡ 안전 버전 관리 (무한 루프 방지 & 정상 배포 연동)
     (function safeVersionTracker() {
       try {
-        var CURRENT_CLIENT_VERSION = "v5.057";
+        var CURRENT_CLIENT_VERSION = "v6.000";
         localStorage.setItem('ssg_client_version', CURRENT_CLIENT_VERSION);
       } catch(e) {}
     })();
@@ -96,7 +96,7 @@
           <img src="logo.jpg" alt="신세계약국 로고" class="brand-logo-img">
         </div>
         <div class="brand-title">
-          <h1>신세계약국 <span id="app-version-badge" class="badge badge-success" style="font-size: 11px; padding: 2px 6px; vertical-align: middle;">v5.057</span></h1>
+          <h1>신세계약국 <span id="app-version-badge" class="badge badge-success" style="font-size: 11px; padding: 2px 6px; vertical-align: middle;">v6.000</span></h1>
           <p>HR / OPS Platform</p>
         </div>
         <button class="drawer-close-mobile-btn" onclick="App.closeDrawer()">&times;</button>
@@ -554,6 +554,10 @@
               <label class="form-check-label font-bold" for="ptab-pill-counter" style="font-size:13px;">🔢 스마트 알약 카운터 & 조제 검수기</label>
             </div>
             <div class="form-check mb-2">
+              <input class="form-check-input perm-tab-cb" type="checkbox" value="pill-identifier-module" id="ptab-pill-identifier">
+              <label class="form-check-label font-bold" for="ptab-pill-identifier" style="font-size:13px;">🔎 의약품 낱알 식별기 (식약처 API & AI)</label>
+            </div>
+            <div class="form-check mb-2">
               <input class="form-check-input perm-tab-cb" type="checkbox" value="pharmacy-exchange-module" id="ptab-pharmacy-exchange">
               <label class="form-check-label font-bold" for="ptab-pharmacy-exchange" style="font-size:13px;">🤝 인근약국 교품 & 불용재고 대장</label>
             </div>
@@ -706,7 +710,7 @@
 
   <script src="rules-data.js?v=20260902_2330"></script>
   <script src="labor-calculator.js?v=20260902_2330"></script>
-  <script src="sheets-sync.js?v=20261104_1245"></script>
+  <script src="sheets-sync.js?v=20261105_0025"></script>
   <script src="notices-module.js?v=20261022_0023"></script>
   <script src="worklog-module.js?v=20260909_1715"></script>
   <script src="supplies-module.js?v=20261024_1140"></script>
@@ -714,11 +718,12 @@
   <script src="medicine-location-module.js?v=20261017_0925"></script>
   <script src="rx-medicine-location-module.js?v=20261017_0925"></script>
   <script src="pill-counter-module.js?v=20261024_1428"></script>
+  <script src="pill-identifier-module.js?v=20261105_0025"></script>
   <script src="pharmacy-exchange-module.js?v=20260918_1140"></script>
   <script src="expiry-returns-module.js?v=20261101_0008"></script>
   <script src="schedule-module.js?v=20261104_1328"></script>
   <script src="annual-leave-module.js?v=20260905_1530"></script>
-  <script src="staff-directory-module.js?v=20261020_1930"></script>
+  <script src="staff-directory-module.js?v=20261105_0025"></script>
   <script src="discount-purchase-module.js?v=20260902_2330"></script>
   <script src="emergency-contacts-module.js?v=20260916_0135"></script>
   <script src="smart-ledger-module.js?v=20261101_0010"></script>
@@ -726,7 +731,7 @@
   <script src="approval-module.js?v=20260902_2330"></script>
   <script src="rules-module.js?v=20260902_2330"></script>
   <script src="daily-briefing-widget.js?v=20261024_1300"></script>
-  <script src="app.js?v=20261024_1428"></script>
+  <script src="app.js?v=20261105_0025"></script>
 
 </body>
 </html>

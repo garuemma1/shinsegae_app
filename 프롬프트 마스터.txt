@@ -1147,3 +1147,22 @@
 4. **[모바일 한 화면 깔끔 정돈 & 좌우 스크롤 원천 제거 레이아웃]**
    - **약국장 전자서명 보관함 패널(`renderDirectorElectronicSignatureArchivePanel`)**: 가로 스크롤을 유발하는 넓은 테이블(`min-width: 780px`)을 사용하지 않고, 스마트폰과 PC 모두에서 **좌우 스크롤 없이 한 화면에 쏙 들어오는 반응형 카드 그리드**(1단: 약사명·서명배지 / 2단: ① 달력입력·② 약국장승인·③ 전자서명 3칸 균등 요약 / 3단: 보관본 열람·인쇄·원본·약국장 전용 보관본 해제 버튼)로 렌더링한다.
    - **전자서명 보관 확인서 모달(`buildSingleSignatureCertHtml`)**: 모바일(`@media (max-width: 640px)`)에서 불필요한 이중 여백을 축소(`padding: 14px 10px`, `overflow: hidden`)하고, 일자별 상세 근무표를 **`table-layout: fixed; width: 100%;` 5열 구조(`NO 10% | 근무일자(요일) 31% | 출퇴근 시간 29% | 휴게 14% | 실근무 16%`)** 및 축약 표기(`26.11.02 (월)`, `09:00~18:00`, `0h`, `9시간`)로 구성하여, 우측 외곽선 침범이나 2~3줄 줄바꿈 깨짐 없이 모든 행이 1줄로 깔끔하게 정돈되도록 보장한다. 하단 서명란의 사업주(`대표약국장 문성도`) 및 근로자 성명에는 `white-space: nowrap`을 적용해 이름 줄바꿈 깨짐을 방지한다.
+
+
+---
+제 195 조 [🔎 의약품 낱알 식별기(`pill-identifier-module.js`) — 식약처 공식 OpenAPI(v3) + Gemini Vision AI 판독 + 우리 약국 진열위치 자동 매칭 + 클라우디너리 상담기록 보관 철칙]
+
+1. **[식품의약품안전처 공식 의약품 낱알식별 정보 OpenAPI(`MdcinGrnIdntfcInfoService03`) 실시간 연동 및 86종 다빈도 시드 내장]**
+   - 공공데이터포털 식약처 공식 엔드포인트(`https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService03/getMdcinGrnIdntfcInfoList03`, `type=json`)와 기본 인증키(`DEFAULT_MFDS_SERVICE_KEY`)를 탑재하고, Firebase(`shinsegae_master_db/pillIdConfig.json`)와 자동 동기화하여 약국 내 모든 PC·스마트폰에서 별도 설정 없이 즉시 작동하도록 보장한다.
+   - 다빈도 처방·일반의약품 86종의 식약처 정식 레코드(`EMBEDDED_MFDS_SEED`)와 로컬 캐시(`ssg_mfds_pill_cache_v1`, 최대 500건 자동 누적)를 결합하여, 각인문자(`PRINT_FRONT`/`PRINT_BACK`)·모양(`DRUG_SHAPE`)·색상(`COLOR_CLASS1`/`COLOR_CLASS2`)·제형(`FORM_CODE_NAME`)·분할선(`LINE_FRONT`/`LINE_BACK`) 조건 필터링이 **0.01초 만에 즉시 반응**하도록 구현한다.
+   - 제품명/제약사명 입력 또는 `[🌐 식약처 OpenAPI 실시간 조회]` 실행 시 식약처 서버를 실시간 호출하고, 희귀 각인·외형만 입력된 경우에는 Gemini 2.5 Flash AI가 후보 품목명을 추론하여 식약처 OpenAPI와 교차 검증한 뒤 공식 품목 이미지(`ITEM_IMAGE`)와 성상(`CHART`)을 반환한다.
+
+2. **[📸 AI 카메라/사진 낱알 판독 & 모바일 2열 촬영 버튼 규격]**
+   - 손님이 지참한 알약을 촬영할 수 있도록 **`[📸 바로 카메라 촬영]`(`capture="environment"`)과 `[📁 앨범/사진 선택]`을 모바일 2열 대칭 버튼**으로 배치하고, **`[🎥 인앱 접사 뷰파인더]`**(1:1 정사각 가이드라인 및 `🔦 조명` 토글 지원)를 함께 제공한다.
+   - 촬영된 알약 사진은 Gemini 2.5 Flash Vision AI(`thinkingBudget: 0`, 알약 카운터와 공용 Firebase `pillCounterConfig` 키 공유)가 앞/뒤 각인문자, 모양, 색상, 제형, 후보 약품명을 자동 추출하여 식약처 공식 DB와 즉시 대조한다.
+
+3. **[🏥 우리 약국 보유 위치 자동 매칭 & 🗣️ 손님 안내 큰글씨 모달 & 💾 상담기록 클라우디너리 영구 보관]**
+   - 식별된 의약품이 우리 약국의 `[💊 일반약 위치 관리]`(`medicineLocations`) 또는 `[💉 전문약 위치 관리]`(`rxMedicineLocations`)에 등록되어 있으면 카드 내부에 **`🏥 우리 약국 보유 (📍 진열 위치: ...)`** 배지를 자동으로 표시한다.
+   - `[🗣️ 손님 안내 큰글씨]` 클릭 시 손님에게 바로 보여줄 수 있는 큰글씨 복약·식별 안내 카드 모달(식약처 공식 이미지, 전문/일반 구분, 효능 분류 `CLASS_NAME`, 각인·성상·크기)을 띄운다.
+   - `[💾 상담기록 보관]` 클릭 시 촬영된 알약 사진을 `window.App.processAndUploadPhoto`로 **클라우디너리(Cloudinary)에 압축 업로드**하고 `SheetsSync.savePillIdentifications`(`ssg_pill_identifications_v1` 및 Firebase 마스터 DB)에 영구 보관하며, 타 기기 수신 시 사이드바 `🔴 N` 배지가 점등되도록 연동한다.
+   - 신규 사이드바 탭 추가에 따라 제 191 조 버전 넘버링 원칙에 의거하여 플랫폼 버전을 **`v6.000`**으로 격상한다.

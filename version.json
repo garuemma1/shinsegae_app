@@ -1,10 +1,16 @@
 {
-  "version": "v5.056",
-  "displayVersion": "v5.056",
-  "name": "📜 약사 근로계약서 제3조: 월간스케줄 전자서명(체크) 및 영구 보관함(확인서·보관대장 열람/인쇄) 탑재",
-  "buildTime": 1793763960000,
-  "updatedAt": "2026-11-04 12:46",
+  "version": "v5.057",
+  "displayVersion": "v5.057",
+  "name": "📱 근무약사 전자서명 확인서·보관함 모바일 최적화 (좌우 스크롤 제거 및 대표약국장 전용 보관본 해제)",
+  "buildTime": 1793766480000,
+  "updatedAt": "2026-11-04 13:28",
   "history": [
+    {
+      "version": "v5.057",
+      "updatedAt": "2026-11-04 13:34",
+      "files": ["schedule-module.js", "guide.html", "프롬프트 마스터.txt", "index.html", "version.json"],
+      "summary": "모바일 전자서명 확인서 우측 테두리 침범 및 줄바꿈 깨짐 해결, 약국장 전자서명 보관함 좌우 스크롤 없는 한 화면 카드 그리드 전환, 전자서명 보관본 해제 권한 대표약국장 단독 제한, 설명서(guide.html) 및 프롬프트 마스터(제194조) 반영"
+    },
     {
       "version": "v5.056",
       "updatedAt": "2026-11-04 12:46",

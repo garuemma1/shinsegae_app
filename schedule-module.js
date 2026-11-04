@@ -2389,40 +2389,36 @@ window.ScheduleModule = (function () {
     if (isSigned) {
       return `
         <div class="mt-3 pt-3 border-top">
-          <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:2px solid #10b981; border-radius:16px; padding:18px 20px; box-shadow:0 6px 18px rgba(16,185,129,0.12);">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-              <div class="d-flex align-items-center gap-3">
-                <div style="width:46px; height:46px; border-radius:12px; background:#059669; color:#ffffff; display:flex; justify-content:center; align-items:center; font-size:20px; flex-shrink:0;">
+          <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border:2px solid #10b981; border-radius:16px; padding:16px; box-shadow:0 6px 18px rgba(16,185,129,0.12);">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+              <div class="d-flex align-items-start gap-2" style="flex:1; min-width:240px;">
+                <div style="width:42px; height:42px; border-radius:12px; background:#059669; color:#ffffff; display:flex; justify-content:center; align-items:center; font-size:18px; flex-shrink:0;">
                   <i class="fas fa-file-signature"></i>
                 </div>
-                <div>
-                  <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                    <span class="badge bg-success font-bold" style="font-size:11.5px; padding:4px 10px; border-radius:8px;">
-                      ✅ [3단계 완료] 약사 전자서명(체크) 및 영구 보관 완료
+                <div style="flex:1;">
+                  <div class="d-flex align-items-center gap-1 flex-wrap mb-1">
+                    <span class="badge bg-success font-bold" style="font-size:11px; padding:4px 9px; border-radius:7px;">
+                      ✅ [3단계 완료] 약사 전자서명·영구보관 완료
                     </span>
-                    ${sigObj.cloudUrl ? `<span class="badge" style="background:#0284c7; color:#ffffff; font-size:11px; padding:4px 9px; border-radius:8px; font-weight:700;"><i class="fas fa-cloud-upload-alt me-1"></i> ☁️ 클라우디너리(Cloudinary) 영구보관됨</span>` : ''}
-                    <span style="font-size:12px; color:#047857; font-weight:700;">문서번호: ${sigObj.certId || '-'}</span>
+                    ${sigObj.cloudUrl ? `<span class="badge" style="background:#0284c7; color:#ffffff; font-size:10.5px; padding:4px 8px; border-radius:7px; font-weight:700;"><i class="fas fa-cloud me-1"></i>Cloudinary 보관됨</span>` : ''}
                   </div>
-                  <h4 style="font-size:15px; font-weight:800; color:#065f46; margin:0;">
-                    ✍️ ${sigObj.signerName} (${sigObj.signerRole}) 전자서명 체크 완료 — 서명일시: <span style="text-decoration:underline;">${sigObj.signedAt}</span>
+                  <h4 style="font-size:14.5px; font-weight:800; color:#065f46; margin:2px 0; word-break:keep-all;">
+                    ✍️ ${sigObj.signerName} (${sigObj.signerRole}) 전자서명 완료 <span style="font-size:12px; font-weight:700; color:#047857;">(${sigObj.signedAt})</span>
                   </h4>
-                  <p style="font-size:12.5px; color:#047857; margin:4px 0 0 0; font-weight:600;">
-                    📜 ${contractLabel} | 확정 보관 시수: <strong>총 ${sigObj.totalWorkDays}일 / 실근무 ${sigObj.totalNetHours}시간</strong> (평일 ${sigObj.weekdayHours}h · 주말/공휴 ${sigObj.holidayHours}h)
+                  <p style="font-size:12px; color:#047857; margin:3px 0 0 0; font-weight:600; word-break:keep-all;">
+                    📜 확정 시수: <strong>총 ${sigObj.totalWorkDays}일 / 실근무 ${sigObj.totalNetHours}시간</strong> (평일 ${sigObj.weekdayHours}h · 휴일 ${sigObj.holidayHours}h) · <span style="color:#065f46;">🔒 보관본 해제는 대표약국장만 가능</span>
                   </p>
                 </div>
               </div>
-              <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
-                <button type="button" class="btn btn-sm font-bold" onclick="ScheduleModule.openSignatureCertModal('${currUser.id}')" style="background:#059669; color:#ffffff; border:none; border-radius:10px; padding:9px 16px; font-size:13px; box-shadow:0 4px 10px rgba(5,150,105,0.25);">
-                  <i class="fas fa-certificate me-1"></i> 📄 전자서명 보관확인서 열람 / 인쇄
+              <div class="d-flex align-items-center gap-2 flex-wrap" style="width:100%; justify-content:flex-end;">
+                <button type="button" class="btn btn-sm font-bold" onclick="ScheduleModule.openSignatureCertModal('${currUser.id}')" style="background:#059669; color:#ffffff; border:none; border-radius:10px; padding:8px 14px; font-size:12.5px; box-shadow:0 4px 10px rgba(5,150,105,0.25);">
+                  <i class="fas fa-certificate me-1"></i> 📄 전자서명 보관확인서 열람·인쇄
                 </button>
                 ${sigObj.cloudUrl ? `
-                  <button type="button" class="btn btn-sm font-bold" onclick="ScheduleModule.openSignatureCloudImage('${currUser.id}')" style="background:#0284c7; color:#ffffff; border:none; border-radius:10px; padding:9px 14px; font-size:12.5px;">
-                    <i class="fas fa-cloud me-1"></i> ☁️ 클라우디너리 원본 이미지
+                  <button type="button" class="btn btn-sm font-bold" onclick="ScheduleModule.openSignatureCloudImage('${currUser.id}')" style="background:#0284c7; color:#ffffff; border:none; border-radius:10px; padding:8px 12px; font-size:12px;">
+                    <i class="fas fa-cloud me-1"></i> ☁️ 원본 이미지
                   </button>
                 ` : ''}
-                <button type="button" class="btn btn-sm btn-outline-secondary font-bold" onclick="ScheduleModule.submitElectronicSignature('${currUser.id}')" title="현재 스케줄 기준으로 전자서명 일시 및 클라우디너리 보관본을 최신으로 갱신합니다" style="border-radius:10px; padding:8px 12px; font-size:12px; background:#ffffff;">
-                  <i class="fas fa-sync-alt me-1"></i> 최신 시수로 재서명 갱신
-                </button>
               </div>
             </div>
           </div>
@@ -2470,8 +2466,11 @@ window.ScheduleModule = (function () {
     `;
   }
 
-  // 👑 약국장 접속 시: [약사 계약서 제3조] 근무약사 전용 전자서명(체크) 현황 및 영구 보관함 대장 (일반직원 제외)
+  // 👑 약국장 접속 시: [약사 계약서 제3조] 근무약사 전용 전자서명(체크) 현황 및 영구 보관함 대장 (일반직원 제외 · 좌우 스크롤 없는 반응형 카드 그리드)
   function renderDirectorElectronicSignatureArchivePanel(employees, statusObj, scheduleRecords) {
+    const currUser = window.SheetsSync.getCurrentUser();
+    const isDirector = currUser && (currUser.role === '약국장' || currUser.id === 'emp_1');
+
     const pharmacists = (employees || []).filter(e => (e.role === '근무약사' || (e.role && e.role.includes('약사') && e.role !== '약국장')) && e.role !== '예비인력' && e.name !== '이정은' && e.name !== '주찬양');
     const allTargets = pharmacists;
 
@@ -2489,144 +2488,143 @@ window.ScheduleModule = (function () {
 
     return `
       <div class="mt-4 pt-3 border-top">
-        <div style="background:linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border:2px solid #93c5fd; border-radius:16px; padding:20px;">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3 pb-2 border-bottom" style="border-color:#cbd5e1 !important;">
-            <div class="d-flex align-items-center gap-3">
-              <div style="width:44px; height:44px; border-radius:12px; background:#1e40af; color:#ffffff; display:flex; justify-content:center; align-items:center; font-size:20px; flex-shrink:0;">
-                <i class="fas fa-file-contract"></i>
-              </div>
-              <div>
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                  <h4 style="font-size:16.5px; font-weight:800; color:#0f172a; margin:0;">
-                    📜 [약사 계약서 제3조] 근무약사 월간 스케줄 전자서명(체크) 및 영구 보관함 (${currentYear}년 ${currentMonth}월)
-                  </h4>
-                  <span class="badge ${signedPharmacistCount === totalPharmacistCount && totalPharmacistCount > 0 ? 'bg-success' : 'bg-primary'}" style="font-size:12px; padding:4px 10px; border-radius:8px;">
-                    근무약사 전자서명: ${signedPharmacistCount} / ${totalPharmacistCount}명 완료
-                  </span>
+        <div style="background:linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border:2px solid #93c5fd; border-radius:16px; padding:16px;">
+          <!-- 상단 헤더 & 전체 보관함 버튼 -->
+          <div style="border-bottom:1.5px solid #cbd5e1; padding-bottom:12px; margin-bottom:14px;">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div class="d-flex align-items-start gap-2" style="flex:1; min-width:220px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:#1e40af; color:#ffffff; display:flex; justify-content:center; align-items:center; font-size:17px; flex-shrink:0; margin-top:2px;">
+                  <i class="fas fa-file-contract"></i>
                 </div>
-                <p style="font-size:12.5px; color:#475569; margin:3px 0 0 0; font-weight:600;">
-                  근무약사 전용 실무 3단계 프로세스(① 인트라넷 달력 입력 ➔ ② 약국장 승인 ➔ ③ 약사 전자서명 체크) 이행 내역을 실시간 확인하고 클라우디너리에 영구 보관합니다.
-                </p>
+                <div style="flex:1;">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h4 style="font-size:15.5px; font-weight:800; color:#0f172a; margin:0; word-break:keep-all; line-height:1.35;">
+                      📜 [약사 계약서 제3조] 월간 스케줄 전자서명(체크) 및 영구 보관함 (${currentYear}년 ${currentMonth}월)
+                    </h4>
+                    <span class="badge ${signedPharmacistCount === totalPharmacistCount && totalPharmacistCount > 0 ? 'bg-success' : 'bg-primary'}" style="font-size:11.5px; padding:4px 9px; border-radius:7px;">
+                      근무약사 전자서명: ${signedPharmacistCount} / ${totalPharmacistCount}명 완료
+                    </span>
+                  </div>
+                  <p style="font-size:12px; color:#475569; margin:4px 0 0 0; font-weight:600; word-break:keep-all; line-height:1.45;">
+                    ① 인트라넷 달력 입력 ➔ ② 약국장 승인 ➔ ③ 근무약사 전자서명(체크) 내역을 한눈에 확인하고 클라우디너리에 영구 보관합니다. <span style="color:#b91c1c; font-weight:700;">(🔒 보관본 해제는 대표약국장만 가능)</span>
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
-              <button type="button" class="btn btn-sm font-bold" onclick="ScheduleModule.openSignatureArchiveHistoryModal()" style="background:#ffffff; color:#1e40af; border:1.5px solid #93c5fd; border-radius:10px; padding:8px 14px; font-size:12.5px;">
-                <i class="fas fa-archive me-1"></i> 🗄️ 월별 전자서명 보관함 이력 (${archivedMonthKeys.length}개월)
-              </button>
-              <button type="button" class="btn btn-sm font-bold text-white shadow-sm" onclick="ScheduleModule.openMonthlySignatureLedgerModal()" style="background:linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); border:none; border-radius:10px; padding:8px 16px; font-size:12.5px;">
-                <i class="fas fa-print me-1"></i> 🖨️ ${currentMonth}월 근무약사 전자서명 보관대장 열람·인쇄
-              </button>
+              <div class="d-flex align-items-center gap-2 flex-wrap" style="width:100%; justify-content:flex-end; margin-top:4px;">
+                <button type="button" class="btn btn-sm font-bold" onclick="ScheduleModule.openSignatureArchiveHistoryModal()" style="background:#ffffff; color:#1e40af; border:1.5px solid #93c5fd; border-radius:9px; padding:7px 12px; font-size:12px; flex:1 1 auto; max-width:240px;">
+                  <i class="fas fa-archive me-1"></i> 🗄️ 월별 보관함 이력 (${archivedMonthKeys.length}개월)
+                </button>
+                <button type="button" class="btn btn-sm font-bold text-white shadow-sm" onclick="ScheduleModule.openMonthlySignatureLedgerModal()" style="background:linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); border:none; border-radius:9px; padding:7px 14px; font-size:12px; flex:1 1 auto; max-width:260px;">
+                  <i class="fas fa-print me-1"></i> 🖨️ ${currentMonth}월 전체 보관대장 열람·인쇄
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- 근무약사 전용 3단계 프로세스 & 전자서명 체크 테이블 -->
-          <div class="table-responsive" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:12px; overflow-x:auto;">
-            <table class="table table-hover align-middle mb-0" style="font-size:13px; min-width:780px;">
-              <thead style="background:#f1f5f9; color:#1e293b; font-weight:800; border-bottom:2px solid #cbd5e1;">
-                <tr>
-                  <th style="padding:10px 14px; width:150px; white-space:nowrap;">근무약사 성명 / 직책</th>
-                  <th style="padding:10px 12px; text-align:center; white-space:nowrap;">① 인트라넷 달력 입력</th>
-                  <th style="padding:10px 12px; text-align:center; white-space:nowrap;">② 약국장 승인</th>
-                  <th style="padding:10px 12px; text-align:center; white-space:nowrap;">③ 약사 전자서명(체크) 상태</th>
-                  <th style="padding:10px 14px; text-align:center; width:210px; white-space:nowrap;">전자서명 체크 / 보관본 열람</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${allTargets.map(emp => {
-                  const isPharm = emp.role && emp.role.includes('약사');
-                  const snap = buildEmployeeMonthSnapshot(emp, currentYear, currentMonth, scheduleRecords);
-                  const empStatus = statusObj[emp.id] || 'DRAFT';
-                  const isApproved = empStatus === 'APPROVED' || !!statusObj.directorApproved;
-                  const isSubmitted = empStatus === 'SUBMITTED' || isApproved;
-                  const sig = sigMap[emp.id];
-                  const isSigned = !!(sig && sig.signed);
+          <!-- 근무약사 전용 3단계 프로세스 & 전자서명 카드 리스트 (좌우 스크롤 없이 한 화면에 정돈) -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px;">
+            ${allTargets.map(emp => {
+              const snap = buildEmployeeMonthSnapshot(emp, currentYear, currentMonth, scheduleRecords);
+              const empStatus = statusObj[emp.id] || 'DRAFT';
+              const isApproved = empStatus === 'APPROVED' || !!statusObj.directorApproved;
+              const isSubmitted = empStatus === 'SUBMITTED' || isApproved;
+              const sig = sigMap[emp.id];
+              const isSigned = !!(sig && sig.signed);
+              const shortSignedAt = (sig && sig.signedAt) ? sig.signedAt.slice(5, 16) : '-';
 
-                  return `
-                    <tr style="${isSigned ? 'background:#f0fdf4;' : (isPharm ? 'background:#ffffff;' : 'background:#fafafa;')}">
-                      <td style="padding:10px 14px; white-space:nowrap;">
-                        <div class="d-flex align-items-center gap-2">
-                          <strong style="font-size:14px; color:#0f172a;">${emp.name}</strong>
-                          <span class="badge" style="background:${isPharm ? '#dbeafe' : '#e2e8f0'}; color:${isPharm ? '#1e40af' : '#475569'}; font-size:11px; padding:3px 7px; border-radius:6px;">
-                            ${isPharm ? '💊 근무약사' : '💻 일반직원'}
-                          </span>
-                        </div>
-                        <div style="font-size:11px; color:#64748b; margin-top:2px;">${emp.position || emp.role}</div>
-                      </td>
+              return `
+                <div style="background:${isSigned ? '#f0fdf4' : '#ffffff'}; border:1.5px solid ${isSigned ? '#86efac' : '#cbd5e1'}; border-radius:12px; padding:12px 14px; box-shadow:0 2px 6px rgba(15,23,42,0.04); display:flex; flex-direction:column; gap:9px;">
+                  <!-- 1줄: 약사 성명/직책 + 서명 상태 배지 -->
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <strong style="font-size:14.5px; color:#0f172a; font-weight:800;">${emp.name}</strong>
+                      <span style="background:#dbeafe; color:#1e40af; font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px;">💊 근무약사</span>
+                      <span style="font-size:11px; color:#64748b;">${emp.position || ''}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                      ${isSigned ? `
+                        <span style="background:#059669; color:#ffffff; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px;">
+                          ✍️ 서명·보관 완료
+                        </span>
+                        ${sig.cloudUrl ? `<span style="background:#0284c7; color:#ffffff; font-size:10.5px; font-weight:700; padding:3px 6px; border-radius:6px;" title="클라우디너리 영구 보관됨"><i class="fas fa-cloud"></i></span>` : ''}
+                      ` : `
+                        <span style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;">
+                          ⏳ 미서명 (체크 대기)
+                        </span>
+                      `}
+                    </div>
+                  </div>
 
-                      <!-- Step 1: 달력 입력 -->
-                      <td style="padding:10px 12px; text-align:center; white-space:nowrap;">
-                        <div style="font-weight:800; color:#0f172a;">
-                          총 <span style="color:#2563eb;">${snap.totalNetHours}h</span> (${snap.totalWorkDays}일)
-                        </div>
-                        <div style="font-size:11px; color:#64748b;">
-                          평일 ${snap.weekdayHours}h / 휴일 ${snap.holidayHours}h
-                          ${isSubmitted ? '<span class="text-success font-bold ms-1">· 제출됨</span>' : '<span class="text-warning font-bold ms-1">· 작성중</span>'}
-                        </div>
-                      </td>
+                  <!-- 2줄: 3단계 프로세스 요약 (한 화면 3칸 균등 배치, 스크롤 없음) -->
+                  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; background:${isSigned ? '#ffffff' : '#f8fafc'}; border:1px solid ${isSigned ? '#bbf7d0' : '#e2e8f0'}; border-radius:9px; padding:8px 6px; text-align:center;">
+                    <!-- ① 달력 입력 -->
+                    <div style="border-right:1px solid #e2e8f0; padding:0 4px;">
+                      <div style="font-size:10.5px; color:#64748b; font-weight:700; margin-bottom:2px;">① 달력 입력</div>
+                      <div style="font-size:12.5px; font-weight:800; color:#0f172a;">
+                        <span style="color:#2563eb;">${snap.totalNetHours}h</span> (${snap.totalWorkDays}일)
+                      </div>
+                      <div style="font-size:10px; color:#64748b;">
+                        ${isSubmitted ? '<span style="color:#15803d; font-weight:700;">제출됨</span>' : '<span style="color:#d97706; font-weight:700;">작성중</span>'}
+                      </div>
+                    </div>
 
-                      <!-- Step 2: 약국장 승인 -->
-                      <td style="padding:10px 12px; text-align:center; white-space:nowrap;">
-                        ${isApproved ? `
-                          <span class="badge bg-success" style="font-size:11.5px; padding:5px 10px; border-radius:8px;">
-                            <i class="fas fa-check-circle me-1"></i> 승인 완료
-                          </span>
-                        ` : `
-                          <div class="d-flex align-items-center justify-content-center gap-1">
-                            <span class="badge bg-warning text-dark" style="font-size:11px; padding:4px 8px; border-radius:6px;">승인 대기</span>
-                            <button type="button" class="btn btn-xs font-bold text-white" onclick="ScheduleModule.approveIndividualSchedule('${emp.id}')" style="background:#10b981; border:none; border-radius:6px; padding:3px 8px; font-size:11px;" title="${emp.name} 스케줄 즉시 승인">
-                              ⚡ 승인
+                    <!-- ② 약국장 승인 -->
+                    <div style="border-right:1px solid #e2e8f0; padding:0 4px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                      <div style="font-size:10.5px; color:#64748b; font-weight:700; margin-bottom:2px;">② 약국장 승인</div>
+                      ${isApproved ? `
+                        <div style="font-size:11.5px; font-weight:800; color:#15803d;">✔ 승인 완료</div>
+                      ` : `
+                        <div style="display:flex; align-items:center; gap:3px; flex-wrap:wrap; justify-content:center;">
+                          <span style="font-size:11px; font-weight:700; color:#d97706;">대기</span>
+                          ${isDirector ? `
+                            <button type="button" onclick="ScheduleModule.approveIndividualSchedule('${emp.id}')" style="background:#10b981; color:#ffffff; border:none; border-radius:5px; padding:1px 6px; font-size:10.5px; font-weight:800; cursor:pointer;">
+                              ⚡승인
                             </button>
-                          </div>
-                        `}
-                      </td>
+                          ` : ''}
+                        </div>
+                      `}
+                    </div>
 
-                      <!-- Step 3: 약사 전자서명(체크) 상태 -->
-                      <td style="padding:10px 12px; text-align:center; white-space:nowrap;">
-                        ${isSigned ? `
-                          <div>
-                            <span class="badge" style="background:#059669; color:#ffffff; font-size:11.5px; padding:5px 10px; border-radius:8px;">
-                              <i class="fas fa-check-square me-1"></i> ✍️ 전자서명·보관 완료
-                            </span>
-                            ${sig.cloudUrl ? `<span class="badge ms-1" style="background:#0284c7; color:#ffffff; font-size:10.5px; padding:4px 7px; border-radius:6px;" title="클라우디너리(Cloudinary) 영구 이미지 서버에 보관됨"><i class="fas fa-cloud"></i> Cloudinary</span>` : ''}
-                          </div>
-                          <div style="font-size:11px; color:#047857; font-weight:700; margin-top:3px;">
-                            🕒 ${sig.signedAt || '-'}
-                          </div>
-                        ` : `
-                          <span class="badge" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; font-size:11.5px; padding:5px 10px; border-radius:8px;">
-                            <i class="far fa-square me-1"></i> 미서명 (체크 대기)
-                          </span>
-                        `}
-                      </td>
+                    <!-- ③ 전자서명 일시 -->
+                    <div style="padding:0 4px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                      <div style="font-size:10.5px; color:#64748b; font-weight:700; margin-bottom:2px;">③ 전자서명</div>
+                      ${isSigned ? `
+                        <div style="font-size:11px; font-weight:800; color:#047857;">☑️ 완료</div>
+                        <div style="font-size:10px; color:#065f46; font-weight:600;">${shortSignedAt}</div>
+                      ` : `
+                        <div style="font-size:11px; font-weight:700; color:#94a3b8;">체크 대기</div>
+                      `}
+                    </div>
+                  </div>
 
-                      <!-- 관리 버튼: 체크 / 보관본 열람 -->
-                      <td style="padding:10px 14px; text-align:center; white-space:nowrap;">
-                        ${isSigned ? `
-                          <div class="d-flex align-items-center justify-content-center gap-1">
-                            <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.openSignatureCertModal('${emp.id}')" style="background:#059669; border:none; border-radius:8px; padding:5px 11px; font-size:12px;">
-                              <i class="fas fa-file-alt me-1"></i> 보관본 열람·인쇄
-                            </button>
-                            ${sig.cloudUrl ? `
-                              <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.openSignatureCloudImage('${emp.id}')" title="클라우디너리에 영구 보관된 확인서 이미지 열기" style="background:#0284c7; border:none; border-radius:8px; padding:5px 9px; font-size:11.5px;">
-                                <i class="fas fa-cloud"></i>
-                              </button>
-                            ` : ''}
-                            <button type="button" class="btn btn-sm btn-outline-danger font-bold" onclick="ScheduleModule.cancelElectronicSignature('${emp.id}')" title="서명 초기화(재서명 요청)" style="border-radius:8px; padding:5px 8px; font-size:11px;">
-                              해제
-                            </button>
-                          </div>
-                        ` : `
-                          <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.submitElectronicSignature('${emp.id}', true)" style="background:#2563eb; border:none; border-radius:8px; padding:6px 12px; font-size:12px; box-shadow:0 2px 6px rgba(37,99,235,0.25);">
-                            <i class="fas fa-check-square me-1"></i> ☑️ 전자서명 체크·보관
+                  <!-- 3줄: 액션 버튼 바 -->
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap;">
+                    ${isSigned ? `
+                      <div style="display:flex; align-items:center; gap:6px; flex:1;">
+                        <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.openSignatureCertModal('${emp.id}')" style="background:#059669; border:none; border-radius:8px; padding:6px 10px; font-size:12px; flex:1;">
+                          <i class="fas fa-file-alt me-1"></i> 보관본 열람·인쇄
+                        </button>
+                        ${sig.cloudUrl ? `
+                          <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.openSignatureCloudImage('${emp.id}')" title="클라우디너리에 영구 보관된 확인서 이미지 열기" style="background:#0284c7; border:none; border-radius:8px; padding:6px 10px; font-size:12px;">
+                            <i class="fas fa-cloud"></i> 원본
                           </button>
-                        `}
-                      </td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
+                        ` : ''}
+                      </div>
+                      ${isDirector ? `
+                        <button type="button" class="btn btn-sm btn-outline-danger font-bold" onclick="ScheduleModule.cancelElectronicSignature('${emp.id}')" title="대표약국장 전용: 보관본 해제(재서명 요청)" style="border-radius:8px; padding:5px 9px; font-size:11px; white-space:nowrap;">
+                          🔓 보관본 해제
+                        </button>
+                      ` : ''}
+                    ` : `
+                      <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.submitElectronicSignature('${emp.id}', true)" style="background:#2563eb; border:none; border-radius:8px; padding:7px 12px; font-size:12px; width:100%; box-shadow:0 2px 6px rgba(37,99,235,0.2);">
+                        <i class="fas fa-check-square me-1"></i> ☑️ 전자서명 체크·보관
+                      </button>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
       </div>
@@ -2931,6 +2929,12 @@ window.ScheduleModule = (function () {
     let statusObj = scheduleStatus[monthKey] || {};
     if (!statusObj.signatures) statusObj.signatures = {};
 
+    // 근무약사가 이미 서명 완료한 경우 임의 재서명/덮어쓰기 차단 (대표약국장만 가능)
+    if (statusObj.signatures[targetEmp.id] && statusObj.signatures[targetEmp.id].signed && !isDirector) {
+      alert("🔒 이미 전자서명(체크) 및 영구 보관이 완료된 스케줄입니다.\n보관본 해제 및 재서명은 대표약국장만 처리할 수 있습니다.");
+      return;
+    }
+
     const now = Date.now();
     const nowStr = formatDateTimeFull(new Date(now));
     const certId = `ESIGN-${currentYear}${String(currentMonth).padStart(2, '0')}-${targetEmp.id.toUpperCase().replace(/[^A-Z0-9]/g, '')}-${String(now).slice(-4)}`;
@@ -3016,20 +3020,20 @@ window.ScheduleModule = (function () {
     );
   }
 
-  // 전자서명 해제 (재조율 후 다시 서명받기 위함)
+  // 전자서명 보관본 해제 (대표약국장 전용 - 재조율 후 다시 서명받기 위함)
   function cancelElectronicSignature(empId) {
     const currUser = window.SheetsSync.getCurrentUser();
     if (!currUser) return;
     const isDirector = currUser.role === '약국장' || currUser.id === 'emp_1';
-    if (!isDirector && currUser.id !== empId) {
-      alert("🔒 약국장 또는 본인만 전자서명을 초기화할 수 있습니다.");
+    if (!isDirector) {
+      alert("🔒 전자서명 보관본 해제는 대표약국장만 가능합니다.\n근무일정 재조율이 필요한 경우 대표약국장님께 해제를 요청해 주세요.");
       return;
     }
 
     const data = window.SheetsSync.getData();
     const employees = data.employees || [];
     const targetEmp = employees.find(e => e.id === empId);
-    if (!confirm(`🔄 [${targetEmp ? targetEmp.name : empId}] 님의 ${currentMonth}월 전자서명 체크 상태를 해제(초기화)하시겠습니까?`)) {
+    if (!confirm(`🔓 [대표약국장 전용 권한]\n[${targetEmp ? targetEmp.name : empId}] 약사님의 ${currentMonth}월 전자서명 보관본을 해제(초기화)하시겠습니까?\n\n해제 후에는 근무약사가 다시 전자서명(체크)을 진행할 수 있습니다.`)) {
       return;
     }
 
@@ -3055,6 +3059,59 @@ window.ScheduleModule = (function () {
   }
 
   function ensureSignatureModalExists() {
+    if (!document.getElementById('esign-mobile-responsive-style')) {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'esign-mobile-responsive-style';
+      styleEl.textContent = `
+        #schedule-esign-cert-modal .modal-card {
+          background: #ffffff;
+          border-radius: 20px;
+          max-width: 820px;
+          width: 94%;
+          max-height: 92vh;
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding: 24px;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.45);
+          position: relative;
+          box-sizing: border-box;
+        }
+        #schedule-esign-cert-modal .esign-cert-doc {
+          border: 2px solid #1e293b;
+          border-radius: 14px;
+          padding: 22px;
+          background: #ffffff;
+          color: #0f172a;
+          font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          margin-bottom: 16px;
+          box-sizing: border-box;
+          overflow: hidden;
+          width: 100%;
+        }
+        @media (max-width: 640px) {
+          #schedule-esign-cert-modal .modal-card {
+            width: 96% !important;
+            padding: 14px 12px !important;
+            border-radius: 16px !important;
+          }
+          #schedule-esign-cert-modal .esign-cert-doc {
+            padding: 14px 10px !important;
+            border-width: 1.5px !important;
+            border-radius: 12px !important;
+          }
+          #schedule-esign-cert-modal .esign-doc-title {
+            font-size: 16.5px !important;
+          }
+          #schedule-esign-cert-modal .esign-schedule-table th,
+          #schedule-esign-cert-modal .esign-schedule-table td {
+            padding: 6px 3px !important;
+            font-size: 11.5px !important;
+          }
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
+
     let modal = document.getElementById('schedule-esign-cert-modal');
     if (!modal) {
       modal = document.createElement('div');
@@ -3062,8 +3119,8 @@ window.ScheduleModule = (function () {
       modal.className = 'modal-overlay';
       modal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); z-index:9999999; justify-content:center; align-items:center; backdrop-filter:blur(4px);';
       modal.innerHTML = `
-        <div class="modal-card" style="background:#ffffff; border-radius:22px; max-width:860px; width:95%; max-height:92vh; overflow-y:auto; padding:28px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.45); position:relative;">
-          <button type="button" class="close-btn" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="position:absolute; top:18px; right:22px; font-size:26px; background:none; border:none; color:#64748b; cursor:pointer; line-height:1;">&times;</button>
+        <div class="modal-card">
+          <button type="button" class="close-btn" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="position:absolute; top:12px; right:14px; width:32px; height:32px; border-radius:8px; font-size:22px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:5;">&times;</button>
           <div id="schedule-esign-cert-modal-body"></div>
         </div>
       `;
@@ -3072,7 +3129,7 @@ window.ScheduleModule = (function () {
     return modal;
   }
 
-  // 📄 개별 약사/직원 전자서명 확인서(보관본) 렌더링 HTML 생성
+  // 📄 개별 근무약사 전자서명 확인서(보관본) 렌더링 HTML 생성 (모바일/PC 완벽 정돈 레이아웃)
   function buildSingleSignatureCertHtml(emp, sig, year, month, statusObj, scheduleRecords) {
     const snap = (sig && sig.records && sig.records.length > 0)
       ? sig
@@ -3084,95 +3141,96 @@ window.ScheduleModule = (function () {
     const certId = (sig && sig.certId) || `DRAFT-${year}${String(month).padStart(2, '0')}-${emp.id}`;
 
     return `
-      <div class="esign-cert-doc" style="border:2px solid #1e293b; border-radius:14px; padding:26px; background:#ffffff; color:#0f172a; font-family:'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin-bottom:20px;">
-        <!-- 상단 문서 메타 바 -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:2px solid #0f172a; padding-bottom:14px; margin-bottom:18px;">
-          <div>
-            <div style="font-size:11.5px; font-weight:800; color:#2563eb; letter-spacing:0.5px;">
-              SHINSEGAE PHARMACY ELECTRONIC SCHEDULE ARCHIVE (근로계약서 제3조 부속서류)
-            </div>
-            <h2 style="font-size:21px; font-weight:900; color:#0f172a; margin:4px 0 0 0;">
-              📜 ${year}년 ${month}월 근무스케줄 확정 및 전자서명 확인서
-            </h2>
+      <div class="esign-cert-doc">
+        <!-- 상단 공식 문서 타이틀 & 메타 바 -->
+        <div style="text-align:center; border-bottom:2px solid #0f172a; padding-bottom:12px; margin-bottom:14px;">
+          <div style="font-size:10.5px; font-weight:800; color:#2563eb; letter-spacing:0.3px; word-break:keep-all;">
+            SHINSEGAE PHARMACY ELECTRONIC ARCHIVE (약사 계약서 제3조 부속서류)
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:12px; font-weight:700; color:#475569;">문서보관번호: <strong style="color:#0f172a;">${certId}</strong></div>
-            <div style="margin-top:4px;">
-              ${isSigned
-                ? `<span style="background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:800;">🟢 약사 전자서명(체크) 및 영구보관 완료</span>`
-                : `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:800;">⏳ 전자서명 대기중</span>`
-              }
-            </div>
+          <h2 class="esign-doc-title" style="font-size:19px; font-weight:900; color:#0f172a; margin:5px 0 8px 0; word-break:keep-all; line-height:1.3;">
+            📜 ${year}년 ${month}월 근무스케줄 확정 및 전자서명 확인서
+          </h2>
+          <div style="display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:6px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px;">
+            <span style="font-size:11.5px; font-weight:700; color:#475569;">문서보관번호: <strong style="color:#0f172a;">${certId}</strong></span>
+            ${isSigned
+              ? `<span style="background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:2px 8px; border-radius:6px; font-size:11.5px; font-weight:800; white-space:nowrap;">🟢 약사 전자서명·영구보관 완료</span>`
+              : `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:2px 8px; border-radius:6px; font-size:11.5px; font-weight:800; white-space:nowrap;">⏳ 전자서명 대기중</span>`
+            }
           </div>
         </div>
 
         <!-- 근로계약서 제3조 법적 효력 명시 조항 박스 -->
-        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-left:5px solid #2563eb; border-radius:10px; padding:12px 16px; margin-bottom:18px; font-size:12.5px; line-height:1.6; color:#1e293b;">
-          <strong style="color:#1e40af; font-size:13px;">⚖️ [약사 근로계약서 제3조: 인트라넷 자율 조율 및 확정에 따른 근로조건 서면명시 효력]</strong><br>
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #2563eb; border-radius:9px; padding:10px 12px; margin-bottom:14px; font-size:12px; line-height:1.55; color:#1e293b; word-break:keep-all;">
+          <div style="color:#1e40af; font-weight:800; font-size:12.5px; margin-bottom:3px;">⚖️ [약사 근로계약서 제3조: 인트라넷 자율 조율 및 확정에 따른 근로조건 서면명시 효력]</div>
           본 문서는 근무약사 근로계약서 제3조에 의거하여, 종이 스케줄표 서명을 대신해 <strong>[① 인트라넷 달력 자율 입력 ➔ ② 약국장 최종 승인 ➔ ③ 약사 전자서명(체크)]</strong>의 실무 프로세스를 거쳐 확정·보관된 전자문서로서, 「근로기준법」 제17조에 따른 <strong>근로조건(소정근로일·근로시간·휴게시간) 서면명시 및 교부 의무</strong>를 완벽히 이행한 법적 효력을 가집니다.
         </div>
 
         <!-- 근로자 기본 정보 & 3단계 프로세스 타임라인 요약 -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; margin-bottom:18px;">
-          <div style="border:1px solid #cbd5e1; border-radius:10px; padding:12px 14px; background:#ffffff;">
-            <div style="font-size:11.5px; font-weight:800; color:#64748b; margin-bottom:6px;">👤 근로자(약사) 인적사항</div>
-            <div style="font-size:13.5px; margin-bottom:3px;">• 성 명 : <strong>${emp.name}</strong> (${emp.role} / ${emp.position || '-'})</div>
-            <div style="font-size:13px; margin-bottom:3px;">• 계 정 : ${emp.email || emp.username || '-'}</div>
-            <div style="font-size:13px;">• 당월 확정 근로 : <strong style="color:#2563eb;">총 ${snap.totalWorkDays}일 / 실근무 ${snap.totalNetHours}시간</strong> <span style="font-size:11.5px; color:#475569;">(평일 ${snap.weekdayHours}h · 주말/공휴 ${snap.holidayHours}h)</span></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px;">
+          <div style="border:1px solid #cbd5e1; border-radius:9px; padding:10px 12px; background:#ffffff; font-size:12.5px; line-height:1.5;">
+            <div style="font-size:11px; font-weight:800; color:#64748b; margin-bottom:4px; border-bottom:1px solid #f1f5f9; padding-bottom:3px;">👤 근로자(근무약사) 인적사항</div>
+            <div>• 성 명 : <strong>${emp.name}</strong> (${emp.role}${emp.position ? ' · ' + emp.position : ''})</div>
+            <div>• 계 정 : <span style="word-break:break-all;">${emp.email || emp.username || '-'}</span></div>
+            <div>• 확정근로 : <strong style="color:#2563eb;">총 ${snap.totalWorkDays}일 / 실근무 ${snap.totalNetHours}시간</strong></div>
+            <div style="font-size:11.5px; color:#475569; padding-left:10px;">(평일 ${snap.weekdayHours}h · 주말/공휴 ${snap.holidayHours}h)</div>
           </div>
 
-          <div style="border:1px solid #cbd5e1; border-radius:10px; padding:12px 14px; background:#ffffff;">
-            <div style="font-size:11.5px; font-weight:800; color:#64748b; margin-bottom:6px;">🔐 계약서 제3조 3단계 확정 프로세스 이력</div>
-            <div style="font-size:12.5px; margin-bottom:4px;">
-              <strong>[1단계] 인트라넷 달력 입력 :</strong> <span style="color:#15803d; font-weight:700;">✔ 입력완료 (총 ${snap.totalWorkDays}일 / ${snap.totalNetHours}h)</span>
+          <div style="border:1px solid #cbd5e1; border-radius:9px; padding:10px 12px; background:#ffffff; font-size:12px; line-height:1.55;">
+            <div style="font-size:11px; font-weight:800; color:#64748b; margin-bottom:4px; border-bottom:1px solid #f1f5f9; padding-bottom:3px;">🔐 계약서 제3조 3단계 확정 프로세스 이력</div>
+            <div>
+              <strong>[1단계] 달력 입력 :</strong> <span style="color:#15803d; font-weight:700;">✔ 완료 (총 ${snap.totalWorkDays}일 / ${snap.totalNetHours}h)</span>
             </div>
-            <div style="font-size:12.5px; margin-bottom:4px;">
-              <strong>[2단계] 약국장 검토 및 승인 :</strong> <span style="color:${isApproved ? '#15803d' : '#d97706'}; font-weight:700;">${isApproved ? `✔ 승인완료 (${approvedAtStr})` : '⏳ 승인 대기'}</span>
+            <div>
+              <strong>[2단계] 약국장 승인 :</strong> <span style="color:${isApproved ? '#15803d' : '#d97706'}; font-weight:700;">${isApproved ? `✔ 승인완료 (${approvedAtStr})` : '⏳ 승인 대기'}</span>
             </div>
-            <div style="font-size:12.5px;">
-              <strong>[3단계] 약사 전자서명(체크) :</strong> <span style="color:${isSigned ? '#059669' : '#dc2626'}; font-weight:800;">${isSigned ? `✔ 전자서명 체크 완료 (${signedAtStr})` : '⚪ 미서명'}</span>
+            <div>
+              <strong>[3단계] 전자서명(체크) :</strong> <span style="color:${isSigned ? '#059669' : '#dc2626'}; font-weight:800;">${isSigned ? `✔ 완료 (${signedAtStr})` : '⚪ 미서명'}</span>
             </div>
           </div>
         </div>
 
-        <!-- 당월 확정 일자별 근무 스케줄 명세표 -->
-        <div style="margin-bottom:18px;">
-          <div style="font-size:13.5px; font-weight:800; color:#0f172a; margin-bottom:8px;">
+        <!-- 당월 확정 일자별 근무 스케줄 명세표 (한 줄 고정·우측 잘림 완벽 방지) -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:13px; font-weight:800; color:#0f172a; margin-bottom:6px;">
             📅 ${year}년 ${month}월 확정 근무 스케줄 상세 명세 (${emp.name} ${emp.role})
           </div>
           ${(!snap.records || snap.records.length === 0) ? `
-            <div style="padding:18px; text-align:center; border:1px solid #cbd5e1; border-radius:8px; color:#64748b; font-size:13px;">
+            <div style="padding:16px; text-align:center; border:1px solid #cbd5e1; border-radius:8px; color:#64748b; font-size:12.5px;">
               해당 월에 등록된 근무 일정이 없습니다. (ALL OFF)
             </div>
           ` : `
-            <table style="width:100%; border-collapse:collapse; font-size:12.5px; border:1px solid #cbd5e1;">
+            <table class="esign-schedule-table" style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:12px; border:1px solid #cbd5e1;">
               <thead>
                 <tr style="background:#f1f5f9; color:#1e293b; border-bottom:1.5px solid #94a3b8;">
-                  <th style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center;">연번</th>
-                  <th style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center;">근무 일자</th>
-                  <th style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center;">요일</th>
-                  <th style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center;">확정 출퇴근 시간</th>
-                  <th style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center;">휴게시간 차감</th>
-                  <th style="border:1px solid #cbd5e1; padding:7px 10px; text-align:right;">확정 실근무시수</th>
+                  <th style="width:10%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">NO</th>
+                  <th style="width:31%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">근무일자(요일)</th>
+                  <th style="width:29%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">출퇴근 시간</th>
+                  <th style="width:14%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">휴게</th>
+                  <th style="width:16%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">실근무</th>
                 </tr>
               </thead>
               <tbody>
-                ${snap.records.map((r, i) => `
-                  <tr>
-                    <td style="border:1px solid #cbd5e1; padding:6px 10px; text-align:center; color:#64748b;">${i + 1}</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px 10px; text-align:center; font-weight:700;">${r.date}</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px 10px; text-align:center; font-weight:700; color:${r.dayOfWeek === '일' ? '#dc2626' : (r.dayOfWeek === '토' ? '#2563eb' : '#0f172a')};">${r.dayOfWeek}요일</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px 10px; text-align:center; font-weight:700; color:#1d4ed8;">${r.startTime} ~ ${r.endTime}</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px 10px; text-align:center;">${r.breakHours}시간</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px 12px; text-align:right; font-weight:800; color:#15803d;">${r.netHours}시간</td>
-                  </tr>
-                `).join('')}
-                <tr style="background:#f8fafc; font-weight:800; border-top:2px solid #94a3b8;">
-                  <td colspan="5" style="border:1px solid #cbd5e1; padding:8px 12px; text-align:right; color:#0f172a;">
-                    합 계 (총 ${snap.totalWorkDays}일 근무 | 평일 ${snap.weekdayHours}h / 주말·공휴 ${snap.holidayHours}h)
+                ${snap.records.map((r, i) => {
+                  const shortDate = r.date ? r.date.slice(2).replace(/-/g, '.') : '';
+                  const dayColor = r.dayOfWeek === '일' ? '#dc2626' : (r.dayOfWeek === '토' ? '#2563eb' : '#0f172a');
+                  return `
+                    <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                      <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; color:#64748b; white-space:nowrap;">${i + 1}</td>
+                      <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:700; white-space:nowrap;">
+                        ${shortDate} <span style="color:${dayColor};">(${r.dayOfWeek})</span>
+                      </td>
+                      <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:700; color:#1d4ed8; white-space:nowrap;">${r.startTime}~${r.endTime}</td>
+                      <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; color:#475569; white-space:nowrap;">${r.breakHours}h</td>
+                      <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:800; color:#15803d; white-space:nowrap;">${r.netHours}시간</td>
+                    </tr>
+                  `;
+                }).join('')}
+                <tr style="background:#eff6ff; font-weight:800; border-top:1.5px solid #94a3b8;">
+                  <td colspan="4" style="border:1px solid #cbd5e1; padding:7px 8px; text-align:right; color:#0f172a; font-size:11.5px; word-break:keep-all;">
+                    합계 (총 ${snap.totalWorkDays}일 | 평일 ${snap.weekdayHours}h · 휴일 ${snap.holidayHours}h)
                   </td>
-                  <td style="border:1px solid #cbd5e1; padding:8px 12px; text-align:right; color:#1e40af; font-size:13.5px;">
-                    총 ${snap.totalNetHours}시간
+                  <td style="border:1px solid #cbd5e1; padding:7px 4px; text-align:center; color:#1e40af; font-size:12px; white-space:nowrap;">
+                    총 ${snap.totalNetHours}h
                   </td>
                 </tr>
               </tbody>
@@ -3180,24 +3238,28 @@ window.ScheduleModule = (function () {
           `}
         </div>
 
-        <!-- 하단 전자서명(체크) 확인 및 서명란 -->
-        <div style="background:${isSigned ? '#ecfdf5' : '#fffbeb'}; border:1.5px solid ${isSigned ? '#10b981' : '#f59e0b'}; border-radius:12px; padding:16px 18px;">
-          <div style="font-size:13px; font-weight:800; color:#0f172a; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-            <span style="font-size:17px; color:${isSigned ? '#059669' : '#d97706'};">${isSigned ? '☑️' : '☐'}</span>
+        <!-- 하단 전자서명(체크) 확인 및 서명란 (성명 줄바꿈 깨짐 방지) -->
+        <div style="background:${isSigned ? '#ecfdf5' : '#fffbeb'}; border:1.5px solid ${isSigned ? '#10b981' : '#f59e0b'}; border-radius:10px; padding:12px 14px;">
+          <div style="font-size:12px; font-weight:800; color:#0f172a; margin-bottom:10px; display:flex; align-items:flex-start; gap:7px; line-height:1.45; word-break:keep-all;">
+            <span style="font-size:15px; color:${isSigned ? '#059669' : '#d97706'}; flex-shrink:0;">${isSigned ? '☑️' : '☐'}</span>
             <span>본인은 위와 같이 ${year}년 ${month}월 근무일정 및 근로시간이 자율 조율과 약국장 승인을 거쳐 최종 확정되었음을 확인하며, 근로계약서 제3조에 의거하여 전자서명(체크)합니다.</span>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top:10px; border-top:1px dashed #cbd5e1; font-size:13px;">
-            <div>
-              <strong>사업주(승인자) :</strong> 신세계약국 대표약국장 <strong>문 성 도</strong>
-              <span style="display:inline-block; margin-left:6px; padding:2px 8px; border-radius:6px; background:#dbeafe; color:#1e40af; font-weight:800; font-size:11.5px;">
-                ${isApproved ? '전자승인 완료 (印)' : '승인 대기'}
+          <div style="display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px dashed #cbd5e1; font-size:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <div style="white-space:nowrap;">
+                <strong>사업주(승인자) :</strong> 신세계약국 대표약국장 <strong style="white-space:nowrap;">문성도</strong>
+              </div>
+              <span style="padding:2px 8px; border-radius:6px; background:#dbeafe; color:#1e40af; font-weight:800; font-size:11px; white-space:nowrap;">
+                ${isApproved ? '✔ 전자승인 완료 (印)' : '승인 대기'}
               </span>
             </div>
-            <div>
-              <strong>근로자(전자서명자) :</strong> ${emp.role} <strong>${emp.name}</strong>
-              <span style="display:inline-block; margin-left:6px; padding:3px 10px; border-radius:6px; background:${isSigned ? '#059669' : '#e2e8f0'}; color:${isSigned ? '#ffffff' : '#64748b'}; font-weight:800; font-size:12px;">
-                ${isSigned ? `✍️ 전자서명(체크) 완료 (${signedAtStr})` : '미서명'}
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <div style="white-space:nowrap;">
+                <strong>근로자(서명자) :</strong> ${emp.role} <strong style="white-space:nowrap;">${emp.name}</strong>
+              </div>
+              <span style="padding:3px 9px; border-radius:6px; background:${isSigned ? '#059669' : '#e2e8f0'}; color:${isSigned ? '#ffffff' : '#64748b'}; font-weight:800; font-size:11px; white-space:nowrap;">
+                ${isSigned ? `✍️ 전자서명 완료 (${signedAtStr})` : '미서명'}
               </span>
             </div>
           </div>
@@ -3229,22 +3291,22 @@ window.ScheduleModule = (function () {
     const certHtml = buildSingleSignatureCertHtml(emp, sig, yNum, mNum, statusObj, scheduleRecords);
 
     body.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-3 border-bottom">
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-success font-bold" style="font-size:12px; padding:6px 12px; border-radius:8px;">
-            <i class="fas fa-shield-alt me-1"></i> 근로계약서 제3조 전자보관 문서
+      <div style="border-bottom:1.5px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px; padding-right:34px;">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
+          <span class="badge bg-success font-bold" style="font-size:11px; padding:4px 9px; border-radius:7px;">
+            <i class="fas fa-shield-alt me-1"></i> 약사 계약서 제3조 전자보관 문서
           </span>
-          <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">
-            ${emp.name} (${emp.role}) — ${yNum}년 ${mNum}월 전자서명 보관 확인서
-          </h3>
         </div>
-        <div class="d-flex align-items-center gap-2 me-4">
+        <h3 style="font-size:16px; font-weight:800; color:#0f172a; margin:0 0 8px 0; word-break:keep-all; line-height:1.35;">
+          ${emp.name} (${emp.role}) — ${yNum}년 ${mNum}월 전자서명 보관 확인서
+        </h3>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
           ${(sig && sig.cloudUrl) ? `
-            <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.openSignatureCloudImage('${emp.id}', '${mKey}')" style="background:#0284c7; border:none; border-radius:10px; padding:8px 14px;">
-              <i class="fas fa-cloud me-1"></i> ☁️ 클라우디너리 원본 이미지 보기
+            <button type="button" class="btn btn-sm font-bold text-white" onclick="ScheduleModule.openSignatureCloudImage('${emp.id}', '${mKey}')" style="background:#0284c7; border:none; border-radius:8px; padding:6px 12px; font-size:12px;">
+              <i class="fas fa-cloud me-1"></i> ☁️ 클라우디너리 원본 이미지
             </button>
           ` : ''}
-          <button type="button" class="btn btn-primary btn-sm font-bold" onclick="ScheduleModule.printSignatureDocument('printable-single-esign-cert', '${yNum}년_${mNum}월_${emp.name}_근무스케줄_전자서명확인서')" style="border-radius:10px; padding:8px 16px;">
+          <button type="button" class="btn btn-primary btn-sm font-bold" onclick="ScheduleModule.printSignatureDocument('printable-single-esign-cert', '${yNum}년_${mNum}월_${emp.name}_근무스케줄_전자서명확인서')" style="border-radius:8px; padding:6px 12px; font-size:12px;">
             <i class="fas fa-print me-1"></i> 🖨️ 확인서 인쇄 / PDF 저장
           </button>
         </div>
@@ -3254,13 +3316,13 @@ window.ScheduleModule = (function () {
         ${certHtml}
       </div>
 
-      <div class="d-flex justify-content-end gap-2 mt-3">
+      <div class="d-flex justify-content-end gap-2 mt-2">
         ${(!sig || !sig.signed) ? `
-          <button type="button" class="btn btn-success font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'; ScheduleModule.submitElectronicSignature('${emp.id}', true);" style="border-radius:10px; padding:9px 20px;">
+          <button type="button" class="btn btn-success font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'; ScheduleModule.submitElectronicSignature('${emp.id}', true);" style="border-radius:9px; padding:8px 16px; font-size:13px;">
             <i class="fas fa-check-square me-1"></i> ✍️ 지금 전자서명(체크) 완료 및 보관하기
           </button>
         ` : ''}
-        <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="border-radius:10px; padding:9px 20px;">
+        <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="border-radius:9px; padding:8px 18px; font-size:13px;">
           닫기
         </button>
       </div>
@@ -3291,25 +3353,23 @@ window.ScheduleModule = (function () {
     const targetList = pharmacists;
 
     const summaryTableHtml = `
-      <div style="border:2px solid #0f172a; border-radius:14px; padding:22px; background:#ffffff; margin-bottom:24px;">
-        <div style="text-align:center; margin-bottom:16px; border-bottom:2px solid #0f172a; padding-bottom:12px;">
-          <div style="font-size:12px; font-weight:800; color:#1e40af;">신세계약국 인사·노무 법정 전자보관 대장 (약사 계약서 제3조)</div>
-          <h2 style="font-size:22px; font-weight:900; color:#0f172a; margin:4px 0;">
-            📊 ${yNum}년 ${mNum}월 근무약사 근무스케줄 전자서명(체크) 총괄 보관대장
+      <div class="esign-cert-doc" style="margin-bottom:20px;">
+        <div style="text-align:center; margin-bottom:12px; border-bottom:2px solid #0f172a; padding-bottom:10px;">
+          <div style="font-size:11px; font-weight:800; color:#1e40af;">신세계약국 인사·노무 법정 전자보관 대장 (약사 계약서 제3조)</div>
+          <h2 class="esign-doc-title" style="font-size:19px; font-weight:900; color:#0f172a; margin:4px 0; word-break:keep-all;">
+            📊 ${yNum}년 ${mNum}월 근무약사 전자서명(체크) 총괄 보관대장
           </h2>
-          <div style="font-size:12.5px; color:#475569;">프로세스: ① 인트라넷 달력 입력 ➔ ② 약국장 승인 ➔ ③ 근무약사 전자서명(체크) 확정</div>
+          <div style="font-size:11.5px; color:#475569; word-break:keep-all;">프로세스: ① 인트라넷 달력 입력 ➔ ② 약국장 승인 ➔ ③ 근무약사 전자서명(체크) 확정</div>
         </div>
 
-        <table style="width:100%; border-collapse:collapse; font-size:12.5px; border:1px solid #cbd5e1;">
+        <table class="esign-schedule-table" style="width:100%; table-layout:fixed; border-collapse:collapse; font-size:12px; border:1px solid #cbd5e1;">
           <thead>
             <tr style="background:#f1f5f9; color:#0f172a; font-weight:800;">
-              <th style="border:1px solid #cbd5e1; padding:8px; text-align:center;">성명</th>
-              <th style="border:1px solid #cbd5e1; padding:8px; text-align:center;">직책</th>
-              <th style="border:1px solid #cbd5e1; padding:8px; text-align:center;">확정 근무일수</th>
-              <th style="border:1px solid #cbd5e1; padding:8px; text-align:center;">확정 실근무시수</th>
-              <th style="border:1px solid #cbd5e1; padding:8px; text-align:center;">약국장 승인</th>
-              <th style="border:1px solid #cbd5e1; padding:8px; text-align:center;">전자서명(체크) 일시</th>
-              <th style="border:1px solid #cbd5e1; padding:8px; text-align:center;">문서보관번호</th>
+              <th style="width:18%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">약사명</th>
+              <th style="width:14%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">근무일</th>
+              <th style="width:24%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">실근무시수</th>
+              <th style="width:16%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">승인</th>
+              <th style="width:28%; border:1px solid #cbd5e1; padding:6px 4px; text-align:center; white-space:nowrap;">전자서명 일시</th>
             </tr>
           </thead>
           <tbody>
@@ -3318,15 +3378,14 @@ window.ScheduleModule = (function () {
               const isSigned = !!(sig && sig.signed);
               const snap = (sig && sig.records) ? sig : buildEmployeeMonthSnapshot(emp, yNum, mNum, scheduleRecords);
               const isApproved = statusObj[emp.id] === 'APPROVED' || !!statusObj.directorApproved || (sig && sig.directorApproved);
+              const shortSigTime = (sig && sig.signedAt) ? sig.signedAt.slice(2, 16) : '';
               return `
                 <tr>
-                  <td style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center; font-weight:800;">${emp.name}</td>
-                  <td style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center;">${emp.role}</td>
-                  <td style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center; font-weight:700;">${snap.totalWorkDays}일</td>
-                  <td style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center; font-weight:800; color:#1d4ed8;">총 ${snap.totalNetHours}h (평일 ${snap.weekdayHours}h / 휴일 ${snap.holidayHours}h)</td>
-                  <td style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center; font-weight:700; color:${isApproved ? '#15803d' : '#d97706'};">${isApproved ? '✔ 승인완료' : '대기'}</td>
-                  <td style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center; font-weight:800; color:${isSigned ? '#059669' : '#94a3b8'};">${isSigned ? `☑️ ${sig.signedAt}` : '미서명'}</td>
-                  <td style="border:1px solid #cbd5e1; padding:7px 10px; text-align:center; font-size:11.5px; color:#475569;">${isSigned ? (sig.certId || '-') : '-'}</td>
+                  <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:800; white-space:nowrap;">${emp.name}</td>
+                  <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:700; white-space:nowrap;">${snap.totalWorkDays}일</td>
+                  <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:800; color:#1d4ed8; white-space:nowrap;">총 ${snap.totalNetHours}h</td>
+                  <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:700; color:${isApproved ? '#15803d' : '#d97706'}; white-space:nowrap;">${isApproved ? '✔ 완료' : '대기'}</td>
+                  <td style="border:1px solid #cbd5e1; padding:6px 4px; text-align:center; font-weight:800; color:${isSigned ? '#059669' : '#94a3b8'}; white-space:nowrap;">${isSigned ? `☑️ ${shortSigTime}` : '미서명'}</td>
                 </tr>
               `;
             }).join('')}
@@ -3341,20 +3400,16 @@ window.ScheduleModule = (function () {
     }).join('<div style="page-break-after:always;"></div>');
 
     body.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-3 border-bottom">
-        <div>
-          <span class="badge bg-primary font-bold" style="font-size:12px; padding:5px 10px; border-radius:8px;">
-            📜 약사 근로계약서 제3조 통합 보관대장
-          </span>
-          <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:4px 0 0 0;">
-            ${yNum}년 ${mNum}월 전체 약사 전자서명(체크) 보관대장 및 개별 확인서
-          </h3>
-        </div>
-        <div class="d-flex align-items-center gap-2 me-4">
-          <button type="button" class="btn btn-primary btn-sm font-bold" onclick="ScheduleModule.printSignatureDocument('printable-monthly-esign-ledger', '${yNum}년_${mNum}월_신세계약국_전자서명보관대장')" style="border-radius:10px; padding:8px 16px;">
-            <i class="fas fa-print me-1"></i> 🖨️ 전체 보관대장 인쇄 / PDF 저장
-          </button>
-        </div>
+      <div style="border-bottom:1.5px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px; padding-right:34px;">
+        <span class="badge bg-primary font-bold" style="font-size:11px; padding:4px 9px; border-radius:7px;">
+          📜 약사 근로계약서 제3조 통합 보관대장
+        </span>
+        <h3 style="font-size:16px; font-weight:800; color:#0f172a; margin:5px 0 8px 0; word-break:keep-all;">
+          ${yNum}년 ${mNum}월 근무약사 전자서명 보관대장 및 개별 확인서
+        </h3>
+        <button type="button" class="btn btn-primary btn-sm font-bold" onclick="ScheduleModule.printSignatureDocument('printable-monthly-esign-ledger', '${yNum}년_${mNum}월_신세계약국_전자서명보관대장')" style="border-radius:8px; padding:6px 14px; font-size:12px;">
+          <i class="fas fa-print me-1"></i> 🖨️ 전체 보관대장 인쇄 / PDF 저장
+        </button>
       </div>
 
       <div id="printable-monthly-esign-ledger">
@@ -3362,8 +3417,8 @@ window.ScheduleModule = (function () {
         ${detailCertsHtml}
       </div>
 
-      <div class="d-flex justify-content-end mt-3">
-        <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="border-radius:10px; padding:9px 20px;">
+      <div class="d-flex justify-content-end mt-2">
+        <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="border-radius:9px; padding:8px 18px; font-size:13px;">
           닫기
         </button>
       </div>
@@ -3372,78 +3427,65 @@ window.ScheduleModule = (function () {
     modal.style.display = 'flex';
   }
 
-  // 🗄️ 월별 전자서명 영구 보관함 이력 모달
+  // 🗄️ 월별 전자서명 영구 보관함 이력 모달 (모바일/PC 한 화면 반응형 리스트)
   function openSignatureArchiveHistoryModal() {
     const modal = ensureSignatureModalExists();
     const body = document.getElementById('schedule-esign-cert-modal-body');
     if (!body) return;
 
     const data = window.SheetsSync.getData();
-    const employees = data.employees || [];
     const allStatusData = data.scheduleStatus || {};
     const curKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
 
     const monthKeys = Array.from(new Set([curKey, ...Object.keys(allStatusData)])).sort((a, b) => b.localeCompare(a));
 
     body.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-3 border-bottom">
-        <div>
-          <span class="badge bg-dark font-bold" style="font-size:12px; padding:5px 10px; border-radius:8px;">
-            🗄️ 영구 전자보관 아카이브 (근로계약서 제3조)
-          </span>
-          <h3 style="font-size:18px; font-weight:800; color:#0f172a; margin:4px 0 0 0;">
-            월별 약사 전자서명(체크) 보관함 전체 이력
-          </h3>
-        </div>
+      <div style="border-bottom:1.5px solid #e2e8f0; padding-bottom:10px; margin-bottom:12px; padding-right:34px;">
+        <span class="badge bg-dark font-bold" style="font-size:11px; padding:4px 9px; border-radius:7px;">
+          🗄️ 영구 전자보관 아카이브 (약사 계약서 제3조)
+        </span>
+        <h3 style="font-size:16.5px; font-weight:800; color:#0f172a; margin:5px 0 0 0; word-break:keep-all;">
+          월별 근무약사 전자서명(체크) 보관함 전체 이력
+        </h3>
       </div>
 
-      <div class="table-responsive" style="border:1.5px solid #cbd5e1; border-radius:14px; overflow:hidden;">
-        <table class="table table-hover align-middle mb-0" style="font-size:13.5px;">
-          <thead style="background:#f1f5f9; font-weight:800; color:#0f172a;">
-            <tr>
-              <th style="padding:12px 16px;">귀속 연월</th>
-              <th style="padding:12px 16px;">약국장 마스터 승인</th>
-              <th style="padding:12px 16px;">전자서명(체크) 보관 명단</th>
-              <th style="padding:12px 16px; text-align:center;">보관대장 열람 / 이동</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${monthKeys.map(mk => {
-              const st = allStatusData[mk] || {};
-              const sigs = Object.values(st.signatures || {}).filter(s => s && s.signed);
-              const isMasterApproved = !!st.directorApproved;
-              return `
-                <tr>
-                  <td style="padding:12px 16px; font-weight:800; color:#0f172a;">📅 ${mk}</td>
-                  <td style="padding:12px 16px;">
-                    ${isMasterApproved
-                      ? `<span class="badge bg-success">✅ 승인완료 (${st.approvedAt || '-'})</span>`
-                      : `<span class="badge bg-secondary">작성/조율중</span>`
-                    }
-                  </td>
-                  <td style="padding:12px 16px;">
-                    ${sigs.length === 0
-                      ? `<span class="text-muted" style="font-size:12.5px;">보관된 전자서명 없음</span>`
-                      : sigs.map(s => `<span class="badge me-1 mb-1" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:12px; padding:4px 8px;">✍️ ${s.signerName} (${s.totalNetHours}h)</span>`).join('')
-                    }
-                  </td>
-                  <td style="padding:12px 16px; text-align:center; white-space:nowrap;">
-                    <button type="button" class="btn btn-sm btn-primary font-bold me-1" onclick="ScheduleModule.openMonthlySignatureLedgerModal('${mk}')" style="border-radius:8px;">
-                      <i class="fas fa-book-open me-1"></i> 대장 열람·인쇄
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary font-bold" onclick="ScheduleModule.jumpToArchivedMonth('${mk}')" style="border-radius:8px;">
-                      해당 월 이동
-                    </button>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        ${monthKeys.map(mk => {
+          const st = allStatusData[mk] || {};
+          const sigs = Object.values(st.signatures || {}).filter(s => s && s.signed && (!s.signerRole || s.signerRole.includes('약사')));
+          const isMasterApproved = !!st.directorApproved;
+          return `
+            <div style="border:1.5px solid #cbd5e1; border-radius:12px; padding:12px 14px; background:#ffffff;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <strong style="font-size:15px; font-weight:800; color:#0f172a;">📅 ${mk}</strong>
+                  ${isMasterApproved
+                    ? `<span class="badge bg-success" style="font-size:11px;">✅ 약국장 승인완료</span>`
+                    : `<span class="badge bg-secondary" style="font-size:11px;">작성/조율중</span>`
+                  }
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <button type="button" class="btn btn-sm btn-primary font-bold" onclick="ScheduleModule.openMonthlySignatureLedgerModal('${mk}')" style="border-radius:8px; padding:5px 10px; font-size:12px;">
+                    <i class="fas fa-book-open me-1"></i> 대장 열람·인쇄
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary font-bold" onclick="ScheduleModule.jumpToArchivedMonth('${mk}')" style="border-radius:8px; padding:5px 10px; font-size:12px;">
+                    이동
+                  </button>
+                </div>
+              </div>
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px;">
+                ${sigs.length === 0
+                  ? `<span class="text-muted" style="font-size:12px;">보관된 근무약사 전자서명 없음</span>`
+                  : sigs.map(s => `<span class="badge me-1 mb-1" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:11.5px; padding:4px 8px;">✍️ ${s.signerName} (${s.totalNetHours}h)</span>`).join('')
+                }
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
 
       <div class="d-flex justify-content-end mt-3">
-        <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="border-radius:10px; padding:9px 20px;">
+        <button type="button" class="btn btn-secondary font-bold" onclick="document.getElementById('schedule-esign-cert-modal').style.display='none'" style="border-radius:9px; padding:8px 18px; font-size:13px;">
           닫기
         </button>
       </div>

@@ -1462,11 +1462,11 @@
           <div class="step-card" style="border-left: 6px solid #0284c7; background:#f0f9ff;">
             <div class="step-num" style="background:#0284c7;">🔎</div>
             <div class="step-content">
-              <h4>🔎 [의약품 낱알 식별기] 손님이 가져온 알약! 사진 촬영 또는 모양·색상·각인문자로 1초 판독!</h4>
+              <h4>🔎 [의약품 낱알 식별기] 손님이 가져온 알약! 사진 촬영 또는 모양·색상·각인문자로 1초 판독! (로컬스토리지 0MB · 클라우디너리 직결)</h4>
               <p>
                 • <strong>📸 1단계 AI 카메라 촬영</strong> : 손님이 가져온 정체불명의 알약을 <strong>[📸 바로 카메라 촬영]</strong> 또는 <strong>[🎥 인앱 접사 뷰파인더]</strong>로 찍으면 Gemini Vision AI가 각인문자·모양·색상·제형을 자동 추출하고 식약처 공식 OpenAPI와 교차 검증합니다.<br>
-                • <strong>🎨 2단계 모양·색상·각인문자 필터</strong> : 각인 글씨(예: <code>TYLENOL</code>, <code>ATV</code>, <code>OG33</code>)나 모양(원형·타원형·장방형·팔각형 등), 색상 스와치를 터치하면 식약처 공식 이미지·성상·효능과 함께 <strong>🏥 우리 약국 보유 진열 위치(일반약/전문약)</strong>까지 자동 매칭되어 표시됩니다.<br>
-                • <strong>🗣️ 손님 안내 큰글씨 & 💾 상담기록 보관</strong> : <strong>[🗣️ 손님 안내 큰글씨]</strong>를 눌러 손님께 큰 화면으로 약 정보를 보여드리고, <strong>[💾 상담기록 보관]</strong>을 누르면 촬영 사진이 클라우디너리에 영구 저장됩니다.
+                • <strong>🎨 2단계 모양·색상·각인문자 & 🏥 우리 약국 보유약 필터</strong> : 각인 글씨(예: <code>TYLENOL</code>, <code>ATV</code>, <code>OG33</code>)나 모양·색상 스와치를 터치하거나 <strong>[🏥 우리 약국 보유 제품만 보기]</strong>를 누르면, 식약처 공식 이미지와 함께 <strong>우리 약국 진열 위치 및 클라우디너리에 등록된 우리 약국 제품 사진</strong>까지 자동 매칭되어 최상단에 표시됩니다.<br>
+                • <strong>🗣️ 손님 안내 큰글씨 & 💾 클라우디너리·클라우드 보관 (로컬스토리지 0 Byte)</strong> : 모든 식약처 조회 캐시와 보관 내역은 브라우저 기본 로컬스토리지 용량을 단 1 Byte도 차지하지 않으며, <strong>[💾 클라우디너리·클라우드 보관]</strong> 클릭 시 촬영 사진(또는 자동 생성된 식별·보유약 확인서 이미지)이 <strong>Cloudinary(25GB)</strong>와 <strong>Firebase 전용 클라우드</strong>에 영구 저장됩니다.
               </p>
             </div>
           </div>

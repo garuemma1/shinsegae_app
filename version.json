@@ -1,10 +1,16 @@
 {
-  "version": "v6.000",
-  "displayVersion": "v6.000",
-  "name": "🔎 식약처 의약품 낱알 식별기 신규 탭 개설 (공공데이터포털 OpenAPI + Gemini Vision AI + 약국 진열위치 자동 매칭)",
-  "buildTime": 1793805900000,
-  "updatedAt": "2026-11-05 00:25",
+  "version": "v6.001",
+  "displayVersion": "v6.001",
+  "name": "🔎 식약처 낱알 식별기 로컬스토리지 0MB(Zero-Storage) 아키텍처 & 클라우디너리·파이어베이스 100% 직결 보관 고도화",
+  "buildTime": 1793807100000,
+  "updatedAt": "2026-11-05 00:45",
   "history": [
+    {
+      "version": "v6.001",
+      "updatedAt": "2026-11-05 00:45",
+      "files": ["pill-identifier-module.js", "sheets-sync.js", "app.js", "index.html", "guide.html", "프롬프트 마스터.txt", "version.json"],
+      "summary": "식약처 낱알 식별 결과 캐시 및 상담·제품 보관 기록을 브라우저 기본 localStorage에 단 1 Byte도 저장하지 않도록(0 Byte) 전면 개편하고, 클라우디너리(Cloudinary 이미지 스냅샷 자동 생성·업로드) 및 파이어베이스 전용 클라우드 DB(pillIdCloudCache / pillIdentifications) 100% 직결 아키텍처 및 [🏥 우리 약국 보유 제품만 보기] 필터 적용"
+    },
     {
       "version": "v6.000",
       "updatedAt": "2026-11-05 00:25",

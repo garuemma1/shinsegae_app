@@ -390,7 +390,8 @@ window.App = (function () {
     } catch(e) { return false; }
   }
 
-  // ─── 🔎 의약품 낱알 식별기 읽음 상태 관리 헬퍼 ─────────────────────────────
+  // ─── 🔎 의약품 낱알 식별기 읽음 상태 관리 헬퍼 (인메모리 운용 — localStorage 0 Byte) ───
+  const inMemoryReadPillIdentifierMap = {};
   function _pillIdentifierFingerprint(item) {
     if (!item) return '';
     return [
@@ -406,25 +407,25 @@ window.App = (function () {
     const currUser = window.SheetsSync ? window.SheetsSync.getCurrentUser() : null;
     if (!currUser) return;
     try {
+      try { localStorage.removeItem('ssg_read_pill_identifier_' + currUser.id); } catch(e) {}
       const items = (window.SheetsSync && typeof window.SheetsSync.getPillIdentifications === 'function')
         ? (window.SheetsSync.getPillIdentifications() || [])
         : [];
       const fingerprints = (Array.isArray(items) ? items : []).map(_pillIdentifierFingerprint);
-      localStorage.setItem('ssg_read_pill_identifier_' + currUser.id, JSON.stringify(fingerprints));
+      inMemoryReadPillIdentifierMap[currUser.id] = fingerprints;
     } catch(e) {}
   }
 
   function _hasUnreadPillIdentifier(currUser, items) {
     if (!currUser) return false;
     try {
-      const raw = localStorage.getItem('ssg_read_pill_identifier_' + currUser.id);
-      if (raw === null) {
+      try { localStorage.removeItem('ssg_read_pill_identifier_' + currUser.id); } catch(e) {}
+      const savedFPs = inMemoryReadPillIdentifierMap[currUser.id];
+      if (!savedFPs) {
         if (!items || items.length === 0) return false;
-        const fingerprints = (items || []).map(_pillIdentifierFingerprint);
-        localStorage.setItem('ssg_read_pill_identifier_' + currUser.id, JSON.stringify(fingerprints));
+        inMemoryReadPillIdentifierMap[currUser.id] = (items || []).map(_pillIdentifierFingerprint);
         return false;
       }
-      const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
       return (items || []).some(item => !savedSet.has(_pillIdentifierFingerprint(item)));
     } catch(e) { return false; }

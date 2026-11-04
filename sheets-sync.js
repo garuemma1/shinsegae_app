@@ -1996,21 +1996,25 @@ window.SheetsSync = (function () {
     saveSmsDispatchHistory(list);
   }
 
+  // 🛡️ [제 195 조] 의약품 낱알 식별 상담 기록 및 식약처 캐시는 localStorage 용량(5MB) 보호를 위해 100% 인메모리(RAM) + Firebase/Cloudinary 직결 운용 (로컬스토리지 0 Byte)
+  let inMemoryPillIdentifications = [];
+  try {
+    localStorage.removeItem('ssg_pill_identifications_v1');
+    localStorage.removeItem('ssg_mfds_pill_cache_v1');
+  } catch (e) {}
+
   function getPillIdentifications() {
     const deletedIds = getDeletedIds();
-    try {
-      const raw = safeGetItem(STORAGE_KEYS.PILL_IDENTIFICATIONS);
-      const list = raw ? JSON.parse(raw) : [];
-      return (list || []).filter(item => item && !deletedIds.includes(item.id));
-    } catch (e) {
-      return [];
-    }
+    return (inMemoryPillIdentifications || []).filter(item => item && !deletedIds.includes(item.id));
   }
 
   function savePillIdentifications(data) {
     const deletedIds = getDeletedIds();
     const cleanData = (data || []).filter(item => item && !deletedIds.includes(item.id));
-    safeSetItem(STORAGE_KEYS.PILL_IDENTIFICATIONS, JSON.stringify(cleanData));
+    inMemoryPillIdentifications = cleanData;
+    try {
+      localStorage.removeItem(STORAGE_KEYS.PILL_IDENTIFICATIONS);
+    } catch (e) {}
     if (typeof window !== 'undefined' && window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
       window.App.updateSidebarBadgesOnly();
     }
@@ -2672,12 +2676,12 @@ window.SheetsSync = (function () {
         }
       }
 
-      // 4-8. 🔎 의약품 낱알 식별 상담 기록 스마트 비파괴 병합
+      // 4-8. 🔎 의약품 낱알 식별 상담 기록 스마트 비파괴 병합 (인메모리 + 파이어베이스/클라우디너리 직결, localStorage 0 Byte)
       if (cloudData.pillIdentifications && Array.isArray(cloudData.pillIdentifications)) {
         const localPillIds = getPillIdentifications() || [];
         const mergedPillIds = mergeById(localPillIds, cloudData.pillIdentifications, 'createdAt');
         if (isListDifferent(localPillIds, mergedPillIds)) {
-          safeSetItem(STORAGE_KEYS.PILL_IDENTIFICATIONS, JSON.stringify(mergedPillIds));
+          inMemoryPillIdentifications = mergedPillIds;
           updated = true;
         }
       }

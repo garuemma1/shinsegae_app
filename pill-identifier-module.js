@@ -10,12 +10,16 @@ if (typeof window.PillIdentifierModule === 'undefined') {
   window.PillIdentifierModule = (function () {
     const DEFAULT_MFDS_SERVICE_KEY = '022aca34703daabded07c1d45868dd361b8b2377b0e1dd31fb42970b56eef585';
     const MFDS_API_ENDPOINT = 'https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService03/getMdcinGrnIdntfcInfoList03';
-    const MFDS_KEY_STORAGE = 'ssg_mfds_pill_service_key_v1';
-    const MFDS_CACHE_STORAGE = 'ssg_mfds_pill_cache_v1';
-    const GEMINI_KEY_STORAGE = 'ssg_pill_gemini_api_key_v1';
     const FIREBASE_PILL_ID_CONFIG_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillIdConfig.json';
+    const FIREBASE_PILL_ID_CACHE_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillIdCloudCache.json';
     const FIREBASE_AI_CONFIG_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillCounterConfig.json';
     const AI_MODEL_QUEUE = ['gemini-2.5-flash', 'gemini-flash-latest'];
+
+    // 🛡️ [제 195 조 & 제 171 조] 브라우저 기본 localStorage (5MB 한도) 절대 사용 금지 (0 Byte 유지)
+    // 기존에 남아있을 수 있는 로컬스토리지 캐시·기록 키를 기동 즉시 영구 삭제하고 100% 인메모리(RAM) + 클라우디너리(Cloudinary) & 파이어베이스(Firebase) 직결 운용
+    try {
+      ['ssg_mfds_pill_cache_v1', 'ssg_pill_identifications_v1', 'ssg_mfds_pill_service_key_v1'].forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
 
     // 식약처 공식 낱알식별 핵심 시드 DB (다빈도 처방·일반약 86종 — 오프라인/각인문자 0.01초 즉시 검색용)
     const EMBEDDED_MFDS_SEED = [{"ITEM_SEQ":"202106092","ITEM_NAME":"타이레놀정500밀리그람(아세트아미노펜)","ENTP_NAME":"켄뷰코리아판매유한회사","CHART":"흰색의 장방형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OKRXo9l4D5","PRINT_FRONT":"TYLENOL","PRINT_BACK":"500","DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"17.6","LENG_SHORT":"7.1","THICK":"5.7","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"200610660","ITEM_NAME":"노바스크정5밀리그람(암로디핀베실산염)","ENTP_NAME":"비아트리스코리아(주)","CHART":"흰색의 팔각형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pm1vy6QK2x","PRINT_FRONT":"VLE","PRINT_BACK":"NV분할선5","DRUG_SHAPE":"팔각형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"8.6","LENG_SHORT":"6.1","THICK":"3.1","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"073400360"},{"ITEM_SEQ":"200108429","ITEM_NAME":"아스피린프로텍트정100밀리그람","ENTP_NAME":"바이엘코리아(주)","CHART":"한쪽 면에 BAYER 식별이 있고, 다른 한쪽 면에는 식별이 없는 흰색의 원형 장용 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147427668455400184","PRINT_FRONT":"Bayer","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"7.23","LENG_SHORT":"7.23","THICK":"3.07","CLASS_NAME":"기타의 순환계용약","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"장용성필름코팅정","EDI_CODE":"641100270"},{"ITEM_SEQ":"200700907","ITEM_NAME":"플라빅스정75밀리그램(클로피도그렐황산염)","ENTP_NAME":"(주)한독","CHART":"분홍색의 원형필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/149883724889500122","PRINT_FRONT":"75","PRINT_BACK":"1171","DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.5","LENG_SHORT":"8.5","THICK":"4","CLASS_NAME":"동맥경화용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"652101570"},{"ITEM_SEQ":"200410090","ITEM_NAME":"리피토정10밀리그램(아토르바스타틴칼슘삼수화물)","ENTP_NAME":"비아트리스코리아(주)","CHART":"흰색의 원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1O0bxj5Fj_F","PRINT_FRONT":"ATV","PRINT_BACK":"10","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"5.5","LENG_SHORT":"5.5","THICK":"3.5","CLASS_NAME":"동맥경화용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"073400340"},{"ITEM_SEQ":"200210097","ITEM_NAME":"크레스토정10밀리그램(로수바스타틴칼슘)","ENTP_NAME":"한국아스트라제네카(주)","CHART":"분홍색 원형 필름코팅정 ","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/150954503241500076","PRINT_FRONT":"ZD452210","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"7.3","LENG_SHORT":"7.3","THICK":"3.77","CLASS_NAME":"동맥경화용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"650700520"},{"ITEM_SEQ":"201005081","ITEM_NAME":"트윈스타정40/5밀리그램","ENTP_NAME":"한국베링거인겔하임(주)","CHART":"흰색과 연한 파란색의 양면이 볼록한 타원형 이중정이다.","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pvn3im1ken","PRINT_FRONT":"마크 A1","PRINT_BACK":null,"DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":"파랑","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"14.0","LENG_SHORT":"6.80","THICK":"5.00","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"다층정","EDI_CODE":"653501270"},{"ITEM_SEQ":"200402637","ITEM_NAME":"아모디핀정5밀리그램(암로디핀캄실산염)","ENTP_NAME":"한미약품(주)","CHART":"흰색의 육각형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Or51Qm62xf","PRINT_FRONT":"HMP","PRINT_BACK":"AM분할선5","DRUG_SHAPE":"육각형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"8.32","LENG_SHORT":"6.06","THICK":"3.13","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"643501600"},{"ITEM_SEQ":"200710759","ITEM_NAME":"자누비아정100밀리그램(시타글립틴인산염수화물)","ENTP_NAME":"(주)종근당","CHART":"베이지색으로 한면에 277이 새겨진 원형의 양면이 볼록한 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1PHso-WYTOf","PRINT_FRONT":"277","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"주황","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"10","LENG_SHORT":"10","THICK":"4","CLASS_NAME":"당뇨병용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"643309550"},{"ITEM_SEQ":"200009027","ITEM_NAME":"넥시움정20밀리그램(에스오메프라졸마그네슘)","ENTP_NAME":"한국아스트라제네카(주)","CHART":"연분홍색 장방형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Oa2BrqwG9V","PRINT_FRONT":"AEH","PRINT_BACK":"20mG","DRUG_SHAPE":"장방형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"14","LENG_SHORT":"7","THICK":"4.5","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"650700070"},{"ITEM_SEQ":"201902217","ITEM_NAME":"에넥시움정20밀리그램(에스오메프라졸마그네슘삼수화물)","ENTP_NAME":"(주)보령바이오파마","CHART":"연한 분홍색의 장방형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OkqsRLb_1b","PRINT_FRONT":"B2S","PRINT_BACK":null,"DRUG_SHAPE":"타원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"12.1","LENG_SHORT":"6.9","THICK":"4.1","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"670501580"},{"ITEM_SEQ":"200100565","ITEM_NAME":"가스모틴정5밀리그램(모사프리드시트르산염수화물)","ENTP_NAME":"(주)대웅제약","CHART":"이약은 분할선을 가진 흰색의 장방형 필름코팅정제이다","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Orz9gcUHHI","PRINT_FRONT":"D.W","PRINT_BACK":"분할선","DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"9.1","LENG_SHORT":"4.6","THICK":"3.6","CLASS_NAME":"기타의 소화기관용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"641600030"},{"ITEM_SEQ":"200500248","ITEM_NAME":"스티렌정(애엽95%에탄올연조엑스(20→1))","ENTP_NAME":"동아에스티(주)","CHART":"이약은 녹색의 타원형 필름코팅정이다","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OeimlOsRPg","PRINT_FRONT":"DA","PRINT_BACK":"SLT","DRUG_SHAPE":"타원형","COLOR_CLASS1":"연두","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"11.2","LENG_SHORT":"6.2","THICK":"4.4","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"642502290"},{"ITEM_SEQ":"201500114","ITEM_NAME":"가스티렌정(애엽95%에탄올연조엑스(20→1))","ENTP_NAME":"(주)테라젠이텍스","CHART":"녹색의 타원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OR9x9vZQv5","PRINT_FRONT":"ETG1","PRINT_BACK":null,"DRUG_SHAPE":"타원형","COLOR_CLASS1":"연두","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"13.5","LENG_SHORT":"7.4","THICK":"4.4","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"698502910"},{"ITEM_SEQ":"199102825","ITEM_NAME":"무코스타정(레바미피드)","ENTP_NAME":"한국오츠카제약(주)","CHART":"백색의 원형필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1N1ddmFmE2M","PRINT_FRONT":"OG33","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.1","LENG_SHORT":"8.1","THICK":"3.4","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"649900060"},{"ITEM_SEQ":"199300848","ITEM_NAME":"동화록소닌정(록소프로펜나트륨수화물)","ENTP_NAME":"동화약품(주)","CHART":"담홍색의 원형정제이다.","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OrgEjHwC3Y","PRINT_FRONT":"D-W분할선LXN","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"9.0","LENG_SHORT":"9.0","THICK":"3.1","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"642700370"},{"ITEM_SEQ":"200103393","ITEM_NAME":"한국얀센울트라셋정(수출용)","ENTP_NAME":"(주)한국얀센","CHART":"연한 황색의 장방형 필름코팅 정제 ","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/154661651930900001","PRINT_FRONT":"JANSSEN","PRINT_BACK":"T/A","DRUG_SHAPE":"장방형","COLOR_CLASS1":"노랑","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"15.5","LENG_SHORT":"6.5","THICK":"5.5","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"202003694","ITEM_NAME":"울트라셋정","ENTP_NAME":"(주)한국얀센","CHART":"연한 노란색의 장방형 필름코팅 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1NOwp2F6IoO","PRINT_FRONT":"J-C","PRINT_BACK":"T/P","DRUG_SHAPE":"장방형","COLOR_CLASS1":"주황","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"15.7","LENG_SHORT":"6.5","THICK":"5.6","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"646902330"},{"ITEM_SEQ":"199101279","ITEM_NAME":"오구멘틴정625밀리그램(아목시실린·클라불란산칼륨(4:1))","ENTP_NAME":"일성아이에스(주)","CHART":"백색 또는 거의 백색의 타원형 필름코팅정제이다.","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1PKAziUZSbG","PRINT_FRONT":"AUG 625","PRINT_BACK":null,"DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"20.25","LENG_SHORT":"9.76","THICK":"4.45","CLASS_NAME":"주로 그람양성, 음성균에 작용하는 것","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"655401520"},{"ITEM_SEQ":"200307829","ITEM_NAME":"클래리시드필름코팅정250밀리그램(클래리트로마이신)","ENTP_NAME":"한국애보트(유)","CHART":"바닐라향이 나는 노란색의 타원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1NcelJgSVbH","PRINT_FRONT":"마크 KT","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"노랑","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"15.8","LENG_SHORT":"8.0","THICK":"5.7","CLASS_NAME":"기타의 항생물질제제(복합항생물질제제를 포함)","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"644200570"},{"ITEM_SEQ":"201005501","ITEM_NAME":"카나브정60밀리그램(피마사르탄칼륨삼수화물)","ENTP_NAME":"(주)보령","CHART":"노란색의 한 면에 분할선이 있고 각 모서리가 둥근 육각형의 볼록한 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/154333320801300056","PRINT_FRONT":"B분할선R","PRINT_BACK":"FMS6","DRUG_SHAPE":"육각형","COLOR_CLASS1":"노랑","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"8","LENG_SHORT":"4","THICK":"4","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"641905450"},{"ITEM_SEQ":"201310719","ITEM_NAME":"글리아타민연질캡슐(콜린알포세레이트)","ENTP_NAME":"대웅바이오(주)","CHART":"무색투명의 점조한 액을 넣은 담황색을 띤 타원형의 연질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/154039561327900002","PRINT_FRONT":"글리아타민","PRINT_BACK":null,"DRUG_SHAPE":"타원형","COLOR_CLASS1":"갈색","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"15.5","LENG_SHORT":"8.5","THICK":"8.5","CLASS_NAME":"기타의 중추신경용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"연질캡슐제, 액상","EDI_CODE":"694000600"},{"ITEM_SEQ":"199702183","ITEM_NAME":"기넥신에프정80밀리그램(은행엽건조엑스)","ENTP_NAME":"에스케이케미칼(주)","CHART":"진녹색의 타원형 필름 코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OM2GQpPV4K","PRINT_FRONT":"SK","PRINT_BACK":"G분할선80","DRUG_SHAPE":"장방형","COLOR_CLASS1":"연두","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"14.5","LENG_SHORT":"7.3","THICK":"4.4","CLASS_NAME":"기타의 순환계용약","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"644700140"},{"ITEM_SEQ":"199602982","ITEM_NAME":"소론도정(프레드니솔론)","ENTP_NAME":"(주)유한양행","CHART":"흰색의 원형정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OoAc19ns4C","PRINT_FRONT":"YH","PRINT_BACK":"P분할선5","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"6.5","LENG_SHORT":"6.5","THICK":"3.4","CLASS_NAME":"부신호르몬제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":null},{"ITEM_SEQ":"200610765","ITEM_NAME":"지르텍정(세티리진염산염)","ENTP_NAME":"한국유씨비제약(주)","CHART":"흰색의 장방형 필름코팅정 ","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pe072ka2fV","PRINT_FRONT":"Z분할선Z","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"10","LENG_SHORT":"4","THICK":"3","CLASS_NAME":"항히스타민제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"654100110"},{"ITEM_SEQ":"199801016","ITEM_NAME":"알레그라정120밀리그람(펙소페나딘염산염)","ENTP_NAME":"(주)한독","CHART":"연분홍색의 긴 타원형의 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OlTcytjZI_","PRINT_FRONT":"012---","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"16","LENG_SHORT":"5","THICK":"4.9","CLASS_NAME":"항히스타민제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"652100960"},{"ITEM_SEQ":"200009063","ITEM_NAME":"싱귤레어정10밀리그램(몬테루카스트나트륨)","ENTP_NAME":"한국오가논(주)","CHART":"모서리가 둥근 사각형 모양의 베이지색 필름코팅 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Q4TAkVId_j","PRINT_FRONT":null,"PRINT_BACK":"117","DRUG_SHAPE":"사각형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.0","LENG_SHORT":"8.0","THICK":"3.8","CLASS_NAME":"기타의 알레르기용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"073100190"},{"ITEM_SEQ":"200900740","ITEM_NAME":"뮤코펙트정(암브록솔염산염)","ENTP_NAME":"오펠라헬스케어코리아(주)","CHART":"흰색 내지 미황색의 원형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1O597tTUEcr","PRINT_FRONT":"67C분할선67C","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"9","LENG_SHORT":"9","THICK":"2.9","CLASS_NAME":"진해거담제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"나정","EDI_CODE":"074200050"},{"ITEM_SEQ":"199500435","ITEM_NAME":"엘도스캡슐(에르도스테인)","ENTP_NAME":"(주)대웅제약","CHART":"내수용 - 백색의 분말이 들어있는 상부 초록색, 하부 황색의 경질캡슐제수출용 - 백색의 분말이 들어있는 상부 초록색, 하부 미황색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Og9J5dfYp3","PRINT_FRONT":"DW ELC","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"초록","COLOR_CLASS2":"노랑","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"19.10","LENG_SHORT":"6.63","THICK":"6.91","CLASS_NAME":"진해거담제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"641601960"},{"ITEM_SEQ":"202002625","ITEM_NAME":"지엘도스캡슐300밀리그램(에르도스테인)","ENTP_NAME":"지엘팜텍(주)","CHART":"흰색의 분말이 들어있는 상부 초록색, 하부 미황색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1PG0Cv2hrEl","PRINT_FRONT":"GL E300","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"초록","COLOR_CLASS2":"노랑","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"19.1","LENG_SHORT":"6.6","THICK":"6.6","CLASS_NAME":"진해거담제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"649703130"},{"ITEM_SEQ":"200710782","ITEM_NAME":"탁센연질캡슐(나프록센)","ENTP_NAME":"(주)녹십자","CHART":"무색 내지 연한 청록색의 내용물을 함유한 연청록색의 투명한 타원형 연질캡슐","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1PwG4UxJ1mq","PRINT_FRONT":"TAK-SEN","PRINT_BACK":null,"DRUG_SHAPE":"타원형","COLOR_CLASS1":"청록, 투명","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"15.6","LENG_SHORT":"9.7","THICK":"9.7","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"연질캡슐제, 액상","EDI_CODE":null},{"ITEM_SEQ":"197900277","ITEM_NAME":"게보린정(수출명:돌로린정)","ENTP_NAME":"삼진제약(주)","CHART":"홍색의 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1N5PLuAiUvi","PRINT_FRONT":"GR","PRINT_BACK":null,"DRUG_SHAPE":"삼각형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"11.2","LENG_SHORT":"11.2","THICK":"7.4","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"나정","EDI_CODE":null},{"ITEM_SEQ":"198700405","ITEM_NAME":"베아제정","ENTP_NAME":"(주)대웅제약","CHART":"연녹색의 장방형 필름코팅정제이다.","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/148647963523800116","PRINT_FRONT":"BEARSE","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"연두","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"13.3","LENG_SHORT":"7.4","THICK":"5.9","CLASS_NAME":"건위소화제","ETC_OTC_NAME":"일반(안전상비)","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"200300406","ITEM_NAME":"닥터베아제정","ENTP_NAME":"(주)대웅제약","CHART":"주황색의 장방형 필름코팅 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/148647963523800122","PRINT_FRONT":"닥터베아제","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"주황","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"14.9","LENG_SHORT":"8.3","THICK":"5.8","CLASS_NAME":"건위소화제","ETC_OTC_NAME":"일반(안전상비)","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"198100119","ITEM_NAME":"우루사정100밀리그램(우르소데옥시콜산)","ENTP_NAME":"(주)대웅제약","CHART":"흰색의 원형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pb_3_20w5z","PRINT_FRONT":"UDCA","PRINT_BACK":"D분할선W","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"8.0","LENG_SHORT":"8.0","THICK":"3.5","CLASS_NAME":"간장질환용제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"나정","EDI_CODE":"641602040"},{"ITEM_SEQ":"200606210","ITEM_NAME":"하루날디정0.2밀리그램(탐스로신염산염)","ENTP_NAME":"한국아스텔라스제약(주)","CHART":"이 약은 흰색의 원형정제이다","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1NB2DoAuQxN","PRINT_FRONT":"마크557","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.5","LENG_SHORT":"8.5","THICK":"4.2","CLASS_NAME":"기타의 비뇨생식기관 및 항문용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"서방성필름코팅정","EDI_CODE":"677200160"},{"ITEM_SEQ":"199504272","ITEM_NAME":"프로스카정(피나스테리드)","ENTP_NAME":"한국오가논(주)","CHART":"청색으로 한 면에는 MSD72가 다른 면에는 Proscar 가 새겨진 사과모양의 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Oqy0vxcEQH","PRINT_FRONT":"PROSCAR","PRINT_BACK":"MSD72","DRUG_SHAPE":"기타","COLOR_CLASS1":"파랑","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"7.3","LENG_SHORT":"7.1","THICK":"3.6","CLASS_NAME":"기타의 비뇨생식기관 및 항문용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"073100210"},{"ITEM_SEQ":"200409982","ITEM_NAME":"아보다트연질캡슐0.5밀리그램(두타스테리드)","ENTP_NAME":"(주)글락소스미스클라인","CHART":"투명하고 균일한 액이 든 미황색의 장방형 연질캡슐","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Oi0vWfEyP7","PRINT_FRONT":"GXCE2","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"노랑","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"19.13","LENG_SHORT":"6.68","THICK":"6.68","CLASS_NAME":"기타의 비뇨생식기관 및 항문용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"연질캡슐제, 액상","EDI_CODE":"650000780"},{"ITEM_SEQ":"197400278","ITEM_NAME":"씬지로이드정0.1밀리그램(레보티록신나트륨수화물)","ENTP_NAME":"부광약품(주)","CHART":"황색의 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1NXA-1cMBWb","PRINT_FRONT":"SYN","PRINT_BACK":"십자분할선","DRUG_SHAPE":"원형","COLOR_CLASS1":"노랑","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"+","LENG_LONG":"7.6","LENG_SHORT":"7.6","THICK":"3.2","CLASS_NAME":"갑상선, 부갑상선호르몬제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":null},{"ITEM_SEQ":"201900107","ITEM_NAME":"씬지로이드정0.112밀리그램(레보티록신나트륨수화물)","ENTP_NAME":"부광약품(주)","CHART":"연한노란분홍색의 원형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1McvZckollL","PRINT_FRONT":"B분할선K","PRINT_BACK":"112","DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"7.8","LENG_SHORT":"7.8","THICK":"2.7","CLASS_NAME":"갑상선, 부갑상선호르몬제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":null},{"ITEM_SEQ":"197000050","ITEM_NAME":"자이로릭정(알로푸리놀)","ENTP_NAME":"삼일제약(주)","CHART":"흰색의 원형정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151317992996500014","PRINT_FRONT":"GS분할선FE7","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"9.4","LENG_SHORT":"9.4","THICK":"3.9","CLASS_NAME":"통풍치료제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"643901390"},{"ITEM_SEQ":"201002150","ITEM_NAME":"글루코파지엑스알1000밀리그램서방정(메트포르민염산염)","ENTP_NAME":"머크(주)","CHART":"흰색 내지 미색의 양면이 볼록한 타원형의 서방정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426484987700130","PRINT_FRONT":"MERCK","PRINT_BACK":"1000","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"22.5","LENG_SHORT":"12.0","THICK":"8.0","CLASS_NAME":"당뇨병용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"서방정","EDI_CODE":"661700580"},{"ITEM_SEQ":"201002151","ITEM_NAME":"다이아벡스엑스알서방정1000밀리그램(메트포르민염산염)","ENTP_NAME":"(주)대웅제약","CHART":"흰색 내지 미색의 양면이 볼록한 타원형의 서방정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426484987700133","PRINT_FRONT":"SR 1000","PRINT_BACK":null,"DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"22.1","LENG_SHORT":"10.61","THICK":"8.42","CLASS_NAME":"당뇨병용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"서방정","EDI_CODE":"641604640"},{"ITEM_SEQ":"201107199","ITEM_NAME":"메디롤엠정2/500밀리그램(글리메피리드,메트포르민염산염)","ENTP_NAME":"삼익제약(주)","CHART":"흰색의 장방형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OKRXo9l4Ka","PRINT_FRONT":"마크","PRINT_BACK":"25","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"15.7","LENG_SHORT":"8.7","THICK":"5.8","CLASS_NAME":"당뇨병용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"644003180"},{"ITEM_SEQ":"201107229","ITEM_NAME":"아베린엠정2/500밀리그램(글리메피리드, 메트포르민염산염)","ENTP_NAME":"(주)휴온스","CHART":"흰색의 장방형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426570506500192","PRINT_FRONT":"HS 25","PRINT_BACK":"분할선","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"15.9","LENG_SHORT":"8.7","THICK":"6.3","CLASS_NAME":"당뇨병용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"670605930"},{"ITEM_SEQ":"200809402","ITEM_NAME":"리피논정80밀리그램(아토르바스타틴칼슘삼수화물)","ENTP_NAME":"동아에스티(주)","CHART":"이 약은 흰색의 타원형 필름코팅정이다.","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426403087300161","PRINT_FRONT":"LPT","PRINT_BACK":"80","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"19.55","LENG_SHORT":"10.50","THICK":"7.06","CLASS_NAME":"동맥경화용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"642506260"},{"ITEM_SEQ":"200705825","ITEM_NAME":"아토스타정10밀리그램(아토르바스타틴칼슘삼수화물)","ENTP_NAME":"동화약품(주)","CHART":"흰색의 타원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Oo7XeTdjqg","PRINT_FRONT":"D-W","PRINT_BACK":"AT1","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"10.0","LENG_SHORT":"5.2","THICK":"3.8","CLASS_NAME":"동맥경화용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"642702290"},{"ITEM_SEQ":"200810870","ITEM_NAME":"로수로드정10밀리그램(로수바스타틴칼슘)","ENTP_NAME":"(주)종근당","CHART":"분홍색의 원형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151706768099900035","PRINT_FRONT":"CKDRSD10","PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"7","LENG_SHORT":"7","THICK":"3","CLASS_NAME":"동맥경화용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"643305080"},{"ITEM_SEQ":"201001029","ITEM_NAME":"에스로틴정10밀리그램(로수바스타틴칼슘)","ENTP_NAME":"에스케이케미칼(주)","CHART":"분홍색의 원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151922765025100135","PRINT_FRONT":"SK","PRINT_BACK":"RSV10","DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"7","LENG_SHORT":"7","THICK":"4","CLASS_NAME":"동맥경화용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"644703330"},{"ITEM_SEQ":"201001683","ITEM_NAME":"텔미스정40mg(텔미사르탄)","ENTP_NAME":"삼일제약(주)","CHART":"흰색 또는 거의 흰색의 양면이 볼록한 원형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426479322700162","PRINT_FRONT":"마크","PRINT_BACK":"T분할선11","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"7.5","LENG_SHORT":"7.5","THICK":"4","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"643902880"},{"ITEM_SEQ":"201001685","ITEM_NAME":"텔미스정80mg(텔미사르탄)","ENTP_NAME":"삼일제약(주)","CHART":"흰색 또는 거의 흰색의 양면이 볼록한 원형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pvn3im1ofq","PRINT_FRONT":"마크","PRINT_BACK":"T분할선12","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"9.5","LENG_SHORT":"9.5","THICK":"4","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"643902890"},{"ITEM_SEQ":"200809361","ITEM_NAME":"바르탄정(발사르탄)","ENTP_NAME":"(주)휴온스","CHART":"엷은 적색의 원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426403087300155","PRINT_FRONT":"V분할선T","PRINT_BACK":"HS8","DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"6.5","LENG_SHORT":"6.5","THICK":"1.8","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"200809710","ITEM_NAME":"사르발탄정160밀리그램(발사르탄)","ENTP_NAME":"(주)서울제약","CHART":"회색빛을 띠는 오렌지색의 타원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/153432591328100009","PRINT_FRONT":"SPC","PRINT_BACK":"V분할선16","DRUG_SHAPE":"타원형","COLOR_CLASS1":"주황","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"14.19","LENG_SHORT":"6.13","THICK":"5.20","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"652902340"},{"ITEM_SEQ":"200905939","ITEM_NAME":"세자르플러스프로정(로사르탄칼륨,히드로클로로티아지드)","ENTP_NAME":"삼익제약(주)","CHART":"흰색 내지 회백색의 타원형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426445026400143","PRINT_FRONT":"3CZ","PRINT_BACK":"분할선","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"13.6","LENG_SHORT":"7.8","THICK":"4.6","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"644002750"},{"ITEM_SEQ":"201109188","ITEM_NAME":"로자신정100밀리그램(로사르탄칼륨)","ENTP_NAME":"신풍제약(주)","CHART":"흰색의 달걀형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pvn3im1n0l","PRINT_FRONT":"마크","PRINT_BACK":"100","DRUG_SHAPE":"기타","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"11.8","LENG_SHORT":"7.3","THICK":"5","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"200808340","ITEM_NAME":"바로디핀정5밀리그램(암로디핀베실산염)","ENTP_NAME":"신풍제약(주)","CHART":"흰색의 팔각형 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151706780504700036","PRINT_FRONT":"VD분할선5","PRINT_BACK":"마크","DRUG_SHAPE":"팔각형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"8.7","LENG_SHORT":"6.2","THICK":"3.8","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"648500920"},{"ITEM_SEQ":"201001682","ITEM_NAME":"레보텐션정5밀리그램(에스암로디핀베실산염2.5수화물)","ENTP_NAME":"안국약품(주)","CHART":"이 약은 분할선이 새겨진 연한 주황색의 하트모양 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/154333320801200012","PRINT_FRONT":"A분할선G","PRINT_BACK":"LT5","DRUG_SHAPE":"기타","COLOR_CLASS1":"주황","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"8.5","LENG_SHORT":"7.5","THICK":"3.2","CLASS_NAME":"혈압강하제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"나정","EDI_CODE":"650203440"},{"ITEM_SEQ":"201206529","ITEM_NAME":"글로미피드정(레바미피드)","ENTP_NAME":"(주)킵스바이오파마","CHART":"흰색의 원형필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/146032875586500011","PRINT_FRONT":"KG","PRINT_BACK":"L7","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8","LENG_SHORT":"8","THICK":"3.5","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"693200830"},{"ITEM_SEQ":"201207596","ITEM_NAME":"미피드정(레바미피드)","ENTP_NAME":"(주)팜젠사이언스","CHART":"흰색의 원형 필름 코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1PXynYEcA92","PRINT_FRONT":"SD","PRINT_BACK":"MP","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.1","LENG_SHORT":"8.1","THICK":"3.3","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"670103320"},{"ITEM_SEQ":"200809076","ITEM_NAME":"가스프렌정(모사프리드시트르산염이수화물)","ENTP_NAME":"경동제약(주)","CHART":"분할선을 가진 흰색의 장방형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pvn3im1kUg","PRINT_FRONT":"KD","PRINT_BACK":"분할선","DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"9.1","LENG_SHORT":"4.5","THICK":"3.4","CLASS_NAME":"기타의 소화기관용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"648102540"},{"ITEM_SEQ":"200810338","ITEM_NAME":"가스리드정5mg(모사프리드시트르산염수화물)","ENTP_NAME":"(주)유한양행","CHART":"분할선을 가진 흰색의 장방형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Q5boXF4xmT","PRINT_FRONT":"YH","PRINT_BACK":"G분할선5","DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":"-","LENG_LONG":"9.1","LENG_SHORT":"4.6","THICK":"3.1","CLASS_NAME":"기타의 소화기관용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"642103680"},{"ITEM_SEQ":"201003060","ITEM_NAME":"넥사졸캡슐40밀리그램(에스오메프라졸)","ENTP_NAME":"(주)엘지화학","CHART":"흰색 내지 연한 황갈색 과립을 함유하는 상부, 하부 미황색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151706776344700097","PRINT_FRONT":"LG ESM40","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"노랑","COLOR_CLASS2":"노랑","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"21.5","LENG_SHORT":"7.3","THICK":"7.5","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 장용성과립제","EDI_CODE":null},{"ITEM_SEQ":"201003062","ITEM_NAME":"에소메드캡슐40밀리그램(에스오메프라졸)","ENTP_NAME":"에스케이케미칼(주)","CHART":"흰색 또는 연한 황갈색 과립을 함유하는 상부, 하부 보라색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426492165100074","PRINT_FRONT":"SK E40","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"자주","COLOR_CLASS2":"자주","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"21.8","LENG_SHORT":"7.7","THICK":"7.7","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 장용성과립제","EDI_CODE":null},{"ITEM_SEQ":"201106390","ITEM_NAME":"파라메트정20밀리그램(라베프라졸나트륨)","ENTP_NAME":"하나제약(주)","CHART":"담황색의 원형 장용 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Niwca6NO42","PRINT_FRONT":"HN","PRINT_BACK":"20","DRUG_SHAPE":"원형","COLOR_CLASS1":"노랑","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"6.9","LENG_SHORT":"6.9","THICK":"3.0","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"장용성필름코팅정","EDI_CODE":"657804730"},{"ITEM_SEQ":"201206679","ITEM_NAME":"글로라베정10mg(라베프라졸나트륨)","ENTP_NAME":"(주)킵스바이오파마","CHART":"담황색의 원형 장용 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/153676681538000030","PRINT_FRONT":"KG","PRINT_BACK":"10","DRUG_SHAPE":"원형","COLOR_CLASS1":"노랑","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"6.8","LENG_SHORT":"6.8","THICK":"3.4","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"장용성필름코팅정","EDI_CODE":"693200790"},{"ITEM_SEQ":"201306176","ITEM_NAME":"파미딘정(파모티딘)","ENTP_NAME":"(주)종근당","CHART":"연녹색의 원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426683772100157","PRINT_FRONT":"FM","PRINT_BACK":"CKD","DRUG_SHAPE":"원형","COLOR_CLASS1":"연두","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"5.5","LENG_SHORT":"5.5","THICK":"2.85","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"일반의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"199200163","ITEM_NAME":"휴텍스파모티딘정10밀리그람","ENTP_NAME":"한국휴텍스제약(주)","CHART":"연녹색의 원형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pvn3im1aEp","PRINT_FRONT":"HT","PRINT_BACK":"10","DRUG_SHAPE":"원형","COLOR_CLASS1":"초록","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"6.0","LENG_SHORT":"6.0","THICK":"2.9","CLASS_NAME":"소화성궤양용제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"649101380"},{"ITEM_SEQ":"200612598","ITEM_NAME":"보령세파클러캡슐(세파클러수화물)","ENTP_NAME":"(주)보령","CHART":"수출용 : 이약은 상부가 청색 불투명이고, 하부가 백색 불투명인 캡슐제이다. 캡슐 내용물은 백색 -황백색의 결정성 가루이며, 냄새는 없거나또는 약간 특이한 냄새가 있으며, 맛은 약간 쓰다.내수용 : 연한 노란색의 분말이 충전된 상부 청색불투명, 하부 흰색 불투명 경질 캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426395116500199","PRINT_FRONT":"BR CCL","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"파랑","COLOR_CLASS2":"하양","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"19","LENG_SHORT":"6.5","THICK":"6.5","CLASS_NAME":"주로 그람양성, 음성균에 작용하는 것","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"641901320"},{"ITEM_SEQ":"201207573","ITEM_NAME":"유유세파클러캡슐(세파클러수화물)","ENTP_NAME":"(주)유유제약","CHART":"연한 노란색의 분말이 충전된 상부 보라색 불투명, 하부 흰색 불투명 경질 캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/146032493107200102","PRINT_FRONT":"YY Cefaclor     250","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"보라","COLOR_CLASS2":"하양","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"17.41","LENG_SHORT":"5.92","THICK":"6.25","CLASS_NAME":"주로 그람양성, 음성균에 작용하는 것","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"644501880"},{"ITEM_SEQ":"201001155","ITEM_NAME":"아모크라듀오정500mg(아목시실린-클라불란산칼륨(7:1))","ENTP_NAME":"(주)펜믹스","CHART":"흰색 또는 거의 흰색의 장방형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/154298775798400050","PRINT_FRONT":"K분할선I","PRINT_BACK":"500","DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":"-","LINE_BACK":null,"LENG_LONG":"17.5","LENG_SHORT":"7.9","THICK":"6.15","CLASS_NAME":"주로 그람양성, 음성균에 작용하는 것","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"677100460"},{"ITEM_SEQ":"201303029","ITEM_NAME":"아모시클정375밀리그램(아목시실린-클라불란산칼륨(2:1))","ENTP_NAME":"환인제약(주)","CHART":"흰색이거나 거의 흰색 타원형의 필름코팅 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426670449700141","PRINT_FRONT":"WI","PRINT_BACK":"ANC","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"16.4","LENG_SHORT":"7.8","THICK":"5.8","CLASS_NAME":"주로 그람양성, 음성균에 작용하는 것","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"657202440"},{"ITEM_SEQ":"201002745","ITEM_NAME":"클란자CR정(아세클로페낙)","ENTP_NAME":"한국유나이티드제약(주)","CHART":"흰색의 장방형 서방성 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Pvn3im1jc4","PRINT_FRONT":"UT","PRINT_BACK":"CL CR","DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"16.8","LENG_SHORT":"6","THICK":"5","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"서방성필름코팅정","EDI_CODE":"644307820"},{"ITEM_SEQ":"201207492","ITEM_NAME":"크리페낙정(아세클로페낙)","ENTP_NAME":"삼진제약(주)","CHART":"흰색의 원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1OW18w-b03J","PRINT_FRONT":"SJ","PRINT_BACK":"ΛCF","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.2","LENG_SHORT":"8.2","THICK":"3.9","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"647803710"},{"ITEM_SEQ":"200900844","ITEM_NAME":"모빅캡슐7.5밀리그램(멜록시캄)","ENTP_NAME":"한국베링거인겔하임(주)","CHART":"노란색 가루가 든 상,하 밝은 초록색 캡슐","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Opnl07NLZB","PRINT_FRONT":"Mobic 7.5mg","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"초록","COLOR_CLASS2":"초록","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"17.4","LENG_SHORT":"5.9","THICK":"6.1","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"653500890"},{"ITEM_SEQ":"200900845","ITEM_NAME":"모빅캡슐15밀리그램(멜록시캄)","ENTP_NAME":"한국베링거인겔하임(주)","CHART":"노란색 가루가 든 상부 밝은 초록색, 하부 노란색 캡슐","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Oa2BrqwGD-","PRINT_FRONT":"Mobic 15mg","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"초록","COLOR_CLASS2":"노랑","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"17.7","LENG_SHORT":"6.4","THICK":"6.4","CLASS_NAME":"해열.진통.소염제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"653500900"},{"ITEM_SEQ":"201109259","ITEM_NAME":"프리렙톨캡슐75mg(프레가발린)","ENTP_NAME":"환인제약(주)","CHART":"흰색 또는 연한 노란색을 띄는 분말이 든 상부 적갈색, 하부 흰색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151732699404600060","PRINT_FRONT":"WI PEN    75","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"갈색","COLOR_CLASS2":"하양","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"13.7","LENG_SHORT":"4.5","THICK":"5","CLASS_NAME":"기타의 중추신경용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"657202330"},{"ITEM_SEQ":"201109260","ITEM_NAME":"프리렙톨캡슐150밀리그램(프레가발린)","ENTP_NAME":"환인제약(주)","CHART":"흰색 또는 연한 노란색을 띄는 분말이 든 상부 흰색, 하부 흰색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151732699404600066","PRINT_FRONT":"WI PEN   150","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":"하양","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"18","LENG_SHORT":"5.9","THICK":"6.5","CLASS_NAME":"기타의 중추신경용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"657202340"},{"ITEM_SEQ":"201305040","ITEM_NAME":"펜믹스가바펜틴캡슐100밀리그램","ENTP_NAME":"(주)펜믹스","CHART":"흰색 또는 회백색의 분말 또는 과립이 들어있는 상.하부 흰색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/154599007029200055","PRINT_FRONT":"PM GP100","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"하양","COLOR_CLASS2":"하양","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"15.7","LENG_SHORT":"5.7","THICK":"5.7","CLASS_NAME":"항전간제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":null},{"ITEM_SEQ":"200805255","ITEM_NAME":"가바스탄캡슐(가바펜틴)","ENTP_NAME":"(주)한국파비스제약","CHART":"흰색이나 회백색 분말이 들어있는 상하 미황색의 경질캡슐제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1PZp2vQMjU4","PRINT_FRONT":"PKI PKI","PRINT_BACK":null,"DRUG_SHAPE":"장방형","COLOR_CLASS1":"노랑","COLOR_CLASS2":"노랑","LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"17.97","LENG_SHORT":"7.01","THICK":"7.01","CLASS_NAME":"항전간제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"경질캡슐제, 산제","EDI_CODE":"621801130"},{"ITEM_SEQ":"200808561","ITEM_NAME":"아네페질속붕정(도네페질염산염일수화물)","ENTP_NAME":"대원제약(주)","CHART":"흰색 또는 연한 노란색의 원형 속붕해성 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/154333323956100001","PRINT_FRONT":"DWP","PRINT_BACK":"D10","DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"10","LENG_SHORT":"10","THICK":"3.5","CLASS_NAME":"기타의 중추신경용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"구강붕해정","EDI_CODE":null},{"ITEM_SEQ":"201002064","ITEM_NAME":"바로페질오디정5밀리그램(도네페질염산염일수화물)","ENTP_NAME":"신풍제약(주)","CHART":"흰색의 원형 구강붕해정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426484987700010","PRINT_FRONT":null,"PRINT_BACK":null,"DRUG_SHAPE":"원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"7.0","LENG_SHORT":"7.0","THICK":"2.3","CLASS_NAME":"기타의 중추신경용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"구강붕해정","EDI_CODE":null},{"ITEM_SEQ":"200906592","ITEM_NAME":"아스몬츄정5밀리그램(몬테루카스트나트륨)","ENTP_NAME":"신일제약(주)","CHART":"양면이 볼록한 원형의 씹어먹는 분홍색 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/151732699404500034","PRINT_FRONT":"PHD471","PRINT_BACK":"MOK 5","DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"9.57","LENG_SHORT":"9.57","THICK":"4.39","CLASS_NAME":"기타의 알레르기용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"추어블정(저작정)","EDI_CODE":null},{"ITEM_SEQ":"200906588","ITEM_NAME":"아스몬츄정4밀리그램(몬테루카스트나트륨)","ENTP_NAME":"신일제약(주)","CHART":"양면이 볼록한 타원형의 씹어먹는 분홍색 정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426455627800001","PRINT_FRONT":"PHD471","PRINT_BACK":"MOK 4","DRUG_SHAPE":"타원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"10.99","LENG_SHORT":"8.01","THICK":"3.72","CLASS_NAME":"기타의 알레르기용약","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"추어블정(저작정)","EDI_CODE":null},{"ITEM_SEQ":"200906585","ITEM_NAME":"레보세린정(레보세티리진염산염)","ENTP_NAME":"영진약품(주)","CHART":"흰색 또는 미황색의 타원형 필름코팅정제","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1PSet1337W1","PRINT_FRONT":"L","PRINT_BACK":"Y","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.3","LENG_SHORT":"4.6","THICK":"2.9","CLASS_NAME":"항히스타민제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"642402730"},{"ITEM_SEQ":"201301612","ITEM_NAME":"알레프리정(레보세티리진염산염)","ENTP_NAME":"에스케이케미칼(주)","CHART":"흰색 또는 회백색의 타원형 필름코팅정","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426676298300034","PRINT_FRONT":"L9CZ","PRINT_BACK":"5","DRUG_SHAPE":"타원형","COLOR_CLASS1":"하양","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"8.07","LENG_SHORT":"4.55","THICK":"3.17","CLASS_NAME":"항히스타민제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":null},{"ITEM_SEQ":"200100865","ITEM_NAME":"알레그라정30밀리그람(펙소페나딘염산염)","ENTP_NAME":"(주)한독","CHART":"한 면에 03 다른 한 면에 e가 새겨진 연분홍색의 양면이 볼록한 원형의 필름코팅정   ","ITEM_IMAGE":"https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/1Oikd3yeYOQ","PRINT_FRONT":"03--","PRINT_BACK":"마크","DRUG_SHAPE":"원형","COLOR_CLASS1":"분홍","COLOR_CLASS2":null,"LINE_FRONT":null,"LINE_BACK":null,"LENG_LONG":"6.5","LENG_SHORT":"6.5","THICK":"3.5","CLASS_NAME":"항히스타민제","ETC_OTC_NAME":"전문의약품","FORM_CODE_NAME":"필름코팅정","EDI_CODE":"652100980"}];
@@ -69,7 +73,11 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       { id: '+', label: '十 십자형 (+)' }
     ];
 
-    // --- 상태 변수 ---
+    // --- 상태 변수 (100% RAM 인메모리 + Firebase/Cloudinary 직결, localStorage 0 Byte) ---
+    let memoryMfdsServiceKey = DEFAULT_MFDS_SERVICE_KEY;
+    let memoryGeminiApiKey = '';
+    let memoryMfdsCache = [];   // 식약처 실시간 조회 누적 캐시 (RAM + Firebase pillIdCloudCache 직결)
+
     let filterPrint = '';       // 식별문자 (앞/뒤)
     let filterItemName = '';    // 제품명/성분명
     let filterEntpName = '';    // 제약사명
@@ -77,10 +85,11 @@ if (typeof window.PillIdentifierModule === 'undefined') {
     let filterColor = 'ALL';
     let filterForm = 'ALL';
     let filterLine = 'ALL';
+    let filterOnlyOurStock = false; // 🏥 우리 약국 보유 제품만 보기 필터
 
     let searchResults = [];
     let isSearching = false;
-    let lastSearchSource = '식약처 핵심 시드 DB + 캐시';
+    let lastSearchSource = '☁️ 클라우드 시드·캐시 DB (로컬스토리지 0MB)';
     let searchNotice = '';
     let searchDebounceTimer = null;
 
@@ -111,24 +120,25 @@ if (typeof window.PillIdentifierModule === 'undefined') {
     }
 
     function getMfdsServiceKey() {
-      const saved = (localStorage.getItem(MFDS_KEY_STORAGE) || '').trim();
-      return saved.length > 20 ? saved : DEFAULT_MFDS_SERVICE_KEY;
+      return (memoryMfdsServiceKey && memoryMfdsServiceKey.trim().length > 20)
+        ? memoryMfdsServiceKey.trim()
+        : DEFAULT_MFDS_SERVICE_KEY;
     }
 
     function getGeminiApiKey() {
-      return (localStorage.getItem(GEMINI_KEY_STORAGE) || '').trim();
+      return (memoryGeminiApiKey || '').trim();
     }
 
     async function syncConfigFromCloud() {
       if (cloudConfigSynced) return;
       cloudConfigSynced = true;
       try {
-        // 1) 식약처 ServiceKey 동기화
+        // 1) 식약처 ServiceKey 동기화 (Firebase 직결)
         const resMfds = await fetch(`${FIREBASE_PILL_ID_CONFIG_URL}?t=${Date.now()}`, { cache: 'no-store' });
         if (resMfds.ok) {
           const data = (await resMfds.json()) || {};
           if (data.mfdsServiceKey && String(data.mfdsServiceKey).trim().length > 20) {
-            localStorage.setItem(MFDS_KEY_STORAGE, String(data.mfdsServiceKey).trim());
+            memoryMfdsServiceKey = String(data.mfdsServiceKey).trim();
           } else {
             await fetch(FIREBASE_PILL_ID_CONFIG_URL, {
               method: 'PUT',
@@ -140,12 +150,25 @@ if (typeof window.PillIdentifierModule === 'undefined') {
             });
           }
         }
-        // 2) 공용 Gemini API 키 동기화 (알약 카운터와 공유)
+        // 2) 공용 Gemini API 키 동기화 (Firebase 직결)
         const resAi = await fetch(`${FIREBASE_AI_CONFIG_URL}?t=${Date.now()}`, { cache: 'no-store' });
         if (resAi.ok) {
           const aiData = (await resAi.json()) || {};
           if (aiData.geminiApiKey && String(aiData.geminiApiKey).trim().length > 10) {
-            localStorage.setItem(GEMINI_KEY_STORAGE, String(aiData.geminiApiKey).trim());
+            memoryGeminiApiKey = String(aiData.geminiApiKey).trim();
+          }
+        }
+        // 3) 식약처 낱알식별 클라우드 공유 캐시 동기화 (localStorage 0 Byte, Firebase 직결)
+        const resCache = await fetch(`${FIREBASE_PILL_ID_CACHE_URL}?t=${Date.now()}`, { cache: 'no-store' });
+        if (resCache.ok) {
+          const cloudItems = await resCache.json();
+          if (Array.isArray(cloudItems) && cloudItems.length > 0) {
+            const map = new Map();
+            memoryMfdsCache.forEach(it => { if (it && it.ITEM_SEQ) map.set(String(it.ITEM_SEQ), it); });
+            cloudItems.forEach(it => { if (it && it.ITEM_SEQ) map.set(String(it.ITEM_SEQ), it); });
+            memoryMfdsCache = Array.from(map.values()).slice(-600);
+            searchResults = filterItemsByCriteria(getAllLocalPool());
+            updateResultsSectionDOM();
           }
         }
         updateApiStatusBadgeDOM();
@@ -153,14 +176,7 @@ if (typeof window.PillIdentifierModule === 'undefined') {
     }
 
     function getCachedMfdsItems() {
-      try {
-        const raw = localStorage.getItem(MFDS_CACHE_STORAGE);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (e) {
-        return [];
-      }
+      return Array.isArray(memoryMfdsCache) ? memoryMfdsCache : [];
     }
 
     function mergeIntoLocalMfdsCache(newItems) {
@@ -173,6 +189,7 @@ if (typeof window.PillIdentifierModule === 'undefined') {
         });
         newItems.forEach(item => {
           if (item && item.ITEM_SEQ) {
+            const stockMatch = findPharmacyStockMatch(item.ITEM_NAME);
             map.set(String(item.ITEM_SEQ), {
               ITEM_SEQ: item.ITEM_SEQ,
               ITEM_NAME: item.ITEM_NAME || '',
@@ -192,13 +209,18 @@ if (typeof window.PillIdentifierModule === 'undefined') {
               CLASS_NAME: item.CLASS_NAME || '',
               ETC_OTC_NAME: item.ETC_OTC_NAME || '',
               FORM_CODE_NAME: item.FORM_CODE_NAME || '',
-              EDI_CODE: item.EDI_CODE || null
+              EDI_CODE: item.EDI_CODE || null,
+              PHARMACY_PHOTO_URL: stockMatch?.photoUrl || ''
             });
           }
         });
-        // 최대 500개까지 로컬 캐시 유지 (localStorage 용량 보호)
-        const merged = Array.from(map.values()).slice(-500);
-        localStorage.setItem(MFDS_CACHE_STORAGE, JSON.stringify(merged));
+        // 인메모리 + 파이어베이스 전용 클라우드 캐시에만 보관 (localStorage 0 Byte)
+        memoryMfdsCache = Array.from(map.values()).slice(-600);
+        fetch(FIREBASE_PILL_ID_CACHE_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(memoryMfdsCache)
+        }).catch(() => {});
       } catch (e) {}
     }
 
@@ -213,7 +235,7 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       return Array.from(map.values());
     }
 
-    // 🏥 우리 약국 보유 위치 자동 매칭 ([일반약 위치 관리] + [전문약 위치 관리])
+    // 🏥 우리 약국 보유 위치 & 클라우디너리 제품 사진 자동 매칭 ([일반약 위치 관리] + [전문약 위치 관리])
     function findPharmacyStockMatch(itemName) {
       if (!itemName || !window.SheetsSync || typeof window.SheetsSync.getData !== 'function') return null;
       const syncData = window.SheetsSync.getData() || {};
@@ -231,19 +253,23 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       if (!targetCore || targetCore.length < 2) return null;
 
       for (const m of rxList) {
-        const mName = String(m.name || '').trim();
+        const mName = String(m.name || m.drugName || '').trim();
         const mCore = normalize(mName);
         if (!mCore || mCore.length < 2) continue;
         if (mCore === targetCore || targetFull.includes(mCore) || mCore.includes(targetCore)) {
-          return { type: '전문약', name: mName, location: m.location || '위치 미지정', note: m.note || '' };
+          const locStr = [m.zoneName, m.locationDetail, m.location].filter(Boolean).join(' · ') || '조제실 보유';
+          const photoUrl = (Array.isArray(m.photos) && m.photos[0]) || m.photoUrl || m.imageUrl || '';
+          return { type: '전문약', name: mName, location: locStr, note: m.notes || m.note || '', photoUrl };
         }
       }
       for (const m of otcList) {
-        const mName = String(m.name || '').trim();
+        const mName = String(m.name || m.drugName || '').trim();
         const mCore = normalize(mName);
         if (!mCore || mCore.length < 2) continue;
         if (mCore === targetCore || targetFull.includes(mCore) || mCore.includes(targetCore)) {
-          return { type: '일반약', name: mName, location: m.location || '위치 미지정', note: m.note || '' };
+          const locStr = [m.zoneName, m.locationDetail, m.location].filter(Boolean).join(' · ') || '매장 보유';
+          const photoUrl = (Array.isArray(m.photos) && m.photos[0]) || m.photoUrl || m.imageUrl || '';
+          return { type: '일반약', name: mName, location: locStr, note: m.notes || m.note || '', photoUrl };
         }
       }
       return null;
@@ -255,7 +281,7 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       const qName = filterItemName.trim().toLowerCase();
       const qEntp = filterEntpName.trim().toLowerCase();
 
-      return items.filter(item => {
+      const filteredList = items.filter(item => {
         // 1) 모양 필터
         if (filterShape !== 'ALL') {
           const shape = String(item.DRUG_SHAPE || '');
@@ -306,7 +332,17 @@ if (typeof window.PillIdentifierModule === 'undefined') {
           const entp = String(item.ENTP_NAME || '').toLowerCase();
           if (!entp.includes(qEntp)) return false;
         }
+        // 8) 🏥 우리 약국 보유 제품만 보기 필터
+        if (filterOnlyOurStock) {
+          if (!findPharmacyStockMatch(item.ITEM_NAME)) return false;
+        }
         return true;
+      });
+      // 우리 약국 보유 제품(일반약/전문약 위치 등록 품목)을 최상단으로 우선 정렬
+      return filteredList.sort((a, b) => {
+        const aStock = findPharmacyStockMatch(a.ITEM_NAME) ? 1 : 0;
+        const bStock = findPharmacyStockMatch(b.ITEM_NAME) ? 1 : 0;
+        return bStock - aStock;
       });
     }
 
@@ -665,36 +701,115 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       analyzePillPhotoWithAi(dataUrl);
     }
 
-    // 💾 식별·상담 기록 영구 보관 (Cloudinary 사진 업로드 + SheetsSync/Firebase 저장)
+    // 🖼️ 식약처 낱알 식별 결과 + 우리 약국 보유 위치 통합 스냅샷 카드 생성 (카메라 미촬영 시에도 클라우디너리 영구 보관용 이미지 생성)
+    async function generateIdentificationSnapshotFile(item, stockMatch, customerNote, authorName) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 720;
+      canvas.height = 420;
+      const ctx = canvas.getContext('2d');
+
+      // 배경
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, 720, 420);
+
+      // 상단 헤더 바
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(0, 0, 720, 58);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 20px "Pretendard", "Malgun Gothic", sans-serif';
+      ctx.fillText('🔎 신세계약국 식약처 의약품 낱알식별 · 보유약 확인서', 20, 36);
+
+      // 본문 흰색 박스
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2;
+      ctx.fillRect(20, 74, 680, 326);
+      ctx.strokeRect(20, 74, 680, 326);
+
+      // 전문/일반 배지 및 품목명
+      ctx.fillStyle = String(item.ETC_OTC_NAME || '').includes('전문') ? '#b91c1c' : '#1d4ed8';
+      ctx.font = 'bold 15px "Pretendard", "Malgun Gothic", sans-serif';
+      ctx.fillText(`[${item.ETC_OTC_NAME || '의약품'}] ${item.CLASS_NAME ? '· ' + item.CLASS_NAME : ''}`, 40, 110);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 22px "Pretendard", "Malgun Gothic", sans-serif';
+      const titleStr = String(item.ITEM_NAME || '').slice(0, 34);
+      ctx.fillText(titleStr, 40, 144);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 15px "Pretendard", "Malgun Gothic", sans-serif';
+      ctx.fillText(`제약사: ${item.ENTP_NAME || '-'}   |   품목코드: ${item.ITEM_SEQ || '-'}`, 40, 174);
+
+      // 각인 및 외형 스펙 박스
+      ctx.fillStyle = '#eff6ff';
+      ctx.fillRect(40, 192, 640, 90);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = 'bold 17px "Pretendard", "Malgun Gothic", sans-serif';
+      ctx.fillText(`🔤 각인(앞/뒤): [ ${item.PRINT_FRONT || '없음'} ] / [ ${item.PRINT_BACK || '없음'} ]`, 56, 222);
+      ctx.fillStyle = '#334155';
+      ctx.font = '15px "Pretendard", "Malgun Gothic", sans-serif';
+      ctx.fillText(`🎨 외형: ${item.DRUG_SHAPE || '-'} · ${item.COLOR_CLASS1 || '-'} · ${item.FORM_CODE_NAME || '-'}`, 56, 248);
+      ctx.fillText(`📝 성상: ${String(item.CHART || '-').slice(0, 44)}`, 56, 272);
+
+      // 우리 약국 진열 위치
+      ctx.fillStyle = stockMatch ? '#065f46' : '#64748b';
+      ctx.font = 'bold 16px "Pretendard", "Malgun Gothic", sans-serif';
+      const locLine = stockMatch
+        ? `🏥 우리 약국 보유 (${stockMatch.type}) — 📍 진열 위치: ${stockMatch.location}`
+        : '🏥 우리 약국 위치 DB 미등록 품목 (외부 처방/타약국 지참약)';
+      ctx.fillText(locLine, 40, 316);
+
+      // 상담 메모 및 일시
+      ctx.fillStyle = '#334155';
+      ctx.font = '14px "Pretendard", "Malgun Gothic", sans-serif';
+      ctx.fillText(`💬 상담 메모: ${String(customerNote || '손님 지참약 낱알 식별 상담').slice(0, 45)}`, 40, 348);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '13px "Pretendard", "Malgun Gothic", sans-serif';
+      ctx.fillText(`보관일시: ${new Date().toLocaleString('ko-KR')} · 담당: ${authorName || '약국 직원'} · Cloudinary Cloud Archive`, 40, 380);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      return new File([blob], `pill_card_${item.ITEM_SEQ || Date.now()}.jpg`, { type: 'image/jpeg' });
+    }
+
+    // 💾 식별·상담 기록 및 우리 약국 제품 내역 영구 보관 (Cloudinary 이미지 업로드 + Firebase 직결 저장, localStorage 0 Byte)
     async function saveIdentificationRecord(item) {
       if (!item || isSavingRecord) return;
       isSavingRecord = true;
       renderModule();
 
       try {
+        const currentUser = (window.SheetsSync && typeof window.SheetsSync.getCurrentUser === 'function' && window.SheetsSync.getCurrentUser())
+          || (window.Auth && typeof window.Auth.getCurrentUser === 'function' && window.Auth.getCurrentUser())
+          || { name: '약국 직원' };
+        const stockMatch = findPharmacyStockMatch(item.ITEM_NAME);
+        const noteText = customerNoteInput.trim() || (stockMatch ? `우리 약국 보유약(${stockMatch.location}) 낱알식별 안내` : '손님 지참약 낱알 식별 상담');
+
         let uploadedPhotoUrl = '';
-        if (capturedPhotoDataUrl && window.App && typeof window.App.processAndUploadPhoto === 'function') {
+        if (window.App && typeof window.App.processAndUploadPhoto === 'function') {
           try {
-            // DataURL -> Blob -> File 변환 후 Cloudinary 자동 압축 업로드
-            const res = await fetch(capturedPhotoDataUrl);
-            const blob = await res.blob();
-            const file = new File([blob], `pill_id_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            uploadedPhotoUrl = await window.App.processAndUploadPhoto(file);
+            if (capturedPhotoDataUrl) {
+              // 1) 카메라 촬영 사진이 있으면 해당 사진을 Cloudinary에 압축 업로드
+              const res = await fetch(capturedPhotoDataUrl);
+              const blob = await res.blob();
+              const file = new File([blob], `pill_id_${Date.now()}.jpg`, { type: 'image/jpeg' });
+              uploadedPhotoUrl = await window.App.processAndUploadPhoto(file);
+            } else {
+              // 2) 모양·각인 검색 또는 우리 약국 보유 제품 선택 시에도 식약처 식별결과+우리약국 위치 카드를 생성하여 Cloudinary에 영구 업로드!
+              const cardFile = await generateIdentificationSnapshotFile(item, stockMatch, noteText, currentUser?.name || '약국 직원');
+              uploadedPhotoUrl = await window.App.processAndUploadPhoto(cardFile);
+            }
           } catch (e) {
-            uploadedPhotoUrl = '';
+            uploadedPhotoUrl = stockMatch?.photoUrl || '';
           }
         }
-
-        const currentUser = (window.Auth && typeof window.Auth.getCurrentUser === 'function')
-          ? window.Auth.getCurrentUser()
-          : { name: '약국 직원' };
-        const stockMatch = findPharmacyStockMatch(item.ITEM_NAME);
 
         const newRecord = {
           id: 'PILL_ID_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
           createdAt: new Date().toISOString(),
           authorName: currentUser?.name || '약국 직원',
-          customerNote: customerNoteInput.trim() || '손님 지참약 낱알 식별 상담',
+          customerNote: noteText,
           itemSeq: item.ITEM_SEQ || '',
           itemName: item.ITEM_NAME || '',
           entpName: item.ENTP_NAME || '',
@@ -706,7 +821,8 @@ if (typeof window.PillIdentifierModule === 'undefined') {
           drugShape: item.DRUG_SHAPE || '',
           colorClass1: item.COLOR_CLASS1 || '',
           itemImage: item.ITEM_IMAGE || '',
-          capturedPhotoUrl: uploadedPhotoUrl || '',
+          capturedPhotoUrl: uploadedPhotoUrl || stockMatch?.photoUrl || '',
+          pharmacyProductPhotoUrl: stockMatch?.photoUrl || '',
           pharmacyLocation: stockMatch ? `${stockMatch.type} · ${stockMatch.location}` : ''
         };
 
@@ -720,7 +836,7 @@ if (typeof window.PillIdentifierModule === 'undefined') {
           window.App.markPillIdentifierRead();
         }
         customerNoteInput = '';
-        alert(`✅ [${item.ITEM_NAME}] 낱알 식별 상담 기록이 클라우드 보관함에 저장되었습니다.`);
+        alert(`✅ [${item.ITEM_NAME}] 식약처 식별 결과 및 우리 약국 제품 정보가 클라우디너리(Cloudinary)와 파이어베이스 클라우드에 영구 저장되었습니다!\n(브라우저 로컬스토리지 사용량: 0 Byte)`);
       } catch (err) {
         alert('보관 중 오류가 발생했습니다: ' + err.message);
       } finally {
@@ -749,6 +865,9 @@ if (typeof window.PillIdentifierModule === 'undefined') {
         </span>
         <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${hasGemini ? '#dbeafe' : '#fef3c7'};color:${hasGemini ? '#1e40af' : '#92400e'};border:1px solid ${hasGemini ? '#93c5fd' : '#fde68a'};">
           ${hasGemini ? '🤖 AI 비전 활성' : '⚠️ AI 키 미설정'}
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;">
+          ☁️ 로컬스토리지 0MB (클라우디너리 & 파이어베이스 직결)
         </span>
       `;
     }
@@ -834,13 +953,19 @@ if (typeof window.PillIdentifierModule === 'undefined') {
                   </div>
                 </div>
 
-                <!-- 🏥 우리 약국 보유 위치 자동 매칭 배지 -->
+                <!-- 🏥 우리 약국 보유 위치 & 클라우디너리 제품 사진 자동 매칭 배지 -->
                 ${stockMatch ? `
-                  <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:9px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
-                    <span style="font-size:11.5px;font-weight:800;color:#065f46;">
-                      🏥 우리 약국 보유 (${escapeHTML(stockMatch.type)})
-                    </span>
-                    <span style="font-size:12px;font-weight:900;color:#047857;background:#d1fae5;padding:2px 8px;border-radius:6px;">
+                  <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:9px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                      ${stockMatch.photoUrl ? `
+                        <img src="${escapeHTML(stockMatch.photoUrl)}" alt="우리약국 보유약 사진" loading="lazy"
+                          style="width:36px;height:36px;border-radius:7px;object-fit:cover;border:1px solid #34d399;background:#fff;flex-shrink:0;" />
+                      ` : ''}
+                      <span style="font-size:11.5px;font-weight:800;color:#065f46;">
+                        🏥 우리 약국 보유 (${escapeHTML(stockMatch.type)})
+                      </span>
+                    </div>
+                    <span style="font-size:12px;font-weight:900;color:#047857;background:#d1fae5;padding:2px 8px;border-radius:6px;white-space:nowrap;">
                       📍 진열 위치: ${escapeHTML(stockMatch.location)}
                     </span>
                   </div>
@@ -854,7 +979,7 @@ if (typeof window.PillIdentifierModule === 'undefined') {
                   </button>
                   <button type="button" class="btn-pill-id-save-record" data-seq="${escapeHTML(item.ITEM_SEQ)}"
                     style="padding:8px 10px;border-radius:9px;border:1px solid #86efac;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
-                    💾 상담기록 보관
+                    💾 클라우디너리·클라우드 보관
                   </button>
                 </div>
               </div>
@@ -939,6 +1064,9 @@ if (typeof window.PillIdentifierModule === 'undefined') {
                   </span>
                   <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:700;background:${hasGemini ? '#dbeafe' : '#fef3c7'};color:${hasGemini ? '#1e40af' : '#92400e'};border:1px solid ${hasGemini ? '#93c5fd' : '#fde68a'};">
                     ${hasGemini ? '🤖 AI 비전 활성' : '⚠️ AI 키 미설정'}
+                  </span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;">
+                    ☁️ 로컬스토리지 0MB (클라우디너리 & 파이어베이스 직결)
                   </span>
                 </div>
               </div>
@@ -1127,9 +1255,14 @@ if (typeof window.PillIdentifierModule === 'undefined') {
                   placeholder="손님 성함 또는 질문 메모 (예: 홍길동님 혈압약 문의)"
                   style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid #cbd5e1;font-size:12px;" />
               </div>
-              <button type="button" id="btn-pill-id-search-api" style="padding:9px 16px;border-radius:10px;border:none;background:#1d4ed8;color:#ffffff;font-size:12.5px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px;">
-                🌐 식약처 OpenAPI 실시간 조회
-              </button>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" id="btn-pill-id-toggle-our-stock" style="padding:9px 14px;border-radius:10px;border:1.5px solid ${filterOnlyOurStock ? '#059669' : '#6ee7b7'};background:${filterOnlyOurStock ? '#059669' : '#ecfdf5'};color:${filterOnlyOurStock ? '#ffffff' : '#065f46'};font-size:12px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                  🏥 ${filterOnlyOurStock ? '우리 약국 보유약 필터 ON' : '우리 약국 보유 제품만 보기'}
+                </button>
+                <button type="button" id="btn-pill-id-search-api" style="padding:9px 16px;border-radius:10px;border:none;background:#1d4ed8;color:#ffffff;font-size:12.5px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                  🌐 식약처 OpenAPI 실시간 조회
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1384,6 +1517,18 @@ if (typeof window.PillIdentifierModule === 'undefined') {
         btnApiSearch.onclick = () => executeSearch({ forceRemote: true });
       }
 
+      const btnToggleStock = document.getElementById('btn-pill-id-toggle-our-stock');
+      if (btnToggleStock) {
+        btnToggleStock.onclick = () => {
+          filterOnlyOurStock = !filterOnlyOurStock;
+          searchResults = filterItemsByCriteria(getAllLocalPool());
+          lastSearchSource = filterOnlyOurStock
+            ? `🏥 우리 약국 보유 제품 필터 적용 (${searchResults.length}건 일치)`
+            : `☁️ 클라우드 시드·캐시 DB (${searchResults.length}건 표시)`;
+          renderModule();
+        };
+      }
+
       const btnReset = document.getElementById('btn-pill-id-reset-all');
       if (btnReset) {
         btnReset.onclick = () => {
@@ -1394,11 +1539,12 @@ if (typeof window.PillIdentifierModule === 'undefined') {
           filterColor = 'ALL';
           filterForm = 'ALL';
           filterLine = 'ALL';
+          filterOnlyOurStock = false;
           capturedPhotoDataUrl = '';
           aiAnalysisSummary = null;
           searchNotice = '';
-          searchResults = getAllLocalPool();
-          lastSearchSource = `⚡ 식약처 시드·캐시 DB (${searchResults.length}종 전체 표시)`;
+          searchResults = filterItemsByCriteria(getAllLocalPool());
+          lastSearchSource = `☁️ 클라우드 시드·캐시 DB (${searchResults.length}종 전체 표시 · 로컬스토리지 0MB)`;
           renderModule();
         };
       }
@@ -1480,8 +1626,8 @@ if (typeof window.PillIdentifierModule === 'undefined') {
         cfgSave.onclick = async () => {
           const mfdsVal = (document.getElementById('input-pill-id-cfg-mfds')?.value || '').trim();
           const geminiVal = (document.getElementById('input-pill-id-cfg-gemini')?.value || '').trim();
-          if (mfdsVal) localStorage.setItem(MFDS_KEY_STORAGE, mfdsVal);
-          if (geminiVal) localStorage.setItem(GEMINI_KEY_STORAGE, geminiVal);
+          if (mfdsVal) memoryMfdsServiceKey = mfdsVal;
+          if (geminiVal) memoryGeminiApiKey = geminiVal;
           try {
             await fetch(FIREBASE_PILL_ID_CONFIG_URL, {
               method: 'PUT',

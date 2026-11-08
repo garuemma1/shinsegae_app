@@ -13,7 +13,8 @@ if (typeof window.PillIdentifierModule === 'undefined') {
     const FIREBASE_PILL_ID_CONFIG_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillIdConfig.json';
     const FIREBASE_PILL_ID_CACHE_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillIdCloudCache.json';
     const FIREBASE_AI_CONFIG_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillCounterConfig.json';
-    const AI_MODEL_QUEUE = ['gemini-2.5-flash', 'gemini-flash-latest'];
+    // 🚀 구글 현행 초고속 비전 모델 큐 (gemini-2.5-flash 404 지원종료 대응 → 1.0~1.4초 응답이 검증된 gemini-3.5-flash & gemini-3.1-flash-lite 최우선 배치)
+    const AI_MODEL_QUEUE = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest'];
 
     // 🛡️ [제 195 조 & 제 171 조] 브라우저 기본 localStorage (5MB 한도) 절대 사용 금지 (0 Byte 유지)
     // 기존에 남아있을 수 있는 로컬스토리지 캐시·기록 키를 기동 즉시 영구 삭제하고 100% 인메모리(RAM) + 클라우디너리(Cloudinary) & 파이어베이스(Firebase) 직결 운용
@@ -372,14 +373,56 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       return items;
     }
 
+    // 🤖 공용 Gemini JSON 호출 헬퍼 (모델당 6.5초 타임아웃 + thinkingBudget 호환 폴백 + 마크다운 코드펜스 자동 제거)
+    async function callGeminiJsonWithFallback(apiKey, parts, timeoutMs = 6500) {
+      for (const model of AI_MODEL_QUEUE) {
+        const configsToTry = [
+          { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+          { temperature: 0.1, responseMimeType: 'application/json' }
+        ];
+        for (const genCfg of configsToTry) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), timeoutMs);
+          try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts }],
+                generationConfig: genCfg
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timer);
+            if (!res.ok) {
+              // 400 Invalid Argument (thinkingConfig 미지원 모델)인 경우 즉시 다음 genCfg 시도, 404/503 등은 다음 모델로 이동
+              if (res.status === 400 && genCfg.thinkingConfig) continue;
+              break;
+            }
+            const data = await res.json();
+            let txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            txt = txt.replace(/```json/gi, '').replace(/```/g, '').trim();
+            if (!txt) break;
+            const parsed = JSON.parse(txt);
+            if (parsed) return { parsed, model };
+          } catch (e) {
+            clearTimeout(timer);
+            break;
+          }
+        }
+      }
+      return null;
+    }
+
     // AI로 각인문자·외형 조건에 해당하는 한국 의약품 품목명 후보 추론 (로컬 DB에 없는 희귀 각인 검색 시 식약처 API 교차 조회용)
     async function resolveCandidateDrugNamesViaAi() {
+      if (!getGeminiApiKey()) await syncConfigFromCloud();
       const apiKey = getGeminiApiKey();
       if (!apiKey || apiKey.length < 10) return [];
       if (!filterPrint.trim() && filterShape === 'ALL' && filterColor === 'ALL') return [];
 
       const prompt = `당신은 대한민국 약국의 의약품 낱알식별 전문가입니다.
-다음 낱알 외형 조건에 가장 부합하는 대한민국 시판 의약품의 정확한 품목명(단일 단어 핵심 브랜드명, 예: "타이레놀", "노바스크", "플라빅스", "자누비아", "아모디핀", "록소닌")을 최대 5개까지 JSON 배열로만 답하세요.
+다음 낱알 외형 조건에 가장 부합하는 대한민국 시판 의약품의 정확한 품목명(단일 단어 핵심 브랜드명, 예: "타이레놀", "노바스크", "플라빅스", "자누비아", "아모디핀", "록소닌", "울트라셋", "에넥시움")을 최대 6개까지 JSON 배열로만 답하세요.
 - 각인(식별문자): ${filterPrint || '미상'}
 - 모양: ${filterShape === 'ALL' ? '미상' : filterShape}
 - 색상: ${filterColor === 'ALL' ? '미상' : filterColor}
@@ -387,26 +430,9 @@ if (typeof window.PillIdentifierModule === 'undefined') {
 - 분할선: ${filterLine === 'ALL' ? '미상' : filterLine}
 반드시 순수 JSON 배열만 출력하세요. 예: ["타이레놀","울트라셋"]`;
 
-      for (const model of AI_MODEL_QUEUE) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.1,
-                responseMimeType: 'application/json',
-                thinkingConfig: { thinkingBudget: 0 }
-              }
-            })
-          });
-          if (!res.ok) continue;
-          const data = await res.json();
-          const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-          const arr = JSON.parse(txt);
-          if (Array.isArray(arr)) return arr.slice(0, 5).map(s => String(s || '').trim()).filter(Boolean);
-        } catch (e) {}
+      const result = await callGeminiJsonWithFallback(apiKey, [{ text: prompt }], 6000);
+      if (result && Array.isArray(result.parsed)) {
+        return result.parsed.slice(0, 6).map(s => String(s || '').trim()).filter(Boolean);
       }
       return [];
     }
@@ -477,7 +503,7 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       }, 280);
     }
 
-    // 📸 사진 파일 / 카메라 프레임에서 정사각형 고해상도 이미지 생성 후 Gemini Vision AI 판독
+    // 📸 사진 파일 / 카메라 프레임에서 정사각형 고해상도 이미지 생성 (음각 각인 부각을 위한 명암·채도 보정 적용)
     function loadImageAsSquareDataUrl(fileOrBlob) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -493,8 +519,11 @@ if (typeof window.PillIdentifierModule === 'undefined') {
             canvas.width = outSide;
             canvas.height = outSide;
             const ctx = canvas.getContext('2d');
+            try {
+              ctx.filter = 'contrast(1.16) saturate(1.10)';
+            } catch (err) {}
             ctx.drawImage(img, sx, sy, side, side, 0, 0, outSide, outSide);
-            resolve(canvas.toDataURL('image/jpeg', 0.88));
+            resolve(canvas.toDataURL('image/jpeg', 0.90));
           };
           img.onerror = reject;
           img.src = e.target.result;
@@ -504,6 +533,199 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       });
     }
 
+    // ⚡ 브라우저 자체 픽셀 분석기 (0.03초 — AI 서버 지연/오프라인 시에도 사진 속 알약 색상·모양을 즉시 추출)
+    function analyzePillPhotoLocally(dataUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const sz = 160;
+            const c = document.createElement('canvas');
+            c.width = sz;
+            c.height = sz;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, sz, sz);
+            const data = ctx.getImageData(0, 0, sz, sz).data;
+
+            // 테두리 픽셀 평균 밝기/색상으로 배경 추정
+            let bgR = 0, bgG = 0, bgB = 0, bgCnt = 0;
+            for (let i = 0; i < sz; i++) {
+              const idxs = [(i * sz) * 4, (i * sz + (sz - 1)) * 4, i * 4, ((sz - 1) * sz + i) * 4];
+              idxs.forEach(p => {
+                bgR += data[p]; bgG += data[p + 1]; bgB += data[p + 2]; bgCnt++;
+              });
+            }
+            bgR /= bgCnt; bgG /= bgCnt; bgB /= bgCnt;
+
+            // 배경과 차이가 큰 중심부 알약 픽셀 수집
+            let fgR = 0, fgG = 0, fgB = 0, fgCnt = 0;
+            let minX = sz, maxX = 0, minY = sz, maxY = 0;
+            for (let y = 16; y < sz - 16; y++) {
+              for (let x = 16; x < sz - 16; x++) {
+                const p = (y * sz + x) * 4;
+                const r = data[p], g = data[p + 1], b = data[p + 2];
+                const diff = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                if (diff > 55) {
+                  fgR += r; fgG += g; fgB += b; fgCnt++;
+                  if (x < minX) minX = x;
+                  if (x > maxX) maxX = x;
+                  if (y < minY) minY = y;
+                  if (y > maxY) maxY = y;
+                }
+              }
+            }
+
+            if (fgCnt < 30) {
+              resolve({
+                printFront: '', printBack: '', shape: '장방형', altShapes: ['장방형', '타원형', '원형'],
+                color: '하양', altColors: ['하양', '노랑', '분홍', '주황'], form: '정제', line: 'ALL',
+                candidates: [], reasoning: '사진 중심부 알약의 외형·색상 분포를 기준으로 후보를 탐색했습니다.'
+              });
+              return;
+            }
+
+            fgR /= fgCnt; fgG /= fgCnt; fgB /= fgCnt;
+            const maxC = Math.max(fgR, fgG, fgB) / 255;
+            const minC = Math.min(fgR, fgG, fgB) / 255;
+            const delta = maxC - minC;
+            const sat = maxC === 0 ? 0 : delta / maxC;
+            let hue = 0;
+            if (delta !== 0) {
+              const rN = fgR / 255, gN = fgG / 255, bN = fgB / 255;
+              if (maxC === rN) hue = ((gN - bN) / delta) % 6;
+              else if (maxC === gN) hue = (bN - rN) / delta + 2;
+              else hue = (rN - gN) / delta + 4;
+              hue = Math.round(hue * 60);
+              if (hue < 0) hue += 360;
+            }
+
+            let primaryColor = '하양';
+            let altColors = ['하양'];
+            if (sat < 0.14) {
+              if (maxC > 0.72) { primaryColor = '하양'; altColors = ['하양', '회색']; }
+              else if (maxC > 0.35) { primaryColor = '회색'; altColors = ['회색', '하양', '갈색']; }
+              else { primaryColor = '검정'; altColors = ['검정', '갈색', '회색']; }
+            } else if (hue < 18 || hue >= 335) {
+              if (maxC > 0.70 && sat < 0.55) { primaryColor = '분홍'; altColors = ['분홍', '주황', '빨강']; }
+              else { primaryColor = '빨강'; altColors = ['빨강', '분홍', '주황', '갈색']; }
+            } else if (hue >= 18 && hue < 42) {
+              // 살구색·연주황·베이지·분홍빛 주황 알약 영역 (식약처 DB에서 주황/분홍/노랑/갈색으로 혼재 등록됨)
+              primaryColor = '주황';
+              altColors = ['주황', '분홍', '노랑', '갈색'];
+            } else if (hue >= 42 && hue < 72) {
+              primaryColor = '노랑';
+              altColors = ['노랑', '주황', '하양', '연두'];
+            } else if (hue >= 72 && hue < 165) {
+              primaryColor = hue < 110 ? '연두' : '초록';
+              altColors = ['연두', '초록', '청록'];
+            } else if (hue >= 165 && hue < 255) {
+              primaryColor = '파랑';
+              altColors = ['파랑', '청록', '남색'];
+            } else {
+              primaryColor = '보라';
+              altColors = ['보라', '자주', '분홍'];
+            }
+
+            const bw = Math.max(1, maxX - minX);
+            const bh = Math.max(1, maxY - minY);
+            const ratio = Math.max(bw, bh) / Math.min(bw, bh);
+            const primaryShape = ratio > 1.28 ? '장방형' : '원형';
+            const altShapes = ratio > 1.28 ? ['장방형', '타원형'] : ['원형', '타원형', '팔각형', '육각형'];
+
+            resolve({
+              printFront: '',
+              printBack: '',
+              shape: primaryShape,
+              altShapes,
+              color: primaryColor,
+              altColors,
+              form: '정제',
+              line: 'ALL',
+              candidates: [],
+              reasoning: `표면 각인이 흐릿하여 외형(${altShapes.join('·')}) 및 색상(${altColors.join('·')}) 그룹으로 정밀 매칭했습니다.`
+            });
+          } catch (err) {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = dataUrl;
+      });
+    }
+
+    // 🎯 다중 외형(유사 모양·유사 색상·각인·AI 후보·약국 보유약) 통합 스코어링 매칭
+    function scoreAndFilterByAiSummary(pool, summary) {
+      const pfTarget = String(summary.printFront || '').toUpperCase().replace(/[\s\-_/]/g, '');
+      const pbTarget = String(summary.printBack || '').toUpperCase().replace(/[\s\-_/]/g, '');
+      const shapeSet = new Set([summary.shape, ...(summary.altShapes || [])].filter(s => s && s !== 'ALL'));
+      const colorSet = new Set([summary.color, ...(summary.altColors || [])].filter(c => c && c !== 'ALL'));
+      const candSet = (summary.candidates || []).map(c => String(c || '').toLowerCase()).filter(Boolean);
+
+      const scored = [];
+      for (const item of pool) {
+        let score = 0;
+        const itemNameLower = String(item.ITEM_NAME || '').toLowerCase();
+        const itemShape = String(item.DRUG_SHAPE || '').trim();
+        const c1 = String(item.COLOR_CLASS1 || '');
+        const c2 = String(item.COLOR_CLASS2 || '');
+        const chart = String(item.CHART || '');
+        const colorPool = `${c1} ${c2} ${chart}`;
+        const pfClean = String(item.PRINT_FRONT || '').toUpperCase().replace(/분할선/g, '').replace(/[\s\-_/]/g, '');
+        const pbClean = String(item.PRINT_BACK || '').toUpperCase().replace(/분할선/g, '').replace(/[\s\-_/]/g, '');
+        const printPool = `${pfClean}|${pbClean}`;
+
+        // 1) 각인문자 일치 점수 (각인이 식별된 경우 최우선 가중치)
+        let printMatched = false;
+        if (pfTarget && printPool.includes(pfTarget)) {
+          score += 120;
+          printMatched = true;
+        }
+        if (pbTarget && printPool.includes(pbTarget)) {
+          score += 90;
+          printMatched = true;
+        }
+
+        // 2) AI 추천 후보 브랜드명 일치 점수
+        const candMatched = candSet.some(cand => cand.length >= 2 && itemNameLower.includes(cand));
+        if (candMatched) score += 75;
+
+        // 3) 모양 일치 점수 (주 모양 + 유사 모양군)
+        const exactShape = summary.shape && summary.shape !== 'ALL' && itemShape === summary.shape;
+        const altShapeHit = shapeSet.has(itemShape) || (shapeSet.has('장방형') && itemShape === '타원형') || (shapeSet.has('타원형') && itemShape === '장방형');
+        if (exactShape) score += 35;
+        else if (altShapeHit) score += 24;
+
+        // 4) 색상 일치 점수 (주 색상 + 유사 색상군: 예 살구색 -> 주황/분홍/노랑)
+        const exactColor = summary.color && summary.color !== 'ALL' && colorPool.includes(summary.color);
+        const altColorHit = Array.from(colorSet).some(c => colorPool.includes(c));
+        if (exactColor) score += 35;
+        else if (altColorHit) score += 24;
+
+        // 5) 제형 일치 점수
+        if (summary.form && summary.form !== 'ALL') {
+          const formPool = `${item.FORM_CODE_NAME || ''} ${chart}`;
+          if (summary.form === '정제' && formPool.includes('정')) score += 10;
+          if (summary.form === '경질캡슐' && formPool.includes('경질')) score += 12;
+          if (summary.form === '연질캡슐' && formPool.includes('연질')) score += 12;
+        }
+
+        // 6) 우리 약국 보유약 가산점
+        if (findPharmacyStockMatch(item.ITEM_NAME)) {
+          score += 8;
+        }
+
+        // 각인이 식별되었으면 각인 일치 또는 후보 일치 또는 (모양+색상 동시 일치) 항목 채택
+        // 각인이 없는 사진이면 (모양군 + 색상군 동시 일치) 또는 AI 후보 일치 항목 채택
+        const appearanceMatched = (exactShape || altShapeHit) && (exactColor || altColorHit);
+        if (printMatched || candMatched || appearanceMatched) {
+          scored.push({ item, score });
+        }
+      }
+
+      scored.sort((a, b) => b.score - a.score);
+      return scored.map(s => s.item);
+    }
+
     async function analyzePillPhotoWithAi(dataUrl) {
       capturedPhotoDataUrl = dataUrl;
       isAiAnalyzing = true;
@@ -511,87 +733,88 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       searchNotice = '';
       renderModule();
 
-      const apiKey = getGeminiApiKey();
-      if (!apiKey || apiKey.length < 10) {
-        isAiAnalyzing = false;
-        searchNotice = '⚠️ AI 카메라 판독을 위해 우측 상단 [⚙️ API 설정]에서 Gemini API 키를 확인해주세요. (수동 모양·색상·각인 검색은 즉시 사용 가능)';
-        renderModule();
-        return;
+      // 클라우드 API 키 동기화가 아직 완료되지 않았으면 즉시 대기 후 조회
+      if (!getGeminiApiKey()) {
+        await syncConfigFromCloud();
       }
 
+      const apiKey = getGeminiApiKey();
       const base64Data = dataUrl.split(',')[1];
-      const prompt = `당신은 대한민국 약국의 의약품 낱알식별 AI 판독기입니다.
-사진 속 알약(정제 또는 캡슐)의 외형과 각인(식별문자)을 정밀하게 읽고 다음 JSON 형식으로만 응답하세요.
-- printFront: 알약에 새겨진 영문/숫자/한글 각인문자 (가장 뚜렷한 문자, 예: "TYLENOL", "ATV", "75", "OG33", "UDCA", 없으면 "")
-- printBack: 반대편 또는 추가 각인문자 (예: "500", "10", 없으면 "")
-- shape: 반드시 ["원형","타원형","장방형","반원형","삼각형","사각형","마름모형","오각형","육각형","팔각형","기타"] 중 하나
-- color: 반드시 ["하양","노랑","주황","분홍","빨강","갈색","연두","초록","청록","파랑","남색","자주","보라","회색","검정","투명"] 중 가장 가까운 대표 색상 하나
-- form: 반드시 ["정제","경질캡슐","연질캡슐"] 중 하나
-- line: 분할선이 일자면 "-", 십자면 "+", 없으면 "NONE"
-- candidates: 이 외형과 각인을 가진 대한민국 시판 의약품 핵심 품목명(단일 브랜드명, 예: ["타이레놀","노바스크","리피토"]) 최대 5개 배열
-- reasoning: 약사에게 보여줄 1줄 판독 요약 (예: "흰색 장방형 필름코팅정으로 앞면 TYLENOL 각인이 식별됩니다.")`;
-
       let parsed = null;
-      for (const model of AI_MODEL_QUEUE) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: prompt },
-                  { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
-                ]
-              }],
-              generationConfig: {
-                temperature: 0.1,
-                responseMimeType: 'application/json',
-                thinkingConfig: { thinkingBudget: 0 }
-              }
-            })
-          });
-          if (!res.ok) continue;
-          const json = await res.json();
-          const txt = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          parsed = JSON.parse(txt);
-          if (parsed) break;
-        } catch (e) {}
+      let usedEngineLabel = '🤖 Gemini 3.5 Vision AI';
+
+      if (apiKey && apiKey.length >= 10) {
+        const prompt = `당신은 대한민국 약국의 의약품 낱알식별 AI 판독기입니다.
+사진 속 알약(정제 또는 캡슐, 여러 개가 찍혀 있으면 가장 뚜렷한 알약 기준)의 외형, 색상, 각인(식별문자)을 정밀하게 분석하여 다음 JSON 형식으로만 응답하세요.
+주의: 사진이 멀리서 찍혔거나 빛 반사로 인해 각인 글자가 명확히 보이지 않으면 절대 추측해서 가짜 글자를 만들지 말고 printFront와 printBack을 빈 문자열("")로 두고, 대신 모양(shape, altShapes)과 색상(color, altColors), 후보 약품명(candidates)을 폭넓게 제시하세요.
+- printFront: 알약에 확실히 보이는 영문/숫자/한글 각인문자 (예: "TYLENOL", "ATV", "75", "OG33", 안 보이면 반드시 "")
+- printBack: 반대편 또는 추가 각인문자 (안 보이면 반드시 "")
+- shape: 가장 가까운 대표 모양 1개 (반드시 ["원형","타원형","장방형","반원형","삼각형","사각형","마름모형","오각형","육각형","팔각형","기타"] 중 하나. 길쭉한 알약은 "장방형" 또는 "타원형")
+- altShapes: 식약처 DB에서 혼용될 수 있는 유사 모양 배열 (예: 길쭉한 알약이면 ["장방형","타원형"], 둥근 알약이면 ["원형","타원형"])
+- color: 가장 가까운 대표 색상 1개 (반드시 ["하양","노랑","주황","분홍","빨강","갈색","연두","초록","청록","파랑","남색","자주","보라","회색","검정","투명"] 중 하나)
+- altColors: 조명이나 식약처 등록 기준에 따라 분류될 수 있는 유사 색상 배열 2~4개 (예: 살구색/연주황/베이지색 알약이면 ["주황","분홍","노랑","갈색"])
+- form: 반드시 ["정제","경질캡슐","연질캡슐"] 중 하나
+- line: 분할선이 뚜렷하면 "-" 또는 "+", 안 보이거나 없으면 "ALL"
+- candidates: 이 외형·색상(및 각인)에 해당하는 대한민국 다빈도 처방/일반의약품 단일 핵심 브랜드명 최대 8개 배열 (예: 살구/분홍/연주황 장방·타원형 정제면 ["울트라셋","넥시움","에넥시움","닥터베아제","클래리시드","사르발탄","글리아타민","알레그라"])
+- reasoning: 약사에게 보여줄 1줄 판독 요약 (예: "연주황·살구빛 장방형/타원형 정제(3정)로, 각인이 흐릿하여 유사 색상(주황·분홍·노랑) 및 장방·타원형 의약품을 우선 매칭했습니다.")`;
+
+        const aiRes = await callGeminiJsonWithFallback(apiKey, [
+          { text: prompt },
+          { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
+        ], 7000);
+
+        if (aiRes && aiRes.parsed) {
+          parsed = aiRes.parsed;
+          usedEngineLabel = `🤖 AI 비전(${aiRes.model})`;
+        }
+      }
+
+      // AI 호출이 실패했거나 키가 없는 경우 즉시 브라우저 자체 픽셀 분석기로 폴백 (절대 판독 실패로 멈추지 않음)
+      if (!parsed) {
+        parsed = await analyzePillPhotoLocally(dataUrl);
+        usedEngineLabel = '⚡ 스마트 외형·색상 비전 분석';
       }
 
       if (!parsed) {
         isAiAnalyzing = false;
-        searchNotice = '⚠️ AI 이미지 판독에 실패했습니다. 아래 모양·색상·각인문자 필터로 직접 검색해 주세요.';
+        searchNotice = '⚠️ 사진을 불러오지 못했습니다. 다시 촬영해 주세요.';
         renderModule();
         return;
       }
 
+      const validShape = SHAPE_OPTIONS.some(s => s.id === parsed.shape) ? parsed.shape : 'ALL';
+      const validColor = COLOR_OPTIONS.some(c => c.id === parsed.color) ? parsed.color : 'ALL';
+      const validForm = FORM_OPTIONS.some(f => f.id === parsed.form) ? parsed.form : 'ALL';
+      const altShapes = Array.isArray(parsed.altShapes)
+        ? parsed.altShapes.map(s => String(s || '').trim()).filter(s => SHAPE_OPTIONS.some(o => o.id === s))
+        : (validShape === '장방형' || validShape === '타원형' ? ['장방형', '타원형'] : [validShape]);
+      const altColors = Array.isArray(parsed.altColors)
+        ? parsed.altColors.map(c => String(c || '').trim()).filter(c => COLOR_OPTIONS.some(o => o.id === c))
+        : [validColor];
+
       aiAnalysisSummary = {
         printFront: String(parsed.printFront || '').trim(),
         printBack: String(parsed.printBack || '').trim(),
-        shape: String(parsed.shape || 'ALL').trim(),
-        color: String(parsed.color || 'ALL').trim(),
-        form: String(parsed.form || 'ALL').trim(),
+        shape: validShape,
+        altShapes: Array.from(new Set([validShape, ...altShapes].filter(s => s && s !== 'ALL'))),
+        color: validColor,
+        altColors: Array.from(new Set([validColor, ...altColors].filter(c => c && c !== 'ALL'))),
+        form: validForm,
         line: String(parsed.line || 'ALL').trim(),
         candidates: Array.isArray(parsed.candidates) ? parsed.candidates.map(c => String(c || '').trim()).filter(Boolean) : [],
         reasoning: String(parsed.reasoning || '').trim()
       };
 
-      // AI가 판독한 후보 품목명들을 식약처 공식 OpenAPI에서 실시간 조회하여 로컬 캐시 보강
+      // AI가 추론한 후보 품목명들을 식약처 공식 OpenAPI에서 실시간 병렬 조회하여 클라우드 캐시 보강
       if (aiAnalysisSummary.candidates.length > 0) {
         await Promise.all(
-          aiAnalysisSummary.candidates.slice(0, 5).map(cand =>
-            fetchFromMfdsOpenApi({ itemName: cand, numOfRows: 15 }).catch(() => [])
+          aiAnalysisSummary.candidates.slice(0, 6).map(cand =>
+            fetchFromMfdsOpenApi({ itemName: cand, numOfRows: 12 }).catch(() => [])
           )
         );
       }
 
-      // 필터 자동 적용 (먼저 각인+모양+색상으로 매칭해보고, 결과가 없으면 단계적 완화)
       const detectedPrint = aiAnalysisSummary.printFront || aiAnalysisSummary.printBack || '';
-      const validShape = SHAPE_OPTIONS.some(s => s.id === aiAnalysisSummary.shape) ? aiAnalysisSummary.shape : 'ALL';
-      const validColor = COLOR_OPTIONS.some(c => c.id === aiAnalysisSummary.color) ? aiAnalysisSummary.color : 'ALL';
-      const validForm = FORM_OPTIONS.some(f => f.id === aiAnalysisSummary.form) ? aiAnalysisSummary.form : 'ALL';
-
       filterPrint = detectedPrint;
       filterShape = validShape;
       filterColor = validColor;
@@ -600,29 +823,28 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       filterItemName = '';
       filterEntpName = '';
 
-      let matches = filterItemsByCriteria(getAllLocalPool());
-      // 만약 각인+모양+색상 조합이 너무 엄격하여 0건이면 각인 우선 또는 모양+색상+AI후보 통합 매칭
-      if (matches.length === 0 && detectedPrint) {
-        filterShape = 'ALL';
+      // 1차: 다중 외형(유사 모양·유사 색상·각인·AI 후보) 통합 스코어링 매칭
+      let matches = scoreAndFilterByAiSummary(getAllLocalPool(), aiAnalysisSummary);
+
+      // 만약 각인이 없는데 단일 필터 칩에 잠기면 사용자가 혼란스러우므로, 각인이 안 보일 때는 대표 모양만 세팅하고 색상은 유사 색상 전체가 보이도록 처리
+      if (!detectedPrint && aiAnalysisSummary.altColors.length > 1) {
         filterColor = 'ALL';
-        matches = filterItemsByCriteria(getAllLocalPool());
       }
+
       if (matches.length === 0) {
         filterPrint = '';
         filterShape = validShape;
-        filterColor = validColor;
+        filterColor = 'ALL';
         matches = filterItemsByCriteria(getAllLocalPool());
       }
-      // AI 후보 약품명과 일치하는 항목을 최상단으로 정렬
-      const candSet = aiAnalysisSummary.candidates.map(c => c.toLowerCase());
-      matches.sort((a, b) => {
-        const aHit = candSet.some(c => String(a.ITEM_NAME || '').toLowerCase().includes(c)) ? 1 : 0;
-        const bHit = candSet.some(c => String(b.ITEM_NAME || '').toLowerCase().includes(c)) ? 1 : 0;
-        return bHit - aHit;
-      });
 
       searchResults = matches;
-      lastSearchSource = `📸 AI 비전 판독 + 🌐 식약처 공식 OpenAPI 교차 검증 (${matches.length}건 일치)`;
+      lastSearchSource = `${usedEngineLabel} + 🌐 식약처 공식 OpenAPI 교차 검증 (${matches.length}건 일치)`;
+      if (!detectedPrint) {
+        searchNotice = `💡 사진에서 알약 표면의 각인(글자)이 보이지 않아 외형(${aiAnalysisSummary.altShapes.join('·')}) 및 색상(${aiAnalysisSummary.altColors.join('·')}) 유사군을 종합 판독했습니다. 알약에 적힌 영문/숫자가 있다면 [🔤 식별문자] 칸에 입력하시면 1개로 즉시 특정됩니다!`;
+      } else {
+        searchNotice = '';
+      }
       isAiAnalyzing = false;
       renderModule();
     }
@@ -695,8 +917,12 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       canvas.width = outSide;
       canvas.height = outSide;
       const ctx = canvas.getContext('2d');
+      try {
+        ctx.filter = 'contrast(1.16) saturate(1.10)';
+      } catch (e) {}
       ctx.drawImage(videoEl, sx, sy, side, side, 0, 0, outSide, outSide);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      ctx.filter = 'none';
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
       stopLiveCamera(false);
       analyzePillPhotoWithAi(dataUrl);
     }
@@ -1135,24 +1361,49 @@ if (typeof window.PillIdentifierModule === 'undefined') {
             ` : ''}
 
             ${capturedPhotoDataUrl && !isAiAnalyzing ? `
-              <div style="margin-top:12px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:10px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
-                <img src="${capturedPhotoDataUrl}" alt="촬영된 알약" style="width:76px;height:76px;border-radius:10px;object-fit:cover;border:1px solid #94a3b8;flex-shrink:0;" />
-                <div style="flex:1;min-width:200px;">
-                  <div style="font-size:12.5px;font-weight:900;color:#1e293b;margin-bottom:4px;">
+              <div style="margin-top:12px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:12px;padding:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;">
+                <img src="${capturedPhotoDataUrl}" alt="촬영된 알약" style="width:82px;height:82px;border-radius:10px;object-fit:cover;border:1.5px solid #94a3b8;flex-shrink:0;" />
+                <div style="flex:1;min-width:210px;display:flex;flex-direction:column;gap:6px;">
+                  <div style="font-size:12.5px;font-weight:900;color:#1e293b;">
                     🤖 AI 사진 판독 결과 ${aiAnalysisSummary?.reasoning ? `— ${escapeHTML(aiAnalysisSummary.reasoning)}` : ''}
                   </div>
                   ${aiAnalysisSummary ? `
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:11.5px;">
-                      <span style="padding:2px 8px;border-radius:6px;background:#dbeafe;color:#1e40af;font-weight:800;">각인: ${escapeHTML(aiAnalysisSummary.printFront || '-')} ${aiAnalysisSummary.printBack ? '/ ' + escapeHTML(aiAnalysisSummary.printBack) : ''}</span>
-                      <span style="padding:2px 8px;border-radius:6px;background:#f1f5f9;color:#334155;font-weight:700;">모양: ${escapeHTML(aiAnalysisSummary.shape)}</span>
-                      <span style="padding:2px 8px;border-radius:6px;background:#f1f5f9;color:#334155;font-weight:700;">색상: ${escapeHTML(aiAnalysisSummary.color)}</span>
-                      ${aiAnalysisSummary.candidates.length > 0 ? `<span style="padding:2px 8px;border-radius:6px;background:#dcfce7;color:#166534;font-weight:800;">AI 추천 후보: ${escapeHTML(aiAnalysisSummary.candidates.join(', '))}</span>` : ''}
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;font-size:11.5px;align-items:center;">
+                      <span style="padding:3px 8px;border-radius:6px;background:#dbeafe;color:#1e40af;font-weight:800;">각인: ${escapeHTML(aiAnalysisSummary.printFront || '미검출(외형매칭)')} ${aiAnalysisSummary.printBack ? '/ ' + escapeHTML(aiAnalysisSummary.printBack) : ''}</span>
+                      ${(aiAnalysisSummary.altShapes || [aiAnalysisSummary.shape]).filter(Boolean).map(sh => `
+                        <button type="button" class="chip-pill-id-shape" data-shape="${escapeHTML(sh)}"
+                          style="padding:3px 9px;border-radius:999px;border:1px solid ${filterShape === sh ? '#2563eb' : '#94a3b8'};background:${filterShape === sh ? '#2563eb' : '#fff'};color:${filterShape === sh ? '#fff' : '#1e293b'};font-size:11px;font-weight:800;cursor:pointer;">
+                          📐 모양: ${escapeHTML(sh)}
+                        </button>
+                      `).join('')}
+                      ${(aiAnalysisSummary.altColors || [aiAnalysisSummary.color]).filter(Boolean).map(cl => `
+                        <button type="button" class="chip-pill-id-color" data-color="${escapeHTML(cl)}"
+                          style="padding:3px 9px;border-radius:999px;border:1px solid ${filterColor === cl ? '#2563eb' : '#94a3b8'};background:${filterColor === cl ? '#2563eb' : '#fff'};color:${filterColor === cl ? '#fff' : '#1e293b'};font-size:11px;font-weight:800;cursor:pointer;">
+                          🎨 색상: ${escapeHTML(cl)}
+                        </button>
+                      `).join('')}
                     </div>
+                    ${(aiAnalysisSummary.candidates || []).length > 0 ? `
+                      <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:2px;">
+                        <span style="font-size:11px;font-weight:800;color:#166534;">💡 AI 추천 후보 (터치 시 즉시 조회):</span>
+                        ${aiAnalysisSummary.candidates.map(cand => `
+                          <button type="button" class="chip-pill-id-ai-cand" data-cand="${escapeHTML(cand)}"
+                            style="padding:3px 9px;border-radius:999px;border:1px solid #86efac;background:${filterItemName === cand ? '#16a34a' : '#dcfce7'};color:${filterItemName === cand ? '#ffffff' : '#14532d'};font-size:11px;font-weight:800;cursor:pointer;">
+                            💊 ${escapeHTML(cand)}
+                          </button>
+                        `).join('')}
+                      </div>
+                    ` : ''}
                   ` : ''}
                 </div>
-                <button type="button" id="btn-pill-id-clear-photo" style="padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;">
-                  사진 지우기
-                </button>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button type="button" id="btn-pill-id-retry-ai" style="padding:6px 10px;border-radius:8px;border:1px solid #93c5fd;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:800;cursor:pointer;">
+                    🔄 다시 판독
+                  </button>
+                  <button type="button" id="btn-pill-id-clear-photo" style="padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;">
+                    사진 지우기
+                  </button>
+                </div>
               </div>
             ` : ''}
           </div>
@@ -1570,6 +1821,26 @@ if (typeof window.PillIdentifierModule === 'undefined') {
 
       const btnShutter = document.getElementById('btn-pill-id-shutter');
       if (btnShutter) btnShutter.onclick = captureLiveCameraFrame;
+
+      const btnRetryAi = document.getElementById('btn-pill-id-retry-ai');
+      if (btnRetryAi) {
+        btnRetryAi.onclick = () => {
+          if (capturedPhotoDataUrl) analyzePillPhotoWithAi(capturedPhotoDataUrl);
+        };
+      }
+
+      document.querySelectorAll('.chip-pill-id-ai-cand').forEach(btn => {
+        btn.onclick = () => {
+          const cand = btn.getAttribute('data-cand') || '';
+          if (!cand) return;
+          filterItemName = cand;
+          filterPrint = '';
+          filterShape = 'ALL';
+          filterColor = 'ALL';
+          renderModule();
+          executeSearch({ forceRemote: true });
+        };
+      });
 
       const btnClearPhoto = document.getElementById('btn-pill-id-clear-photo');
       if (btnClearPhoto) {

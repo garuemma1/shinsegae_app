@@ -1,10 +1,22 @@
 {
-  "version": "v6.001",
-  "displayVersion": "v6.001",
-  "name": "🔎 식약처 낱알 식별기 로컬스토리지 0MB(Zero-Storage) 아키텍처 & 클라우디너리·파이어베이스 100% 직결 보관 고도화",
-  "buildTime": 1793807100000,
-  "updatedAt": "2026-11-05 00:45",
+  "version": "v6.002",
+  "displayVersion": "v6.002",
+  "name": "🔎 의약품 낱알 식별기 AI Vision(Gemini 3.5 Flash) 판독 엔진 업그레이드 & 무각인/저조도 알약 다중 외형·픽셀 매칭 고도화",
+  "buildTime": 1793808900000,
+  "updatedAt": "2026-11-05 01:15",
   "history": [
+    {
+      "version": "v6.002",
+      "updatedAt": "2026-11-05 01:15",
+      "files": [
+        "pill-identifier-module.js",
+        "pill-counter-module.js",
+        "index.html",
+        "version.json",
+        "프롬프트 마스터.txt"
+      ],
+      "summary": "의약품 낱알 식별기 및 알약 카운터의 AI 모델 큐를 폐기된 gemini-2.5-flash(404 에러) 대신 최신 고속 모델(gemini-3.5-flash / gemini-3.1-flash-lite)로 전면 교체하고, 각인이 보이지 않는 알약 촬영 시 복수 모양·색상(altShapes·altColors) 가중치 매칭, 1.16배 대비 보정 전처리, 로컬 Canvas 픽셀 HSV/종횡비 즉시 비전 판독 폴백을 탑재"
+    },
     {
       "version": "v6.001",
       "updatedAt": "2026-11-05 00:45",

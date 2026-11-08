@@ -15,7 +15,7 @@ window.PillCounterModule = (function () {
   const FIREBASE_HISTORY_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillCounterHistory.json';
   // 2단계 전용 AI 모델 학습용 데이터 (원본 사진 URL + 보정 완료 알약 박스). 기록 1건당 POST로 추가만 함
   const FIREBASE_TRAIN_URL = 'https://shinsegae-pharmacy-default-rtdb.firebaseio.com/shinsegae_master_db/pillCounterTrainingData.json';
-  const AI_MODEL_QUEUE = ['gemini-2.5-flash', 'gemini-flash-latest'];
+  const AI_MODEL_QUEUE = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest'];
   // 알약 전용 YOLO AI (Roboflow) 설정 — 약국 전 기기 공유 (Firebase pillCounterConfig에 함께 저장)
   const ROBOFLOW_KEY_STORAGE = 'ssg_pill_roboflow_key_v1';
   const ROBOFLOW_MODEL_STORAGE = 'ssg_pill_roboflow_model_v1';

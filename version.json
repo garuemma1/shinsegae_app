@@ -1,10 +1,22 @@
 {
-  "version": "v6.003",
-  "displayVersion": "v6.003",
-  "name": "🔎 의약품 낱알 식별기 [📸 바로 카메라 촬영] 단독 직관화 & 검색·촬영 시에만 결과 목록 표시(초기 대기 화면 깔끔 정돈)",
-  "buildTime": 1794148200000,
-  "updatedAt": "2026-11-08 23:30",
+  "version": "v6.004",
+  "displayVersion": "v6.004",
+  "name": "🛍️ 직원할인구매대장 신규 등록·검수·입금 시 사이드바 N 배지 즉시 표시 버그 수정 (`discount-purchase` 키 일치화 및 초기 기준 지문 자동 생성)",
+  "buildTime": 1794148800000,
+  "updatedAt": "2026-11-08 23:40",
   "history": [
+    {
+      "version": "v6.004",
+      "updatedAt": "2026-11-08 23:40",
+      "files": [
+        "app.js",
+        "sheets-sync.js",
+        "discount-purchase-module.js",
+        "index.html",
+        "version.json"
+      ],
+      "summary": "computeNotificationBadges()의 키 이름(discountPurchase vs 'discount-purchase', annualLeave vs 'annual-leave') 불일치로 인해 updateSidebarBadgesOnly() 실행 시 배지가 삭제되던 버그를 수정하고, _hasUnreadDiscountPurchase 최초 접속 기준 지문 자동 생성 및 saveDiscountPurchases 직후 배지 즉시 갱신 파이프라인 탑재"
+    },
     {
       "version": "v6.003",
       "updatedAt": "2026-11-08 23:30",

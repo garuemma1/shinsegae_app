@@ -463,7 +463,11 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_expiry_ret_' + currUser.id);
-      if (raw === null) return false; // 📌 앱 재실행/최초 세션 시 억지 N 방어 (규칙 73)
+      if (raw === null) {
+        const fingerprints = (items || []).map(_expiryReturnFingerprint);
+        localStorage.setItem('ssg_read_expiry_ret_' + currUser.id, JSON.stringify(fingerprints));
+        return false; // 📌 앱 재실행/최초 세션 시 억지 N 방어 후 기준점 세팅 (규칙 73)
+      }
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
       return items.some(item => !savedSet.has(_expiryReturnFingerprint(item)));
@@ -491,11 +495,15 @@ window.App = (function () {
   function _hasUnreadPharmacyExchange(currUser, peData) {
     if (!currUser) return false;
     try {
+      const allItems = [...(peData.exchanges || []), ...(peData.deadStocks || [])];
       const raw = localStorage.getItem('ssg_read_pharmacy_ex_' + currUser.id);
-      if (raw === null) return false;
+      if (raw === null) {
+        const fingerprints = allItems.map(_pharmacyExchangeFingerprint);
+        localStorage.setItem('ssg_read_pharmacy_ex_' + currUser.id, JSON.stringify(fingerprints));
+        return false;
+      }
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
-      const allItems = [...(peData.exchanges || []), ...(peData.deadStocks || [])];
       return allItems.some(item => !savedSet.has(_pharmacyExchangeFingerprint(item)));
     } catch(e) { return false; }
   }
@@ -522,7 +530,11 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_patient_orders_' + currUser.id);
-      if (raw === null) return false;
+      if (raw === null) {
+        const fingerprints = (items || []).map(_patientOrderFingerprint);
+        localStorage.setItem('ssg_read_patient_orders_' + currUser.id, JSON.stringify(fingerprints));
+        return false;
+      }
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
       return (items || []).some(item => !savedSet.has(_patientOrderFingerprint(item)));
@@ -533,8 +545,9 @@ window.App = (function () {
   function _discountPurchaseFingerprint(item) {
     if (!item) return '';
     const isPaidClean = (item.isPaid === true || item.isPaid === 'TRUE' || item.isPaid === 1 || item.isPaid === '1') ? '1' : '0';
+    const isCrossClean = (item.isCrossChecked === true || item.isCrossChecked === 'TRUE' || item.isCrossChecked === 1 || item.isCrossChecked === '1') ? '1' : '0';
     const dateClean = String(item.updatedAt || item.dateStr || item.createdAt || '').trim();
-    return [item.id || '', dateClean, isPaidClean, Number(item.totalPrice) || 0].join('|');
+    return [item.id || '', dateClean, isPaidClean, isCrossClean, item.itemName || '', Number(item.totalPrice) || 0].join('|');
   }
 
   function markDiscountPurchaseRead() {
@@ -551,10 +564,14 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const raw = localStorage.getItem('ssg_read_discount_' + currUser.id);
-      if (raw === null) return false; // 📌 앱 재실행/최초 세션 시 억지로 N 띄우는 현구조 완전 차단
+      if (raw === null) {
+        const fingerprints = (purchases || []).map(_discountPurchaseFingerprint);
+        localStorage.setItem('ssg_read_discount_' + currUser.id, JSON.stringify(fingerprints));
+        return false; // 📌 최초 세션 기준점 자동 등록 후 이후 신규 등록/수정 시 즉시 N 표시
+      }
       const savedFPs = JSON.parse(raw);
       const savedSet = new Set(savedFPs);
-      return purchases.some(item => !savedSet.has(_discountPurchaseFingerprint(item)));
+      return (purchases || []).some(item => !savedSet.has(_discountPurchaseFingerprint(item)));
     } catch(e) { return false; }
   }
 
@@ -581,8 +598,11 @@ window.App = (function () {
     if (!currUser) return false;
     try {
       const saved = localStorage.getItem('ssg_read_approval_' + currUser.id);
-      if (saved === null) return false; // 최초 접속 시 N 안 띄움
       const current = _approvalFingerprint(data);
+      if (saved === null) {
+        localStorage.setItem('ssg_read_approval_' + currUser.id, current);
+        return false; // 최초 접속 시 기준점 저장 후 이후 변동 시 N 표시
+      }
       return saved !== current;
     } catch(e) { return false; }
   }
@@ -733,7 +753,9 @@ window.App = (function () {
         'expiry-returns': criticalExpiryList.length > 0 ? criticalExpiryList.length : (hasUnreadExpiryReturns ? 'N' : null),
         schedule: hasDirectorComment ? '!' : (isDirector && hasSubmittedSchedules ? 'N' : null),
         annualLeave: pendingLeaves.length > 0 ? pendingLeaves.length : null,
-        discountPurchase: (unpaidPurchases.length > 0 && hasUnreadDiscount) ? (isDirector ? unpaidPurchases.length : 'N') : (hasUnreadDiscount ? 'N' : null),
+        'annual-leave': pendingLeaves.length > 0 ? pendingLeaves.length : null,
+        discountPurchase: hasUnreadDiscount ? 'N' : null,
+        'discount-purchase': hasUnreadDiscount ? 'N' : null,
         approval: hasUnreadApproval ? 'N' : null
       };
     } catch(e) {
@@ -892,6 +914,7 @@ window.App = (function () {
         <button class="menu-item ${activeModule === 'medicine-location' ? 'active' : ''}" data-module="medicine-location" onclick="App.switchModule('medicine-location', true)">
           <div class="menu-icon-wrapper">
             <i class="fas fa-boxes-packing text-primary"></i>
+            ${badges['medicine-location'] ? `<span class="menu-item-badge">${badges['medicine-location']}</span>` : ''}
           </div>
           <span>일반약 위치 관리</span>
         </button>

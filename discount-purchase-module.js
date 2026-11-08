@@ -838,6 +838,9 @@ window.DiscountPurchaseModule = (function () {
     }
 
     window.SheetsSync.saveDiscountPurchases(purchases);
+    if (window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
+    }
     closeModal();
     render('module-content');
   }

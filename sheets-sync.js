@@ -1625,6 +1625,10 @@ window.SheetsSync = (function () {
     pushToCloud();
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('ssg_cloud_updated'));
+      window.dispatchEvent(new CustomEvent('ssg_data_changed'));
+    }
+    if (typeof window !== 'undefined' && window.App && typeof window.App.updateSidebarBadgesOnly === 'function') {
+      window.App.updateSidebarBadgesOnly();
     }
   }
 

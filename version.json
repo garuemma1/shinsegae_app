@@ -1,10 +1,32 @@
 {
-  "version": "v6.004",
-  "displayVersion": "v6.004",
-  "name": "🛍️ 직원할인구매대장 신규 등록·검수·입금 시 사이드바 N 배지 즉시 표시 버그 수정 (`discount-purchase` 키 일치화 및 초기 기준 지문 자동 생성)",
-  "buildTime": 1794148800000,
-  "updatedAt": "2026-11-08 23:40",
+  "version": "v6.006",
+  "displayVersion": "v6.006",
+  "name": "🔎 의약품 낱알 식별기 '모나드정(CSY/MNT, 팔각형)' 등 각인·포장지 정밀 특정 & 엉뚱한 단순 외형 유사약 노출 차단 고도화",
+  "buildTime": 1794151560000,
+  "updatedAt": "2026-11-09 00:26",
   "history": [
+    {
+      "version": "v6.006",
+      "updatedAt": "2026-11-09 00:26",
+      "files": [
+        "pill-identifier-module.js",
+        "index.html",
+        "version.json",
+        "프롬프트 마스터.txt"
+      ],
+      "summary": "모나드정(피나스테리드, CSY/MNT, 팔각형, 분홍/황갈색) 및 프로페시아·팔팔·시알리스 등 다빈도 전문약 식약처 정식 레코드를 시드에 추가하고, AI 프롬프트에서 유도성 예시를 제거하여 포장지 약품명(detectedPackageName) 및 각인문자 2단계 역추적을 탑재하였으며, 각인·약품명 일치 시 엉뚱한 외형 유사약 노출을 전면 차단"
+    },
+    {
+      "version": "v6.005",
+      "updatedAt": "2026-11-09 00:20",
+      "files": [
+        "pill-identifier-module.js",
+        "index.html",
+        "version.json",
+        "프롬프트 마스터.txt"
+      ],
+      "summary": "의약품 낱알 식별기 2단계에서 식별문자·제품명 타이핑 및 모양·색상·제형·분할선 칩 선택 도중 자동 검색과 전체 화면 재렌더링을 제거하여 버퍼링과 끊김을 100% 해소하고, [🌐 식약처 OpenAPI 실시간 조회] 버튼 클릭(또는 Enter / 카메라 촬영) 시에만 검색이 실행되도록 개선"
+    },
     {
       "version": "v6.004",
       "updatedAt": "2026-11-08 23:40",

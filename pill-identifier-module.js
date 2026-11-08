@@ -90,9 +90,26 @@ if (typeof window.PillIdentifierModule === 'undefined') {
 
     let searchResults = [];
     let isSearching = false;
-    let lastSearchSource = '☁️ 클라우드 시드·캐시 DB (로컬스토리지 0MB)';
+    let lastSearchSource = '🔎 검색 대기 중 (사진 촬영 또는 조건 선택 시 표시)';
     let searchNotice = '';
     let searchDebounceTimer = null;
+    let forceShowResults = false;
+
+    function hasActiveSearchCriteria() {
+      return Boolean(
+        filterPrint.trim() ||
+        filterItemName.trim() ||
+        filterEntpName.trim() ||
+        filterShape !== 'ALL' ||
+        filterColor !== 'ALL' ||
+        filterForm !== 'ALL' ||
+        filterLine !== 'ALL' ||
+        filterOnlyOurStock ||
+        capturedPhotoDataUrl ||
+        aiAnalysisSummary ||
+        forceShowResults
+      );
+    }
 
     // 📸 카메라 & AI 판독 상태
     let capturedPhotoDataUrl = '';
@@ -168,8 +185,10 @@ if (typeof window.PillIdentifierModule === 'undefined') {
             memoryMfdsCache.forEach(it => { if (it && it.ITEM_SEQ) map.set(String(it.ITEM_SEQ), it); });
             cloudItems.forEach(it => { if (it && it.ITEM_SEQ) map.set(String(it.ITEM_SEQ), it); });
             memoryMfdsCache = Array.from(map.values()).slice(-600);
-            searchResults = filterItemsByCriteria(getAllLocalPool());
-            updateResultsSectionDOM();
+            if (hasActiveSearchCriteria()) {
+              searchResults = filterItemsByCriteria(getAllLocalPool());
+              updateResultsSectionDOM();
+            }
           }
         }
         updateApiStatusBadgeDOM();
@@ -439,6 +458,15 @@ if (typeof window.PillIdentifierModule === 'undefined') {
 
     // 통합 검색 실행 (로컬 즉시 필터링 + 식약처 OpenAPI 실시간 호출)
     async function executeSearch({ forceRemote = false } = {}) {
+      if (forceRemote) forceShowResults = true;
+      if (!hasActiveSearchCriteria()) {
+        searchResults = [];
+        lastSearchSource = '🔎 검색 대기 중 (사진 촬영 또는 조건 선택 시 표시)';
+        searchNotice = '';
+        updateResultsSectionDOM();
+        return;
+      }
+
       // 1단계: 로컬 시드 + 캐시 즉시 필터링 (0.01초)
       const localMatches = filterItemsByCriteria(getAllLocalPool());
       searchResults = localMatches;
@@ -490,6 +518,15 @@ if (typeof window.PillIdentifierModule === 'undefined') {
     }
 
     function triggerDebouncedSearch() {
+      if (!hasActiveSearchCriteria()) {
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        searchResults = [];
+        lastSearchSource = '🔎 검색 대기 중 (사진 촬영 또는 조건 선택 시 표시)';
+        searchNotice = '';
+        updateResultsSectionDOM();
+        return;
+      }
+
       // 로컬 필터는 즉시 반영하여 체감 속도 0.01초 유지
       searchResults = filterItemsByCriteria(getAllLocalPool());
       lastSearchSource = `⚡ 식약처 시드·캐시 DB (${getAllLocalPool().length}종 중 ${searchResults.length}건 일치)`;
@@ -1109,6 +1146,20 @@ if (typeof window.PillIdentifierModule === 'undefined') {
         `;
       }
 
+      if (!hasActiveSearchCriteria()) {
+        return `
+          <div style="padding:26px 16px;text-align:center;background:#f8fafc;border-radius:14px;border:1.5px dashed #cbd5e1;">
+            <div style="font-size:24px;margin-bottom:6px;">📸 · 🎨</div>
+            <div style="font-size:13.5px;font-weight:800;color:#1e293b;">
+              위에서 알약 사진을 촬영하거나, 각인문자·모양·색상·제품명을 입력(선택)하면 일치하는 의약품 결과가 여기에 표시됩니다.
+            </div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:4px;">
+              검색 전에는 화면이 복잡해지지 않도록 목록을 미리 펼쳐두지 않습니다.
+            </div>
+          </div>
+        `;
+      }
+
       if (!searchResults || searchResults.length === 0) {
         return `
           <div style="padding:32px 16px;text-align:center;background:#f8fafc;border-radius:14px;border:1px dashed #cbd5e1;">
@@ -1264,8 +1315,8 @@ if (typeof window.PillIdentifierModule === 'undefined') {
 
       syncConfigFromCloud();
 
-      if (searchResults.length === 0 && !filterPrint && !filterItemName && !filterEntpName && filterShape === 'ALL' && filterColor === 'ALL' && filterForm === 'ALL' && filterLine === 'ALL') {
-        searchResults = getAllLocalPool();
+      if (!hasActiveSearchCriteria()) {
+        searchResults = [];
       }
 
       const historyList = (window.SheetsSync && typeof window.SheetsSync.getPillIdentifications === 'function')
@@ -1321,15 +1372,11 @@ if (typeof window.PillIdentifierModule === 'undefined') {
               </button>
             </div>
 
-            <!-- 모바일 2열 대칭 촬영/앨범 버튼 -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <label style="padding:11px 10px;border-radius:11px;background:#2563eb;color:#ffffff;font-size:13px;font-weight:800;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+            <!-- 바로 카메라 촬영 단일 버튼 (앨범/사진 선택 버튼 제거) -->
+            <div>
+              <label style="width:100%;padding:12px 14px;border-radius:11px;background:#2563eb;color:#ffffff;font-size:13.5px;font-weight:900;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 6px rgba(37,99,235,0.25);box-sizing:border-box;">
                 📸 바로 카메라 촬영
                 <input type="file" id="input-pill-id-camera" accept="image/*" capture="environment" style="display:none;" />
-              </label>
-              <label style="padding:11px 10px;border-radius:11px;background:#f1f5f9;color:#1e293b;border:1px solid #cbd5e1;font-size:13px;font-weight:800;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-                📁 앨범/사진 선택
-                <input type="file" id="input-pill-id-album" accept="image/*" style="display:none;" />
               </label>
             </div>
 
@@ -1772,10 +1819,15 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       if (btnToggleStock) {
         btnToggleStock.onclick = () => {
           filterOnlyOurStock = !filterOnlyOurStock;
-          searchResults = filterItemsByCriteria(getAllLocalPool());
-          lastSearchSource = filterOnlyOurStock
-            ? `🏥 우리 약국 보유 제품 필터 적용 (${searchResults.length}건 일치)`
-            : `☁️ 클라우드 시드·캐시 DB (${searchResults.length}건 표시)`;
+          if (hasActiveSearchCriteria()) {
+            searchResults = filterItemsByCriteria(getAllLocalPool());
+            lastSearchSource = filterOnlyOurStock
+              ? `🏥 우리 약국 보유 제품 필터 적용 (${searchResults.length}건 일치)`
+              : `⚡ 식약처 시드·캐시 DB (${searchResults.length}건 일치)`;
+          } else {
+            searchResults = [];
+            lastSearchSource = '🔎 검색 대기 중 (사진 촬영 또는 조건 선택 시 표시)';
+          }
           renderModule();
         };
       }
@@ -1791,11 +1843,12 @@ if (typeof window.PillIdentifierModule === 'undefined') {
           filterForm = 'ALL';
           filterLine = 'ALL';
           filterOnlyOurStock = false;
+          forceShowResults = false;
           capturedPhotoDataUrl = '';
           aiAnalysisSummary = null;
           searchNotice = '';
-          searchResults = filterItemsByCriteria(getAllLocalPool());
-          lastSearchSource = `☁️ 클라우드 시드·캐시 DB (${searchResults.length}종 전체 표시 · 로컬스토리지 0MB)`;
+          searchResults = [];
+          lastSearchSource = '🔎 검색 대기 중 (사진 촬영 또는 조건 선택 시 표시)';
           renderModule();
         };
       }
@@ -1847,6 +1900,10 @@ if (typeof window.PillIdentifierModule === 'undefined') {
         btnClearPhoto.onclick = () => {
           capturedPhotoDataUrl = '';
           aiAnalysisSummary = null;
+          if (!hasActiveSearchCriteria()) {
+            searchResults = [];
+            lastSearchSource = '🔎 검색 대기 중 (사진 촬영 또는 조건 선택 시 표시)';
+          }
           renderModule();
         };
       }
@@ -1854,16 +1911,6 @@ if (typeof window.PillIdentifierModule === 'undefined') {
       const camInput = document.getElementById('input-pill-id-camera');
       if (camInput) {
         camInput.onchange = async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const sqUrl = await loadImageAsSquareDataUrl(file);
-          analyzePillPhotoWithAi(sqUrl);
-        };
-      }
-
-      const albumInput = document.getElementById('input-pill-id-album');
-      if (albumInput) {
-        albumInput.onchange = async (e) => {
           const file = e.target.files?.[0];
           if (!file) return;
           const sqUrl = await loadImageAsSquareDataUrl(file);
